@@ -24,7 +24,7 @@ public class OcpProperties {
         private Publish publish;
 
         @Data
-        static class Publish {
+        public static class Publish {
             @NotBlank
             private ServerUrl serverUrl;
             @NotBlank
@@ -35,7 +35,7 @@ public class OcpProperties {
     }
 
     @Data
-    static class ServerUrl {
+    public static class ServerUrl {
         @NotBlank
         private String resource;
     }
