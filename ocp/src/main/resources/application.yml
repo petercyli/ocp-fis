@@ -1,0 +1,24 @@
+server:
+  port: 8444
+logging:
+  file: /java/OCP_LOGS/ocp/ocp.log
+info:
+  component: Omni Care Plan Service
+hystrix.command.default.execution.timeout.enabled: false
+ribbon:
+  ReadTimeout: 50000
+ocp:
+  fhir:
+    publish:
+      serverUrl:
+        resource: http://fhirtest.uhn.ca/baseDstu3
+      clientSocketTimeoutInMs: 768000
+      encoding: json
+---
+# updates configuration for docker environment
+spring.profiles: docker
+ocp:
+  fhir:
+    publish:
+      serverUrl:
+        resource: http://hapi-fhir.ocp.com:8080/hapi-fhir-jpaserver/baseDstu3
