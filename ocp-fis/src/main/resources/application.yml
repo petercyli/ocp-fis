@@ -3,7 +3,7 @@ server:
 logging:
   file: /java/OCP_LOGS/ocp-fis/ocp-fis.log
 info:
-  component: Omni Care Plan - FHIR Integration Service
+  component: Omnibus Care Plan - FHIR Integration Service
 hystrix.command.default.execution.timeout.enabled: false
 ribbon:
   ReadTimeout: 50000
