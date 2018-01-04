@@ -1,6 +1,6 @@
 # Omni Care Plan(OCP) Service
 
-The Omni Care Plan (OCP) service is a component of OCP. It is a core service that manages and retains information about each patient. It does **not** store patients' consents or added providers. (That is handled by the [Patient Consent Management (PCM)](https://github.com/bhits-dev/pcm) service). PHR also manages any C32 and/or C-CDA documents that a **patient** has uploaded to his or her own account for use in testing their consents using the [Try My Policy](https://github.com/bhits-dev/try-policy) feature.
+The Omni Care Plan (OCP) service is a Spring Boot project provides RESTful endpoints to allow applications to publish and retrieve FHIR resources. 
 
 ## Build
 
