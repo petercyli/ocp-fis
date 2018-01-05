@@ -24,6 +24,9 @@
 		<java.version>1.8</java.version>
         <hapi.fhir.version>3.1.0</hapi.fhir.version>
         <docker.maven.version>0.4.13</docker.maven.version>
+		<modelmapper.version>1.0.0</modelmapper.version>
+		<lombok.version>1.16.18</lombok.version>
+
 	</properties>
 
 	<dependencies>
@@ -31,7 +34,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
@@ -41,6 +43,16 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>${lombok.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.modelmapper</groupId>
+			<artifactId>modelmapper</artifactId>
+			<version>${modelmapper.version}</version>
 		</dependency>
         <!-- HAPI FHIR JARS -->
         <dependency>
@@ -63,12 +75,7 @@
             <groupId>ca.uhn.hapi.fhir</groupId>
             <artifactId>hapi-fhir-structures-r4</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.16.18</version>
-        </dependency>
-        <!-- HAPI FHIR JARS -->
+		<!-- HAPI FHIR JARS -->
 	</dependencies>
 
 	<dependencyManagement>
