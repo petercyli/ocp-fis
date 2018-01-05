@@ -17,7 +17,7 @@ public class LocationToLocationDtoMap extends PropertyMap<Location, LocationDto>
 
     @Override
     protected void configure() {
-        map().setResourceId(source.getId());
+        map().setResourceURL(source.getId());
         map().setName(source.getName());
         map().setStatus(source.getStatusElement().asStringValue());
         using(addressToAddressDtoConverter).map(source.getAddress()).setAddress(null);

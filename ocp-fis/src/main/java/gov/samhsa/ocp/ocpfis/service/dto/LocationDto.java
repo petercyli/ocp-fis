@@ -12,7 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class LocationDto {
-    private String resourceId;
+    private String resourceURL;
     private String status;
     private String name;
     private AddressDto address;

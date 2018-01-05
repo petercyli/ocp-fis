@@ -46,11 +46,7 @@ public class LocationServiceImpl implements LocationService {
         log.info("FHIR Location(s) bundle retrieved from FHIR server successfully");
         List<Bundle.BundleEntryComponent> retrievedLocations = allLocationsSearchBundle.getEntry();
 
-        List<LocationDto> temp = retrievedLocations.stream().map(location -> modelMapper.map(location.getResource(), LocationDto.class)).collect(Collectors.toList());
-
-        log.info(retrievedLocations.toString());
-        return temp;
-        // return retrievedLocations.stream().map(location -> modelMapper.map(location, LocationDto.class)).collect(Collectors.toList());
+        return retrievedLocations.stream().map(location -> modelMapper.map(location.getResource(), LocationDto.class)).collect(Collectors.toList());
     }
 
     /**
@@ -127,6 +123,4 @@ public class LocationServiceImpl implements LocationService {
 
         return modelMapper.map(retrievedLocation.getResource(), LocationDto.class);
     }
-
-
 }
