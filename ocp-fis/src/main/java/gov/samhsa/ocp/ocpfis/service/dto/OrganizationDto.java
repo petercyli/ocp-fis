@@ -13,8 +13,8 @@ import java.util.List;
 @NoArgsConstructor
 public class OrganizationDto {
     private IdentifierDto identifier;
-    private String status;
+    private boolean status;
     private String name;
-    private AddressDto address;
+    private List<AddressDto> address;
     private List<TelecomDto> telecoms;
 }

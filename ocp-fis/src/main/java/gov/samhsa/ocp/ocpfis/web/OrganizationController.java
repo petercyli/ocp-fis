@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.OrganizationService;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -23,7 +24,7 @@ public class OrganizationController {
      * @return
      */
     @GetMapping("/organizations")
-    public List<OrganizationDto> getAllOrganization() {
+    public List<OrganizationDto> getAllOrganization(@RequestParam(value = "name", required = false) String name) {
         return organizationService.getAllOrganizations();
     }
 

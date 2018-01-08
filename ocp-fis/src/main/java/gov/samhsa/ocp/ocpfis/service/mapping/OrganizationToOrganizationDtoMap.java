@@ -10,17 +10,16 @@ import org.springframework.stereotype.Component;
 public class OrganizationToOrganizationDtoMap extends PropertyMap<Organization, OrganizationDto> {
 
     @Autowired
-    private AddressToAddressDtoConverter addressToAddressDtoConverter;
+    private AddressListToAddressDtoListConverter addressListToAddressDtoListConverter;
 
     @Autowired
     private TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter;
 
     @Override
     protected void configure() {
-//        map().setResourceURL(source.getId());
-//        map().setName(source.getName());
-//        map().setStatus(source.getStatusElement().asStringValue());
-//          using(addressToAddressDtoConverter).map(source.getAddress()).setAddress(null);
-//        using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecoms(null);
+        map().setName(source.getName());
+        map().setStatus(source.getActive());
+        using(addressListToAddressDtoListConverter).map(source.getAddress()).setAddress(null);
+        using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecoms(null);
     }
 }
