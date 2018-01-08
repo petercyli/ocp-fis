@@ -37,7 +37,7 @@ public class PractitionerServiceImpl implements  PractitionerService{
     }
 
     @Override
-    public List<PractitionerDto> readPractitioners() {
+    public List<PractitionerDto> getAllPractitioners() {
 
         List<PractitionerDto> list=new ArrayList<>();
 

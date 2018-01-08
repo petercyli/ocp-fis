@@ -19,6 +19,6 @@ public class PractitionerController {
 
     @RequestMapping("/practitioners")
     public List<PractitionerDto> getPractitioners(){
-        return practitionerService.readPractitioners();
+        return practitionerService.getAllPractitioners();
     }
 }
