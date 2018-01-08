@@ -16,7 +16,12 @@ import java.util.Optional;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PractitionerDto {
 
-    private Optional<List<IdentifierDto>> identifiers;
+    private List<IdentifierDto> identifiers;
 
     private String familyName;
+
+    private String givenName;
+
+    private List<TelecomDto> telecoms;
+
 }
