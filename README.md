@@ -1,6 +1,6 @@
-# Omni Care Plan(OCP) Service
+# Omnibus Care Plan(OCP) Service
 
-The Omni Care Plan (OCP) service is a Spring Boot project provides RESTful endpoints to allow applications to publish and retrieve FHIR resources. 
+The Omnibus Care Plan (OCP) service is a Spring Boot project provides RESTful endpoints to allow applications to publish and retrieve FHIR resources. 
 
 ## Build
 

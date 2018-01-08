@@ -15,8 +15,12 @@ import java.util.Map;
 @Configuration
 public class FhirServiceConfig {
 
+    private final OcpProperties ocpProperties;
+
     @Autowired
-    private OcpProperties ocpProperties;
+    public FhirServiceConfig(OcpProperties ocpProperties) {
+        this.ocpProperties = ocpProperties;
+    }
 
     @Bean
     public FhirContext fhirContext() {
@@ -30,6 +34,11 @@ public class FhirServiceConfig {
         final Map<Class<? extends Resource>, IGenericClient> fhirClients = new HashMap<>();
         fhirClients.put(Resource.class, fhirContext().newRestfulGenericClient(ocpProperties.getFhir().getPublish().getServerUrl().getResource()));
         return fhirClients;
+    }
+
+    @Bean
+    public IGenericClient fhirClient() {
+        return fhirContext().newRestfulGenericClient(ocpProperties.getFhir().getPublish().getServerUrl().getResource());
     }
 
 
