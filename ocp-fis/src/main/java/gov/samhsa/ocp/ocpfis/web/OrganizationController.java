@@ -3,14 +3,18 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.OrganizationService;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 
 
 
 @RestController
+@RequestMapping("/organizations")
+
 public class OrganizationController {
     private final OrganizationService organizationService;
 
@@ -18,14 +22,14 @@ public class OrganizationController {
         this.organizationService = organizationService;
     }
 
-    /**
-     * Gets all available locations in the configured FHIR server
-     *
-     * @return
-     */
-    @GetMapping("/organizations")
-    public List<OrganizationDto> getAllOrganization(@RequestParam(value = "name", required = false) String name) {
+    @GetMapping
+    public List<OrganizationDto> getAllOrganization() {
         return organizationService.getAllOrganizations();
+    }
+
+    @GetMapping("/search")
+    public List<OrganizationDto> searchOrganization(@Valid @RequestParam String name) {
+        return organizationService.searchOrganization(name);
     }
 
 }

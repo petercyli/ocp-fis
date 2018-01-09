@@ -18,8 +18,7 @@ public class OrganizationToOrganizationDtoMap extends PropertyMap<Organization, 
     @Override
     protected void configure() {
         map().setName(source.getName());
-        map().setStatus(source.getActive());
-        using(addressListToAddressDtoListConverter).map(source.getAddress()).setAddress(null);
+        using(addressListToAddressDtoListConverter).map(source.getAddress()).setAddresses(null);
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecoms(null);
     }
 }

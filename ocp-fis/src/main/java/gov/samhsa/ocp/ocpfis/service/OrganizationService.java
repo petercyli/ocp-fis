@@ -11,4 +11,6 @@ public interface OrganizationService {
      * @return
      */
     List<OrganizationDto> getAllOrganizations();
+
+    List<OrganizationDto> searchOrganization(String name);
 }
