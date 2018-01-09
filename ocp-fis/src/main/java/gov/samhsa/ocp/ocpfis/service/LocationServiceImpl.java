@@ -58,7 +58,7 @@ public class LocationServiceImpl implements LocationService {
 
         if (page.isPresent() && allLocationsSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
-            allLocationsSearchBundle = getLocationSearchBundleByPage(allLocationsSearchBundle, page, numberOfLocationsPerPage);
+            allLocationsSearchBundle = getLocationSearchBundleByPageAndSize(allLocationsSearchBundle, page, numberOfLocationsPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = allLocationsSearchBundle.getEntry();
 
@@ -78,6 +78,7 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle locationSearchBundle = fhirClient.search().forResource(Location.class)
                 .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
+                .count(numberOfLocationsPerPage)
                 .returnBundle(Bundle.class)
                 .execute();
 
@@ -90,7 +91,7 @@ public class LocationServiceImpl implements LocationService {
 
         if (page.isPresent() && locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
-            locationSearchBundle = getLocationSearchBundleByPage(locationSearchBundle, page, numberOfLocationsPerPage);
+            locationSearchBundle = getLocationSearchBundleByPageAndSize(locationSearchBundle, page, numberOfLocationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedLocations = locationSearchBundle.getEntry();
@@ -148,8 +149,8 @@ public class LocationServiceImpl implements LocationService {
         return modelMapper.map(retrievedLocation.getResource(), LocationDto.class);
     }
 
-    private Bundle getLocationSearchBundleByPage(Bundle locationSearchBundle, Optional<Integer> page, int numberOfLocationsPerPage) {
-        if (page.isPresent() && locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+    private Bundle getLocationSearchBundleByPageAndSize(Bundle locationSearchBundle, Optional<Integer> page, int numberOfLocationsPerPage) {
+        if (locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             //Assuming page number starts with 1
             int offset = ((page.filter(p -> p >= 1).orElse(1)) - 1) * numberOfLocationsPerPage;
 
