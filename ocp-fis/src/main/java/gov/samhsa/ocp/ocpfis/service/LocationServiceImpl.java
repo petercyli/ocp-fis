@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import gov.samhsa.ocp.ocpfis.config.OcpProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,10 +25,13 @@ public class LocationServiceImpl implements LocationService {
 
     private final IGenericClient fhirClient;
 
+    private final OcpProperties ocpProperties;
+
     @Autowired
-    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient) {
+    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, OcpProperties ocpProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
+        this.ocpProperties = ocpProperties;
     }
 
     /**
@@ -35,15 +40,26 @@ public class LocationServiceImpl implements LocationService {
      * @return
      */
     @Override
-    public List<LocationDto> getAllLocations() {
+    public List<LocationDto> getAllLocations(Optional<Integer> page, Optional<Integer> size) {
+
+        int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
+                s <= ocpProperties.getLocation().getPagination().getMaxSize()).orElse(ocpProperties.getLocation().getPagination().getDefaultSize());
+
         Bundle allLocationsSearchBundle = fhirClient.search().forResource(Location.class)
+                .count(numberOfLocationsPerPage)
                 .returnBundle(Bundle.class)
                 .execute();
 
         if (allLocationsSearchBundle == null || allLocationsSearchBundle.getEntry().size() < 1) {
             throw new LocationNotFoundException("No locations were found in the FHIR server");
         }
-        log.info("FHIR Location(s) bundle retrieved from FHIR server successfully");
+
+        log.info("FHIR Location(s) bundle retrieved " + allLocationsSearchBundle.getTotal() + " location(s) from FHIR server successfully");
+
+        if (page.isPresent() && allLocationsSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+            // Load the required page
+            allLocationsSearchBundle = getLocationSearchBundleByPage(allLocationsSearchBundle, page, numberOfLocationsPerPage);
+        }
         List<Bundle.BundleEntryComponent> retrievedLocations = allLocationsSearchBundle.getEntry();
 
         return retrievedLocations.stream().map(location -> modelMapper.map(location.getResource(), LocationDto.class)).collect(Collectors.toList());
@@ -56,7 +72,10 @@ public class LocationServiceImpl implements LocationService {
      * @return
      */
     @Override
-    public List<LocationDto> getLocationsByOrganization(String organizationResourceId) {
+    public List<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<Integer> page, Optional<Integer> size) {
+        int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
+                s <= ocpProperties.getLocation().getPagination().getMaxSize()).orElse(ocpProperties.getLocation().getPagination().getDefaultSize());
+
         Bundle locationSearchBundle = fhirClient.search().forResource(Location.class)
                 .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
                 .returnBundle(Bundle.class)
@@ -67,7 +86,12 @@ public class LocationServiceImpl implements LocationService {
             throw new LocationNotFoundException("No location found for the given OrganizationID:" + organizationResourceId);
         }
 
-        log.info("FHIR Location(s) bundle retrieved from FHIR server successfully");
+        log.info("FHIR Location(s) bundle retrieved " + locationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
+
+        if (page.isPresent() && locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+            // Load the required page
+            locationSearchBundle = getLocationSearchBundleByPage(locationSearchBundle, page, numberOfLocationsPerPage);
+        }
 
         List<Bundle.BundleEntryComponent> retrievedLocations = locationSearchBundle.getEntry();
 
@@ -122,5 +146,30 @@ public class LocationServiceImpl implements LocationService {
         Bundle.BundleEntryComponent retrievedLocation = childLocationBundle.getEntry().get(0);
 
         return modelMapper.map(retrievedLocation.getResource(), LocationDto.class);
+    }
+
+    private Bundle getLocationSearchBundleByPage(Bundle locationSearchBundle, Optional<Integer> page, int numberOfLocationsPerPage) {
+        if (page.isPresent() && locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+            //Assuming page number starts with 1
+            int offset = ((page.filter(p -> p >= 1).orElse(1)) - 1) * numberOfLocationsPerPage;
+
+            if (offset >= locationSearchBundle.getTotal()) {
+                throw new LocationNotFoundException("No locations were found in the FHIR server for this page number");
+            }
+
+            String pageUrl = ocpProperties.getFhir().getPublish().getServerUrl().getResource()
+                    + "?_getpages=" + locationSearchBundle.getId()
+                    + "&_getpagesoffset=" + offset
+                    + "&_count=" + numberOfLocationsPerPage
+                    + "&_bundletype=searchset";
+
+            // Load the required page
+            Bundle requestedPageLocationsSearchBundle = fhirClient.search().byUrl(pageUrl)
+                    .returnBundle(Bundle.class)
+                    .execute();
+
+            return requestedPageLocationsSearchBundle;
+        }
+        return locationSearchBundle;
     }
 }

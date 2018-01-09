@@ -4,9 +4,11 @@ import gov.samhsa.ocp.ocpfis.service.LocationService;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class LocationController {
@@ -22,8 +24,9 @@ public class LocationController {
      * @return
      */
     @GetMapping("/locations")
-    public List<LocationDto> getAllLocations() {
-        return locationService.getAllLocations();
+    public List<LocationDto> getAllLocations(@RequestParam Optional<Integer> page,
+                                             @RequestParam Optional<Integer> size) {
+        return locationService.getAllLocations(page, size);
     }
 
     /**
@@ -33,8 +36,10 @@ public class LocationController {
      * @return
      */
     @GetMapping("/organizations/{organizationId}/locations")
-    public List<LocationDto> getLocationsByOrganization(@PathVariable String organizationId) {
-        return locationService.getLocationsByOrganization(organizationId);
+    public List<LocationDto> getLocationsByOrganization(@PathVariable String organizationId,
+                                                        @RequestParam Optional<Integer> page,
+                                                        @RequestParam Optional<Integer> size) {
+        return locationService.getLocationsByOrganization(organizationId, page, size);
     }
 
     /**

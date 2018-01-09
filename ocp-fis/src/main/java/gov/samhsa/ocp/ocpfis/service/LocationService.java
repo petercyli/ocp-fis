@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface LocationService {
     /**
@@ -10,7 +11,7 @@ public interface LocationService {
      *
      * @return
      */
-    List<LocationDto> getAllLocations();
+    List<LocationDto> getAllLocations(Optional<Integer> page, Optional<Integer> size);
 
     /**
      * Gets all locations(all levels) that are managed under a given Organization Id
@@ -18,7 +19,7 @@ public interface LocationService {
      * @param organizationResourceId
      * @return
      */
-    List<LocationDto> getLocationsByOrganization(String organizationResourceId);
+    List<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<Integer> page, Optional<Integer> size);
 
     /**
      * Get Location By Id
