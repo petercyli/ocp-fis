@@ -7,6 +7,7 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchPatientDto;
+import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Patient;
@@ -41,7 +42,7 @@ public class PatientServiceImpl implements PatientService {
                 .encodedJson()
                 .execute();
         log.debug("Patients Query to FHIR Server: END");
-        return convertBundleToPatientDtos(response);
+        return convertBundleToPatientDtos(response, Boolean.FALSE);
     }
 
     @Override
@@ -60,14 +61,16 @@ public class PatientServiceImpl implements PatientService {
                 .execute();
 
         log.debug("Patients Query to FHIR Server: END");
-        return convertBundleToPatientDtos(response);
+        return convertBundleToPatientDtos(response, Boolean.TRUE);
     }
 
-    private List<PatientDto> convertBundleToPatientDtos(Bundle response) {
+    private List<PatientDto> convertBundleToPatientDtos(Bundle response, boolean isSearch) {
         List<PatientDto> patientDtos = new ArrayList<>();
-        if (null == response || response.isEmpty() || response.getEntry().size() < 1)
+        if (null == response || response.isEmpty() || response.getEntry().size() < 1) {
             log.debug("No patients in FHIR Server");
-        else {
+            // Search throw patient not found exception and list just show empty list
+            if(isSearch) throw new PatientNotFoundException();
+        } else {
             patientDtos = response.getEntry().stream()
                     .filter(bundleEntryComponent -> bundleEntryComponent.getResource().getResourceType().equals(ResourceType.Patient))  //patient entries
                     .map(bundleEntryComponent -> (Patient) bundleEntryComponent.getResource()) // patient resources
