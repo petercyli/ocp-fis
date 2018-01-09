@@ -12,6 +12,7 @@ import java.util.List;
 
 @Component
 public class IdentifierListToIdentifierDtoListConverter extends AbstractConverter<List<Identifier>, List<IdentifierDto>> {
+    private final String OID_TEXT = "urn:oid:";
 
     @Override
     protected List<IdentifierDto> convert(List<Identifier> source) {
@@ -22,8 +23,8 @@ public class IdentifierListToIdentifierDtoListConverter extends AbstractConverte
                 identifierDtos.add(
                         IdentifierDto.builder()
                                 .system(systemOid)
-                                .oid(systemOid.startsWith("urn:oid:")
-                                        ? systemOid.replace("urn:oid:","")
+                                .oid(systemOid.startsWith(OID_TEXT)
+                                        ? systemOid.replace(OID_TEXT,"")
                                         : "")
                                 .value(identifier.getValue())
                                 .display(identifier.getValue())
