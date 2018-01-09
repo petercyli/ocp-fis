@@ -22,12 +22,12 @@ public class PatientDto {
     private String resourceURL;
 
     @Valid
-    private List<IdentifierDto> identifiers;
+    private List<IdentifierDto> identifier;
 
     private boolean active;
 
     // Human Name (family, given name)
-    private List<NameDto> nameDtos;
+    private List<NameDto> name;
 
     @NotEmpty
     private String genderCode;
@@ -43,8 +43,8 @@ public class PatientDto {
     private String birthSex;
 
 
-    private List<AddressDto> addresses;
+    private List<AddressDto> address;
 
-    private List<TelecomDto> telecoms;
+    private List<TelecomDto> telecom;
 
 }
