@@ -1,8 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
-import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
-import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.modelmapper.AbstractConverter;
 import org.springframework.stereotype.Component;
@@ -24,7 +22,7 @@ public class IdentifierListToIdentifierDtoListConverter extends AbstractConverte
                         IdentifierDto.builder()
                                 .system(systemOid)
                                 .oid(systemOid.startsWith(OID_TEXT)
-                                        ? systemOid.replace(OID_TEXT,"")
+                                        ? systemOid.replace(OID_TEXT, "")
                                         : "")
                                 .value(identifier.getValue())
                                 .display(identifier.getValue())
