@@ -21,8 +21,8 @@ public class HumanNameListToNameDtoListConverter extends AbstractConverter<List<
             for (HumanName humanName : source) {
                  nameDtos.add(
                         NameDto.builder()
-                                .firstName(humanName.getGiven().stream().findFirst().orElse(new StringType("")).toString())
-                                .lastName(humanName.getFamily() != null ? humanName.getFamily().toString() : "")
+                                .firstName(humanName.getGiven().stream().findFirst().orElse(new StringType("")).toString().trim())
+                                .lastName(humanName.getFamily() != null ? humanName.getFamily().toString().trim() : "")
                                 .build()
                 );
             }

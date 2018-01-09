@@ -26,7 +26,7 @@ public class IdentifierListToIdentifierDtoListConverter extends AbstractConverte
                                         ? systemOid.replace("urn:oid:","")
                                         : "")
                                 .value(identifier.getValue())
-                                .display(identifier.getValue())  //TODO :: get mapping for display
+                                .display(identifier.getValue())
                                 .build()
                 );
             }
