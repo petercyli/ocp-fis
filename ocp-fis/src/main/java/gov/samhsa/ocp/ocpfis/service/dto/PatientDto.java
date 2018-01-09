@@ -1,6 +1,5 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,56 +7,43 @@ import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
+//@JsonInclude(JsonInclude.Include.NON_NULL)
 public class PatientDto {
+    private String id;
 
-    private Long id;
+    private String resourceURL;
 
-    private String userAuthId;
+    @Valid
+    private List<IdentifierDto> identifiers;
 
-    @NotEmpty
-    private String lastName;
+    private boolean active;
 
-    private String middleName;
-
-    @NotEmpty
-    private String firstName;
-
-    @NotNull
-    private LocalDate birthDate;
+    // Human Name (family, given name)
+    private List<NameDto> nameDtos;
 
     @NotEmpty
     private String genderCode;
 
-    private Optional<String> socialSecurityNumber;
+    private LocalDate birthDate;
+
+    private String locale;
+
+    private String race;
+
+    private String ethnicity;
+
+    private String birthSex;
+
 
     private List<AddressDto> addresses;
 
     private List<TelecomDto> telecoms;
 
-    private List<RoleDto> roles;
-
-    private String locale;
-
-    private boolean disabled;
-
-    private String mrn;
-
-    private Optional<String> registrationPurposeEmail;
-
-    @Valid
-    private Optional<List<IdentifierDto>> identifiers;
-
-    private String createdBy;
-
-    private String lastUpdatedBy;
 }
