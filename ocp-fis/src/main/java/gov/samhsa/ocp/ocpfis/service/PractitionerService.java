@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface PractitionerService {
     List<PractitionerDto> getAllPractitioners();
+    List<PractitionerDto> searchPractitioners(String searchValue);
 }

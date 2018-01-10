@@ -3,6 +3,8 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.gclient.StringClientParam;
+import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 
 import gov.samhsa.ocp.ocpfis.config.OcpProperties;
@@ -38,9 +40,6 @@ public class PractitionerServiceImpl implements  PractitionerService{
 
     @Override
     public List<PractitionerDto> getAllPractitioners() {
-
-        List<PractitionerDto> list=new ArrayList<>();
-
         Bundle bundle = fhirClient.search().forResource(Practitioner.class)
                 .returnBundle(Bundle.class)
                 .execute();
@@ -50,5 +49,31 @@ public class PractitionerServiceImpl implements  PractitionerService{
         return retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
 
     }
+
+    @Override
+    public List<PractitionerDto> searchPractitioners(String value) {
+        Bundle bundleByName = fhirClient.search().forResource(Practitioner.class)
+                .where(new StringClientParam("name").matches().value(value))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        List<Bundle.BundleEntryComponent> retrievedPractitionersByName = bundleByName.getEntry();
+
+        List<PractitionerDto> practitionersByName= retrievedPractitionersByName.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
+
+        Bundle bundleByIdentifier=fhirClient.search().forResource(Practitioner.class)
+                .where(new TokenClientParam("identifier").exactly().code(value))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        List<Bundle.BundleEntryComponent> retrievedPractitionersByIdentifier=bundleByIdentifier.getEntry();
+
+        List<PractitionerDto> practitionerDtoById=retrievedPractitionersByIdentifier.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
+
+        practitionersByName.addAll(practitionerDtoById);
+
+        return practitionersByName;
+
+     }
 
 }
