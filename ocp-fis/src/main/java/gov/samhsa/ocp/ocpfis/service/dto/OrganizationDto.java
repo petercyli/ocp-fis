@@ -13,7 +13,7 @@ import java.util.List;
 @NoArgsConstructor
 public class OrganizationDto {
     private String id;
-    private IdentifierDto identifier;
+    private List<IdentifierDto> identifiers;
     private boolean active;
     private String name;
     private List<AddressDto> addresses;
