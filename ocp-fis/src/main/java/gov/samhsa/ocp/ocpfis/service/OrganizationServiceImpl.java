@@ -30,6 +30,7 @@ public class OrganizationServiceImpl implements OrganizationService{
 
         Bundle allOrganizationsSearchBundle = fhirClient.search().forResource(Organization.class)
                 .returnBundle(Bundle.class)
+                .encodedJson()
                 .execute();
 
         if (allOrganizationsSearchBundle == null || allOrganizationsSearchBundle.getEntry().size() < 1) {
@@ -38,8 +39,11 @@ public class OrganizationServiceImpl implements OrganizationService{
         log.info("FHIR Organization(s) bundle retrieved from FHIR server successfully");
         List<Bundle.BundleEntryComponent> retrievedOrganizations = allOrganizationsSearchBundle.getEntry();
 
-        return retrievedOrganizations.stream().map(organization -> modelMapper.map(organization.getResource(), OrganizationDto.class))
-                .collect(Collectors.toList());
+        return retrievedOrganizations.stream().map(bundleEntryComponent -> {
+            OrganizationDto organizationDto = modelMapper.map(bundleEntryComponent.getResource(), OrganizationDto.class);
+            organizationDto.setId(bundleEntryComponent.getResource().getIdElement().getIdPart());
+            return organizationDto;
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -61,7 +65,11 @@ public class OrganizationServiceImpl implements OrganizationService{
         List<Bundle.BundleEntryComponent> retrievedOrganizations = response.getEntry();
 
         log.debug("Organization Query to FHIR Server: END");
-        return retrievedOrganizations.stream().map(organization -> modelMapper.map(organization.getResource(), OrganizationDto.class))
-                .collect(Collectors.toList());
+
+        return retrievedOrganizations.stream().map(bundleEntryComponent -> {
+            OrganizationDto organizationDto = modelMapper.map(bundleEntryComponent.getResource(), OrganizationDto.class);
+            organizationDto.setId(bundleEntryComponent.getResource().getIdElement().getIdPart());
+            return organizationDto;
+        }).collect(Collectors.toList());
     }
 }

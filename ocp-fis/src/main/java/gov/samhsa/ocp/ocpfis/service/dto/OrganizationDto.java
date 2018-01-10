@@ -12,6 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class OrganizationDto {
+    private String id;
     private IdentifierDto identifier;
     private boolean active;
     private String name;
