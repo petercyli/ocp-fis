@@ -77,7 +77,7 @@ public class PractitionerServiceImpl implements  PractitionerService{
 
         practitionersByName.addAll(practitionerDtoById);
 
-        if(practitionersByName.size()<1 || practitionersByName.isEmpty() || practitionersByName.isEmpty()){
+        if(practitionersByName.size()<1 || practitionersByName.isEmpty()){
             throw new PractitionerNotFoundException("No practitioners with the given name or id value were found in the FHIR server.");
         }
 
