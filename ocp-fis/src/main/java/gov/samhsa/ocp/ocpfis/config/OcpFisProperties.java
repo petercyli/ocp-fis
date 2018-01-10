@@ -17,7 +17,7 @@ import javax.validation.constraints.NotNull;
 @Configuration
 @ConfigurationProperties(prefix = "ocp-fis")
 @Data
-public class OcpProperties {
+public class OcpFisProperties {
 
     @NotNull
     @Valid

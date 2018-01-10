@@ -5,7 +5,7 @@ import ca.uhn.fhir.rest.gclient.ICriterion;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.IUntypedQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
-import gov.samhsa.ocp.ocpfis.config.OcpProperties;
+import gov.samhsa.ocp.ocpfis.config.OcpFisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -39,7 +39,7 @@ public class LocationServiceImplTest {
     @Mock
     private IGenericClient fhirClient;
     @Mock
-    private OcpProperties ocpProperties;
+    private OcpFisProperties ocpFisProperties;
 
     @InjectMocks
     private LocationServiceImpl locationServiceImpl;
@@ -49,9 +49,9 @@ public class LocationServiceImplTest {
         //Arrange
         int size = 10;
 
-        OcpProperties.Location location = mock(OcpProperties.Location.class);
-        when(ocpProperties.getLocation()).thenReturn(location);
-        OcpProperties.Location.Pagination pagination = mock(OcpProperties.Location.Pagination.class);
+        OcpFisProperties.Location location = mock(OcpFisProperties.Location.class);
+        when(ocpFisProperties.getLocation()).thenReturn(location);
+        OcpFisProperties.Location.Pagination pagination = mock(OcpFisProperties.Location.Pagination.class);
         when(location.getPagination()).thenReturn(pagination);
         when(pagination.getDefaultSize()).thenReturn(20);
 
@@ -90,9 +90,9 @@ public class LocationServiceImplTest {
         //Arrange
         int size = 10;
 
-        OcpProperties.Location location = mock(OcpProperties.Location.class);
-        when(ocpProperties.getLocation()).thenReturn(location);
-        OcpProperties.Location.Pagination pagination = mock(OcpProperties.Location.Pagination.class);
+        OcpFisProperties.Location location = mock(OcpFisProperties.Location.class);
+        when(ocpFisProperties.getLocation()).thenReturn(location);
+        OcpFisProperties.Location.Pagination pagination = mock(OcpFisProperties.Location.Pagination.class);
         when(location.getPagination()).thenReturn(pagination);
         when(pagination.getDefaultSize()).thenReturn(20);
 
@@ -124,9 +124,9 @@ public class LocationServiceImplTest {
         int size = 10;
         String organizationResourceId = "123";
 
-        OcpProperties.Location location = mock(OcpProperties.Location.class);
-        when(ocpProperties.getLocation()).thenReturn(location);
-        OcpProperties.Location.Pagination pagination = mock(OcpProperties.Location.Pagination.class);
+        OcpFisProperties.Location location = mock(OcpFisProperties.Location.class);
+        when(ocpFisProperties.getLocation()).thenReturn(location);
+        OcpFisProperties.Location.Pagination pagination = mock(OcpFisProperties.Location.Pagination.class);
         when(location.getPagination()).thenReturn(pagination);
         when(pagination.getDefaultSize()).thenReturn(size);
 
@@ -174,9 +174,9 @@ public class LocationServiceImplTest {
         int size = 10;
         String organizationResourceId = "123";
 
-        OcpProperties.Location location = mock(OcpProperties.Location.class);
-        when(ocpProperties.getLocation()).thenReturn(location);
-        OcpProperties.Location.Pagination pagination = mock(OcpProperties.Location.Pagination.class);
+        OcpFisProperties.Location location = mock(OcpFisProperties.Location.class);
+        when(ocpFisProperties.getLocation()).thenReturn(location);
+        OcpFisProperties.Location.Pagination pagination = mock(OcpFisProperties.Location.Pagination.class);
         when(location.getPagination()).thenReturn(pagination);
         when(pagination.getDefaultSize()).thenReturn(size);
 
