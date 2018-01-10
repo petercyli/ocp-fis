@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.ocp.service;
+package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IClientExecutable;
