@@ -8,10 +8,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Data
 @Builder
@@ -19,45 +17,34 @@ import java.util.Optional;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PatientDto {
+    private String id;
 
-    private Long id;
+    private String resourceURL;
 
-    private String userAuthId;
+    @Valid
+    private List<IdentifierDto> identifier;
 
-    @NotEmpty
-    private String lastName;
+    private boolean active;
 
-    private String middleName;
-
-    @NotEmpty
-    private String firstName;
-
-    @NotNull
-    private LocalDate birthDate;
+    // Human Name (family, given name)
+    private List<NameDto> name;
 
     @NotEmpty
     private String genderCode;
 
-    private Optional<String> socialSecurityNumber;
-
-    private List<AddressDto> addresses;
-
-    private List<TelecomDto> telecoms;
-
-    private List<RoleDto> roles;
+    private LocalDate birthDate;
 
     private String locale;
 
-    private boolean disabled;
+    private String race;
 
-    private String mrn;
+    private String ethnicity;
 
-    private Optional<String> registrationPurposeEmail;
+    private String birthSex;
 
-    @Valid
-    private Optional<List<IdentifierDto>> identifiers;
 
-    private String createdBy;
+    private List<AddressDto> address;
 
-    private String lastUpdatedBy;
+    private List<TelecomDto> telecom;
+
 }
