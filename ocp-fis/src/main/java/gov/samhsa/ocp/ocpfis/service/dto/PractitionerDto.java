@@ -18,9 +18,9 @@ public class PractitionerDto {
 
     private List<IdentifierDto> identifiers;
 
-    private String familyName;
+    private boolean active;
 
-    private String givenName;
+   private List<NameDto> name;
 
     private List<TelecomDto> telecoms;
 
