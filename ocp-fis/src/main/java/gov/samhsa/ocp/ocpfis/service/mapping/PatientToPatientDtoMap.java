@@ -21,7 +21,6 @@ public class PatientToPatientDtoMap extends PropertyMap<Patient, PatientDto> {
     Converter<Date, LocalDate> DateToLocalDate =
             ctx -> ctx.getSource() == null ? null : ctx.getSource().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
 
-
     public PatientToPatientDtoMap(AddressListToAddressDtoListConverter addressListToAddressDtoListConverter, TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter
             identifierListToIdentifierDtoListConverter, HumanNameListToNameDtoListConverter humanNameListToNameDtoListConverter) {
         this.addressListToAddressDtoListConverter = addressListToAddressDtoListConverter;
