@@ -72,7 +72,7 @@ public class LocationServiceImpl implements LocationService {
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = allLocationsSearchBundle.getEntry();
 
-        return retrievedLocations.stream().map(location -> modelMapper.map(location.getResource(), LocationDto.class)).collect(Collectors.toList());
+        return retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
     }
 
     @Override
@@ -113,7 +113,7 @@ public class LocationServiceImpl implements LocationService {
 
         List<Bundle.BundleEntryComponent> retrievedLocations = locationSearchBundle.getEntry();
 
-        return retrievedLocations.stream().map(location -> modelMapper.map(location.getResource(), LocationDto.class)).collect(Collectors.toList());
+        return retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
     }
 
     @Override
@@ -132,7 +132,7 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle.BundleEntryComponent retrievedLocation = locationBundle.getEntry().get(0);
 
-        return modelMapper.map(retrievedLocation.getResource(), LocationDto.class);
+        return convertLocationBundleEntryToLocationDto(retrievedLocation);
     }
 
     @Override
@@ -151,7 +151,7 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle.BundleEntryComponent retrievedLocation = childLocationBundle.getEntry().get(0);
 
-        return modelMapper.map(retrievedLocation.getResource(), LocationDto.class);
+        return convertLocationBundleEntryToLocationDto(retrievedLocation);
     }
 
     private Bundle getLocationSearchBundleByPageAndSize(Bundle locationSearchBundle, Optional<Integer> page, int numberOfLocationsPerPage) {
@@ -175,5 +175,11 @@ public class LocationServiceImpl implements LocationService {
                     .execute();
         }
         return locationSearchBundle;
+    }
+
+    private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel){
+        LocationDto tempLocationDto = modelMapper.map(fhirLocationModel.getResource(), LocationDto.class);
+        tempLocationDto.setLogicalId(fhirLocationModel.getResource().getIdElement().getIdPart());
+        return tempLocationDto;
     }
 }
