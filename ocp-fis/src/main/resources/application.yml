@@ -7,7 +7,6 @@ spring:
     default-domain: ocp-fis
 logging:
   file: /java/OCP_LOGS/ocp-fis/ocp-fis.log
-  level.Root: DEBUG
 info:
   component: Omnibus Care Plan - FHIR Integration Service
 hystrix.command.default.execution.timeout.enabled: false
