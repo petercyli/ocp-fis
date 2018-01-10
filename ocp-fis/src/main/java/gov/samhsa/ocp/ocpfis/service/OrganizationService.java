@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OrganizationService {
     /**
@@ -10,7 +11,5 @@ public interface OrganizationService {
      *
      * @return
      */
-    List<OrganizationDto> getAllOrganizations();
-
-    List<OrganizationDto> searchOrganization(String name);
+    List<OrganizationDto> getAllOrganizations(Optional<String> name);
 }

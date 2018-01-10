@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
@@ -11,6 +12,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,10 +28,14 @@ public class OrganizationServiceImpl implements OrganizationService{
     }
 
     @Override
-    public List<OrganizationDto> getAllOrganizations() {
+    public List<OrganizationDto> getAllOrganizations(Optional<String> name) {
 
-        Bundle allOrganizationsSearchBundle = fhirClient.search().forResource(Organization.class)
-                .returnBundle(Bundle.class)
+        IQuery allOrganizationsSearchQuery = fhirClient.search().forResource(Organization.class);
+
+        if (name.isPresent())
+            allOrganizationsSearchQuery.where(new StringClientParam("name").matches().value(name.get()));
+
+        Bundle allOrganizationsSearchBundle= (Bundle) allOrganizationsSearchQuery.returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
 
@@ -46,30 +52,4 @@ public class OrganizationServiceImpl implements OrganizationService{
         }).collect(Collectors.toList());
     }
 
-    @Override
-    public List<OrganizationDto> searchOrganization(String name) {
-
-        log.debug("Organization Query to FHIR Server: START");
-        Bundle response = fhirClient.search()
-                .forResource(Organization.class)
-                .where(new StringClientParam("name").matches().value(name))
-                .returnBundle(Bundle.class)
-                .encodedJson()
-                .execute();
-
-
-        if (response == null || response.getEntry().size() < 1) {
-            throw new OrganizationNotFoundException("No organizations were found in the FHIR server");
-        }
-        log.info("FHIR Organization(s) bundle retrieved from FHIR server successfully");
-        List<Bundle.BundleEntryComponent> retrievedOrganizations = response.getEntry();
-
-        log.debug("Organization Query to FHIR Server: END");
-
-        return retrievedOrganizations.stream().map(bundleEntryComponent -> {
-            OrganizationDto organizationDto = modelMapper.map(bundleEntryComponent.getResource(), OrganizationDto.class);
-            organizationDto.setId(bundleEntryComponent.getResource().getIdElement().getIdPart());
-            return organizationDto;
-        }).collect(Collectors.toList());
-    }
 }

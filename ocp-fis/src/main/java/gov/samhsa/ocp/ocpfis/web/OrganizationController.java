@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 import java.util.List;
-
+import java.util.Optional;
 
 
 @RestController
@@ -23,13 +23,7 @@ public class OrganizationController {
     }
 
     @GetMapping
-    public List<OrganizationDto> getAllOrganization() {
-        return organizationService.getAllOrganizations();
+    public List<OrganizationDto> getAllOrganization(@Valid @RequestParam(value = "name") Optional<String> name) {
+        return organizationService.getAllOrganizations(name);
     }
-
-    @GetMapping("/search")
-    public List<OrganizationDto> searchOrganization(@Valid @RequestParam String name) {
-        return organizationService.searchOrganization(name);
-    }
-
 }
