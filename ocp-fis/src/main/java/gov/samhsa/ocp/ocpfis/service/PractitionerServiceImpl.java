@@ -10,6 +10,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.OcpProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Patient;
@@ -44,6 +45,10 @@ public class PractitionerServiceImpl implements  PractitionerService{
                 .returnBundle(Bundle.class)
                 .execute();
 
+        if(bundle==null || bundle.isEmpty() || bundle.getEntry().size()<1){
+            throw new PractitionerNotFoundException("No practitioners were found in the FHIR server.");
+        }
+
         List<Bundle.BundleEntryComponent> retrievedPractitioners = bundle.getEntry();
 
         return retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
@@ -71,6 +76,10 @@ public class PractitionerServiceImpl implements  PractitionerService{
         List<PractitionerDto> practitionerDtoById=retrievedPractitionersByIdentifier.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
 
         practitionersByName.addAll(practitionerDtoById);
+
+        if(practitionersByName.size()<1 || practitionersByName.isEmpty() || practitionersByName.isEmpty()){
+            throw new PractitionerNotFoundException("No practitioners with the given name or id value were found in the FHIR server.");
+        }
 
         return practitionersByName;
 
