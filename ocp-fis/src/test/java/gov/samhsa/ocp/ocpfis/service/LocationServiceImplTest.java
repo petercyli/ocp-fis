@@ -79,7 +79,7 @@ public class LocationServiceImplTest {
         locationDtos.add(locationDto);
         when(modelMapper.map(resource, LocationDto.class)).thenReturn(locationDto);
         //Act
-        List<LocationDto> locationDtos1 = locationServiceImpl.getAllLocations(Optional.empty(), Optional.of(size));
+        List<LocationDto> locationDtos1 = locationServiceImpl.getAllLocations(Optional.empty(), Optional.empty(), Optional.of(size));
 
         //Assert
         assertEquals(locationDtos, locationDtos1);
@@ -115,7 +115,7 @@ public class LocationServiceImplTest {
         thrown.expectMessage("No locations were found in the FHIR server");
 
         //Act
-        locationServiceImpl.getAllLocations(Optional.empty(), Optional.of(size));
+        locationServiceImpl.getAllLocations(Optional.empty(), Optional.empty(), Optional.of(size));
     }
 
     @Test
@@ -162,7 +162,7 @@ public class LocationServiceImplTest {
         when(modelMapper.map(resource, LocationDto.class)).thenReturn(locationDto);
 
         //Act
-        List<LocationDto> locationDtos1 = locationServiceImpl.getLocationsByOrganization(organizationResourceId, Optional.empty(), Optional.of(size));
+        List<LocationDto> locationDtos1 = locationServiceImpl.getLocationsByOrganization(organizationResourceId, Optional.empty(), Optional.empty(), Optional.of(size));
 
         //Assert
         assertEquals(locationDtos, locationDtos1);
@@ -205,7 +205,7 @@ public class LocationServiceImplTest {
         thrown.expectMessage("No location found for the given OrganizationID:" + organizationResourceId);
 
         //Act
-        locationServiceImpl.getLocationsByOrganization(organizationResourceId, Optional.empty(), Optional.of(size));
+        locationServiceImpl.getLocationsByOrganization(organizationResourceId, Optional.empty(), Optional.empty(), Optional.of(size));
     }
 
     @Test

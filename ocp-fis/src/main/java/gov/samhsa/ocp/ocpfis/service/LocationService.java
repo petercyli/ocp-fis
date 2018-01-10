@@ -7,22 +7,25 @@ import java.util.Optional;
 
 public interface LocationService {
     /**
-     * Gets all available locations in the configured FHIR server
      *
+     * @param status
+     * @param page
+     * @param size
      * @return
      */
-    List<LocationDto> getAllLocations(Optional<Integer> page, Optional<Integer> size);
+    List<LocationDto> getAllLocations(Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size);
 
     /**
      * Gets all locations(all levels) that are managed under a given Organization Id
-     *
      * @param organizationResourceId
+     * @param status
+     * @param page
+     * @param size
      * @return
      */
-    List<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<Integer> page, Optional<Integer> size);
+    List<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size);
 
     /**
-     * Get Location By Id
      *
      * @param locationId
      * @return
@@ -31,7 +34,6 @@ public interface LocationService {
 
     /**
      * Gets level 1 child location for a given Location Id
-     *
      * @param locationId
      * @return
      */

@@ -19,31 +19,36 @@ public class LocationController {
     }
 
     /**
-     * Gets all available locations in the configured FHIR server
      *
+     * @param status
+     * @param page
+     * @param size
      * @return
      */
     @GetMapping("/locations")
-    public List<LocationDto> getAllLocations(@RequestParam Optional<Integer> page,
-                                             @RequestParam Optional<Integer> size) {
-        return locationService.getAllLocations(page, size);
+    public List<LocationDto> getAllLocations(@RequestParam Optional<List<String>> status,
+                @RequestParam Optional<Integer> page,
+                @RequestParam Optional<Integer> size) {
+        return locationService.getAllLocations(status,page, size);
     }
 
     /**
-     * Gets all locations(all levels) that are managed under a given Organization Id
      *
      * @param organizationId
+     * @param status
+     * @param page
+     * @param size
      * @return
      */
     @GetMapping("/organizations/{organizationId}/locations")
     public List<LocationDto> getLocationsByOrganization(@PathVariable String organizationId,
+                                                        @RequestParam Optional<List<String>> status,
                                                         @RequestParam Optional<Integer> page,
                                                         @RequestParam Optional<Integer> size) {
-        return locationService.getLocationsByOrganization(organizationId, page, size);
+        return locationService.getLocationsByOrganization(organizationId, status, page, size);
     }
 
     /**
-     * Get Location By Id
      *
      * @param locationId
      * @return
@@ -55,7 +60,6 @@ public class LocationController {
 
     /**
      * Gets level 1 child location for a given Location Id
-     *
      * @param locationId
      * @return
      */

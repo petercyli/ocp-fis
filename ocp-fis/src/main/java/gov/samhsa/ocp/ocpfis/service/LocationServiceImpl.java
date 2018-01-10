@@ -34,21 +34,31 @@ public class LocationServiceImpl implements LocationService {
         this.ocpProperties = ocpProperties;
     }
 
-    /**
-     * Gets all available locations in the configured FHIR server
-     *
-     * @return
-     */
     @Override
-    public List<LocationDto> getAllLocations(Optional<Integer> page, Optional<Integer> size) {
+    public List<LocationDto> getAllLocations(Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
 
         int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
                 s <= ocpProperties.getLocation().getPagination().getMaxSize()).orElse(ocpProperties.getLocation().getPagination().getDefaultSize());
 
-        Bundle allLocationsSearchBundle = fhirClient.search().forResource(Location.class)
-                .count(numberOfLocationsPerPage)
-                .returnBundle(Bundle.class)
-                .execute();
+        Bundle allLocationsSearchBundle;
+
+        if (status.isPresent() && status.get().size() > 0) {
+            log.info("Searching for ALL locations with the following specific status(es).");
+            status.get().forEach(log::info);
+
+            allLocationsSearchBundle = fhirClient.search().forResource(Location.class)
+                    .where(new TokenClientParam("status").exactly().codes(status.get()))
+                    .count(numberOfLocationsPerPage)
+                    .returnBundle(Bundle.class)
+                    .execute();
+
+        } else {
+            log.info("Searching for location with ALL statuses");
+            allLocationsSearchBundle = fhirClient.search().forResource(Location.class)
+                    .count(numberOfLocationsPerPage)
+                    .returnBundle(Bundle.class)
+                    .execute();
+        }
 
         if (allLocationsSearchBundle == null || allLocationsSearchBundle.getEntry().size() < 1) {
             throw new LocationNotFoundException("No locations were found in the FHIR server");
@@ -65,22 +75,29 @@ public class LocationServiceImpl implements LocationService {
         return retrievedLocations.stream().map(location -> modelMapper.map(location.getResource(), LocationDto.class)).collect(Collectors.toList());
     }
 
-    /**
-     * Gets all locations(all levels) that are managed under a given Organization Id
-     *
-     * @param organizationResourceId
-     * @return
-     */
     @Override
-    public List<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<Integer> page, Optional<Integer> size) {
+    public List<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
         int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
                 s <= ocpProperties.getLocation().getPagination().getMaxSize()).orElse(ocpProperties.getLocation().getPagination().getDefaultSize());
+        Bundle locationSearchBundle;
 
-        Bundle locationSearchBundle = fhirClient.search().forResource(Location.class)
-                .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
-                .count(numberOfLocationsPerPage)
-                .returnBundle(Bundle.class)
-                .execute();
+        if (status.isPresent() && status.get().size() > 0) {
+            log.info("Searching for location with the following specific status(es) for the given OrganizationID:" + organizationResourceId);
+            status.get().forEach(log::info);
+            locationSearchBundle = fhirClient.search().forResource(Location.class)
+                    .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
+                    .where(new TokenClientParam("status").exactly().codes(status.get()))
+                    .count(numberOfLocationsPerPage)
+                    .returnBundle(Bundle.class)
+                    .execute();
+        } else {
+            log.info("Searching for location with ALL statuses for the given OrganizationID:" + organizationResourceId);
+            locationSearchBundle = fhirClient.search().forResource(Location.class)
+                    .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
+                    .count(numberOfLocationsPerPage)
+                    .returnBundle(Bundle.class)
+                    .execute();
+        }
 
         if (locationSearchBundle == null || locationSearchBundle.getEntry().size() < 1) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
@@ -99,12 +116,6 @@ public class LocationServiceImpl implements LocationService {
         return retrievedLocations.stream().map(location -> modelMapper.map(location.getResource(), LocationDto.class)).collect(Collectors.toList());
     }
 
-    /**
-     * Get Location By Id
-     *
-     * @param locationId
-     * @return
-     */
     @Override
     public LocationDto getLocation(String locationId) {
         Bundle locationBundle = fhirClient.search().forResource(Location.class)
@@ -124,12 +135,6 @@ public class LocationServiceImpl implements LocationService {
         return modelMapper.map(retrievedLocation.getResource(), LocationDto.class);
     }
 
-    /**
-     * Gets level 1 child location for a given Location Id
-     *
-     * @param locationId
-     * @return
-     */
     @Override
     public LocationDto getChildLocation(String locationId) {
         Bundle childLocationBundle = fhirClient.search().forResource(Location.class)
@@ -165,11 +170,9 @@ public class LocationServiceImpl implements LocationService {
                     + "&_bundletype=searchset";
 
             // Load the required page
-            Bundle requestedPageLocationsSearchBundle = fhirClient.search().byUrl(pageUrl)
+            return fhirClient.search().byUrl(pageUrl)
                     .returnBundle(Bundle.class)
                     .execute();
-
-            return requestedPageLocationsSearchBundle;
         }
         return locationSearchBundle;
     }
