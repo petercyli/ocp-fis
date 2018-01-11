@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/practitioners")
@@ -20,10 +22,10 @@ public class PractitionerController {
     private PractitionerService practitionerService;
 
     @GetMapping
-    public List<PractitionerDto> getPractitioners(){
-        return practitionerService.getAllPractitioners();
+    public List<PractitionerDto> getPractitioners(@RequestParam boolean showInactive,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){
+        return practitionerService.getAllPractitioners(showInactive, page,size);
     }
 
     @GetMapping("/search")
-    public List<PractitionerDto> searchPractitioners(@RequestParam String searchValue){return practitionerService.searchPractitioners(searchValue);}
+    public Set<PractitionerDto> searchPractitioners(@RequestParam String searchValue, @RequestParam boolean showInactive,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){return practitionerService.searchPractitioners(searchValue, showInactive, page,size);}
 }
