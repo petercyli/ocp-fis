@@ -9,11 +9,6 @@ public class PractitionerNotFoundException extends RuntimeException {
         super();
     }
 
-    public PractitionerNotFoundException(String message, Throwable cause,
-                                     boolean enableSuppression, boolean writableStackTrace) {
-        super(message, cause, enableSuppression, writableStackTrace);
-    }
-
     public PractitionerNotFoundException(String message, Throwable cause) {
         super(message, cause);
     }
