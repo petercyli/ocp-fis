@@ -1,40 +1,27 @@
 package gov.samhsa.ocp.ocpfis.service;
 
-import ca.uhn.fhir.context.FhirContext;
-import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
-import ca.uhn.fhir.rest.gclient.IUntypedQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
-import ca.uhn.fhir.validation.FhirValidator;
-
 import gov.samhsa.ocp.ocpfis.config.OcpFisProperties;
-import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
-import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
-import org.hl7.fhir.dstu3.model.Resource;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
-public class PractitionerServiceImpl implements  PractitionerService{
+public class PractitionerServiceImpl implements PractitionerService {
 
     private final ModelMapper modelMapper;
 
@@ -74,7 +61,7 @@ public class PractitionerServiceImpl implements  PractitionerService{
             throw new PractitionerNotFoundException("No practitioners were found in the FHIR server");
         }
 
-        otherPagePractitionerSearchBundle=firstPagePractitionerSearchBundle;
+        otherPagePractitionerSearchBundle = firstPagePractitionerSearchBundle;
 
         if (page.isPresent() && page.get() > 1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
@@ -117,9 +104,9 @@ public class PractitionerServiceImpl implements  PractitionerService{
             throw new PractitionerNotFoundException("No practitioners were found in the FHIR server.");
         }
 
-        otherPagePractitionerSearchBundle=firstPagePractitionerSearchBundle;
+        otherPagePractitionerSearchBundle = firstPagePractitionerSearchBundle;
 
-        if (page.isPresent() && page.get()>1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+        if (page.isPresent() && page.get() > 1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             otherPagePractitionerSearchBundle = getPractitionerSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
         }
 
