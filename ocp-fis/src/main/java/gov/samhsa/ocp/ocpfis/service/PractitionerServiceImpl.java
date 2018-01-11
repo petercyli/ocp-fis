@@ -54,6 +54,7 @@ public class PractitionerServiceImpl implements  PractitionerService{
         int numberOfPractitionersPerPage = size.filter(s -> s > 0 &&
                 s <= ocpFisProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpFisProperties.getPractitioner().getPagination().getDefaultSize());
         IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
+
         if (showInactive.isPresent()) {
             if (!showInactive.get())
                 practitionerIQuery.where(new TokenClientParam("active").exactly().code("true"));
@@ -61,12 +62,26 @@ public class PractitionerServiceImpl implements  PractitionerService{
             practitionerIQuery.where(new TokenClientParam("active").exactly().code("true"));
         }
 
-        Bundle bundle = fhirClient.search().forResource(Practitioner.class)
+        Bundle firstPagePractitionerSearchBundle;
+        Bundle otherPagePractitionerSearchBundle;
+
+        firstPagePractitionerSearchBundle = fhirClient.search().forResource(Practitioner.class)
                 .count(numberOfPractitionersPerPage)
                 .returnBundle(Bundle.class)
                 .execute();
 
-        List<Bundle.BundleEntryComponent> retrievedPractitioners = bundle.getEntry();
+        if (firstPagePractitionerSearchBundle == null || firstPagePractitionerSearchBundle.getEntry().size() < 1) {
+            throw new PractitionerNotFoundException("No practitioners were found in the FHIR server");
+        }
+
+        otherPagePractitionerSearchBundle=firstPagePractitionerSearchBundle;
+
+        if (page.isPresent() && page.get() > 1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+            // Load the required page
+            otherPagePractitionerSearchBundle = getPractitionerSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
+        }
+
+        List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerSearchBundle.getEntry();
 
         return retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
     }
@@ -91,27 +106,33 @@ public class PractitionerServiceImpl implements  PractitionerService{
             practitionerIQuery.where(new TokenClientParam("active").exactly().code("true"));
         }
 
-        Bundle firstPagePractitionerSearchBundle = (Bundle) practitionerIQuery.count(numberOfPractitionersPerPage).returnBundle(Bundle.class)
+
+        Bundle firstPagePractitionerSearchBundle;
+        Bundle otherPagePractitionerSearchBundle;
+
+        firstPagePractitionerSearchBundle = (Bundle) practitionerIQuery.count(numberOfPractitionersPerPage).returnBundle(Bundle.class)
                 .execute();
 
         if (firstPagePractitionerSearchBundle == null || firstPagePractitionerSearchBundle.isEmpty() || firstPagePractitionerSearchBundle.getEntry().size() < 1) {
             throw new PractitionerNotFoundException("No practitioners were found in the FHIR server.");
         }
 
-        if (page.isPresent() && firstPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
-            firstPagePractitionerSearchBundle = getPractitionerSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page, numberOfPractitionersPerPage);
+        otherPagePractitionerSearchBundle=firstPagePractitionerSearchBundle;
+
+        if (page.isPresent() && page.get()>1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+            otherPagePractitionerSearchBundle = getPractitionerSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
         }
 
-        List<Bundle.BundleEntryComponent> retrievedPractitioners = firstPagePractitionerSearchBundle.getEntry();
+        List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerSearchBundle.getEntry();
 
         return retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
     }
 
 
-    private Bundle getPractitionerSearchBundleAfterFirstPage(Bundle practitionerSearchBundle, Optional<Integer> page, int numberOfPractitionersPerPage) {
+    private Bundle getPractitionerSearchBundleAfterFirstPage(Bundle practitionerSearchBundle, int page, int size) {
         if (practitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             //Assuming page number starts with 1
-            int offset = ((page.filter(p -> p >= 1).orElse(1)) - 1) * numberOfPractitionersPerPage;
+            int offset = ((page >= 1 ? page : 1) - 1) * size;
 
             if (offset >= practitionerSearchBundle.getTotal()) {
                 throw new PractitionerNotFoundException("No practitioners were found in the FHIR server for this page number");
@@ -120,7 +141,7 @@ public class PractitionerServiceImpl implements  PractitionerService{
             String pageUrl = ocpFisProperties.getFhir().getPublish().getServerUrl().getResource()
                     + "?_getpages=" + practitionerSearchBundle.getId()
                     + "&_getpagesoffset=" + offset
-                    + "&_count=" + numberOfPractitionersPerPage
+                    + "&_count=" + size
                     + "&_bundletype=searchset";
 
             // Load the required page
