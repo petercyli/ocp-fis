@@ -9,7 +9,7 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 
-import gov.samhsa.ocp.ocpfis.config.OcpProperties;
+import gov.samhsa.ocp.ocpfis.config.OcpFisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
@@ -20,13 +20,11 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Resource;
-import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,15 +34,16 @@ import java.util.stream.Stream;
 
 @Service
 @Slf4j
-public class PractitionerServiceImpl implements PractitionerService {
+public class PractitionerServiceImpl implements  PractitionerService{
+
     private final ModelMapper modelMapper;
 
     private final IGenericClient fhirClient;
 
-    private final OcpProperties ocpProperties;
+    private final OcpFisProperties ocpProperties;
 
     @Autowired
-    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, OcpProperties ocpProperties) {
+    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.ocpProperties = ocpProperties;
@@ -62,18 +61,13 @@ public class PractitionerServiceImpl implements PractitionerService {
             practitionerIQuery.where(new TokenClientParam("active").exactly().code("true"));
         }
 
-        Bundle firstPagePractitionerBundle = (Bundle) practitionerIQuery.count(numberOfPractitionersPerPage)
+        List<PractitionerDto> list=new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(Practitioner.class)
                 .returnBundle(Bundle.class)
                 .execute();
 
-        if (firstPagePractitionerBundle == null || firstPagePractitionerBundle.isEmpty() || firstPagePractitionerBundle.getEntry().size() < 1) {
-            throw new PractitionerNotFoundException("No practitioners were found in the FHIR server.");
-        }
-
-        if (page.isPresent() && firstPagePractitionerBundle.getLink(Bundle.LINK_NEXT) != null) {
-            firstPagePractitionerBundle = getPractitionerSearchBundleAfterFirstPage(firstPagePractitionerBundle, page, numberOfPractitionersPerPage);
-        }
-        List<Bundle.BundleEntryComponent> retrievedPractitioners = firstPagePractitionerBundle.getEntry();
+        List<Bundle.BundleEntryComponent> retrievedPractitioners = bundle.getEntry();
 
         return retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
     }

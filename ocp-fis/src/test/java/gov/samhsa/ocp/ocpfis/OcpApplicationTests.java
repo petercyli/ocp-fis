@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.ocp;
+package gov.samhsa.ocp.ocpfis;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

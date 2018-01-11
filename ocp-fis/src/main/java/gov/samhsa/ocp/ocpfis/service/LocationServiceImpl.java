@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import gov.samhsa.ocp.ocpfis.config.OcpFisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,63 +25,104 @@ public class LocationServiceImpl implements LocationService {
 
     private final IGenericClient fhirClient;
 
+    private final OcpFisProperties ocpFisProperties;
+
     @Autowired
-    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient) {
+    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, OcpFisProperties ocpFisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
+        this.ocpFisProperties = ocpFisProperties;
     }
 
-    /**
-     * Gets all available locations in the configured FHIR server
-     *
-     * @return
-     */
     @Override
-    public List<LocationDto> getAllLocations() {
-        Bundle allLocationsSearchBundle = fhirClient.search().forResource(Location.class)
-                .returnBundle(Bundle.class)
-                .execute();
+    public List<LocationDto> getAllLocations(Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
 
-        if (allLocationsSearchBundle == null || allLocationsSearchBundle.getEntry().size() < 1) {
+        int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
+                s <= ocpFisProperties.getLocation().getPagination().getMaxSize()).orElse(ocpFisProperties.getLocation().getPagination().getDefaultSize());
+
+        Bundle firstPageLocationSearchBundle;
+        Bundle otherPageLocationSearchBundle;
+
+        if (status.isPresent() && status.get().size() > 0) {
+            log.info("Searching for ALL locations with the following specific status(es).");
+            status.get().forEach(log::info);
+            //The following bundle only contains Page 1 of the resultset
+            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
+                    .where(new TokenClientParam("status").exactly().codes(status.get()))
+                    .count(numberOfLocationsPerPage)
+                    .returnBundle(Bundle.class)
+                    .execute();
+
+        } else {
+            log.info("Searching for location with ALL statuses");
+            //The following bundle only contains Page 1 of the resultset
+            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
+                    .count(numberOfLocationsPerPage)
+                    .returnBundle(Bundle.class)
+                    .execute();
+        }
+
+        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
             throw new LocationNotFoundException("No locations were found in the FHIR server");
         }
-        log.info("FHIR Location(s) bundle retrieved from FHIR server successfully");
-        List<Bundle.BundleEntryComponent> retrievedLocations = allLocationsSearchBundle.getEntry();
 
-        return retrievedLocations.stream().map(location -> modelMapper.map(location.getResource(), LocationDto.class)).collect(Collectors.toList());
+        log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
+        otherPageLocationSearchBundle = firstPageLocationSearchBundle;
+        if (page.isPresent() && page.get() > 1 && firstPageLocationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+            // Load the required page
+            otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(firstPageLocationSearchBundle, page.get(), numberOfLocationsPerPage);
+        }
+        List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
+
+        return retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
     }
 
-    /**
-     * Gets all locations(all levels) that are managed under a given Organization Id
-     *
-     * @param organizationResourceId
-     * @return
-     */
     @Override
-    public List<LocationDto> getLocationsByOrganization(String organizationResourceId) {
-        Bundle locationSearchBundle = fhirClient.search().forResource(Location.class)
-                .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
-                .returnBundle(Bundle.class)
-                .execute();
+    public List<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
+        int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
+                s <= ocpFisProperties.getLocation().getPagination().getMaxSize()).orElse(ocpFisProperties.getLocation().getPagination().getDefaultSize());
 
-        if (locationSearchBundle == null || locationSearchBundle.getEntry().size() < 1) {
+        Bundle firstPageLocationSearchBundle;
+        Bundle otherPageLocationSearchBundle;
+
+        if (status.isPresent() && status.get().size() > 0) {
+            log.info("Searching for location with the following specific status(es) for the given OrganizationID:" + organizationResourceId);
+            status.get().forEach(log::info);
+            //The following bundle only contains Page 1 of the resultset
+            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
+                    .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
+                    .where(new TokenClientParam("status").exactly().codes(status.get()))
+                    .count(numberOfLocationsPerPage)
+                    .returnBundle(Bundle.class)
+                    .execute();
+        } else {
+            log.info("Searching for location with ALL statuses for the given OrganizationID:" + organizationResourceId);
+            //The following bundle only contains Page 1 of the resultset
+            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
+                    .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
+                    .count(numberOfLocationsPerPage)
+                    .returnBundle(Bundle.class)
+                    .execute();
+        }
+
+        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
             throw new LocationNotFoundException("No location found for the given OrganizationID:" + organizationResourceId);
         }
 
-        log.info("FHIR Location(s) bundle retrieved from FHIR server successfully");
+        log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
 
-        List<Bundle.BundleEntryComponent> retrievedLocations = locationSearchBundle.getEntry();
+        otherPageLocationSearchBundle = firstPageLocationSearchBundle;
+        if (page.isPresent() && page.get() > 1 && otherPageLocationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+            // Load the required page
+            otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(otherPageLocationSearchBundle, page.get(), numberOfLocationsPerPage);
+        }
 
-        return retrievedLocations.stream().map(location -> modelMapper.map(location.getResource(), LocationDto.class)).collect(Collectors.toList());
+        List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
+
+        return retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
     }
 
-    /**
-     * Get Location By Id
-     *
-     * @param locationId
-     * @return
-     */
     @Override
     public LocationDto getLocation(String locationId) {
         Bundle locationBundle = fhirClient.search().forResource(Location.class)
@@ -96,15 +139,9 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle.BundleEntryComponent retrievedLocation = locationBundle.getEntry().get(0);
 
-        return modelMapper.map(retrievedLocation.getResource(), LocationDto.class);
+        return convertLocationBundleEntryToLocationDto(retrievedLocation);
     }
 
-    /**
-     * Gets level 1 child location for a given Location Id
-     *
-     * @param locationId
-     * @return
-     */
     @Override
     public LocationDto getChildLocation(String locationId) {
         Bundle childLocationBundle = fhirClient.search().forResource(Location.class)
@@ -121,6 +158,35 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle.BundleEntryComponent retrievedLocation = childLocationBundle.getEntry().get(0);
 
-        return modelMapper.map(retrievedLocation.getResource(), LocationDto.class);
+        return convertLocationBundleEntryToLocationDto(retrievedLocation);
+    }
+
+    private Bundle getLocationSearchBundleAfterFirstPage(Bundle locationSearchBundle, int page, int size) {
+        if (locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+            //Assuming page number starts with 1
+            int offset = ((page >= 1 ? page : 1) - 1) * size;
+
+            if (offset >= locationSearchBundle.getTotal()) {
+                throw new LocationNotFoundException("No locations were found in the FHIR server for this page number");
+            }
+
+            String pageUrl = ocpFisProperties.getFhir().getPublish().getServerUrl().getResource()
+                    + "?_getpages=" + locationSearchBundle.getId()
+                    + "&_getpagesoffset=" + offset
+                    + "&_count=" + size
+                    + "&_bundletype=searchset";
+
+            // Load the required page
+            return fhirClient.search().byUrl(pageUrl)
+                    .returnBundle(Bundle.class)
+                    .execute();
+        }
+        return locationSearchBundle;
+    }
+
+    private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel) {
+        LocationDto tempLocationDto = modelMapper.map(fhirLocationModel.getResource(), LocationDto.class);
+        tempLocationDto.setLogicalId(fhirLocationModel.getResource().getIdElement().getIdPart());
+        return tempLocationDto;
     }
 }

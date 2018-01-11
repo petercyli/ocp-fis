@@ -18,11 +18,15 @@ import javax.validation.constraints.NotNull;
 @Configuration
 @ConfigurationProperties(prefix = "ocp-fis")
 @Data
-public class OcpProperties {
+public class OcpFisProperties {
 
     @NotNull
     @Valid
     private Fhir fhir;
+
+    @NotNull
+    @Valid
+    private Location location;
 
     @NotNull
     @Valid
@@ -49,6 +53,26 @@ public class OcpProperties {
         @NotBlank
         private String resource;
     }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Location {
+        @Valid
+        private Pagination pagination = new Pagination();
+
+        @Data
+        public static class Pagination {
+            @Min(1)
+            @Max(500)
+            private int defaultSize = 10;
+            @Min(1)
+            @Max(500)
+            private int maxSize = 50;
+        }
+    }
+}
 
     @Data
     @Builder
