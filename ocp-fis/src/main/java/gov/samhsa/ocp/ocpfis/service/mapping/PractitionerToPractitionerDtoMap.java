@@ -18,12 +18,15 @@ public class PractitionerToPractitionerDtoMap extends PropertyMap<Practitioner,P
     @Autowired
     private HumanNameListToNameDtoListConverter humanNameListToNameDtoListConverter;
 
+    @Autowired
+    private AddressListToAddressDtoListConverter addressListToAddressDtoListConverter;
+
     @Override
     protected void configure() {
         map().setActive(source.getActive());
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecoms(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
         using(humanNameListToNameDtoListConverter).map(source.getName()).setName(null);
-
+        using(addressListToAddressDtoListConverter).map(source.getAddress()).setAddress(null);
     }
 }
