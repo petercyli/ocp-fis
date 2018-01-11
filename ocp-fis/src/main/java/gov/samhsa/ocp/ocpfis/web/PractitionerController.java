@@ -17,15 +17,20 @@ import java.util.Set;
 @RestController
 @RequestMapping("/practitioners")
 public class PractitionerController {
+    public enum SearchType {
+        identifier,name
+    }
 
     @Autowired
     private PractitionerService practitionerService;
 
     @GetMapping
-    public List<PractitionerDto> getPractitioners(@RequestParam Optional<Boolean> showInactive,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){
-        return practitionerService.getAllPractitioners(showInactive, page,size);
+    public List<PractitionerDto> getPractitioners(@RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
+        return practitionerService.getAllPractitioners(showInactive, page, size);
     }
 
     @GetMapping("/search")
-    public List<PractitionerDto> searchPractitioners(@RequestParam String searchType, @RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){return practitionerService.searchPractitioners(searchType, searchValue, showInactive, page,size);}
+    public List<PractitionerDto> searchPractitioners(@RequestParam SearchType searchType, @RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
+        return practitionerService.searchPractitioners(searchType, searchValue, showInactive, page, size);
+    }
 }
