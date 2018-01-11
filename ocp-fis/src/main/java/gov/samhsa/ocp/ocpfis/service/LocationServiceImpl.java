@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.OcpFisProperties;
@@ -43,24 +44,20 @@ public class LocationServiceImpl implements LocationService {
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
 
+        IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
+
         if (status.isPresent() && status.get().size() > 0) {
             log.info("Searching for ALL locations with the following specific status(es).");
             status.get().forEach(log::info);
-            //The following bundle only contains Page 1 of the resultset
-            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
-                    .where(new TokenClientParam("status").exactly().codes(status.get()))
-                    .count(numberOfLocationsPerPage)
-                    .returnBundle(Bundle.class)
-                    .execute();
-
+            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(status.get()));
         } else {
-            log.info("Searching for location with ALL statuses");
-            //The following bundle only contains Page 1 of the resultset
-            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
-                    .count(numberOfLocationsPerPage)
-                    .returnBundle(Bundle.class)
-                    .execute();
+            log.info("Searching for locations with ALL statuses");
         }
+        //The following bundle only contains Page 1 of the resultSet
+        firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
+                .returnBundle(Bundle.class)
+                .encodedJson()
+                .execute();
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
             throw new LocationNotFoundException("No locations were found in the FHIR server");
@@ -85,25 +82,21 @@ public class LocationServiceImpl implements LocationService {
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
 
+        IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
+
         if (status.isPresent() && status.get().size() > 0) {
             log.info("Searching for location with the following specific status(es) for the given OrganizationID:" + organizationResourceId);
             status.get().forEach(log::info);
-            //The following bundle only contains Page 1 of the resultset
-            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
-                    .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
-                    .where(new TokenClientParam("status").exactly().codes(status.get()))
-                    .count(numberOfLocationsPerPage)
-                    .returnBundle(Bundle.class)
-                    .execute();
+            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(status.get()));
         } else {
-            log.info("Searching for location with ALL statuses for the given OrganizationID:" + organizationResourceId);
-            //The following bundle only contains Page 1 of the resultset
-            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
-                    .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
-                    .count(numberOfLocationsPerPage)
-                    .returnBundle(Bundle.class)
-                    .execute();
+            log.info("Searching for locations with ALL statuses for the given OrganizationID:" + organizationResourceId);
         }
+
+        //The following bundle only contains Page 1 of the resultSet
+        firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
+                .returnBundle(Bundle.class)
+                .encodedJson()
+                .execute();
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
