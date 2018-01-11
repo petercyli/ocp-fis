@@ -9,15 +9,7 @@ public class PractitionerNotFoundException extends RuntimeException {
         super();
     }
 
-    public PractitionerNotFoundException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
     public PractitionerNotFoundException(String message) {
         super(message);
-    }
-
-    public PractitionerNotFoundException(Throwable cause) {
-        super(cause);
     }
 }
