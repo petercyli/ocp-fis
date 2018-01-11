@@ -7,6 +7,7 @@ spring:
     default-domain: ocp-fis
 logging:
   file: /java/OCP_LOGS/ocp-fis/ocp-fis.log
+  level.Root: DEBUG
 info:
   component: Omnibus Care Plan - FHIR Integration Service
 hystrix.command.default.execution.timeout.enabled: false
@@ -16,9 +17,12 @@ ocp-fis:
   fhir:
     publish:
       serverUrl:
-        resource: http://ocp.consent2share.org/fhir/baseDstu3
+        resource: http://fhirtest.uhn.ca/baseDstu3
       clientSocketTimeoutInMs: 768000
       encoding: json
+  practitioner:
+    pagination:
+      default-size: 20
 ---
 # updates configuration for docker environment
 spring.profiles: docker
