@@ -61,9 +61,8 @@ public class PractitionerServiceImpl implements  PractitionerService{
             practitionerIQuery.where(new TokenClientParam("active").exactly().code("true"));
         }
 
-        List<PractitionerDto> list=new ArrayList<>();
-
         Bundle bundle = fhirClient.search().forResource(Practitioner.class)
+                .count(numberOfPractitionersPerPage)
                 .returnBundle(Bundle.class)
                 .execute();
 
