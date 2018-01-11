@@ -51,14 +51,17 @@ public class PractitionerServiceImpl implements  PractitionerService{
     }
 
     @Override
-    public List<PractitionerDto> getAllPractitioners(Optional<String> showInactive, Optional<Integer> page, Optional<Integer> size) {
+    public List<PractitionerDto> getAllPractitioners(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfPractitionersPerPage = size.filter(s -> s > 0 &&
                  s <= ocpProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpProperties.getPractitioner().getPagination().getDefaultSize());
         IQuery iQuery = fhirClient.search().forResource(Practitioner.class);
-                if(showInactive.isPresent()) {
-                    if(showInactive.get().equalsIgnoreCase("false"))
+        if(showInactive.isPresent()) {
+                    if(!showInactive.get())
                         iQuery.where(new TokenClientParam("active").exactly().code("true"));
-                }
+        }else{
+            iQuery.where(new TokenClientParam("active").exactly().code("true"));
+        }
+
         Bundle bundle= (Bundle) iQuery.count(numberOfPractitionersPerPage)
                 .returnBundle(Bundle.class)
                 .execute();
@@ -77,20 +80,38 @@ public class PractitionerServiceImpl implements  PractitionerService{
     }
 
     @Override
-    public Set<PractitionerDto> searchPractitioners(String value, Optional<String> showInactive, Optional<Integer> page, Optional<Integer> size) {
+    public Set<PractitionerDto> searchPractitioners(String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfPractitionerPerPage = size.filter(s -> s > 0 &&
                 s <= ocpProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpProperties.getPractitioner().getPagination().getDefaultSize());
 
-        Bundle bundleByName = fhirClient.search().forResource(Practitioner.class)
-                .where(new StringClientParam("name").matches().value(value.trim()))
-                .returnBundle(Bundle.class)
+        IQuery iQueryByName = fhirClient.search().forResource(Practitioner.class)
+                .where(new StringClientParam("name").matches().value(value.trim()));
+
+        if(showInactive.isPresent()){
+            if(!showInactive.get())
+                iQueryByName.where(new TokenClientParam("active").exactly().code("true"));
+        }else{
+            iQueryByName.where(new TokenClientParam("active").exactly().code("true"));
+        }
+
+
+
+        Bundle bundleByName= (Bundle) iQueryByName.returnBundle(Bundle.class)
                 .execute();
 
         Set<PractitionerDto> practitionerDtosByName=convertBundleToPractitionerDtos(bundleByName);
 
-        Bundle bundleByIdentifier=fhirClient.search().forResource(Practitioner.class)
-                .where(new TokenClientParam("identifier").exactly().code(value.trim()))
-                .returnBundle(Bundle.class)
+        IQuery iQueryByIdentifier=fhirClient.search().forResource(Practitioner.class)
+                .where(new TokenClientParam("identifier").exactly().code(value.trim()));
+
+        if(showInactive.isPresent()){
+            if(!showInactive.get())
+                iQueryByName.where(new TokenClientParam("active").exactly().code("true"));
+        }else{
+            iQueryByName.where(new TokenClientParam("active").exactly().code("true"));
+        }
+
+        Bundle bundleByIdentifier= (Bundle) iQueryByIdentifier.returnBundle(Bundle.class)
                 .execute();
 
        Set<PractitionerDto> practitionerDtosById=convertBundleToPractitionerDtos(bundleByIdentifier);

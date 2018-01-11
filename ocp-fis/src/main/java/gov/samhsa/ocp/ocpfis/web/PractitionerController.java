@@ -22,10 +22,10 @@ public class PractitionerController {
     private PractitionerService practitionerService;
 
     @GetMapping
-    public List<PractitionerDto> getPractitioners(@RequestParam Optional<String> showInactive,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){
+    public List<PractitionerDto> getPractitioners(@RequestParam Optional<Boolean> showInactive,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){
         return practitionerService.getAllPractitioners(showInactive, page,size);
     }
 
     @GetMapping("/search")
-    public Set<PractitionerDto> searchPractitioners(@RequestParam String searchValue, @RequestParam Optional<String> showInactive,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){return practitionerService.searchPractitioners(searchValue, showInactive, page,size);}
+    public Set<PractitionerDto> searchPractitioners(@RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){return practitionerService.searchPractitioners(searchValue, showInactive, page,size);}
 }
