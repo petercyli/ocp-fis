@@ -80,53 +80,41 @@ public class PractitionerServiceImpl implements  PractitionerService{
     }
 
     @Override
-    public Set<PractitionerDto> searchPractitioners(String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPractitionerPerPage = size.filter(s -> s > 0 &&
+    public List<PractitionerDto> searchPractitioners(String type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
+        int numberOfPractitionersPerPage = size.filter(s -> s > 0 &&
                 s <= ocpProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpProperties.getPractitioner().getPagination().getDefaultSize());
 
-        IQuery iQueryByName = fhirClient.search().forResource(Practitioner.class)
-                .where(new StringClientParam("name").matches().value(value.trim()));
+        IQuery iQuery = fhirClient.search().forResource(Practitioner.class);
+
+        if(type.equalsIgnoreCase("name"))
+                iQuery.where(new StringClientParam("name").matches().value(value.trim()));
+
+        if(type.equalsIgnoreCase("identifier"))
+            iQuery.where(new TokenClientParam("identifier").exactly().code(value.trim()));
 
         if(showInactive.isPresent()){
             if(!showInactive.get())
-                iQueryByName.where(new TokenClientParam("active").exactly().code("true"));
+                iQuery.where(new TokenClientParam("active").exactly().code("true"));
         }else{
-            iQueryByName.where(new TokenClientParam("active").exactly().code("true"));
+            iQuery.where(new TokenClientParam("active").exactly().code("true"));
         }
 
-
-
-        Bundle bundleByName= (Bundle) iQueryByName.returnBundle(Bundle.class)
+        Bundle bundle= (Bundle) iQuery.count(numberOfPractitionersPerPage).returnBundle(Bundle.class)
                 .execute();
 
-        Set<PractitionerDto> practitionerDtosByName=convertBundleToPractitionerDtos(bundleByName);
-
-        IQuery iQueryByIdentifier=fhirClient.search().forResource(Practitioner.class)
-                .where(new TokenClientParam("identifier").exactly().code(value.trim()));
-
-        if(showInactive.isPresent()){
-            if(!showInactive.get())
-                iQueryByName.where(new TokenClientParam("active").exactly().code("true"));
-        }else{
-            iQueryByName.where(new TokenClientParam("active").exactly().code("true"));
+        if(bundle==null || bundle.isEmpty() || bundle.getEntry().size()<1){
+            throw new PractitionerNotFoundException("No practitioners were found in the FHIR server.");
         }
 
-        Bundle bundleByIdentifier= (Bundle) iQueryByIdentifier.returnBundle(Bundle.class)
-                .execute();
+        if(page.isPresent() && bundle.getLink(Bundle.LINK_NEXT) !=null){
+            bundle=getPractitionerSearchBundleByPageAndSize(bundle,page,numberOfPractitionersPerPage);
+        }
 
-       Set<PractitionerDto> practitionerDtosById=convertBundleToPractitionerDtos(bundleByIdentifier);
+        List<Bundle.BundleEntryComponent> retrievedPractitioners=bundle.getEntry();
 
-       Set<PractitionerDto> practitionerDtos= Stream.concat(practitionerDtosByName.stream(), practitionerDtosById.stream())
-               .distinct()
-               .collect(Collectors.toSet());
-
-       if(practitionerDtos.size()<1 || practitionerDtos.isEmpty()){
-           throw new PractitionerNotFoundException("No practitioner with given name or identifier.");
-       }
-
-        return practitionerDtos;
-
+        return retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
      }
+
 
     private Bundle getPractitionerSearchBundleByPageAndSize(Bundle locationSearchBundle, Optional<Integer> page, int numberOfPractitionersPerPage) {
         if (locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
@@ -149,23 +137,6 @@ public class PractitionerServiceImpl implements  PractitionerService{
                     .execute();
         }
         return locationSearchBundle;
-    }
-
-    private Set<PractitionerDto> convertBundleToPractitionerDtos(Bundle response){
-        Set<PractitionerDto> practitionerDtos = new HashSet<>();
-        if (null == response || response.isEmpty() || response.getEntry().size() < 1) {
-            log.info("No practitioners in FHIR Server.");
-        } else {
-            practitionerDtos = response.getEntry().stream()
-                    .filter(bundleEntryComponent -> bundleEntryComponent.getResource().getResourceType().equals(ResourceType.Practitioner))
-                    .map(bundleEntryComponent -> (Practitioner) bundleEntryComponent.getResource()) // practitioner resources
-                    .map(patient ->{
-                        PractitionerDto practitionerDto = modelMapper.map(patient, PractitionerDto.class);
-                        return practitionerDto;
-                    })
-                    .collect(Collectors.toSet());
-        }
-        return practitionerDtos;
     }
 
 }

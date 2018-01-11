@@ -27,5 +27,5 @@ public class PractitionerController {
     }
 
     @GetMapping("/search")
-    public Set<PractitionerDto> searchPractitioners(@RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){return practitionerService.searchPractitioners(searchValue, showInactive, page,size);}
+    public List<PractitionerDto> searchPractitioners(@RequestParam String searchType, @RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){return practitionerService.searchPractitioners(searchType, searchValue, showInactive, page,size);}
 }
