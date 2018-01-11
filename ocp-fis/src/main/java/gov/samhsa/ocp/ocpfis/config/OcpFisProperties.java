@@ -72,7 +72,6 @@ public class OcpFisProperties {
             private int maxSize = 50;
         }
     }
-}
 
     @Data
     @Builder
@@ -92,4 +91,6 @@ public class OcpFisProperties {
             private int maxSize = 50;
         }
     }
+
 }
+

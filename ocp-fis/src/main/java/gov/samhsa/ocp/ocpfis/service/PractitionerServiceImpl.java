@@ -40,19 +40,19 @@ public class PractitionerServiceImpl implements  PractitionerService{
 
     private final IGenericClient fhirClient;
 
-    private final OcpFisProperties ocpProperties;
+    private final OcpFisProperties ocpFisProperties;
 
     @Autowired
-    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient) {
+    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, OcpFisProperties ocpFisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
-        this.ocpProperties = ocpProperties;
+        this.ocpFisProperties = ocpFisProperties;
     }
 
     @Override
     public List<PractitionerDto> getAllPractitioners(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfPractitionersPerPage = size.filter(s -> s > 0 &&
-                s <= ocpProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpProperties.getPractitioner().getPagination().getDefaultSize());
+                s <= ocpFisProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpFisProperties.getPractitioner().getPagination().getDefaultSize());
         IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
         if (showInactive.isPresent()) {
             if (!showInactive.get())
@@ -75,7 +75,7 @@ public class PractitionerServiceImpl implements  PractitionerService{
     @Override
     public List<PractitionerDto> searchPractitioners(PractitionerController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfPractitionersPerPage = size.filter(s -> s > 0 &&
-                s <= ocpProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpProperties.getPractitioner().getPagination().getDefaultSize());
+                s <= ocpFisProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpFisProperties.getPractitioner().getPagination().getDefaultSize());
 
         IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
 
@@ -118,7 +118,7 @@ public class PractitionerServiceImpl implements  PractitionerService{
                 throw new PractitionerNotFoundException("No practitioners were found in the FHIR server for this page number");
             }
 
-            String pageUrl = ocpProperties.getFhir().getPublish().getServerUrl().getResource()
+            String pageUrl = ocpFisProperties.getFhir().getPublish().getServerUrl().getResource()
                     + "?_getpages=" + practitionerSearchBundle.getId()
                     + "&_getpagesoffset=" + offset
                     + "&_count=" + numberOfPractitionersPerPage
