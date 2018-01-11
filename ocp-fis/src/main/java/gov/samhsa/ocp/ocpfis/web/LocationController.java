@@ -4,9 +4,11 @@ import gov.samhsa.ocp.ocpfis.service.LocationService;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class LocationController {
@@ -17,28 +19,36 @@ public class LocationController {
     }
 
     /**
-     * Gets all available locations in the configured FHIR server
      *
+     * @param status
+     * @param page
+     * @param size
      * @return
      */
     @GetMapping("/locations")
-    public List<LocationDto> getAllLocations() {
-        return locationService.getAllLocations();
+    public List<LocationDto> getAllLocations(@RequestParam Optional<List<String>> status,
+                @RequestParam Optional<Integer> page,
+                @RequestParam Optional<Integer> size) {
+        return locationService.getAllLocations(status,page, size);
     }
 
     /**
-     * Gets all locations(all levels) that are managed under a given Organization Id
      *
      * @param organizationId
+     * @param status
+     * @param page
+     * @param size
      * @return
      */
     @GetMapping("/organizations/{organizationId}/locations")
-    public List<LocationDto> getLocationsByOrganization(@PathVariable String organizationId) {
-        return locationService.getLocationsByOrganization(organizationId);
+    public List<LocationDto> getLocationsByOrganization(@PathVariable String organizationId,
+                                                        @RequestParam Optional<List<String>> status,
+                                                        @RequestParam Optional<Integer> page,
+                                                        @RequestParam Optional<Integer> size) {
+        return locationService.getLocationsByOrganization(organizationId, status, page, size);
     }
 
     /**
-     * Get Location By Id
      *
      * @param locationId
      * @return
@@ -50,7 +60,6 @@ public class LocationController {
 
     /**
      * Gets level 1 child location for a given Location Id
-     *
      * @param locationId
      * @return
      */
