@@ -18,7 +18,7 @@ import java.util.Set;
 @RequestMapping("/practitioners")
 public class PractitionerController {
     public enum SearchType {
-        identifier,name
+        identifier, name
     }
 
     @Autowired
