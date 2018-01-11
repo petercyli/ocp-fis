@@ -15,9 +15,10 @@ import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Slf4j
@@ -34,7 +35,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public List<PatientDto> getPatients() {
+    public Set<PatientDto> getPatients() {
         log.debug("Patients Query to FHIR Server: START");
         Bundle response = fhirClient.search()
                 .forResource(Patient.class)
@@ -46,7 +47,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public List<PatientDto> searchPatient(SearchPatientDto searchPatientDto) {
+    public Set<PatientDto> searchPatient(SearchPatientDto searchPatientDto) {
 
         log.debug("Patients Query to FHIR Server: START");
         Bundle response = fhirClient.search()
@@ -64,23 +65,59 @@ public class PatientServiceImpl implements PatientService {
         return convertBundleToPatientDtos(response, Boolean.TRUE);
     }
 
-    private List<PatientDto> convertBundleToPatientDtos(Bundle response, boolean isSearch) {
-        List<PatientDto> patientDtos = new ArrayList<>();
+    @Override
+    public Set<PatientDto> getPatientsByValue(String searchValue) {
+        log.debug("Patients Name Query to FHIR Server: START");
+        Bundle response = fhirClient.search()
+                .forResource(Patient.class)
+                .where(new StringClientParam("name").matches().value(searchValue.trim()))
+                .returnBundle(Bundle.class)
+                .encodedJson()
+                .execute();
+        log.debug("Patients Name Query to FHIR Server: END");
+        Set<PatientDto> patientNameDtos = convertBundleToPatientDtos(response, Boolean.FALSE);
+        log.info("Toal Name search list #" + patientNameDtos.size());
+        log.debug("Patients Identifier Value Query to FHIR Server: START");
+        response = fhirClient.search()
+                .forResource(Patient.class)
+                .where(new TokenClientParam("identifier").exactly().code(searchValue.trim()))
+                .returnBundle(Bundle.class)
+                .encodedJson()
+                .execute();
+        log.debug("Patients Identifier Value Query to FHIR Server: END");
+        Set<PatientDto> patientIdentifierDtos = convertBundleToPatientDtos(response, Boolean.FALSE);
+        log.info("Total Identifier search list #" + patientIdentifierDtos.size());
+        log.debug("Patients Query to FHIR Server: END");
+
+        Set<PatientDto> patientDtos = Stream.concat(patientNameDtos.stream(), patientIdentifierDtos.stream())
+                .distinct()
+                .collect(Collectors.toSet());
+        log.info("Total search list #" + patientDtos.size());
+        return patientDtos;
+    }
+
+    private Set<PatientDto> convertBundleToPatientDtos(Bundle response, boolean isSearch) {
+        Set<PatientDto> patientDtos = new HashSet<>();
         if (null == response || response.isEmpty() || response.getEntry().size() < 1) {
-            log.debug("No patients in FHIR Server");
-            // Search throw patient not found exception and list just show empty list
-            if(isSearch) throw new PatientNotFoundException();
+            log.info("No patients in FHIR Server");
+            // Search throw patient not found exception and list will show empty list
+            if (isSearch) throw new PatientNotFoundException();
         } else {
             patientDtos = response.getEntry().stream()
                     .filter(bundleEntryComponent -> bundleEntryComponent.getResource().getResourceType().equals(ResourceType.Patient))  //patient entries
                     .map(bundleEntryComponent -> (Patient) bundleEntryComponent.getResource()) // patient resources
                     .peek(patient -> log.debug(iParser.encodeResourceToString(patient)))
-                    .map(patient -> modelMapper.map(patient, PatientDto.class))
-                    .collect(Collectors.toList());
+                    .map(patient ->{
+                       PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
+                       patientDto.setId(patient.getIdElement().getIdPart());
+                       return patientDto;
+                    })
+                    .collect(Collectors.toSet());
         }
-        log.debug("The no of patients retrieved from FHIR server" + patientDtos.size());
+        log.info("Total Patients retrieved from Server #" + patientDtos.size());
         return patientDtos;
     }
+
 
 }
 
