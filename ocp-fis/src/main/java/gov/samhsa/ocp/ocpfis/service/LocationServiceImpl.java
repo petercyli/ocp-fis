@@ -44,7 +44,7 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
-        boolean isFirstPage = true;
+        boolean firstPage = true;
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
@@ -69,7 +69,7 @@ public class LocationServiceImpl implements LocationService {
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
         if (page.isPresent() && page.get() > 1 && firstPageLocationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
-            isFirstPage = false;
+            firstPage = false;
             otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(firstPageLocationSearchBundle, page.get(), numberOfLocationsPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
@@ -77,7 +77,7 @@ public class LocationServiceImpl implements LocationService {
         //Arrange Page related info
         List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
         double totalPages = Math.ceil((double) otherPageLocationSearchBundle.getTotal() / numberOfLocationsPerPage);
-        int currentPage = isFirstPage ? 1 : page.get();
+        int currentPage = firstPage ? 1 : page.get();
 
         return new PageDto<>(locationsList, numberOfLocationsPerPage, totalPages, currentPage, locationsList.size(), otherPageLocationSearchBundle.getTotal());
     }
@@ -89,7 +89,7 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
-        boolean isFirstPage = true;
+        boolean firstPage = true;
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
@@ -117,7 +117,7 @@ public class LocationServiceImpl implements LocationService {
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
         if (page.isPresent() && page.get() > 1 && otherPageLocationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
-            isFirstPage = false;
+            firstPage = false;
             otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(otherPageLocationSearchBundle, page.get(), numberOfLocationsPerPage);
         }
 
@@ -126,7 +126,7 @@ public class LocationServiceImpl implements LocationService {
         //Arrange Page related info
         List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
         double totalPages = Math.ceil((double) otherPageLocationSearchBundle.getTotal() / numberOfLocationsPerPage);
-        int currentPage = isFirstPage ? 1 : page.get();
+        int currentPage = firstPage ? 1 : page.get();
 
         return new PageDto<>(locationsList, numberOfLocationsPerPage, totalPages, currentPage, locationsList.size(), otherPageLocationSearchBundle.getTotal());
     }
