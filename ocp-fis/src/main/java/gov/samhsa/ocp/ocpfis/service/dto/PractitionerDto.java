@@ -15,13 +15,13 @@ import java.util.Optional;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PractitionerDto {
-
     private List<IdentifierDto> identifiers;
 
-    private String familyName;
+    private boolean active;
 
-    private String givenName;
+    private List<NameDto> name;
 
     private List<TelecomDto> telecoms;
 
+    private List<AddressDto> address;
 }

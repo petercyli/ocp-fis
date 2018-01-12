@@ -4,11 +4,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(value = HttpStatus.NOT_FOUND)
-public class LocationNotFoundException extends RuntimeException {
-    public LocationNotFoundException() {
+public class PractitionerNotFoundException extends RuntimeException {
+    public PractitionerNotFoundException() {
         super();
     }
-    public LocationNotFoundException(String message) {
+
+    public PractitionerNotFoundException(String message) {
         super(message);
     }
 }
