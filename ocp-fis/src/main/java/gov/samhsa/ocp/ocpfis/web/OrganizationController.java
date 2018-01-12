@@ -17,7 +17,7 @@ import java.util.Optional;
 
 public class OrganizationController {
     public enum SearchType {
-        identifier, name
+        identifier, name, logicalId
     }
 
     @Autowired

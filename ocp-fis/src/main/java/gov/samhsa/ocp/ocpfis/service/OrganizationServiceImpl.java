@@ -89,6 +89,9 @@ public class OrganizationServiceImpl implements OrganizationService{
         if (type.equals(OrganizationController.SearchType.identifier))
             organizationIQuery.where(new TokenClientParam("identifier").exactly().code(value));
 
+        if (type.equals(OrganizationController.SearchType.logicalId))
+            organizationIQuery.where(new TokenClientParam("_id").exactly().code(value));
+
         if (showInactive.isPresent()) {
             if (!showInactive.get())
                 organizationIQuery.where(new TokenClientParam("active").exactly().code("true"));
