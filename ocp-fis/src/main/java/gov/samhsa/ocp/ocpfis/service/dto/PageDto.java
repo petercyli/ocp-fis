@@ -18,7 +18,10 @@ public class PageDto<T> {
     int currentPageSize; //Will always be less than or equal to "size", for example: a last page
     boolean hasNextPage;
     boolean hasPreviousPage;
+    boolean firstPage;
+    boolean lastPage;
     int totalElements;
+    boolean hasElements;
     List<T> elements;
 
 
@@ -31,5 +34,8 @@ public class PageDto<T> {
         this.totalElements = totalElements;
         this.hasPreviousPage = currentPage > 1 && currentPage <= totalNumberOfPages;
         this.hasNextPage = currentPage >= 1 && currentPage < totalNumberOfPages;
+        this.firstPage = currentPage == 1;
+        this.lastPage = currentPage == totalNumberOfPages;
+        this.hasElements = this.getElements().size() > 0;
     }
 }
