@@ -4,7 +4,7 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
-import gov.samhsa.ocp.ocpfis.config.OcpFisProperties;
+import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
@@ -27,20 +27,20 @@ public class LocationServiceImpl implements LocationService {
 
     private final IGenericClient fhirClient;
 
-    private final OcpFisProperties ocpFisProperties;
+    private final FisProperties fisProperties;
 
     @Autowired
-    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, OcpFisProperties ocpFisProperties) {
+    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
-        this.ocpFisProperties = ocpFisProperties;
+        this.fisProperties = fisProperties;
     }
 
     @Override
     public PageDto<LocationDto> getAllLocations(Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
 
         int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
-                s <= ocpFisProperties.getLocation().getPagination().getMaxSize()).orElse(ocpFisProperties.getLocation().getPagination().getDefaultSize());
+                s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
@@ -85,7 +85,7 @@ public class LocationServiceImpl implements LocationService {
     @Override
     public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
         int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
-                s <= ocpFisProperties.getLocation().getPagination().getMaxSize()).orElse(ocpFisProperties.getLocation().getPagination().getDefaultSize());
+                s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
@@ -178,7 +178,7 @@ public class LocationServiceImpl implements LocationService {
                 throw new LocationNotFoundException("No locations were found in the FHIR server for this page number");
             }
 
-            String pageUrl = ocpFisProperties.getFhir().getPublish().getServerUrl().getResource()
+            String pageUrl = fisProperties.getFhir().getPublish().getServerUrl().getResource()
                     + "?_getpages=" + locationSearchBundle.getId()
                     + "&_getpagesoffset=" + offset
                     + "&_count=" + size

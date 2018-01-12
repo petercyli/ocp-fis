@@ -1,6 +1,5 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,15 +11,11 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
-public class PractitionerDto {
+public class OrganizationDto {
+    private String logicalId;
     private List<IdentifierDto> identifiers;
-
     private boolean active;
-
-    private List<NameDto> name;
-
+    private String name;
+    private List<AddressDto> addresses;
     private List<TelecomDto> telecoms;
-
-    private List<AddressDto> address;
 }
