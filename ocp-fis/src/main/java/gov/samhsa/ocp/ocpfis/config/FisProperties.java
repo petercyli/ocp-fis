@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.NotBlank;
-import org.hl7.fhir.dstu3.model.Practitioner;
-import org.hl7.fhir.dstu3.model.Organization;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
@@ -37,28 +35,22 @@ public class FisProperties {
     @Valid
     private Organization organization;
 
+    @NotNull
+    @Valid
+    private Patient patient;
 
     @Data
     public static class Fhir {
 
-        private Publish publish;
-
-        @Data
-        public static class Publish {
-            @NotBlank
-            private ServerUrl serverUrl;
-            @NotBlank
-            private String clientSocketTimeoutInMs;
-            @NotNull
-            private EncodingEnum encoding = EncodingEnum.JSON;
-        }
-    }
-
-    @Data
-    public static class ServerUrl {
         @NotBlank
-        private String resource;
+        private String serverUrl;
+        @NotBlank
+        private String clientSocketTimeoutInMs;
+        @NotNull
+        private EncodingEnum encoding = EncodingEnum.JSON;
+
     }
+
 
     @Data
     @Builder
@@ -103,6 +95,25 @@ public class FisProperties {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Organization {
+        @Valid
+        private Pagination pagination = new Pagination();
+
+        @Data
+        public static class Pagination {
+            @Min(1)
+            @Max(500)
+            private int defaultSize = 10;
+            @Min(1)
+            @Max(500)
+            private int maxSize = 50;
+        }
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Patient {
         @Valid
         private Pagination pagination = new Pagination();
 

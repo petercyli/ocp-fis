@@ -20,13 +20,13 @@ public class FhirServiceConfig {
     @Bean
     public FhirContext fhirContext() {
         FhirContext fhirContext = FhirContext.forDstu3();
-        fhirContext.getRestfulClientFactory().setSocketTimeout(Integer.parseInt(fisProperties.getFhir().getPublish().getClientSocketTimeoutInMs()));
+        fhirContext.getRestfulClientFactory().setSocketTimeout(Integer.parseInt(fisProperties.getFhir().getClientSocketTimeoutInMs()));
         return fhirContext;
     }
 
     @Bean
     public IGenericClient fhirClient() {
-        return fhirContext().newRestfulGenericClient(fisProperties.getFhir().getPublish().getServerUrl().getResource());
+        return fhirContext().newRestfulGenericClient(fisProperties.getFhir().getServerUrl());
     }
 
     @Bean
