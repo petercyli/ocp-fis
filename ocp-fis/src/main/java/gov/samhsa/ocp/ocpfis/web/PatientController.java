@@ -39,7 +39,7 @@ public class PatientController {
     }
 
     @GetMapping("/search")
-    public Set<PatientDto> searchPatientsByValue( @RequestParam(value = "value") String value,@RequestParam(value = "type") String type,@RequestParam(value = "showInactive", defaultValue = "false") boolean showInactive) {
+    public Set<PatientDto> getPatientsByValue( @RequestParam(value = "value") String value,@RequestParam(value = "type") String type,@RequestParam(value = "showInactive", defaultValue = "false") boolean showInactive) {
         if( type == null || !Arrays.stream(SearchType.values()).anyMatch(searchType -> searchType.name().equalsIgnoreCase(type.trim()))){
             throw new BadRequestException("Invalid Type Value. It should be either Name or Identifier");
         }
