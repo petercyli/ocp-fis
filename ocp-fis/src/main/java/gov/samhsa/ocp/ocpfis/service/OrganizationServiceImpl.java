@@ -4,7 +4,7 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
-import gov.samhsa.ocp.ocpfis.config.OcpFisProperties;
+import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
@@ -20,17 +20,17 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-public class OrganizationServiceImpl implements OrganizationService{
+public class OrganizationServiceImpl implements OrganizationService {
 
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
-    private final OcpFisProperties ocpFisProperties;
+    private final FisProperties ocpFisProperties;
 
 
-    public OrganizationServiceImpl(ModelMapper modelMapper , IGenericClient fhirClient, OcpFisProperties ocpFisProperties) {
+    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
-        this.ocpFisProperties = ocpFisProperties;
+        this.ocpFisProperties = fisProperties;
 
     }
 
@@ -72,7 +72,7 @@ public class OrganizationServiceImpl implements OrganizationService{
             OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
             organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
             return organizationDto;
-        } ).collect(Collectors.toList());
+        }).collect(Collectors.toList());
 
     }
 
@@ -122,7 +122,7 @@ public class OrganizationServiceImpl implements OrganizationService{
             OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
             organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
             return organizationDto;
-        } ).collect(Collectors.toList());
+        }).collect(Collectors.toList());
 
     }
 

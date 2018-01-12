@@ -10,23 +10,23 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class FhirServiceConfig {
 
-    private final OcpFisProperties ocpFisProperties;
+    private final FisProperties fisProperties;
 
     @Autowired
-    public FhirServiceConfig(OcpFisProperties ocpFisProperties) {
-        this.ocpFisProperties = ocpFisProperties;
+    public FhirServiceConfig(FisProperties fisProperties) {
+        this.fisProperties = fisProperties;
     }
 
     @Bean
     public FhirContext fhirContext() {
         FhirContext fhirContext = FhirContext.forDstu3();
-        fhirContext.getRestfulClientFactory().setSocketTimeout(Integer.parseInt(ocpFisProperties.getFhir().getPublish().getClientSocketTimeoutInMs()));
+        fhirContext.getRestfulClientFactory().setSocketTimeout(Integer.parseInt(fisProperties.getFhir().getPublish().getClientSocketTimeoutInMs()));
         return fhirContext;
     }
 
     @Bean
     public IGenericClient fhirClient() {
-        return fhirContext().newRestfulGenericClient(ocpFisProperties.getFhir().getPublish().getServerUrl().getResource());
+        return fhirContext().newRestfulGenericClient(fisProperties.getFhir().getPublish().getServerUrl().getResource());
     }
 
     @Bean

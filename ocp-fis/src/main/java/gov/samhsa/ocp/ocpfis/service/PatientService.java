@@ -4,7 +4,6 @@ package gov.samhsa.ocp.ocpfis.service;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchPatientDto;
 
-import java.util.List;
 import java.util.Set;
 
 public interface PatientService {
@@ -13,5 +12,5 @@ public interface PatientService {
 
     Set<PatientDto> searchPatient(SearchPatientDto searchPatientDto);
 
-    Set<PatientDto> getPatientsByValue(String searchValue);
+    Set<PatientDto> getPatientsByValue(String value, String type, boolean showInactive);
 }
