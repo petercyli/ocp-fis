@@ -1,10 +1,12 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -35,32 +37,29 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
-    public List<LocationDto> getAllLocations(Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<LocationDto> getAllLocations(Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
 
         int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
                 s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
+        boolean firstPage = true;
+
+        IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
         if (status.isPresent() && status.get().size() > 0) {
             log.info("Searching for ALL locations with the following specific status(es).");
             status.get().forEach(log::info);
-            //The following bundle only contains Page 1 of the resultset
-            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
-                    .where(new TokenClientParam("status").exactly().codes(status.get()))
-                    .count(numberOfLocationsPerPage)
-                    .returnBundle(Bundle.class)
-                    .execute();
-
+            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(status.get()));
         } else {
-            log.info("Searching for location with ALL statuses");
-            //The following bundle only contains Page 1 of the resultset
-            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
-                    .count(numberOfLocationsPerPage)
-                    .returnBundle(Bundle.class)
-                    .execute();
+            log.info("Searching for locations with ALL statuses");
         }
+        //The following bundle only contains Page 1 of the resultSet
+        firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
+                .returnBundle(Bundle.class)
+                .encodedJson()
+                .execute();
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
             throw new LocationNotFoundException("No locations were found in the FHIR server");
@@ -70,40 +69,43 @@ public class LocationServiceImpl implements LocationService {
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
         if (page.isPresent() && page.get() > 1 && firstPageLocationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
+            firstPage = false;
             otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(firstPageLocationSearchBundle, page.get(), numberOfLocationsPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
-        return retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
+        //Arrange Page related info
+        List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
+        double totalPages = Math.ceil((double) otherPageLocationSearchBundle.getTotal() / numberOfLocationsPerPage);
+        int currentPage = firstPage ? 1 : page.get();
+
+        return new PageDto<>(locationsList, numberOfLocationsPerPage, totalPages, currentPage, locationsList.size(), otherPageLocationSearchBundle.getTotal());
     }
 
     @Override
-    public List<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
         int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
                 s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
+        boolean firstPage = true;
+
+        IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
         if (status.isPresent() && status.get().size() > 0) {
             log.info("Searching for location with the following specific status(es) for the given OrganizationID:" + organizationResourceId);
             status.get().forEach(log::info);
-            //The following bundle only contains Page 1 of the resultset
-            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
-                    .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
-                    .where(new TokenClientParam("status").exactly().codes(status.get()))
-                    .count(numberOfLocationsPerPage)
-                    .returnBundle(Bundle.class)
-                    .execute();
+            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(status.get()));
         } else {
-            log.info("Searching for location with ALL statuses for the given OrganizationID:" + organizationResourceId);
-            //The following bundle only contains Page 1 of the resultset
-            firstPageLocationSearchBundle = fhirClient.search().forResource(Location.class)
-                    .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
-                    .count(numberOfLocationsPerPage)
-                    .returnBundle(Bundle.class)
-                    .execute();
+            log.info("Searching for locations with ALL statuses for the given OrganizationID:" + organizationResourceId);
         }
+
+        //The following bundle only contains Page 1 of the resultSet
+        firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
+                .returnBundle(Bundle.class)
+                .encodedJson()
+                .execute();
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
@@ -115,12 +117,18 @@ public class LocationServiceImpl implements LocationService {
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
         if (page.isPresent() && page.get() > 1 && otherPageLocationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
+            firstPage = false;
             otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(otherPageLocationSearchBundle, page.get(), numberOfLocationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
-        return retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
+        //Arrange Page related info
+        List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
+        double totalPages = Math.ceil((double) otherPageLocationSearchBundle.getTotal() / numberOfLocationsPerPage);
+        int currentPage = firstPage ? 1 : page.get();
+
+        return new PageDto<>(locationsList, numberOfLocationsPerPage, totalPages, currentPage, locationsList.size(), otherPageLocationSearchBundle.getTotal());
     }
 
     @Override
