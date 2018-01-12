@@ -42,7 +42,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         int numberOfPractitionersPerPage = size.filter(s -> s > 0 &&
                 s <= ocpFisProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpFisProperties.getPractitioner().getPagination().getDefaultSize());
 
-        boolean firstPage=true;
+        boolean firstPage = true;
 
         IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
 
@@ -53,35 +53,32 @@ public class PractitionerServiceImpl implements PractitionerService {
             practitionerIQuery.where(new TokenClientParam("active").exactly().code("true"));
         }
 
-        Bundle firstPagePractitionerSearchBundle;
-        Bundle otherPagePractitionerSearchBundle;
+        Bundle firstPagePractitionerBundle;
+        Bundle otherPagePractitionerBundle;
 
-        firstPagePractitionerSearchBundle = (Bundle) practitionerIQuery
+        firstPagePractitionerBundle = (Bundle) practitionerIQuery
                 .count(numberOfPractitionersPerPage)
                 .returnBundle(Bundle.class)
                 .execute();
 
-        if (firstPagePractitionerSearchBundle == null || firstPagePractitionerSearchBundle.getEntry().size() < 1) {
+        if (firstPagePractitionerBundle == null || firstPagePractitionerBundle.getEntry().size() < 1) {
             throw new PractitionerNotFoundException("No practitioners were found in the FHIR server");
         }
 
-        otherPagePractitionerSearchBundle = firstPagePractitionerSearchBundle;
+        otherPagePractitionerBundle = firstPagePractitionerBundle;
 
-        if (page.isPresent() && page.get() > 1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+        if (page.isPresent() && page.get() > 1 && otherPagePractitionerBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
-            firstPage=false;
-            otherPagePractitionerSearchBundle = getPractitionerSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
+            firstPage = false;
+            otherPagePractitionerBundle = getPractitionerSearchBundleAfterFirstPage(firstPagePractitionerBundle, page.get(), numberOfPractitionersPerPage);
         }
 
-        List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerSearchBundle.getEntry();
+        List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerBundle.getEntry();
 
-        List<PractitionerDto> practitionersList=retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
-        double totalPages=Math.ceil((double)otherPagePractitionerSearchBundle.getTotal()/numberOfPractitionersPerPage);
-        int currentPage=firstPage ? 1:page.get();
+        return practitionersInPage(retrievedPractitioners, otherPagePractitionerBundle, numberOfPractitionersPerPage, firstPage, page);
 
-        return new PageDto<>(practitionersList,numberOfPractitionersPerPage,totalPages,currentPage,practitionersList.size(),
-                otherPagePractitionerSearchBundle.getTotal());
     }
+
 
     @Override
     public PageDto<PractitionerDto> searchPractitioners(PractitionerController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
@@ -89,7 +86,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                 s <= ocpFisProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpFisProperties.getPractitioner().getPagination().getDefaultSize());
 
         IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
-        boolean firstPage=true;
+        boolean firstPage = true;
 
         if (type.equals(PractitionerController.SearchType.name))
             practitionerIQuery.where(new StringClientParam("name").matches().value(value.trim()));
@@ -117,17 +114,13 @@ public class PractitionerServiceImpl implements PractitionerService {
         otherPagePractitionerSearchBundle = firstPagePractitionerSearchBundle;
 
         if (page.isPresent() && page.get() > 1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
-           firstPage=false;
+            firstPage = false;
             otherPagePractitionerSearchBundle = getPractitionerSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerSearchBundle.getEntry();
 
-        List<PractitionerDto> practitionersList= retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
-        double totalPages=Math.ceil((double) otherPagePractitionerSearchBundle.getTotal()/numberOfPractitionersPerPage);
-        int currentPage=firstPage ? 1:page.get();
-
-        return new PageDto<>(practitionersList,numberOfPractitionersPerPage,totalPages,currentPage, practitionersList.size(),otherPagePractitionerSearchBundle.getTotal());
+        return practitionersInPage(retrievedPractitioners, otherPagePractitionerSearchBundle, numberOfPractitionersPerPage, firstPage, page);
     }
 
 
@@ -154,4 +147,12 @@ public class PractitionerServiceImpl implements PractitionerService {
         return practitionerSearchBundle;
     }
 
+    private PageDto<PractitionerDto> practitionersInPage(List<Bundle.BundleEntryComponent> retrievedPractitioners, Bundle otherPagePractitionerBundle, int numberOfPractitionersPerPage, boolean firstPage, Optional<Integer> page) {
+        List<PractitionerDto> practitionersList = retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
+        double totalPages = Math.ceil((double) otherPagePractitionerBundle.getTotal() / numberOfPractitionersPerPage);
+        int currentPage = firstPage ? 1 : page.get();
+
+        return new PageDto<>(practitionersList, numberOfPractitionersPerPage, totalPages, currentPage, practitionersList.size(),
+                otherPagePractitionerBundle.getTotal());
+    }
 }

@@ -4,7 +4,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface PractitionerService {
