@@ -133,7 +133,7 @@ public class OrganizationServiceImpl implements OrganizationService {
                 throw new OrganizationNotFoundException("No practitioners were found in the FHIR server for this page number");
             }
 
-            String pageUrl = ocpFisProperties.getFhir().getPublish().getServerUrl().getResource()
+            String pageUrl = ocpFisProperties.getFhir().getServerUrl()
                     + "?_getpages=" + OrganizationSearchBundle.getId()
                     + "&_getpagesoffset=" + offset
                     + "&_count=" + size

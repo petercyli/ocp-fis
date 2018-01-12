@@ -125,7 +125,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                 throw new PractitionerNotFoundException("No practitioners were found in the FHIR server for this page number");
             }
 
-            String pageUrl = fisProperties.getFhir().getPublish().getServerUrl().getResource()
+            String pageUrl = fisProperties.getFhir().getServerUrl()
                     + "?_getpages=" + practitionerSearchBundle.getId()
                     + "&_getpagesoffset=" + offset
                     + "&_count=" + size
