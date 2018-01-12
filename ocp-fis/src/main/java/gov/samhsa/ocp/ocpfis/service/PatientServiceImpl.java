@@ -7,6 +7,8 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchPatientDto;
+import gov.samhsa.ocp.ocpfis.service.dto.SearchType;
+import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -15,7 +17,9 @@ import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -66,33 +70,48 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public Set<PatientDto> getPatientsByValue(String searchValue) {
-        log.debug("Patients Name Query to FHIR Server: START");
-        Bundle response = fhirClient.search()
-                .forResource(Patient.class)
-                .where(new StringClientParam("name").matches().value(searchValue.trim()))
-                .returnBundle(Bundle.class)
-                .encodedJson()
-                .execute();
-        log.debug("Patients Name Query to FHIR Server: END");
-        Set<PatientDto> patientNameDtos = convertBundleToPatientDtos(response, Boolean.FALSE);
-        log.info("Toal Name search list #" + patientNameDtos.size());
-        log.debug("Patients Identifier Value Query to FHIR Server: START");
-        response = fhirClient.search()
-                .forResource(Patient.class)
-                .where(new TokenClientParam("identifier").exactly().code(searchValue.trim()))
-                .returnBundle(Bundle.class)
-                .encodedJson()
-                .execute();
-        log.debug("Patients Identifier Value Query to FHIR Server: END");
-        Set<PatientDto> patientIdentifierDtos = convertBundleToPatientDtos(response, Boolean.FALSE);
-        log.info("Total Identifier search list #" + patientIdentifierDtos.size());
-        log.debug("Patients Query to FHIR Server: END");
+    public Set<PatientDto> getPatientsByValue(String value, String type, boolean showInactive) {
+        Set<PatientDto> patientDtos = new HashSet<>();
+        List<String> activeStatus = new ArrayList<>();
+        if(showInactive){
+            // Show both active and inactive patients
+            activeStatus.add(Boolean.TRUE.toString());
+            activeStatus.add(Boolean.FALSE.toString());
+        } else{
+            // show only active patients
+            activeStatus.add(Boolean.TRUE.toString());
+        }
 
-        Set<PatientDto> patientDtos = Stream.concat(patientNameDtos.stream(), patientIdentifierDtos.stream())
-                .distinct()
-                .collect(Collectors.toSet());
-        log.info("Total search list #" + patientDtos.size());
+        if(type.equalsIgnoreCase(SearchType.NAME.name())) {
+            log.debug("Patients Name Query to FHIR Server: START");
+            Bundle response = fhirClient.search()
+                    .forResource(Patient.class)
+                    .where(new StringClientParam("name").matches().value(value.trim()))
+                    .where(new TokenClientParam("active").exactly().codes(activeStatus))
+                    .returnBundle(Bundle.class)
+                    .encodedJson()
+                    .execute();
+            log.debug("Patients Name Query to FHIR Server: END");
+            patientDtos = convertBundleToPatientDtos(response, Boolean.FALSE);
+            log.info("Toal Name search list #" + patientDtos.size());
+
+        } else if(type.equalsIgnoreCase(SearchType.IDENTIFIER.name())) {
+            log.debug("Patients Identifier Value Query to FHIR Server: START");
+            Bundle response = fhirClient.search()
+                    .forResource(Patient.class)
+                    .where(new TokenClientParam("identifier").exactly().code(value.trim()))
+                    .where(new TokenClientParam("active").exactly().codes(activeStatus))
+                    .returnBundle(Bundle.class)
+                    .encodedJson()
+                    .execute();
+            log.debug("Patients Identifier Value Query to FHIR Server: END");
+            patientDtos = convertBundleToPatientDtos(response, Boolean.FALSE);
+            log.info("Total Identifier search list #" + patientDtos.size());
+            log.debug("Patients Query to FHIR Server: END");
+            log.info("Total search list #" + patientDtos.size());
+        } else{
+            throw new BadRequestException("Invalid Type Values");
+        }
         return patientDtos;
     }
 

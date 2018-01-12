@@ -6,6 +6,7 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.OcpFisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
@@ -28,21 +29,22 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     private final IGenericClient fhirClient;
 
-    private final OcpFisProperties ocpFisProperties;
+    private final FisProperties fisProperties;
 
     @Autowired
-    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, OcpFisProperties ocpFisProperties) {
+    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
-        this.ocpFisProperties = ocpFisProperties;
+        this.fisProperties = fisProperties;
     }
 
     @Override
     public PageDto<PractitionerDto> getAllPractitioners(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfPractitionersPerPage = size.filter(s -> s > 0 &&
-                s <= ocpFisProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpFisProperties.getPractitioner().getPagination().getDefaultSize());
+                s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
 
         boolean firstPage = true;
+
 
         IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
 
@@ -83,7 +85,7 @@ public class PractitionerServiceImpl implements PractitionerService {
     @Override
     public PageDto<PractitionerDto> searchPractitioners(PractitionerController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfPractitionersPerPage = size.filter(s -> s > 0 &&
-                s <= ocpFisProperties.getPractitioner().getPagination().getMaxSize()).orElse(ocpFisProperties.getPractitioner().getPagination().getDefaultSize());
+                s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
 
         IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
         boolean firstPage = true;
@@ -133,7 +135,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                 throw new PractitionerNotFoundException("No practitioners were found in the FHIR server for this page number");
             }
 
-            String pageUrl = ocpFisProperties.getFhir().getPublish().getServerUrl().getResource()
+            String pageUrl = fisProperties.getFhir().getPublish().getServerUrl().getResource()
                     + "?_getpages=" + practitionerSearchBundle.getId()
                     + "&_getpagesoffset=" + offset
                     + "&_count=" + size

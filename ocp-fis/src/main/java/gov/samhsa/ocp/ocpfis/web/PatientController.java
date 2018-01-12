@@ -3,6 +3,8 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.PatientService;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchPatientDto;
+import gov.samhsa.ocp.ocpfis.service.dto.SearchType;
+import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -36,7 +39,10 @@ public class PatientController {
     }
 
     @GetMapping("/search")
-    public Set<PatientDto> searchPatientsByValue( @RequestParam(value = "searchValue") String searchValue) {
-        return patientService.getPatientsByValue(searchValue);
+    public Set<PatientDto> getPatientsByValue( @RequestParam(value = "value") String value,@RequestParam(value = "type") String type,@RequestParam(value = "showInactive", defaultValue = "false") boolean showInactive) {
+        if( type == null || !Arrays.stream(SearchType.values()).anyMatch(searchType -> searchType.name().equalsIgnoreCase(type.trim()))){
+            throw new BadRequestException("Invalid Type Value. It should be either Name or Identifier");
+        }
+        return patientService.getPatientsByValue(value,type,showInactive);
     }
 }

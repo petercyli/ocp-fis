@@ -25,6 +25,9 @@ ocp-fis:
   practitioner:
     pagination:
       default-size: 20
+  organization:
+    pagination:
+      default-size: 20
 ---
 # updates configuration for docker environment
 spring.profiles: docker
