@@ -34,30 +34,6 @@ public class OrganizationServiceImpl implements OrganizationService{
 
     }
 
-    /*@Override
-    public List<OrganizationDto> getAllOrganizations(Optional<String> name) {
-
-        IQuery allOrganizationsSearchQuery = fhirClient.search().forResource(Organization.class);
-
-        if (name.isPresent())
-            allOrganizationsSearchQuery.where(new StringClientParam("name").matches().value(name.get()));
-
-        Bundle allOrganizationsSearchBundle= (Bundle) allOrganizationsSearchQuery.returnBundle(Bundle.class)
-                .encodedJson()
-                .execute();
-
-        if (allOrganizationsSearchBundle == null || allOrganizationsSearchBundle.getEntry().size() < 1) {
-            throw new OrganizationNotFoundException("No organizations were found in the FHIR server");
-        }
-        log.info("FHIR Organization(s) bundle retrieved from FHIR server successfully");
-        List<Bundle.BundleEntryComponent> retrievedOrganizations = allOrganizationsSearchBundle.getEntry();
-
-        return retrievedOrganizations.stream().map(bundleEntryComponent -> {
-            OrganizationDto organizationDto = modelMapper.map(bundleEntryComponent.getResource(), OrganizationDto.class);
-            organizationDto.setId(bundleEntryComponent.getResource().getIdElement().getIdPart());
-            return organizationDto;
-        }).collect(Collectors.toList());
-    }*/
     @Override
     public List<OrganizationDto> getAllOrganizations(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfOrganizationsPerPage = size.filter(s -> s > 0 &&
@@ -94,7 +70,7 @@ public class OrganizationServiceImpl implements OrganizationService{
 
         return retrievedOrganizations.stream().map(retrievedOrganization -> {
             OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
-            organizationDto.setId(retrievedOrganization.getResource().getIdElement().getIdPart());
+            organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
             return organizationDto;
         } ).collect(Collectors.toList());
 
@@ -141,7 +117,7 @@ public class OrganizationServiceImpl implements OrganizationService{
 
         return retrievedOrganizations.stream().map(retrievedOrganization -> {
             OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
-            organizationDto.setId(retrievedOrganization.getResource().getIdElement().getIdPart());
+            organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
             return organizationDto;
         } ).collect(Collectors.toList());
 
@@ -170,6 +146,5 @@ public class OrganizationServiceImpl implements OrganizationService{
         }
         return OrganizationSearchBundle;
     }
-
 
 }

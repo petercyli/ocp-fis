@@ -23,11 +23,6 @@ public class OrganizationController {
     @Autowired
     private OrganizationService organizationService;
 
-   // @GetMapping
-   // public List<OrganizationDto> getAllOrganization(@Valid @RequestParam(value = "name") Optional<String> name) {
-   //     return organizationService.getAllOrganizations(name);
-   // }
-
     @GetMapping
     public List<OrganizationDto> getAllOrganizations(@RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
         return organizationService.getAllOrganizations(showInactive, page, size);
