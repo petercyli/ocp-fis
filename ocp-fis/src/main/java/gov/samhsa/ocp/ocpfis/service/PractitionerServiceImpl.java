@@ -52,7 +52,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         Bundle firstPagePractitionerSearchBundle;
         Bundle otherPagePractitionerSearchBundle;
 
-        firstPagePractitionerSearchBundle = fhirClient.search().forResource(Practitioner.class)
+        firstPagePractitionerSearchBundle = (Bundle) practitionerIQuery
                 .count(numberOfPractitionersPerPage)
                 .returnBundle(Bundle.class)
                 .execute();
