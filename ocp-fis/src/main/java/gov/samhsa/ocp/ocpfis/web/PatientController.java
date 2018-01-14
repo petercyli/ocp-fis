@@ -32,7 +32,7 @@ public class PatientController {
 
 
     @GetMapping("/search")
-    public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "value") String value, @RequestParam(value = "type") String type, @RequestParam(value = "showInactive", defaultValue = "false") boolean showInactive,
+    public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "value") String value, @RequestParam(value = "type", defaultValue = "name") String type, @RequestParam(value = "showInactive", defaultValue = "false") boolean showInactive,
                                                   @RequestParam Optional<Integer> page,
                                                   @RequestParam Optional<Integer> size) {
         if (type == null || !Arrays.stream(SearchType.values()).anyMatch(searchType -> searchType.name().equalsIgnoreCase(type.trim()))) {
