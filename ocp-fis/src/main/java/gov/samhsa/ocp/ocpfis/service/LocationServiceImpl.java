@@ -210,7 +210,7 @@ public class LocationServiceImpl implements LocationService {
                 throw new LocationNotFoundException("No locations were found in the FHIR server for the page number: " + page);
             }
 
-            String pageUrl = fisProperties.getFhir().getPublish().getServerUrl().getResource()
+            String pageUrl = fisProperties.getFhir().getServerUrl()
                     + "?_getpages=" + locationSearchBundle.getId()
                     + "&_getpagesoffset=" + offset
                     + "&_count=" + size

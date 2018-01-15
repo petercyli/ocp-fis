@@ -1,16 +1,15 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 
+import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
-import gov.samhsa.ocp.ocpfis.service.dto.SearchPatientDto;
 
-import java.util.Set;
+import java.util.List;
+import java.util.Optional;
 
 public interface PatientService {
 
-    Set<PatientDto> getPatients();
+    List<PatientDto> getPatients();
 
-    Set<PatientDto> searchPatient(SearchPatientDto searchPatientDto);
-
-    Set<PatientDto> getPatientsByValue(String value, String type, boolean showInactive);
+    PageDto<PatientDto> getPatientsByValue(String value, String type, boolean showInactive, Optional<Integer> page, Optional<Integer> size);
 }
