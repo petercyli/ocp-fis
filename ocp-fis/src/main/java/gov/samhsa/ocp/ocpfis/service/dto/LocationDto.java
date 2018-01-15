@@ -18,4 +18,7 @@ public class LocationDto {
     private String name;
     private AddressDto address;
     private List<TelecomDto> telecoms;
+
+    private String managingOrganizationLogicalId;
+    private String parentLocationLogicalId;
 }

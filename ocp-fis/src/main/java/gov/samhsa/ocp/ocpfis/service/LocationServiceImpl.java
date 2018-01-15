@@ -169,6 +169,11 @@ public class LocationServiceImpl implements LocationService {
         return convertLocationBundleEntryToLocationDto(retrievedLocation);
     }
 
+    @Override
+    public void createLocation(String organizationId, Optional<String> locationId, LocationDto locationDto) {
+
+    }
+
     private Bundle getLocationSearchBundleAfterFirstPage(Bundle locationSearchBundle, int page, int size) {
         if (locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             //Assuming page number starts with 1

@@ -3,11 +3,16 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.LocationService;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,7 +25,6 @@ public class LocationController {
     }
 
     /**
-     *
      * @param status
      * @param page
      * @param size
@@ -30,11 +34,10 @@ public class LocationController {
     public PageDto<LocationDto> getAllLocations(@RequestParam Optional<List<String>> status,
                                                 @RequestParam Optional<Integer> page,
                                                 @RequestParam Optional<Integer> size) {
-        return locationService.getAllLocations(status,page, size);
+        return locationService.getAllLocations(status, page, size);
     }
 
     /**
-     *
      * @param organizationId
      * @param status
      * @param page
@@ -43,14 +46,13 @@ public class LocationController {
      */
     @GetMapping("/organizations/{organizationId}/locations")
     public PageDto<LocationDto> getLocationsByOrganization(@PathVariable String organizationId,
-                                                        @RequestParam Optional<List<String>> status,
-                                                        @RequestParam Optional<Integer> page,
-                                                        @RequestParam Optional<Integer> size) {
+                                                           @RequestParam Optional<List<String>> status,
+                                                           @RequestParam Optional<Integer> page,
+                                                           @RequestParam Optional<Integer> size) {
         return locationService.getLocationsByOrganization(organizationId, status, page, size);
     }
 
     /**
-     *
      * @param locationId
      * @return
      */
@@ -61,6 +63,7 @@ public class LocationController {
 
     /**
      * Gets level 1 child location for a given Location Id
+     *
      * @param locationId
      * @return
      */
@@ -68,5 +71,15 @@ public class LocationController {
     public LocationDto getChildLocation(@PathVariable String locationId) {
         return locationService.getChildLocation(locationId);
     }
+
+    @PostMapping("/organizations/{organizationId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createLocation(@PathVariable String organizationId,
+                               @RequestParam Optional<String> locationId,
+                               @Valid @RequestBody LocationDto locationDto) {
+        //return createLocation(organizationId, locationId, locationDto);
+
+    }
+
 
 }
