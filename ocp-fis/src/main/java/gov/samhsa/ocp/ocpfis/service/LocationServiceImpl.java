@@ -206,7 +206,6 @@ public class LocationServiceImpl implements LocationService {
 
     }
 
-    private Bundle getLocationSearchBundleAfterFirstPage(Bundle locationSearchBundle, int page, int size) {
     private Bundle getLocationSearchBundleAfterFirstPage(Bundle locationSearchBundle, int pageNumber, int pageSize) {
         if (locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             //Assuming page number starts with 1
