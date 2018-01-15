@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
+import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
@@ -37,9 +38,9 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
-    public PageDto<LocationDto> getAllLocations(Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<LocationDto> getAllLocations(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
-        int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
+        int numberOfLocationsPerPage = pageSize.filter(s -> s > 0 &&
                 s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
 
         Bundle firstPageLocationSearchBundle;
@@ -48,13 +49,29 @@ public class LocationServiceImpl implements LocationService {
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
-        if (status.isPresent() && status.get().size() > 0) {
+        //Check for location status
+        if (statusList.isPresent() && statusList.get().size() > 0) {
             log.info("Searching for ALL locations with the following specific status(es).");
-            status.get().forEach(log::info);
-            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(status.get()));
+            statusList.get().forEach(log::info);
+            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         } else {
             log.info("Searching for locations with ALL statuses");
         }
+
+        // Check if there are any additional search criteria
+        if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.LOGICALID.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
+        } else {
+            log.info("No additional search criteria entered.");
+        }
+
         //The following bundle only contains Page 1 of the resultSet
         firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
                 .returnBundle(Bundle.class)
@@ -67,24 +84,24 @@ public class LocationServiceImpl implements LocationService {
 
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
-        if (page.isPresent() && page.get() > 1 && firstPageLocationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+        if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(firstPageLocationSearchBundle, page.get(), numberOfLocationsPerPage);
+            otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
         //Arrange Page related info
         List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
         double totalPages = Math.ceil((double) otherPageLocationSearchBundle.getTotal() / numberOfLocationsPerPage);
-        int currentPage = firstPage ? 1 : page.get();
+        int currentPage = firstPage ? 1 : pageNumber.get();
 
         return new PageDto<>(locationsList, numberOfLocationsPerPage, totalPages, currentPage, locationsList.size(), otherPageLocationSearchBundle.getTotal());
     }
 
     @Override
-    public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfLocationsPerPage = size.filter(s -> s > 0 &&
+    public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfLocationsPerPage = pageSize.filter(s -> s > 0 &&
                 s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
 
         Bundle firstPageLocationSearchBundle;
@@ -93,12 +110,27 @@ public class LocationServiceImpl implements LocationService {
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
-        if (status.isPresent() && status.get().size() > 0) {
+        //Check for location status
+        if (statusList.isPresent() && statusList.get().size() > 0) {
             log.info("Searching for location with the following specific status(es) for the given OrganizationID:" + organizationResourceId);
-            status.get().forEach(log::info);
-            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(status.get()));
+            statusList.get().forEach(log::info);
+            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         } else {
             log.info("Searching for locations with ALL statuses for the given OrganizationID:" + organizationResourceId);
+        }
+
+        // Check if there are any additional search criteria
+        if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.LOGICALID.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
+        } else {
+            log.info("No additional search criteria entered.");
         }
 
         //The following bundle only contains Page 1 of the resultSet
@@ -115,10 +147,10 @@ public class LocationServiceImpl implements LocationService {
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
 
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
-        if (page.isPresent() && page.get() > 1 && otherPageLocationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+        if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(otherPageLocationSearchBundle, page.get(), numberOfLocationsPerPage);
+            otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
@@ -126,7 +158,7 @@ public class LocationServiceImpl implements LocationService {
         //Arrange Page related info
         List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
         double totalPages = Math.ceil((double) otherPageLocationSearchBundle.getTotal() / numberOfLocationsPerPage);
-        int currentPage = firstPage ? 1 : page.get();
+        int currentPage = firstPage ? 1 : pageNumber.get();
 
         return new PageDto<>(locationsList, numberOfLocationsPerPage, totalPages, currentPage, locationsList.size(), otherPageLocationSearchBundle.getTotal());
     }
@@ -175,26 +207,28 @@ public class LocationServiceImpl implements LocationService {
     }
 
     private Bundle getLocationSearchBundleAfterFirstPage(Bundle locationSearchBundle, int page, int size) {
+    private Bundle getLocationSearchBundleAfterFirstPage(Bundle locationSearchBundle, int pageNumber, int pageSize) {
         if (locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             //Assuming page number starts with 1
-            int offset = ((page >= 1 ? page : 1) - 1) * size;
+            int offset = ((pageNumber >= 1 ? pageNumber : 1) - 1) * pageSize;
 
             if (offset >= locationSearchBundle.getTotal()) {
-                throw new LocationNotFoundException("No locations were found in the FHIR server for this page number");
+                throw new LocationNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
             }
 
             String pageUrl = fisProperties.getFhir().getServerUrl()
                     + "?_getpages=" + locationSearchBundle.getId()
                     + "&_getpagesoffset=" + offset
-                    + "&_count=" + size
+                    + "&_count=" + pageSize
                     + "&_bundletype=searchset";
 
             // Load the required page
             return fhirClient.search().byUrl(pageUrl)
                     .returnBundle(Bundle.class)
                     .execute();
+        } else {
+            throw new LocationNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
         }
-        return locationSearchBundle;
     }
 
     private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel) {

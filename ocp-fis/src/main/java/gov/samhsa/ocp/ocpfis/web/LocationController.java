@@ -25,34 +25,45 @@ public class LocationController {
     }
 
     /**
-     * @param status
-     * @param page
-     * @param size
+     *
+     * @param statusList
+     * @param searchKey
+     * @param searchValue
+     * @param pageNumber
+     * @param pageSize
      * @return
      */
     @GetMapping("/locations")
-    public PageDto<LocationDto> getAllLocations(@RequestParam Optional<List<String>> status,
-                                                @RequestParam Optional<Integer> page,
-                                                @RequestParam Optional<Integer> size) {
-        return locationService.getAllLocations(status, page, size);
+    public PageDto<LocationDto> getAllLocations(@RequestParam(value = "statusList") Optional<List<String>> statusList,
+                                                @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                @RequestParam(value = "pageNumber")Optional<Integer> pageNumber,
+                                                @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+        return locationService.getAllLocations(statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
     /**
+     * Gets all locations(all levels) that are managed under a given Organization Id
      * @param organizationId
-     * @param status
-     * @param page
-     * @param size
+     * @param statusList
+     * @param searchKey
+     * @param searchValue
+     * @param pageNumber
+     * @param pageSize
      * @return
      */
     @GetMapping("/organizations/{organizationId}/locations")
     public PageDto<LocationDto> getLocationsByOrganization(@PathVariable String organizationId,
-                                                           @RequestParam Optional<List<String>> status,
-                                                           @RequestParam Optional<Integer> page,
-                                                           @RequestParam Optional<Integer> size) {
-        return locationService.getLocationsByOrganization(organizationId, status, page, size);
+                                                           @RequestParam(value = "statusList") Optional<List<String>> statusList,
+                                                           @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                           @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                           @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                           @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+        return locationService.getLocationsByOrganization(organizationId, statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
     /**
+     *
      * @param locationId
      * @return
      */
@@ -63,7 +74,6 @@ public class LocationController {
 
     /**
      * Gets level 1 child location for a given Location Id
-     *
      * @param locationId
      * @return
      */

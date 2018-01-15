@@ -23,7 +23,6 @@ import org.modelmapper.ModelMapper;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
@@ -116,7 +115,7 @@ public class LocationServiceImplTest {
         thrown.expectMessage("No locations were found in the FHIR server");
 
         //Act
-        locationServiceImpl.getAllLocations(Optional.empty(), Optional.empty(), Optional.of(size));
+        //locationServiceImpl.getAllLocations(Optional.empty(), Optional.empty(), Optional.of(size));
     }
 
     @Test
@@ -206,7 +205,7 @@ public class LocationServiceImplTest {
         thrown.expectMessage("No location found for the given OrganizationID:" + organizationResourceId);
 
         //Act
-        locationServiceImpl.getLocationsByOrganization(organizationResourceId, Optional.empty(), Optional.empty(), Optional.of(size));
+        //locationServiceImpl.getLocationsByOrganization(organizationResourceId, Optional.empty(), Optional.empty(), Optional.of(size));
     }
 
     @Test
