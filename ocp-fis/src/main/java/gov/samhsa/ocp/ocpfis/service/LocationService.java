@@ -10,24 +10,27 @@ public interface LocationService {
     /**
      *
      * @param status
+     * @param searchKey
+     * @param searchValue
      * @param page
      * @param size
      * @return
      */
-    PageDto<LocationDto> getAllLocations(Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size);
+    PageDto<LocationDto> getAllLocations(Optional<List<String>> status, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
 
     /**
      * Gets all locations(all levels) that are managed under a given Organization Id
      * @param organizationResourceId
      * @param status
+     * @param searchKey
+     * @param searchValue
      * @param page
      * @param size
      * @return
      */
-    PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> status, Optional<Integer> page, Optional<Integer> size);
+    PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> status, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
 
     /**
-     *
      * @param locationId
      * @return
      */
