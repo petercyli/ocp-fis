@@ -84,7 +84,7 @@ public class LocationServiceImpl implements LocationService {
 
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
-        if (page.isPresent() && page.get() > 1 && firstPageLocationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+        if (page.isPresent() && page.get() > 1) {
             // Load the required page
             firstPage = false;
             otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(firstPageLocationSearchBundle, page.get(), numberOfLocationsPerPage);
@@ -147,7 +147,7 @@ public class LocationServiceImpl implements LocationService {
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
 
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
-        if (page.isPresent() && page.get() > 1 && otherPageLocationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+        if (page.isPresent() && page.get() > 1) {
             // Load the required page
             firstPage = false;
             otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(otherPageLocationSearchBundle, page.get(), numberOfLocationsPerPage);
@@ -207,7 +207,7 @@ public class LocationServiceImpl implements LocationService {
             int offset = ((page >= 1 ? page : 1) - 1) * size;
 
             if (offset >= locationSearchBundle.getTotal()) {
-                throw new LocationNotFoundException("No locations were found in the FHIR server for this page number");
+                throw new LocationNotFoundException("No locations were found in the FHIR server for the page number: " + page);
             }
 
             String pageUrl = fisProperties.getFhir().getPublish().getServerUrl().getResource()
@@ -220,8 +220,9 @@ public class LocationServiceImpl implements LocationService {
             return fhirClient.search().byUrl(pageUrl)
                     .returnBundle(Bundle.class)
                     .execute();
+        } else {
+            throw new LocationNotFoundException("No locations were found in the FHIR server for the page number: " + page);
         }
-        return locationSearchBundle;
     }
 
     private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel) {
