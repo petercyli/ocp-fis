@@ -7,13 +7,13 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
-import ca.uhn.fhir.rest.server.exceptions.UnclassifiedServerFailureException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -224,7 +224,7 @@ public class LocationServiceImpl implements LocationService {
         fhirLocation.setStatus(getLocationStatusFromDto(locationDto));
         fhirLocation.setManagingOrganization(new Reference("Organization/" + organizationId.trim()));
 
-        if(locationId.isPresent() && !locationId.get().trim().isEmpty()){
+        if (locationId.isPresent() && !locationId.get().trim().isEmpty()) {
             fhirLocation.setPartOf(new Reference("Location/" + locationId.get().trim()));
         }
 
@@ -236,14 +236,13 @@ public class LocationServiceImpl implements LocationService {
             throw new FHIRFormatErrorException("Location Validation was not successful" + validationResult.getMessages());
         }
 
-        try{
+        try {
             MethodOutcome serverResponse = fhirClient.create().resource(fhirLocation).execute();
             log.info("Created a new location :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
-
-        } catch (UnclassifiedServerFailureException e){
-            //TODO
-        } catch (BaseServerResponseException e){
-            //TODO
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT create location for Organization Id:" + organizationId);
+            throw new FHIRClientException("FHIR Client returned with an error while creating the location:" + e.getMessage());
         }
 
     }
@@ -284,9 +283,9 @@ public class LocationServiceImpl implements LocationService {
             return Location.LocationStatus.ACTIVE;
         } else if (locationDto.getStatus() == null || locationDto.getStatus().isEmpty()) {
             return Location.LocationStatus.ACTIVE;
-        } else{
-            for(LocationInfoEnum.LocationStatus locStatus: LocationInfoEnum.LocationStatus.values()){
-                if(locationDto.getStatus().equalsIgnoreCase(locStatus.name())){
+        } else {
+            for (LocationInfoEnum.LocationStatus locStatus : LocationInfoEnum.LocationStatus.values()) {
+                if (locationDto.getStatus().equalsIgnoreCase(locStatus.name())) {
                     return Location.LocationStatus.valueOf(locStatus.name());
                 }
             }
