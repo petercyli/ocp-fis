@@ -18,4 +18,5 @@ public class LocationDto {
     private String name;
     private AddressDto address;
     private List<TelecomDto> telecoms;
+    private List<IdentifierDto> identifiers;
 }
