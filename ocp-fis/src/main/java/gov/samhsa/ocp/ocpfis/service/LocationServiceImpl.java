@@ -13,6 +13,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
@@ -67,6 +68,14 @@ public class LocationServiceImpl implements LocationService {
             locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         } else {
             log.info("Searching for locations with ALL statuses");
+        }
+
+        //Check for bad requests
+        if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
+            throw new BadRequestException("Unidentified search key:" + searchKey.get());
+        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
+                (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
+            throw new BadRequestException("No search value found for the search key" + searchKey.get());
         }
 
         // Check if there are any additional search criteria
@@ -128,6 +137,14 @@ public class LocationServiceImpl implements LocationService {
             locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         } else {
             log.info("Searching for locations with ALL statuses for the given OrganizationID:" + organizationResourceId);
+        }
+
+        //Check for bad requests
+        if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
+            throw new BadRequestException("Unidentified search key:" + searchKey.get());
+        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
+                (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
+            throw new BadRequestException("No search value found for the search key" + searchKey.get());
         }
 
         // Check if there are any additional search criteria
