@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.LocationService;
+import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import org.springframework.http.HttpStatus;
@@ -25,7 +26,6 @@ public class LocationController {
     }
 
     /**
-     *
      * @param statusList
      * @param searchKey
      * @param searchValue
@@ -37,13 +37,14 @@ public class LocationController {
     public PageDto<LocationDto> getAllLocations(@RequestParam(value = "statusList") Optional<List<String>> statusList,
                                                 @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                 @RequestParam(value = "searchValue") Optional<String> searchValue,
-                                                @RequestParam(value = "pageNumber")Optional<Integer> pageNumber,
+                                                @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                 @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
         return locationService.getAllLocations(statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
     /**
      * Gets all locations(all levels) that are managed under a given Organization Id
+     *
      * @param organizationId
      * @param statusList
      * @param searchKey
@@ -63,7 +64,6 @@ public class LocationController {
     }
 
     /**
-     *
      * @param locationId
      * @return
      */
@@ -74,6 +74,7 @@ public class LocationController {
 
     /**
      * Gets level 1 child location for a given Location Id
+     *
      * @param locationId
      * @return
      */
@@ -82,14 +83,12 @@ public class LocationController {
         return locationService.getChildLocation(locationId);
     }
 
-    @PostMapping("/organizations/{organizationId}")
+    @PostMapping("/organization/{organizationId}/location")
     @ResponseStatus(HttpStatus.CREATED)
     public void createLocation(@PathVariable String organizationId,
-                               @RequestParam Optional<String> locationId,
-                               @Valid @RequestBody LocationDto locationDto) {
-        //return createLocation(organizationId, locationId, locationDto);
+                               @RequestParam Optional<String> parentLocationId,
+                               @Valid @RequestBody CreateLocationDto locationDto) {
+        locationService.createLocation(organizationId, parentLocationId, locationDto);
 
     }
-
-
 }

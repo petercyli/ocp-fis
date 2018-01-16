@@ -1,17 +1,25 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
+import ca.uhn.fhir.rest.server.exceptions.UnclassifiedServerFailureException;
+import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Location;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,12 +36,15 @@ public class LocationServiceImpl implements LocationService {
 
     private final IGenericClient fhirClient;
 
+    private final FhirValidator fhirValidator;
+
     private final FisProperties fisProperties;
 
     @Autowired
-    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties) {
+    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
+        this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
     }
 
@@ -165,6 +176,8 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     public LocationDto getLocation(String locationId) {
+        log.info("Searching for Location Id:" + locationId);
+
         Bundle locationBundle = fhirClient.search().forResource(Location.class)
                 .where(new TokenClientParam("_id").exactly().code(locationId))
                 .returnBundle(Bundle.class)
@@ -175,7 +188,7 @@ public class LocationServiceImpl implements LocationService {
             throw new LocationNotFoundException("No location was found for the given LocationID:" + locationId);
         }
 
-        log.info("FHIR Location bundle retrieved from FHIR server successfully");
+        log.info("FHIR Location bundle retrieved from FHIR server successfully for location Id:" + locationId);
 
         Bundle.BundleEntryComponent retrievedLocation = locationBundle.getEntry().get(0);
 
@@ -184,6 +197,7 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     public LocationDto getChildLocation(String locationId) {
+        log.info("Searching Child Location for Location Id:" + locationId);
         Bundle childLocationBundle = fhirClient.search().forResource(Location.class)
                 .where(new ReferenceClientParam("partof").hasId(locationId))
                 .returnBundle(Bundle.class)
@@ -194,7 +208,7 @@ public class LocationServiceImpl implements LocationService {
             throw new LocationNotFoundException("No child location found for the given LocationID:" + locationId);
         }
 
-        log.info("FHIR Location bundle retrieved from FHIR server successfully");
+        log.info("FHIR Location(Child) bundle retrieved from FHIR server successfully for locationId: " + locationId);
 
         Bundle.BundleEntryComponent retrievedLocation = childLocationBundle.getEntry().get(0);
 
@@ -202,7 +216,35 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
-    public void createLocation(String organizationId, Optional<String> locationId, LocationDto locationDto) {
+    public void createLocation(String organizationId, Optional<String> locationId, CreateLocationDto locationDto) {
+        log.info("Creating location for Organization Id:" + organizationId);
+        log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
+
+        Location fhirLocation = modelMapper.map(locationDto, Location.class);
+        fhirLocation.setStatus(getLocationStatusFromDto(locationDto));
+        fhirLocation.setManagingOrganization(new Reference("Organization/" + organizationId.trim()));
+
+        if(locationId.isPresent() && !locationId.get().trim().isEmpty()){
+            fhirLocation.setPartOf(new Reference("Location/" + locationId.get().trim()));
+        }
+
+        // Validate the resource
+        ValidationResult validationResult = fhirValidator.validateWithResult(fhirLocation);
+        log.info("Create Location: Validation successful? " + validationResult.isSuccessful());
+
+        if (!validationResult.isSuccessful()) {
+            throw new FHIRFormatErrorException("Location Validation was not successful" + validationResult.getMessages());
+        }
+
+        try{
+            MethodOutcome serverResponse = fhirClient.create().resource(fhirLocation).execute();
+            log.info("Created a new location :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
+
+        } catch (UnclassifiedServerFailureException e){
+            //TODO
+        } catch (BaseServerResponseException e){
+            //TODO
+        }
 
     }
 
@@ -235,4 +277,22 @@ public class LocationServiceImpl implements LocationService {
         tempLocationDto.setLogicalId(fhirLocationModel.getResource().getIdElement().getIdPart());
         return tempLocationDto;
     }
+
+    private Location.LocationStatus getLocationStatusFromDto(CreateLocationDto locationDto) {
+        if (locationDto == null) {
+            log.info("Can't read status of the location - LocationDto is NULL!. Setting Location as ACTIVE.");
+            return Location.LocationStatus.ACTIVE;
+        } else if (locationDto.getStatus() == null || locationDto.getStatus().isEmpty()) {
+            return Location.LocationStatus.ACTIVE;
+        } else{
+            for(LocationInfoEnum.LocationStatus locStatus: LocationInfoEnum.LocationStatus.values()){
+                if(locationDto.getStatus().equalsIgnoreCase(locStatus.name())){
+                    return Location.LocationStatus.valueOf(locStatus.name());
+                }
+            }
+        }
+        //Unlikely event
+        return Location.LocationStatus.ACTIVE;
+    }
+
 }
