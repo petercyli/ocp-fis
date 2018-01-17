@@ -11,6 +11,8 @@ import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.ContactPoint;
+import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -125,6 +127,12 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
 
+    public void createPractitioner(PractitionerDto practitionerDto){
+        Practitioner practitioner=modelMapper.map(practitionerDto,Practitioner.class);
+        fhirClient.create().resource(practitioner).execute();
+    }
+
+
     private Bundle getPractitionerSearchBundleAfterFirstPage(Bundle practitionerSearchBundle, int page, int size) {
         if (practitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             //Assuming page number starts with 1
@@ -156,4 +164,5 @@ public class PractitionerServiceImpl implements PractitionerService {
         return new PageDto<>(practitionersList, numberOfPractitionersPerPage, totalPages, currentPage, practitionersList.size(),
                 otherPagePractitionerBundle.getTotal());
     }
+
 }
