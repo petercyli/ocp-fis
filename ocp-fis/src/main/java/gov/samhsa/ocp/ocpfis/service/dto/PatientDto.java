@@ -42,9 +42,10 @@ public class PatientDto {
 
     private String birthSex;
 
-
     private List<AddressDto> address;
 
     private List<TelecomDto> telecom;
+
+    private String mrn;
 
 }
