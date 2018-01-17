@@ -9,7 +9,7 @@ public interface LookUpService {
     List<ValueSetDto> getLocationModes();
     List<ValueSetDto> getLocationStatuses();
 
-    List<ValueSetDto> getaddressTypes();
+    List<ValueSetDto> getAddressTypes();
     List<ValueSetDto> getAddressUses();
     List<ValueSetDto> getTelecomUses();
     List<ValueSetDto> getTelecomSystems();

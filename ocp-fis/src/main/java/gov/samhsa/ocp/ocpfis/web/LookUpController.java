@@ -55,8 +55,8 @@ public class LookUpController {
      * @return
      */
     @GetMapping("/addressTypes")
-    public List<ValueSetDto> getaddressTypes() {
-        return lookUpService.getaddressTypes();
+    public List<ValueSetDto> getAddressTypes() {
+        return lookUpService.getAddressTypes();
     }
 
     /**

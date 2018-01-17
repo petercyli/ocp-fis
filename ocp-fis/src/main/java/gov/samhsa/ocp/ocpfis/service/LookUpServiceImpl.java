@@ -101,7 +101,7 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<ValueSetDto> getaddressTypes() {
+    public List<ValueSetDto> getAddressTypes() {
         List<ValueSetDto> addressTypes = new ArrayList<>();
         Address.AddressType addrTypeArray[] = Address.AddressType.values();
 
