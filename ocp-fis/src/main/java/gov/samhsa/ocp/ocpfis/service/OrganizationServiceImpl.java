@@ -144,48 +144,9 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public void createOrganization(OrganizationDto organizationDto) {
-        Organization fhirOrganization = createFhirOrganization(organizationDto);
+        Organization fhirOrganization = modelMapper.map(organizationDto,Organization.class);
         fhirClient.create().resource(fhirOrganization).execute();
     }
-
-    private Organization createFhirOrganization(OrganizationDto organizationDto) {
-        final Organization fhirOrganization = new Organization();
-
-        fhirOrganization.setName(organizationDto.getName());
-        fhirOrganization.setActive(Boolean.TRUE);
-
-        //Add an identifier
-        setIdentifiers(fhirOrganization, organizationDto);
-
-        //optional fields
-        organizationDto.getAddresses().stream().forEach(addressDto -> {
-            fhirOrganization.addAddress().addLine(addressDto.getLine1())
-                    .addLine(addressDto.getLine2())
-                    .setCity(addressDto.getCity())
-                    .setState(addressDto.getStateCode())
-                    .setPostalCode(addressDto.getPostalCode())
-                    .setCountry(addressDto.getCountryCode());
-            });
-
-        organizationDto.getTelecoms().stream().forEach(telecomDto -> {
-                     fhirOrganization.addTelecom()
-                            .setSystem(ContactPoint.ContactPointSystem.valueOf(telecomDto.getSystem().orElse("")))
-                            .setUse(ContactPoint.ContactPointUse.valueOf(telecomDto.getUse().orElse("")))
-                            .setValue(telecomDto.getValue().orElse(""));
-                    });
-
-        return fhirOrganization;
-    }
-
-    private void setIdentifiers(Organization organization, OrganizationDto organizationDto) {
-        organizationDto.getIdentifiers().stream()
-                .forEach(identifier -> {
-                    organization.addIdentifier()
-                    .setSystem(identifier.getSystem())
-                    .setValue(identifier.getValue());
-            });
-        }
-
 
     private Bundle getOrganizationSearchBundleAfterFirstPage(Bundle OrganizationSearchBundle, int page, int size) {
         if (OrganizationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
