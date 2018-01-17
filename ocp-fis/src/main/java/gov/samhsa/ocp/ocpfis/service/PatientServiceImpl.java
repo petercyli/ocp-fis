@@ -15,11 +15,16 @@ import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.ContactPoint;
+import org.hl7.fhir.dstu3.model.Enumerations;
+import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -97,6 +102,47 @@ public class PatientServiceImpl implements PatientService {
         return new PageDto<>(patientDtos, numberOfPatientsPerPage, totalPages, currentPage, patientDtos.size(), otherPagePatientSearchBundle.getTotal());
     }
 
+    @Override
+    public void createPatient(PatientDto patientDto) {
+        Patient fhirPatient = createFhirPatient(patientDto);
+        fhirClient.create().resource(fhirPatient).execute();
+    }
+
+    private Patient createFhirPatient(PatientDto patientDto) {
+        final Patient fhirPatient = new Patient();
+
+        patientDto.getName().stream().forEach(nameDto -> {
+            fhirPatient.addName().setFamily(nameDto.getLastName())
+                    .addGiven(nameDto.getFirstName());
+        });
+
+        fhirPatient.setBirthDate(Date.valueOf(patientDto.getBirthDate()));
+        fhirPatient.setGender(getPatientGender(patientDto.getGenderCode()));
+        fhirPatient.setActive(Boolean.TRUE);
+
+        //Add an identifier
+        setIdentifiers(fhirPatient, patientDto);
+
+        //optional fields
+        patientDto.getAddress().stream().forEach(addressDto -> {
+            fhirPatient.addAddress().addLine(addressDto.getLine1())
+                    .addLine(addressDto.getLine2())
+                    .setCity(addressDto.getCity())
+                    .setState(addressDto.getStateCode())
+                    .setPostalCode(addressDto.getPostalCode())
+                    .setCountry(addressDto.getCountryCode());
+        });
+
+        patientDto.getTelecom().stream().forEach(telecomDto -> {
+            fhirPatient.addTelecom()
+                    .setSystem(ContactPoint.ContactPointSystem.valueOf(telecomDto.getSystem().orElse("")))
+                    .setUse(ContactPoint.ContactPointUse.valueOf(telecomDto.getUse().orElse("")))
+                    .setValue(telecomDto.getValue().orElse(""));
+        });
+
+        return fhirPatient;
+    }
+
     private List<PatientDto> convertBundleToPatientDtos(Bundle response, boolean isSearch) {
         List<PatientDto> patientDtos = new ArrayList<>();
         if (null == response || response.isEmpty() || response.getEntry().size() < 1) {
@@ -140,6 +186,45 @@ public class PatientServiceImpl implements PatientService {
                     .execute();
         }
         return resourceSearchBundle;
+    }
+
+    private Enumerations.AdministrativeGender getPatientGender(String codeString) {
+        switch (codeString.toUpperCase()) {
+            case "MALE":
+                return Enumerations.AdministrativeGender.MALE;
+            case "M":
+                return Enumerations.AdministrativeGender.MALE;
+            case "FEMALE":
+                return Enumerations.AdministrativeGender.FEMALE;
+            case "F":
+                return Enumerations.AdministrativeGender.FEMALE;
+            case "OTHER":
+                return Enumerations.AdministrativeGender.OTHER;
+            case "O":
+                return Enumerations.AdministrativeGender.OTHER;
+            case "UNKNOWN":
+                return Enumerations.AdministrativeGender.UNKNOWN;
+            case "UN":
+                return Enumerations.AdministrativeGender.UNKNOWN;
+            default:
+                return Enumerations.AdministrativeGender.UNKNOWN;
+
+        }
+    }
+
+    private void setIdentifiers(Patient patient, PatientDto patientDto) {
+        patient.setId(new IdType(patientDto.getMrn()));
+        patientDto.getIdentifier().stream()
+                .forEach(identifier -> {
+                            final Identifier id = patient.addIdentifier()
+                                    .setSystem(identifier.getSystem())
+                                    .setValue(identifier.getValue());
+                            if (id.getValue().equals(patientDto.getMrn())) {
+                                // if mrn, set use to official
+                                id.setUse(Identifier.IdentifierUse.OFFICIAL);
+                            }
+                        }
+                );
     }
 }
 
