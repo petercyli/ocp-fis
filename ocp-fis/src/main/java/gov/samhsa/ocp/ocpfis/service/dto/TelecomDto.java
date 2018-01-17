@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.NotBlank;
 
+import java.util.Optional;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -13,10 +15,10 @@ import org.hibernate.validator.constraints.NotBlank;
 public class TelecomDto {
 
     @NotBlank
-    private String system;
+    private Optional<String> system;
 
     @NotBlank
-    private String value;
+    private Optional<String> value;
 
-    private String use;
+    private Optional<String> use;
 }
