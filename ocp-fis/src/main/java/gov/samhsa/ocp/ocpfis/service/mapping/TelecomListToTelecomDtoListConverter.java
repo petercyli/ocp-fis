@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class TelecomListToTelecomDtoListConverter extends AbstractConverter<List<ContactPoint>, List<TelecomDto>> {
@@ -19,11 +20,11 @@ public class TelecomListToTelecomDtoListConverter extends AbstractConverter<List
 
             for (ContactPoint tempTelecom : source) {
                 TelecomDto tempTelecomDto = new TelecomDto();
-                tempTelecomDto.setValue(tempTelecom.getValue());
+                tempTelecomDto.setValue(Optional.of(tempTelecom.getValue()));
                 if (tempTelecom.getSystem() != null)
-                    tempTelecomDto.setSystem(tempTelecom.getSystem().toString());
+                    tempTelecomDto.setSystem(Optional.of(tempTelecom.getSystem().toString()));
                 if (tempTelecom.getUse() != null)
-                    tempTelecomDto.setUse(tempTelecom.getUse().toString());
+                    tempTelecomDto.setUse(Optional.of(tempTelecom.getUse().toString()));
                 telecomDtoList.add(tempTelecomDto);
             }
         }
