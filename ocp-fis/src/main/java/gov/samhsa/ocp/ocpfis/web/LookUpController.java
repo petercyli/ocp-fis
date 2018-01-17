@@ -27,7 +27,7 @@ public class LookUpController {
 
     /**
      * Indicates whether a resource instance represents a specific location or a class of locations
-     * INSTANCE, KIND, NULL
+     * Eg: INSTANCE, KIND, NULL
      * @return
      */
     @GetMapping("/locationModes")
