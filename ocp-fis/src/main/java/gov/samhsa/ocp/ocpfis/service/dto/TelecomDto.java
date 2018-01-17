@@ -15,10 +15,10 @@ import java.util.Optional;
 public class TelecomDto {
 
     @NotBlank
-    private Optional<String> system;
+    private String system;
 
     @NotBlank
-    private Optional<String> value;
+    private String value;
 
-    private Optional<String> use;
+    private String use;
 }
