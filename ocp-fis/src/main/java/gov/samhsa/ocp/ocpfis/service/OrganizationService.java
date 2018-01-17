@@ -13,10 +13,11 @@ public interface OrganizationService {
      *
      * @return
      */
-   // List<OrganizationDto> getAllOrganizations(Optional<String> name);
 
     PageDto<OrganizationDto> getAllOrganizations(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
 
     PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
+
+    void createOrganization(OrganizationDto organizationDto);
 
 }

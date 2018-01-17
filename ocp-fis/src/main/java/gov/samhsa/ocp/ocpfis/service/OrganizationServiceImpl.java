@@ -4,6 +4,7 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import com.sun.org.apache.xpath.internal.operations.Or;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -11,6 +12,9 @@ import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.ContactPoint;
+import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -137,6 +141,50 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         return new PageDto<>(organizationsList, numberOfOrganizationsPerPage, totalPages, currentPage, organizationsList.size(), otherPageOrganizationSearchBundle.getTotal());
     }
+
+    @Override
+    public void createOrganization(OrganizationDto organizationDto) {
+        Organization fhirOrganization = createFhirOrganization(organizationDto);
+        fhirClient.create().resource(fhirOrganization).execute();
+    }
+
+    private Organization createFhirOrganization(OrganizationDto organizationDto) {
+        final Organization fhirOrganization = new Organization();
+
+        fhirOrganization.setName(organizationDto.getName());
+        fhirOrganization.setActive(Boolean.TRUE);
+
+        //Add an identifier
+        setIdentifiers(fhirOrganization, organizationDto);
+
+        //optional fields
+        organizationDto.getAddresses().stream().forEach(addressDto -> {
+            fhirOrganization.addAddress().addLine(addressDto.getLine1())
+                    .addLine(addressDto.getLine2())
+                    .setCity(addressDto.getCity())
+                    .setState(addressDto.getStateCode())
+                    .setPostalCode(addressDto.getPostalCode())
+                    .setCountry(addressDto.getCountryCode());
+            });
+
+        organizationDto.getTelecoms().stream().forEach(telecomDto -> {
+                     fhirOrganization.addTelecom()
+                            .setSystem(ContactPoint.ContactPointSystem.valueOf(telecomDto.getSystem().orElse("")))
+                            .setUse(ContactPoint.ContactPointUse.valueOf(telecomDto.getUse().orElse("")))
+                            .setValue(telecomDto.getValue().orElse(""));
+                    });
+
+        return fhirOrganization;
+    }
+
+    private void setIdentifiers(Organization organization, OrganizationDto organizationDto) {
+        organizationDto.getIdentifiers().stream()
+                .forEach(identifier -> {
+                    organization.addIdentifier()
+                    .setSystem(identifier.getSystem())
+                    .setValue(identifier.getValue());
+            });
+        }
 
 
     private Bundle getOrganizationSearchBundleAfterFirstPage(Bundle OrganizationSearchBundle, int page, int size) {
