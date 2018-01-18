@@ -50,10 +50,10 @@ public class LookUpServiceImpl implements LookUpService {
                 response.getCompose().getInclude() == null ||
                 response.getCompose().getInclude().size() < 1 ||
                 response.getCompose().getInclude().get(0).getConcept() == null ||
-                response.getCompose().getInclude().get(0).getConcept().size() < 1){
+                response.getCompose().getInclude().get(0).getConcept().size() < 1) {
             log.error("Query was successful, but found no state codes in the configured FHIR server");
             throw new ResourceNotFound("Query was successful, but found no state codes in the configured FHIR server");
-        } else{
+        } else {
 
             List<ValueSet.ConceptReferenceComponent> statesList = response.getCompose().getInclude().get(0).getConcept();
             statesList.forEach(state -> {
@@ -69,37 +69,37 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getIdentifierUses() {
-            List<ValueSetDto> identifierUses = new ArrayList<>();
-            ValueSet response;
-            String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-use";
+        List<ValueSetDto> identifierUses = new ArrayList<>();
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-use";
 
-            try {
-                response = (ValueSet) fhirClient.search().byUrl(url).execute();
-            }
-            catch (ResourceNotFoundException e) {
-                log.error("Query was unsuccessful - Could not find any identifier use", e.getMessage());
-                throw new ResourceNotFound("Query was unsuccessful - Could not find any identifier use", e);
-            }
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        }
+        catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any identifier use", e.getMessage());
+            throw new ResourceNotFound("Query was unsuccessful - Could not find any identifier use", e);
+        }
 
-            if (response == null ||
-                    response.getExpansion() == null ||
-                    response.getExpansion().getContains() == null ||
-                    response.getExpansion().getContains().size() < 1) {
-                log.error("Query was successful, but found no identifier use in the configured FHIR server");
-                throw new ResourceNotFound("Query was successful, but found no identifier use in the configured FHIR server");
-            } else {
-                List<ValueSet.ValueSetExpansionContainsComponent> identifierTypeList = response.getExpansion().getContains();
-                identifierTypeList.forEach(locationType -> {
-                    ValueSetDto temp = new ValueSetDto();
-                    temp.setSystem(locationType.getSystem());
-                    temp.setCode(locationType.getCode());
-                    temp.setDisplay(locationType.getDisplay());
-                    identifierUses.add(temp);
-                });
-            }
+        if (response == null ||
+                response.getExpansion() == null ||
+                response.getExpansion().getContains() == null ||
+                response.getExpansion().getContains().size() < 1) {
+            log.error("Query was successful, but found no identifier use in the configured FHIR server");
+            throw new ResourceNotFound("Query was successful, but found no identifier use in the configured FHIR server");
+        } else {
+            List<ValueSet.ValueSetExpansionContainsComponent> identifierTypeList = response.getExpansion().getContains();
+            identifierTypeList.forEach(locationType -> {
+                ValueSetDto temp = new ValueSetDto();
+                temp.setSystem(locationType.getSystem());
+                temp.setCode(locationType.getCode());
+                temp.setDisplay(locationType.getDisplay());
+                identifierUses.add(temp);
+            });
+        }
 
-            log.info("Found " + identifierUses.size() + " identifier use codes.");
-            return identifierUses;
+        log.info("Found " + identifierUses.size() + " identifier use codes.");
+        return identifierUses;
     }
 
     @Override
@@ -142,7 +142,7 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public List<ValueSetDto> getLocationModes() {
         List<ValueSetDto> locationModes = new ArrayList<>();
-        Location.LocationMode modesArray[]  = Location.LocationMode.values();
+        Location.LocationMode modesArray[] = Location.LocationMode.values();
 
         for (Location.LocationMode locationMode : modesArray) {
             ValueSetDto temp = new ValueSetDto();
@@ -159,7 +159,7 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public List<ValueSetDto> getLocationStatuses() {
         List<ValueSetDto> locationStatuses = new ArrayList<>();
-        Location.LocationStatus statusArray[]  = Location.LocationStatus.values();
+        Location.LocationStatus statusArray[] = Location.LocationStatus.values();
 
         for (Location.LocationStatus locationStatus : statusArray) {
             ValueSetDto temp = new ValueSetDto();
@@ -187,10 +187,10 @@ public class LookUpServiceImpl implements LookUpService {
             throw new ResourceNotFound("Query was unsuccessful - Could not find any location type", e);
         }
 
-        if(response == null ||
+        if (response == null ||
                 response.getExpansion() == null ||
                 response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1){
+                response.getExpansion().getContains().size() < 1) {
             log.error("Query was successful, but found no location types in the configured FHIR server");
             throw new ResourceNotFound("Query was successful, but found no location types in the configured FHIR server");
         } else {
