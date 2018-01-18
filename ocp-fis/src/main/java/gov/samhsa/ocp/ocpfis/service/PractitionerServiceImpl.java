@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
@@ -11,9 +12,10 @@ import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.ContactPoint;
-import org.hl7.fhir.dstu3.model.Identifier;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.PractitionerRole;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 
 @Service
 @Slf4j
@@ -127,9 +130,27 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
 
-    public void createPractitioner(PractitionerDto practitionerDto){
-        Practitioner practitioner=modelMapper.map(practitionerDto,Practitioner.class);
-        fhirClient.create().resource(practitioner).execute();
+    public void createPractitioner(PractitionerDto practitionerDto) {
+        //Create Fhir Practitioner
+        Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
+        MethodOutcome methodOutcome = fhirClient.create().resource(practitioner).execute();
+
+        //Create PractitionerRole for the practitioner
+        PractitionerRole practitionerRole = new PractitionerRole();
+        practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
+                    //Assign fhir practitionerRole codes.
+                    CodeableConcept codeableConcept = new CodeableConcept();
+                    codeableConcept.setText(practitionerRoleCode.getCode());
+                    practitionerRole.addCode(codeableConcept);
+                }
+        );
+
+        //Assign fhir Practitioner resource id.
+        Reference practitionerId = new Reference();
+        practitionerId.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
+        practitionerRole.setPractitioner(practitionerId);
+
+        fhirClient.create().resource(practitionerRole).execute();
     }
 
 
