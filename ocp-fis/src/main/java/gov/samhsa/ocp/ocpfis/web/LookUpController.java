@@ -23,7 +23,27 @@ public class LookUpController {
         return lookUpService.getUspsStates();
     }
 
-    //---LOCATION RELATED APIS START---
+    /**
+     * Determine identifier to use for a specific purpose
+     * Eg: DL, MR, MD
+     * @return
+     */
+    @GetMapping("/identifierTypes")
+    public List<ValueSetDto> getIdentifierTypes() {
+        return lookUpService.getIdentifierTypes();
+    }
+
+    /**
+     * Identifies the purpose for this identifier, if known
+     * Eg: Usual, Official, Temp
+     * @return
+     */
+    @GetMapping("/identifierUses")
+    public List<ValueSetDto> getIdentifierUses() {
+        return lookUpService.getIdentifierUses();
+    }
+
+    //LOCATION START
 
     /**
      * Indicates whether a resource instance represents a specific location or a class of locations
@@ -45,9 +65,19 @@ public class LookUpController {
         return lookUpService.getLocationStatuses();
     }
 
-    //---LOCATION RELATED APIS END---
+    /**
+     * Physical form of the location
+     * e.g. building, room, vehicle, road.
+     */
+    @GetMapping("/locationTypes")
+    public List<ValueSetDto> getLocationTypes() {
+        return lookUpService.getLocationTypes();
+    }
 
-    //---ADDRESS and TELECOM RELATED APIS START---
+
+    //LOCATION END
+
+    //ADDRESS and TELECOM START
 
     /**
      * The type of an address (physical / postal)
@@ -89,5 +119,5 @@ public class LookUpController {
         return lookUpService.getTelecomSystems();
     }
 
-    //---ADDRESS and TELECOM RELATED APIS END---
+    //ADDRESS and TELECOM END
 }

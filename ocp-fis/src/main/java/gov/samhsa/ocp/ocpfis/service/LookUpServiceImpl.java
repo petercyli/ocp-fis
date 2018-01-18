@@ -67,6 +67,76 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
+    public List<ValueSetDto> getIdentifierTypes() {
+        List<ValueSetDto> identifierTypes = new ArrayList<>();
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        }
+        catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any identifier type", e.getMessage());
+            throw new ResourceNotFound("Query was unsuccessful - Could not find any identifier type", e);
+        }
+
+        if (response == null ||
+                response.getExpansion() == null ||
+                response.getExpansion().getContains() == null ||
+                response.getExpansion().getContains().size() < 1) {
+            log.error("Query was successful, but found no identifier types in the configured FHIR server");
+            throw new ResourceNotFound("Query was successful, but found no identifier types in the configured FHIR server");
+        } else {
+            List<ValueSet.ValueSetExpansionContainsComponent> identifierTypeList = response.getExpansion().getContains();
+            identifierTypeList.forEach(locationType -> {
+                ValueSetDto temp = new ValueSetDto();
+                temp.setSystem(locationType.getSystem());
+                temp.setCode(locationType.getCode());
+                temp.setDisplay(locationType.getDisplay());
+                identifierTypes.add(temp);
+            });
+        }
+
+        log.info("Found " + identifierTypes.size() + " identifier types.");
+        return identifierTypes;
+    }
+
+        @Override
+    public List<ValueSetDto> getIdentifierUses() {
+            List<ValueSetDto> identifierUses = new ArrayList<>();
+            ValueSet response;
+            String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-use";
+
+            try {
+                response = (ValueSet) fhirClient.search().byUrl(url).execute();
+            }
+            catch (ResourceNotFoundException e) {
+                log.error("Query was unsuccessful - Could not find any identifier use", e.getMessage());
+                throw new ResourceNotFound("Query was unsuccessful - Could not find any identifier use", e);
+            }
+
+            if (response == null ||
+                    response.getExpansion() == null ||
+                    response.getExpansion().getContains() == null ||
+                    response.getExpansion().getContains().size() < 1) {
+                log.error("Query was successful, but found no identifier use in the configured FHIR server");
+                throw new ResourceNotFound("Query was successful, but found no identifier use in the configured FHIR server");
+            } else {
+                List<ValueSet.ValueSetExpansionContainsComponent> identifierTypeList = response.getExpansion().getContains();
+                identifierTypeList.forEach(locationType -> {
+                    ValueSetDto temp = new ValueSetDto();
+                    temp.setSystem(locationType.getSystem());
+                    temp.setCode(locationType.getCode());
+                    temp.setDisplay(locationType.getDisplay());
+                    identifierUses.add(temp);
+                });
+            }
+
+            log.info("Found " + identifierUses.size() + " identifier use codes.");
+            return identifierUses;
+    }
+
+    @Override
     public List<ValueSetDto> getLocationModes() {
         List<ValueSetDto> locationModes = new ArrayList<>();
         Location.LocationMode modesArray[]  = Location.LocationMode.values();
@@ -98,6 +168,41 @@ public class LookUpServiceImpl implements LookUpService {
         }
         log.info("Found " + locationStatuses.size() + " location status codes.");
         return locationStatuses;
+    }
+
+    @Override
+    public List<ValueSetDto> getLocationTypes() {
+        List<ValueSetDto> locationTypes = new ArrayList<>();
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/location-physical-type";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        }
+        catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any location type", e.getMessage());
+            throw new ResourceNotFound("Query was unsuccessful - Could not find any location type", e);
+        }
+
+        if(response == null ||
+                response.getExpansion() == null ||
+                response.getExpansion().getContains() == null ||
+                response.getExpansion().getContains().size() < 1){
+            log.error("Query was successful, but found no location types in the configured FHIR server");
+            throw new ResourceNotFound("Query was successful, but found no location types in the configured FHIR server");
+        } else {
+            List<ValueSet.ValueSetExpansionContainsComponent> locationTypeList = response.getExpansion().getContains();
+            locationTypeList.forEach(locationType -> {
+                ValueSetDto temp = new ValueSetDto();
+                temp.setSystem(locationType.getSystem());
+                temp.setCode(locationType.getCode());
+                temp.setDisplay(locationType.getDisplay());
+                locationTypes.add(temp);
+            });
+        }
+        log.info("Found " + locationTypes.size() + " location type codes.");
+        return locationTypes;
+
     }
 
     @Override
