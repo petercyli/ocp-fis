@@ -14,6 +14,8 @@ import java.util.List;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PractitionerDto {
+    private String resourceURL;
+
     private List<IdentifierDto> identifiers;
 
     private boolean active;
@@ -23,4 +25,6 @@ public class PractitionerDto {
     private List<TelecomDto> telecoms;
 
     private List<AddressDto> address;
+
+    private List<PractitionerRoleDto> practitionerRoles;
 }
