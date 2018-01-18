@@ -24,16 +24,6 @@ public class LookUpController {
     }
 
     /**
-     * Determine identifier to use for a specific purpose
-     * Eg: DL, MR, MD
-     * @return
-     */
-    @GetMapping("/identifierTypes")
-    public List<ValueSetDto> getIdentifierTypes() {
-        return lookUpService.getIdentifierTypes();
-    }
-
-    /**
      * Identifies the purpose for this identifier, if known
      * Eg: Usual, Official, Temp
      * @return
@@ -44,6 +34,16 @@ public class LookUpController {
     }
 
     //LOCATION START
+
+    /**
+     * Determine identifier to use for a specific purpose
+     * Eg: PRN , EN
+     * @return
+     */
+    @GetMapping("/locationIdentifierTypes")
+    public List<ValueSetDto> getLocationIdentifierTypes() {
+        return lookUpService.getLocationIdentifierTypes();
+    }
 
     /**
      * Indicates whether a resource instance represents a specific location or a class of locations

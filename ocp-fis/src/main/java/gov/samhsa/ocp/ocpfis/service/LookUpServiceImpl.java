@@ -14,6 +14,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -67,41 +68,6 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<ValueSetDto> getIdentifierTypes() {
-        List<ValueSetDto> identifierTypes = new ArrayList<>();
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any identifier type", e.getMessage());
-            throw new ResourceNotFound("Query was unsuccessful - Could not find any identifier type", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no identifier types in the configured FHIR server");
-            throw new ResourceNotFound("Query was successful, but found no identifier types in the configured FHIR server");
-        } else {
-            List<ValueSet.ValueSetExpansionContainsComponent> identifierTypeList = response.getExpansion().getContains();
-            identifierTypeList.forEach(locationType -> {
-                ValueSetDto temp = new ValueSetDto();
-                temp.setSystem(locationType.getSystem());
-                temp.setCode(locationType.getCode());
-                temp.setDisplay(locationType.getDisplay());
-                identifierTypes.add(temp);
-            });
-        }
-
-        log.info("Found " + identifierTypes.size() + " identifier types.");
-        return identifierTypes;
-    }
-
-        @Override
     public List<ValueSetDto> getIdentifierUses() {
             List<ValueSetDto> identifierUses = new ArrayList<>();
             ValueSet response;
@@ -134,6 +100,43 @@ public class LookUpServiceImpl implements LookUpService {
 
             log.info("Found " + identifierUses.size() + " identifier use codes.");
             return identifierUses;
+    }
+
+    @Override
+    public List<ValueSetDto> getLocationIdentifierTypes() {
+        List<ValueSetDto> locationIdentifierTypes = new ArrayList<>();
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        }
+        catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any location identifier type", e.getMessage());
+            throw new ResourceNotFound("Query was unsuccessful - Could not find any location identifier type", e);
+        }
+
+        if (response == null ||
+                response.getExpansion() == null ||
+                response.getExpansion().getContains() == null ||
+                response.getExpansion().getContains().size() < 1) {
+            log.error("Query was successful, but found no location identifier types in the configured FHIR server");
+            throw new ResourceNotFound("Query was successful, but found no location identifier types in the configured FHIR server");
+        } else {
+            List<ValueSet.ValueSetExpansionContainsComponent> identifierTypeList = response.getExpansion().getContains();
+            List<String> allowedLocationIdentifierTypes = Arrays.asList("EN", "TAX", "NIIP", "PRN");
+
+            identifierTypeList.stream().filter(locationType -> allowedLocationIdentifierTypes.contains(locationType.getCode())).forEach(locationType -> {
+                ValueSetDto temp = new ValueSetDto();
+                temp.setSystem(locationType.getSystem());
+                temp.setCode(locationType.getCode());
+                temp.setDisplay(locationType.getDisplay());
+                locationIdentifierTypes.add(temp);
+            });
+        }
+
+        log.info("Found " + locationIdentifierTypes.size() + " location identifier types.");
+        return locationIdentifierTypes;
     }
 
     @Override

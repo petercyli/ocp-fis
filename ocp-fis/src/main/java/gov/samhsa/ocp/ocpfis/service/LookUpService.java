@@ -6,9 +6,9 @@ import java.util.List;
 
 public interface LookUpService {
     List<ValueSetDto> getUspsStates();
-    List<ValueSetDto> getIdentifierTypes();
     List<ValueSetDto> getIdentifierUses();
 
+    List<ValueSetDto> getLocationIdentifierTypes();
     List<ValueSetDto> getLocationModes();
     List<ValueSetDto> getLocationStatuses();
     List<ValueSetDto> getLocationTypes();
