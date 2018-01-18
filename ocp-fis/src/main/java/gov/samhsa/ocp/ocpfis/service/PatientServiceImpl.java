@@ -6,16 +6,18 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchType;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
-import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
@@ -24,7 +26,6 @@ import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.sql.Date;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,12 +39,14 @@ public class PatientServiceImpl implements PatientService {
     private final IParser iParser;
     private final ModelMapper modelMapper;
     private final FisProperties fisProperties;
+    private final FhirValidator fhirValidator;
 
-    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FisProperties fisProperties) {
+    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FisProperties fisProperties, FhirValidator fhirValidator) {
         this.fhirClient = fhirClient;
         this.iParser = iParser;
         this.modelMapper = modelMapper;
         this.fisProperties = fisProperties;
+        this.fhirValidator = fhirValidator;
     }
 
     @Override
@@ -104,43 +107,33 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public void createPatient(PatientDto patientDto) {
-        Patient fhirPatient = createFhirPatient(patientDto);
-        fhirClient.create().resource(fhirPatient).execute();
+        final Patient patient = modelMapper.map(patientDto, Patient.class);
+        patient.setActive(Boolean.TRUE);
+
+        final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
+        if (validationResult.isSuccessful()) {
+            fhirClient.create().resource(patient).execute();
+        } else {
+            throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
+        }
     }
 
-    private Patient createFhirPatient(PatientDto patientDto) {
-        final Patient fhirPatient = new Patient();
+    @Override
+    public void updatePatient(PatientDto patientDto) {
+        final Patient patient = modelMapper.map(patientDto, Patient.class);
+        patient.setId(new IdType(patientDto.getId()));
 
-        patientDto.getName().stream().forEach(nameDto -> {
-            fhirPatient.addName().setFamily(nameDto.getLastName())
-                    .addGiven(nameDto.getFirstName());
-        });
+        final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
+        if (validationResult.isSuccessful()) {
+                log.debug("Calling FHIR Patient Update");
 
-        fhirPatient.setBirthDate(Date.valueOf(patientDto.getBirthDate()));
-        fhirPatient.setGender(getPatientGender(patientDto.getGenderCode()));
-        fhirPatient.setActive(Boolean.TRUE);
-
-        //Add an identifier
-        setIdentifiers(fhirPatient, patientDto);
-
-        //optional fields
-        patientDto.getAddress().stream().forEach(addressDto -> {
-            fhirPatient.addAddress().addLine(addressDto.getLine1())
-                    .addLine(addressDto.getLine2())
-                    .setCity(addressDto.getCity())
-                    .setState(addressDto.getStateCode())
-                    .setPostalCode(addressDto.getPostalCode())
-                    .setCountry(addressDto.getCountryCode());
-        });
-
-        patientDto.getTelecom().stream().forEach(telecomDto -> {
-            fhirPatient.addTelecom()
-                    .setSystem(ContactPoint.ContactPointSystem.valueOf(telecomDto.getSystem().orElse("")))
-                    .setUse(ContactPoint.ContactPointUse.valueOf(telecomDto.getUse().orElse("")))
-                    .setValue(telecomDto.getValue().orElse(""));
-        });
-
-        return fhirPatient;
+                fhirClient.update().resource(patient)
+                        //.conditional()
+                        //.where(Patient.IDENTIFIER.exactly().systemAndCode(getCodeSystemByValue(patientDto.getIdentifier(), patient.getId()), patient.getId()))
+                        .execute();
+        } else {
+            throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
+        }
     }
 
     private List<PatientDto> convertBundleToPatientDtos(Bundle response, boolean isSearch) {
@@ -213,18 +206,24 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private void setIdentifiers(Patient patient, PatientDto patientDto) {
-        patient.setId(new IdType(patientDto.getMrn()));
+        patient.setId(new IdType(patientDto.getId()));
         patientDto.getIdentifier().stream()
                 .forEach(identifier -> {
                             final Identifier id = patient.addIdentifier()
                                     .setSystem(identifier.getSystem())
                                     .setValue(identifier.getValue());
-                            if (id.getValue().equals(patientDto.getMrn())) {
+                            if (id.getValue().equals(patientDto.getId())) {
                                 // if mrn, set use to official
                                 id.setUse(Identifier.IdentifierUse.OFFICIAL);
                             }
                         }
                 );
+    }
+
+    private String getCodeSystemByValue(List<IdentifierDto> identifierList, String value) {
+        // TODO: review business logic
+        //return identifierList.stream().filter(identifier -> identifier.getValue().equalsIgnoreCase(value)).findFirst().get().getSystem();
+        return identifierList.stream().findFirst().get().getSystem();
     }
 }
 
