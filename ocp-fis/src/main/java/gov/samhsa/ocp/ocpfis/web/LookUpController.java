@@ -26,8 +26,19 @@ public class LookUpController {
         return lookUpService.getUspsStates();
     }
 
+    /**
+     * Determine identifier to use for a specific purpose
+     * Eg: PRN , EN
+     * @return
+     */
+    @GetMapping("/identifierTypes")
+    public List<ValueSetDto> getIdentifierTypes(@RequestParam(value = "resourceType") Optional<String> resourceType) {
+        return lookUpService.getIdentifierTypes(resourceType);
+    }
+
+
     @GetMapping("/identifierSystems")
-    public List<IdentifierSystemDto> getIdentifierSystems( @RequestParam(value = "identifierType") Optional<String> identifierType){
+    public List<IdentifierSystemDto> getIdentifierSystems(@RequestParam(value = "identifierType") Optional<String> identifierType){
         return lookUpService.getIdentifierSystems(identifierType);
     }
 
@@ -42,16 +53,6 @@ public class LookUpController {
     }
 
     //LOCATION START
-
-    /**
-     * Determine identifier to use for a specific purpose
-     * Eg: PRN , EN
-     * @return
-     */
-    @GetMapping("/locationIdentifierTypes")
-    public List<ValueSetDto> getLocationIdentifierTypes() {
-        return lookUpService.getLocationIdentifierTypes();
-    }
 
     /**
      * Indicates whether a resource instance represents a specific location or a class of locations

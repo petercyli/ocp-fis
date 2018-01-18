@@ -8,16 +8,18 @@ import java.util.Optional;
 
 public interface LookUpService {
     List<ValueSetDto> getUspsStates();
+
+    List<ValueSetDto> getIdentifierTypes(Optional<String> resourceType);
     List<IdentifierSystemDto> getIdentifierSystems(Optional<String> identifierType);
     List<ValueSetDto> getIdentifierUses();
 
-    List<ValueSetDto> getLocationIdentifierTypes();
     List<ValueSetDto> getLocationModes();
     List<ValueSetDto> getLocationStatuses();
     List<ValueSetDto> getLocationTypes();
 
     List<ValueSetDto> getAddressTypes();
     List<ValueSetDto> getAddressUses();
+
     List<ValueSetDto> getTelecomUses();
     List<ValueSetDto> getTelecomSystems();
 }

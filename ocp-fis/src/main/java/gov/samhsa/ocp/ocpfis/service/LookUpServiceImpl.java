@@ -9,6 +9,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFound;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.ContactPoint;
+import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.ValueSet;
 import org.modelmapper.ModelMapper;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -70,12 +72,54 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
+    public List<ValueSetDto> getIdentifierTypes(Optional<String> resourceType) {
+        List<ValueSetDto> locationIdentifierTypes = new ArrayList<>();
+        List<ValueSet.ValueSetExpansionContainsComponent> identifierTypeList;
+
+        final List<String> allowedLocationIdentifierTypes = Arrays.asList("EN", "TAX", "NIIP", "PRN");
+
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        }
+        catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any location identifier type", e.getMessage());
+            throw new ResourceNotFound("Query was unsuccessful - Could not find any location identifier type", e);
+        }
+
+        if (response == null ||
+                response.getExpansion() == null ||
+                response.getExpansion().getContains() == null ||
+                response.getExpansion().getContains().size() < 1) {
+            log.error("Query was successful, but found no location identifier types in the configured FHIR server");
+            throw new ResourceNotFound("Query was successful, but found no location identifier types in the configured FHIR server");
+        } else {
+            identifierTypeList = response.getExpansion().getContains();
+        }
+
+        if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.LOCATION.name()))) {
+            identifierTypeList.stream().filter(locationType -> allowedLocationIdentifierTypes.contains(locationType.getCode())).map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+        } else {
+            //All identifier types
+            locationIdentifierTypes = identifierTypeList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+        }
+
+        log.info("Found " + locationIdentifierTypes.size() + " location identifier types.");
+        return locationIdentifierTypes;
+    }
+
+    @Override
     public List<IdentifierSystemDto> getIdentifierSystems(Optional<String> identifierType) {
 
         List<IdentifierSystemDto> identifierSystemList = new ArrayList<>();
         List<KnownIdentifierSystemEnum> identifierSystemsByIdentifierTypeEnum;
 
-        if (!identifierType.isPresent() || (identifierType.isPresent() && identifierType.get().trim().isEmpty())) {
+        if (!identifierType.isPresent()) {
+            //Get all available identifier systems
+            identifierSystemsByIdentifierTypeEnum = Arrays.asList(KnownIdentifierSystemEnum.values());
+        } else if (identifierType.get().trim().isEmpty()) {
             //Get all available identifier systems
             identifierSystemsByIdentifierTypeEnum = Arrays.asList(KnownIdentifierSystemEnum.values());
         } else {
@@ -130,43 +174,6 @@ public class LookUpServiceImpl implements LookUpService {
 
         log.info("Found " + identifierUses.size() + " identifier use codes.");
         return identifierUses;
-    }
-
-    @Override
-    public List<ValueSetDto> getLocationIdentifierTypes() {
-        List<ValueSetDto> locationIdentifierTypes = new ArrayList<>();
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any location identifier type", e.getMessage());
-            throw new ResourceNotFound("Query was unsuccessful - Could not find any location identifier type", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no location identifier types in the configured FHIR server");
-            throw new ResourceNotFound("Query was successful, but found no location identifier types in the configured FHIR server");
-        } else {
-            List<ValueSet.ValueSetExpansionContainsComponent> identifierTypeList = response.getExpansion().getContains();
-            List<String> allowedLocationIdentifierTypes = Arrays.asList("EN", "TAX", "NIIP", "PRN");
-
-            identifierTypeList.stream().filter(locationType -> allowedLocationIdentifierTypes.contains(locationType.getCode())).forEach(locationType -> {
-                ValueSetDto temp = new ValueSetDto();
-                temp.setSystem(locationType.getSystem());
-                temp.setCode(locationType.getCode());
-                temp.setDisplay(locationType.getDisplay());
-                locationIdentifierTypes.add(temp);
-            });
-        }
-
-        log.info("Found " + locationIdentifierTypes.size() + " location identifier types.");
-        return locationIdentifierTypes;
     }
 
     @Override
@@ -305,4 +312,14 @@ public class LookUpServiceImpl implements LookUpService {
         log.info("Found " + telecomSystems.size() + " telecom system codes.");
         return telecomSystems;
     }
+
+    private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ValueSetExpansionContainsComponent identifierType) {
+        ValueSetDto temp = new ValueSetDto();
+        temp.setSystem(identifierType.getSystem());
+        temp.setCode(identifierType.getCode());
+        temp.setDisplay(identifierType.getDisplay());
+        return temp;
+    }
+
+
 }
