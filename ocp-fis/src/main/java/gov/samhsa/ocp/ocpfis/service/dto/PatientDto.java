@@ -10,6 +10,7 @@ import org.hibernate.validator.constraints.NotEmpty;
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Data
 @Builder
@@ -45,7 +46,5 @@ public class PatientDto {
     private List<AddressDto> address;
 
     private List<TelecomDto> telecom;
-
-    private String mrn;
 
 }
