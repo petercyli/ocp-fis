@@ -31,6 +31,7 @@ public class PatientToPatientDtoMap extends PropertyMap<Patient, PatientDto> {
 
     @Override
     protected void configure() {
+        map().setId(source.getId());
         map().setResourceURL(source.getId());
         map().setActive(source.getActive());
         map(source.getGender()).setGenderCode(null);
@@ -40,7 +41,6 @@ public class PatientToPatientDtoMap extends PropertyMap<Patient, PatientDto> {
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifier(null);
         using(DateToLocalDate).map(source.getBirthDate()).setBirthDate(null);
         using(humanNameListToNameDtoListConverter).map(source.getName()).setName(null);
-
     }
 
 
