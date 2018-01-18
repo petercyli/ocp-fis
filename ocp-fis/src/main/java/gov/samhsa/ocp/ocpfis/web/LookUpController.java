@@ -1,12 +1,15 @@
 package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
+import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/lookup")
@@ -21,6 +24,11 @@ public class LookUpController {
     @GetMapping("/uspsStates")
     public List<ValueSetDto> getUspsStates() {
         return lookUpService.getUspsStates();
+    }
+
+    @GetMapping("/identifierSystems")
+    public List<IdentifierSystemDto> getIdentifierSystems( @RequestParam(value = "identifierType") Optional<String> identifierType){
+        return lookUpService.getIdentifierSystems(identifierType);
     }
 
     /**

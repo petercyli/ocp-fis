@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFound;
 import lombok.extern.slf4j.Slf4j;
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @Slf4j
@@ -65,6 +67,34 @@ public class LookUpServiceImpl implements LookUpService {
         }
         log.info("Found " + stateCodes.size() + " states codes.");
         return stateCodes;
+    }
+
+    @Override
+    public List<IdentifierSystemDto> getIdentifierSystems(Optional<String> identifierType) {
+
+        List<IdentifierSystemDto> identifierSystemList = new ArrayList<>();
+        List<KnownIdentifierSystemEnum> identifierSystemsByIdentifierTypeEnum;
+
+        if (!identifierType.isPresent() || (identifierType.isPresent() && identifierType.get().trim().isEmpty())) {
+            //Get all available identifier systems
+            identifierSystemsByIdentifierTypeEnum = Arrays.asList(KnownIdentifierSystemEnum.values());
+        } else {
+            identifierSystemsByIdentifierTypeEnum = KnownIdentifierSystemEnum.identifierSystemsByIdentifierTypeEnum(IdentifierTypeEnum.valueOf(identifierType.get().toUpperCase()));
+        }
+
+        if (identifierSystemsByIdentifierTypeEnum == null || identifierSystemsByIdentifierTypeEnum.size() < 1) {
+            log.error("No Identifier Systems found for type" + identifierType);
+            throw new ResourceNotFound("Query was successful, but found no identifier systems found in the configured FHIR server for identifier type" + identifierType);
+        }
+        identifierSystemsByIdentifierTypeEnum.forEach(system -> {
+            IdentifierSystemDto temp = new IdentifierSystemDto();
+            temp.setDisplay(system.getDisplay());
+            temp.setOid(system.getOid());
+            temp.setUri(system.getUri());
+            identifierSystemList.add(temp);
+        });
+        log.info("Found " + identifierSystemList.size() + " identifier systems.");
+        return identifierSystemList;
     }
 
     @Override
