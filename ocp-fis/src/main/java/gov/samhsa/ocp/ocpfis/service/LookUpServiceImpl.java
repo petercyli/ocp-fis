@@ -73,7 +73,7 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getIdentifierTypes(Optional<String> resourceType) {
-        List<ValueSetDto> locationIdentifierTypes = new ArrayList<>();
+        List<ValueSetDto> identifierTypes = new ArrayList<>();
         List<ValueSet.ValueSetExpansionContainsComponent> identifierTypeList;
 
         final List<String> allowedLocationIdentifierTypes = Arrays.asList("EN", "TAX", "NIIP", "PRN");
@@ -100,14 +100,19 @@ public class LookUpServiceImpl implements LookUpService {
         }
 
         if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.LOCATION.name()))) {
-            identifierTypeList.stream().filter(locationType -> allowedLocationIdentifierTypes.contains(locationType.getCode())).map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
+            for (ValueSet.ValueSetExpansionContainsComponent type : identifierTypeList) {
+                if (allowedLocationIdentifierTypes.contains(type.getCode().toUpperCase())) {
+                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                }
+            }
         } else {
-            //All identifier types
-            locationIdentifierTypes = identifierTypeList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            log.info("Fetching ALL IdentifierTypes");
+            identifierTypes = identifierTypeList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
 
-        log.info("Found " + locationIdentifierTypes.size() + " location identifier types.");
-        return locationIdentifierTypes;
+        log.info("Found " + identifierTypes.size() + " identifier types.");
+        return identifierTypes;
     }
 
     @Override
@@ -117,18 +122,19 @@ public class LookUpServiceImpl implements LookUpService {
         List<KnownIdentifierSystemEnum> identifierSystemsByIdentifierTypeEnum;
 
         if (!identifierType.isPresent()) {
-            //Get all available identifier systems
+            log.info("Fetching ALL IdentifierSystems");
             identifierSystemsByIdentifierTypeEnum = Arrays.asList(KnownIdentifierSystemEnum.values());
         } else if (identifierType.get().trim().isEmpty()) {
-            //Get all available identifier systems
+            log.info("Fetching ALL IdentifierSystems");
             identifierSystemsByIdentifierTypeEnum = Arrays.asList(KnownIdentifierSystemEnum.values());
         } else {
+            log.info("Fetching IdentifierSystems for identifierType  = " + identifierType.get().trim());
             identifierSystemsByIdentifierTypeEnum = KnownIdentifierSystemEnum.identifierSystemsByIdentifierTypeEnum(IdentifierTypeEnum.valueOf(identifierType.get().toUpperCase()));
         }
 
         if (identifierSystemsByIdentifierTypeEnum == null || identifierSystemsByIdentifierTypeEnum.size() < 1) {
-            log.error("No Identifier Systems found for type" + identifierType);
-            throw new ResourceNotFound("Query was successful, but found no identifier systems found in the configured FHIR server for identifier type" + identifierType);
+            log.error("No Identifier Systems found");
+            throw new ResourceNotFound("Query was successful, but found no identifier systems found in the configured FHIR server");
         }
         identifierSystemsByIdentifierTypeEnum.forEach(system -> {
             IdentifierSystemDto temp = new IdentifierSystemDto();
