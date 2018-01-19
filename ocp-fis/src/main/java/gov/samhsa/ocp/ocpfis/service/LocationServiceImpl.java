@@ -139,11 +139,6 @@ public class LocationServiceImpl implements LocationService {
                 .encodedJson()
                 .execute();
 
-        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
-            log.info("No location found for the given OrganizationID:" + organizationResourceId);
-            throw new LocationNotFoundException("No location found for the given OrganizationID:" + organizationResourceId);
-        }
-
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
 
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
