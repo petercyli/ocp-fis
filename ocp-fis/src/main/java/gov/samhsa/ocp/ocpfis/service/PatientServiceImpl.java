@@ -11,7 +11,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchType;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
-import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
