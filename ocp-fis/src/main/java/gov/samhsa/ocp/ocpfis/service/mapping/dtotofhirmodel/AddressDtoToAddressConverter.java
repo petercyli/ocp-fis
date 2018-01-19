@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.service.mapping.DtoToFhirModel;
+package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
 import gov.samhsa.ocp.ocpfis.service.LocationInfoEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;

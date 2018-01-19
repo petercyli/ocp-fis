@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.service.mapping.DtoToFhirModel;
+package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
 import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
 import lombok.extern.slf4j.Slf4j;
