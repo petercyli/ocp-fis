@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/lookup")
+@RequestMapping("/lookups")
 public class LookUpController {
 
     private final LookUpService lookUpService;
@@ -21,7 +21,7 @@ public class LookUpController {
         this.lookUpService = lookUpService;
     }
 
-    @GetMapping("/uspsStates")
+    @GetMapping("/usps-states")
     public List<ValueSetDto> getUspsStates() {
         return lookUpService.getUspsStates();
     }
@@ -31,13 +31,13 @@ public class LookUpController {
      * Eg: PRN , EN
      * @return
      */
-    @GetMapping("/identifierTypes")
+    @GetMapping("/identifier-types")
     public List<ValueSetDto> getIdentifierTypes(@RequestParam(value = "resourceType") Optional<String> resourceType) {
         return lookUpService.getIdentifierTypes(resourceType);
     }
 
 
-    @GetMapping("/identifierSystems")
+    @GetMapping("/identifier-systems")
     public List<IdentifierSystemDto> getIdentifierSystems(@RequestParam(value = "identifierType") Optional<String> identifierType){
         return lookUpService.getIdentifierSystems(identifierType);
     }
@@ -47,7 +47,7 @@ public class LookUpController {
      * Eg: Usual, Official, Temp
      * @return
      */
-    @GetMapping("/identifierUses")
+    @GetMapping("/identifier-uses")
     public List<ValueSetDto> getIdentifierUses() {
         return lookUpService.getIdentifierUses();
     }
@@ -59,7 +59,7 @@ public class LookUpController {
      * Eg: INSTANCE, KIND, NULL
      * @return
      */
-    @GetMapping("/locationModes")
+    @GetMapping("/location-modes")
     public List<ValueSetDto> getLocationModes() {
         return lookUpService.getLocationModes();
     }
@@ -69,7 +69,7 @@ public class LookUpController {
      * Eg: ACTIVE, SUSPENDED, INACTIVE, NULL
      * @return
      */
-    @GetMapping("/locationStatuses")
+    @GetMapping("/location-statuses")
     public List<ValueSetDto> getLocationStatuses() {
         return lookUpService.getLocationStatuses();
     }
@@ -78,7 +78,7 @@ public class LookUpController {
      * Physical form of the location
      * e.g. building, room, vehicle, road.
      */
-    @GetMapping("/locationTypes")
+    @GetMapping("/location-types")
     public List<ValueSetDto> getLocationTypes() {
         return lookUpService.getLocationTypes();
     }
@@ -93,7 +93,7 @@ public class LookUpController {
      * Eg: POSTAL, PHYSICAL, POSTAL & PHYSICAL, NULL
      * @return
      */
-    @GetMapping("/addressTypes")
+    @GetMapping("/address-types")
     public List<ValueSetDto> getAddressTypes() {
         return lookUpService.getAddressTypes();
     }
@@ -103,7 +103,7 @@ public class LookUpController {
      * Eg: HOME, WORK, TEMP, OLD, NULL
      * @return
      */
-    @GetMapping("/addressUses")
+    @GetMapping("/address-uses")
     public List<ValueSetDto> getAddressUses() {
         return lookUpService.getAddressUses();
     }
@@ -113,7 +113,7 @@ public class LookUpController {
      * Eg: HOME, WORK, TEMP, OLD, MOBILE, NULL
      * @return
      */
-    @GetMapping("/telecomUses")
+    @GetMapping("/telecom-uses")
     public List<ValueSetDto> getTelecomUses() {
         return lookUpService.getTelecomUses();
     }
@@ -123,7 +123,7 @@ public class LookUpController {
      * Eg: PHONE, FAX, EMAIL, PAGER, URL, SMS, OTHER, NULL
      * @return
      */
-    @GetMapping("/telecomSystems")
+    @GetMapping("/telecom-systems")
     public List<ValueSetDto> getTelecomSystems() {
         return lookUpService.getTelecomSystems();
     }
