@@ -1,11 +1,10 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
-import ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
-import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFound;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.ContactPoint;
@@ -45,9 +44,9 @@ public class LookUpServiceImpl implements LookUpService {
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
         }
-        catch (ResourceNotFoundException e) {
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any state code", e.getMessage());
-            throw new ResourceNotFound("Query was unsuccessful - Could not find any state code", e);
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any state code", e);
         }
 
         if (response == null || response.getCompose() == null ||
@@ -56,7 +55,7 @@ public class LookUpServiceImpl implements LookUpService {
                 response.getCompose().getInclude().get(0).getConcept() == null ||
                 response.getCompose().getInclude().get(0).getConcept().size() < 1) {
             log.error("Query was successful, but found no state codes in the configured FHIR server");
-            throw new ResourceNotFound("Query was successful, but found no state codes in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no state codes in the configured FHIR server");
         } else {
 
             List<ValueSet.ConceptReferenceComponent> statesList = response.getCompose().getInclude().get(0).getConcept();
@@ -84,9 +83,9 @@ public class LookUpServiceImpl implements LookUpService {
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
         }
-        catch (ResourceNotFoundException e) {
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any location identifier type", e.getMessage());
-            throw new ResourceNotFound("Query was unsuccessful - Could not find any location identifier type", e);
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any location identifier type", e);
         }
 
         if (response == null ||
@@ -94,7 +93,7 @@ public class LookUpServiceImpl implements LookUpService {
                 response.getExpansion().getContains() == null ||
                 response.getExpansion().getContains().size() < 1) {
             log.error("Query was successful, but found no location identifier types in the configured FHIR server");
-            throw new ResourceNotFound("Query was successful, but found no location identifier types in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no location identifier types in the configured FHIR server");
         } else {
             identifierTypeList = response.getExpansion().getContains();
         }
@@ -134,7 +133,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         if (identifierSystemsByIdentifierTypeEnum == null || identifierSystemsByIdentifierTypeEnum.size() < 1) {
             log.error("No Identifier Systems found");
-            throw new ResourceNotFound("Query was successful, but found no identifier systems found in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no identifier systems found in the configured FHIR server");
         }
         identifierSystemsByIdentifierTypeEnum.forEach(system -> {
             IdentifierSystemDto temp = new IdentifierSystemDto();
@@ -156,9 +155,9 @@ public class LookUpServiceImpl implements LookUpService {
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
         }
-        catch (ResourceNotFoundException e) {
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any identifier use", e.getMessage());
-            throw new ResourceNotFound("Query was unsuccessful - Could not find any identifier use", e);
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any identifier use", e);
         }
 
         if (response == null ||
@@ -166,7 +165,7 @@ public class LookUpServiceImpl implements LookUpService {
                 response.getExpansion().getContains() == null ||
                 response.getExpansion().getContains().size() < 1) {
             log.error("Query was successful, but found no identifier use in the configured FHIR server");
-            throw new ResourceNotFound("Query was successful, but found no identifier use in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no identifier use in the configured FHIR server");
         } else {
             List<ValueSet.ValueSetExpansionContainsComponent> identifierTypeList = response.getExpansion().getContains();
             identifierTypeList.forEach(locationType -> {
@@ -225,9 +224,9 @@ public class LookUpServiceImpl implements LookUpService {
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
         }
-        catch (ResourceNotFoundException e) {
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any location type", e.getMessage());
-            throw new ResourceNotFound("Query was unsuccessful - Could not find any location type", e);
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any location type", e);
         }
 
         if (response == null ||
@@ -235,7 +234,7 @@ public class LookUpServiceImpl implements LookUpService {
                 response.getExpansion().getContains() == null ||
                 response.getExpansion().getContains().size() < 1) {
             log.error("Query was successful, but found no location types in the configured FHIR server");
-            throw new ResourceNotFound("Query was successful, but found no location types in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no location types in the configured FHIR server");
         } else {
             List<ValueSet.ValueSetExpansionContainsComponent> locationTypeList = response.getExpansion().getContains();
             locationTypeList.forEach(locationType -> {
