@@ -14,6 +14,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchType;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -105,16 +106,32 @@ public class PatientServiceImpl implements PatientService {
         return new PageDto<>(patientDtos, numberOfPatientsPerPage, totalPages, currentPage, patientDtos.size(), otherPagePatientSearchBundle.getTotal());
     }
 
+    private int getPatientsByIdentifier(String system, String value) {
+        log.info("Searching patients with identifier.system : " + system + " and value : " + value);
+        IQuery searchQuery = fhirClient.search().forResource(Patient.class)
+                .where(Patient.IDENTIFIER.exactly().systemAndIdentifier(system, value));
+        Bundle searchBundle = (Bundle) searchQuery.returnBundle(Bundle.class).execute();
+        return searchBundle.getTotal();
+    }
+
     @Override
     public void createPatient(PatientDto patientDto) {
-        final Patient patient = modelMapper.map(patientDto, Patient.class);
-        patient.setActive(Boolean.TRUE);
+        int existingNumberOfPatients = this.getPatientsByIdentifier(patientDto.getIdentifier().get(0).getSystem(), patientDto.getIdentifier().get(0).getValue());
 
-        final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
-        if (validationResult.isSuccessful()) {
-            fhirClient.create().resource(patient).execute();
+        if(existingNumberOfPatients == 0) {
+
+            final Patient patient = modelMapper.map(patientDto, Patient.class);
+            patient.setActive(Boolean.TRUE);
+
+            final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
+            if (validationResult.isSuccessful()) {
+                fhirClient.create().resource(patient).execute();
+            } else {
+                throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
+            }
         } else {
-            throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
+            log.info("Patient already exists with the given identifier system and value");
+            throw new DuplicateResourceFoundException("Patient already exists with the given identifier system and value");
         }
     }
 
