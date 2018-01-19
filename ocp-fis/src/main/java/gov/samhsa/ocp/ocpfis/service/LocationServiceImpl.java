@@ -8,7 +8,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
-import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Location;
@@ -79,7 +79,7 @@ public class LocationServiceImpl implements LocationService {
                 .execute();
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
-            throw new LocationNotFoundException("No locations were found in the FHIR server");
+            throw new ResourceNotFoundException("No locations were found in the FHIR server");
         }
 
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
@@ -141,7 +141,7 @@ public class LocationServiceImpl implements LocationService {
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
-            throw new LocationNotFoundException("No location found for the given OrganizationID:" + organizationResourceId);
+            throw new ResourceNotFoundException("No location found for the given OrganizationID:" + organizationResourceId);
         }
 
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
@@ -172,7 +172,7 @@ public class LocationServiceImpl implements LocationService {
 
         if (locationBundle == null || locationBundle.getEntry().size() < 1) {
             log.info("No location was found for the given LocationID:" + locationId);
-            throw new LocationNotFoundException("No location was found for the given LocationID:" + locationId);
+            throw new ResourceNotFoundException("No location was found for the given LocationID:" + locationId);
         }
 
         log.info("FHIR Location bundle retrieved from FHIR server successfully");
@@ -191,7 +191,7 @@ public class LocationServiceImpl implements LocationService {
 
         if (childLocationBundle == null || childLocationBundle.getEntry().size() < 1) {
             log.info("No child location found for the given LocationID:" + locationId);
-            throw new LocationNotFoundException("No child location found for the given LocationID:" + locationId);
+            throw new ResourceNotFoundException("No child location found for the given LocationID:" + locationId);
         }
 
         log.info("FHIR Location bundle retrieved from FHIR server successfully");
@@ -207,7 +207,7 @@ public class LocationServiceImpl implements LocationService {
             int offset = ((pageNumber >= 1 ? pageNumber : 1) - 1) * pageSize;
 
             if (offset >= locationSearchBundle.getTotal()) {
-                throw new LocationNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
+                throw new ResourceNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
             }
 
             String pageUrl = fisProperties.getFhir().getServerUrl()
@@ -221,7 +221,7 @@ public class LocationServiceImpl implements LocationService {
                     .returnBundle(Bundle.class)
                     .execute();
         } else {
-            throw new LocationNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
+            throw new ResourceNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
         }
     }
 

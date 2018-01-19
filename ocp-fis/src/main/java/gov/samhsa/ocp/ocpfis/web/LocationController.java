@@ -72,7 +72,7 @@ public class LocationController {
      * @param locationId
      * @return
      */
-    @GetMapping("/locations/{locationId}/childLocation")
+    @GetMapping("/locations/{locationId}/child-location")
     public LocationDto getChildLocation(@PathVariable String locationId) {
         return locationService.getChildLocation(locationId);
     }
