@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.service;
+package gov.samhsa.ocp.ocpfis.domain;
 
 import java.util.Arrays;
 import java.util.stream.Stream;
