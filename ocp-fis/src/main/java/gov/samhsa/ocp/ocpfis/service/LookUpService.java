@@ -22,4 +22,6 @@ public interface LookUpService {
 
     List<ValueSetDto> getTelecomUses();
     List<ValueSetDto> getTelecomSystems();
+
+    List<ValueSetDto> getPractitionerRoles();
 }
