@@ -8,7 +8,6 @@ import java.util.Optional;
 
 public interface LocationService {
     /**
-     *
      * @param statusList
      * @param searchKey
      * @param searchValue
@@ -20,6 +19,7 @@ public interface LocationService {
 
     /**
      * Gets all locations(all levels) that are managed under a given Organization Id
+     *
      * @param organizationResourceId
      * @param statusList
      * @param searchKey
@@ -38,6 +38,7 @@ public interface LocationService {
 
     /**
      * Gets level 1 child location for a given Location Id
+     *
      * @param locationId
      * @return
      */
