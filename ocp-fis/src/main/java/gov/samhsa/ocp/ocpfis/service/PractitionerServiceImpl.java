@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceException;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
@@ -131,26 +132,43 @@ public class PractitionerServiceImpl implements PractitionerService {
 
 
     public void createPractitioner(PractitionerDto practitionerDto) {
-        //Create Fhir Practitioner
-        Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
-        MethodOutcome methodOutcome = fhirClient.create().resource(practitioner).execute();
+        //Check Duplicate Identifier
+        boolean hasDuplicateIdentifier= practitionerDto.getIdentifiers().stream().anyMatch(identifierDto -> {
+            if(fhirClient.search()
+                    .forResource(Practitioner.class)
+                    .where(new TokenClientParam("identifier")
+                            .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()))
+                    .returnBundle(Bundle.class).execute().getTotal()>0){
+                return true;
+            }
+            return false;
+        });
 
-        //Create PractitionerRole for the practitioner
-        PractitionerRole practitionerRole = new PractitionerRole();
-        practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
-                    //Assign fhir practitionerRole codes.
-                    CodeableConcept codeableConcept = new CodeableConcept();
-                    codeableConcept.setText(practitionerRoleCode.getCode());
-                    practitionerRole.addCode(codeableConcept);
-                }
-        );
+        //When there is no duplicate identifier, practitioner gets created
+        if(!hasDuplicateIdentifier) {
+            //Create Fhir Practitioner
+            Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
+            MethodOutcome methodOutcome = fhirClient.create().resource(practitioner).execute();
 
-        //Assign fhir Practitioner resource id.
-        Reference practitionerId = new Reference();
-        practitionerId.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
-        practitionerRole.setPractitioner(practitionerId);
+            //Create PractitionerRole for the practitioner
+            PractitionerRole practitionerRole = new PractitionerRole();
+            practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
+                        //Assign fhir practitionerRole codes.
+                        CodeableConcept codeableConcept = new CodeableConcept();
+                        codeableConcept.setText(practitionerRoleCode.getCode());
+                        practitionerRole.addCode(codeableConcept);
+                    }
+            );
 
-        fhirClient.create().resource(practitionerRole).execute();
+            //Assign fhir Practitioner resource id.
+            Reference practitionerId = new Reference();
+            practitionerId.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
+            practitionerRole.setPractitioner(practitionerId);
+
+            fhirClient.create().resource(practitionerRole).execute();
+        }else{
+            throw new DuplicateResourceException("Practitioner with the same Identifier is already present.");
+        }
     }
 
 
