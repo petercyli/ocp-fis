@@ -26,6 +26,7 @@
         <docker.maven.version>0.4.13</docker.maven.version>
         <modelmapper.version>1.0.0</modelmapper.version>
         <lombok.version>1.16.18</lombok.version>
+        <spring-cloud.version>Edgware.SR1</spring-cloud.version>
     </properties>
 
     <dependencies>
@@ -35,9 +36,13 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-devtools</artifactId>
-            <scope>runtime</scope>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-eureka</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -112,10 +117,14 @@
                 <artifactId>lombok</artifactId>
                 <optional>true</optional>
             </dependency>
-
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
-
-
     </dependencyManagement>
 
     <build>

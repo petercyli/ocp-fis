@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: ocp-fis
+  profiles:
+    active: application-default
+---
+spring.profiles: application-default
+spring:
+  profiles:
+    include: eureka-instance,eureka-client
+---
+spring.profiles: eureka-instance
+eureka:
+  instance:
+    instance-id: ${spring.cloud.client.hostname}:${spring.application.name}:${spring.application.instance_id:${random.value}}
+    leaseRenewalIntervalInSeconds: 1
+    leaseExpirationDurationInSeconds: 2
+---
+spring.profiles: eureka-client
+eureka:
+  client:
+    serviceUrl:
+      # endpoint for discovery-server, pass '--eureka.client.protocol=https' if discovery-server is running on https
+      defaultZone: ${eureka.client.protocol:http}://localhost:8761/eureka/
+    healthcheck:
+      enabled: true
+---
+# updates configuration for docker environment
+spring.profiles: docker
+eureka:
+  client:
+    service-url:
+      defaultZone: ${eureka.client.protocol:http}://ocp-discovery-server.ocp.com:8761/eureka/
+
+
