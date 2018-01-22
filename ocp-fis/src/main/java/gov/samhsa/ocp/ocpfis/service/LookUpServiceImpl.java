@@ -229,8 +229,8 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<ValueSetDto> getLocationTypes() {
-        List<ValueSetDto> locationTypes;
+    public List<ValueSetDto> getLocationPhysicalTypes() {
+        List<ValueSetDto> physicalLocationTypes;
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/location-physical-type";
 
@@ -238,22 +238,22 @@ public class LookUpServiceImpl implements LookUpService {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
         }
         catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any location type", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any location type", e);
+            log.error("Query was unsuccessful - Could not find any physical location type", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any physical location type", e);
         }
 
         if (response == null ||
                 response.getExpansion() == null ||
                 response.getExpansion().getContains() == null ||
                 response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no location type in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no location type in the configured FHIR server");
+            log.error("Query was successful, but found no physical location type in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no physical location type in the configured FHIR server");
         } else {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            locationTypes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            physicalLocationTypes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
-        log.info("Found " + locationTypes.size() + " location type codes.");
-        return locationTypes;
+        log.info("Found " + physicalLocationTypes.size() + " physical location type codes.");
+        return physicalLocationTypes;
 
     }
 

@@ -78,9 +78,9 @@ public class LookUpController {
      * Physical form of the location
      * e.g. building, room, vehicle, road.
      */
-    @GetMapping("/location-types")
-    public List<ValueSetDto> getLocationTypes() {
-        return lookUpService.getLocationTypes();
+    @GetMapping("/location-physical-types")
+    public List<ValueSetDto> getLocationPhysicalTypes() {
+        return lookUpService.getLocationPhysicalTypes();
     }
 
 

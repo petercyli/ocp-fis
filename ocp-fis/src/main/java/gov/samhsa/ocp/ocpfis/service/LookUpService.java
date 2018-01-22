@@ -15,7 +15,7 @@ public interface LookUpService {
 
     List<ValueSetDto> getLocationModes();
     List<ValueSetDto> getLocationStatuses();
-    List<ValueSetDto> getLocationTypes();
+    List<ValueSetDto> getLocationPhysicalTypes();
 
     List<ValueSetDto> getAddressTypes();
     List<ValueSetDto> getAddressUses();
