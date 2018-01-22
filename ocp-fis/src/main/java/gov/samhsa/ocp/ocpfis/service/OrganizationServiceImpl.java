@@ -4,14 +4,18 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -27,12 +31,13 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
     private final FisProperties ocpFisProperties;
+    private final FhirValidator fhirValidator;
 
-
-    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties) {
+    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.ocpFisProperties = fisProperties;
+        this.fhirValidator = fhirValidator;
     }
 
     @Override
@@ -158,12 +163,38 @@ public class OrganizationServiceImpl implements OrganizationService {
         if(!hasDuplicateIdentifier) {
             //Create Fhir Organization
             Organization fhirOrganization = modelMapper.map(organizationDto,Organization.class);
-            fhirClient.create().resource(fhirOrganization).execute();
+            fhirOrganization.setActive(Boolean.TRUE);
+
+            final ValidationResult validationResult = fhirValidator.validateWithResult(fhirOrganization);
+            if (validationResult.isSuccessful()) {
+                fhirClient.create().resource(fhirOrganization).execute();
+            } else {
+                throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
+            }
         }
         else{
             throw new DuplicateResourceFoundException("Organization with the same Identifier is already present.");
         }
     }
+
+    @Override
+    public void updateOrganization(OrganizationDto organizationDto) {
+        final Organization organization = modelMapper.map(organizationDto, Organization.class);
+        organization.setId(new IdType(organizationDto.getLogicalId()));
+
+        final ValidationResult validationResult = fhirValidator.validateWithResult(organization);
+        if (validationResult.isSuccessful()) {
+            log.debug("Calling FHIR Organization Update");
+
+            fhirClient.update().resource(organization)
+                    //.conditional()
+                    //.where(Patient.IDENTIFIER.exactly().systemAndCode(getCodeSystemByValue(patientDto.getIdentifier(), patient.getId()), patient.getId()))
+                    .execute();
+        } else {
+            throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
+        }
+    }
+
 
     private Bundle getOrganizationSearchBundleAfterFirstPage(Bundle OrganizationSearchBundle, int page, int size) {
         if (OrganizationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
