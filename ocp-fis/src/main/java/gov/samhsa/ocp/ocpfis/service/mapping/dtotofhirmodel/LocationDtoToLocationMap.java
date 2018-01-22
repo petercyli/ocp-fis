@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class LocationDtoToLocationMap extends PropertyMap<CreateLocationDto, Location> {
     @Autowired
+    private IdentifierDtoListToIdentifierListConverter identifierDtoListToIdentifierListConverter;
+    @Autowired
     private AddressDtoToAddressConverter addressDtoToAddressConverter;
 
     @Autowired
@@ -18,6 +20,7 @@ public class LocationDtoToLocationMap extends PropertyMap<CreateLocationDto, Loc
 
     @Override
     protected void configure() {
+        using(identifierDtoListToIdentifierListConverter).map(source.getIdentifiers()).setIdentifier(null);
         using(addressDtoToAddressConverter).map(source.getAddress()).setAddress(null);
         using(telecomDtoListToTelecomListConverter).map(source.getTelecoms()).setTelecom(null);
     }

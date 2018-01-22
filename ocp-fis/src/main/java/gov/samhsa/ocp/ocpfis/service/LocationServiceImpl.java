@@ -11,9 +11,11 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
+import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
@@ -25,6 +27,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -236,6 +239,7 @@ public class LocationServiceImpl implements LocationService {
     public void createLocation(String organizationId, Optional<String> locationId, CreateLocationDto locationDto) {
         log.info("Creating location for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
+        checkForDuplicateLocationBasedOnIdentifiers(locationDto, true);
 
         Location fhirLocation = modelMapper.map(locationDto, Location.class);
         fhirLocation.setStatus(getLocationStatusFromDto(locationDto));
@@ -288,6 +292,48 @@ public class LocationServiceImpl implements LocationService {
         }
     }
 
+    private void checkForDuplicateLocationBasedOnIdentifiers(CreateLocationDto locationDto, boolean isCreate) {
+        List<IdentifierDto> identifiersList = locationDto.getIdentifiers();
+        log.info("Current locationDto has " + identifiersList.size() + " identifiers.");
+
+        for (IdentifierDto tempIdentifierDto : identifiersList) {
+            String identifierSystem = tempIdentifierDto.getSystem();
+            String identifierValue = tempIdentifierDto.getValue();
+
+            //The logic for checking duplicates during location creation is different from when it is being updated
+            if (isCreate) {
+                checkForDuplicateLocationDuringCreate(identifierSystem, identifierValue);
+                log.info("Create Location: Found no duplicate location.");
+            } else {
+                //TODO:
+                log.info("Update Location: Found no duplicate location.");
+            }
+        }
+    }
+
+    private void checkForDuplicateLocationDuringCreate(String identifierSystem, String identifierValue) {
+        Bundle bundle;
+        if (identifierSystem != null && !identifierSystem.trim().isEmpty()
+                && identifierValue != null && !identifierValue.trim().isEmpty()) {
+            bundle = fhirClient.search().forResource(Location.class)
+                    .where(new TokenClientParam("identifier").exactly().systemAndCode(identifierSystem.trim(), identifierValue.trim()))
+                    .returnBundle(Bundle.class)
+                    .execute();
+        } else if (identifierValue != null && !identifierValue.trim().isEmpty()) {
+            bundle = fhirClient.search().forResource(Location.class)
+                    .where(new TokenClientParam("identifier").exactly().code(identifierValue.trim()))
+                    .returnBundle(Bundle.class)
+                    .execute();
+        } else {
+            throw new BadRequestException("Found no valid identifierSystem and/or identifierValue");
+        }
+
+        if (bundle != null && bundle.getEntry().size() > 0) {
+            throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
+        }
+    }
+
+
     private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel) {
         LocationDto tempLocationDto = modelMapper.map(fhirLocationModel.getResource(), LocationDto.class);
         tempLocationDto.setLogicalId(fhirLocationModel.getResource().getIdElement().getIdPart());
@@ -301,14 +347,8 @@ public class LocationServiceImpl implements LocationService {
         } else if (locationDto.getStatus() == null || locationDto.getStatus().isEmpty()) {
             return Location.LocationStatus.ACTIVE;
         } else {
-            for (LocationInfoEnum.LocationStatus locStatus : LocationInfoEnum.LocationStatus.values()) {
-                if (locationDto.getStatus().equalsIgnoreCase(locStatus.name())) {
-                    return Location.LocationStatus.valueOf(locStatus.name());
-                }
-            }
+            return Arrays.stream(LocationInfoEnum.LocationStatus.values()).filter(locStatus -> locationDto.getStatus().equalsIgnoreCase(locStatus.name())).findFirst().map(locStatus -> Location.LocationStatus.valueOf(locStatus.name())).orElse(Location.LocationStatus.ACTIVE);
         }
-        //Unlikely event
-        return Location.LocationStatus.ACTIVE;
     }
 
 }
