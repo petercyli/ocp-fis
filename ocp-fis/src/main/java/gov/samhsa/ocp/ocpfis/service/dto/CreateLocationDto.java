@@ -13,9 +13,10 @@ import java.util.List;
 @NoArgsConstructor
 public class CreateLocationDto {
     private String status;
-    private List<IdentifierDto> identifiers;
-    private String physicalType;
     private String name;
+    private String physicalType;
+
+    private List<IdentifierDto> identifiers;
     private AddressDto address;
     private List<TelecomDto> telecoms;
 }
