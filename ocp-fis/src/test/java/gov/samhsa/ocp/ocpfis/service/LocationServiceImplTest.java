@@ -7,7 +7,7 @@ import ca.uhn.fhir.rest.gclient.IUntypedQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
-import gov.samhsa.ocp.ocpfis.service.exception.LocationNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Resource;
@@ -28,6 +28,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 @Ignore
 @RunWith(MockitoJUnitRunner.class)
 public class LocationServiceImplTest {
@@ -79,10 +80,10 @@ public class LocationServiceImplTest {
         locationDtos.add(locationDto);
         when(modelMapper.map(resource, LocationDto.class)).thenReturn(locationDto);
         //Act
-       // List<LocationDto> locationDtos1 = locationServiceImpl.getAllLocations(Optional.empty(), Optional.empty(), Optional.of(size));
+        // List<LocationDto> locationDtos1 = locationServiceImpl.getAllLocations(Optional.empty(), Optional.empty(), Optional.of(size));
 
         //Assert
-       // assertEquals(locationDtos, locationDtos1);
+        // assertEquals(locationDtos, locationDtos1);
     }
 
     @Test
@@ -111,7 +112,7 @@ public class LocationServiceImplTest {
         List<Bundle.BundleEntryComponent> bundleEntryComponents = new ArrayList<>();
         when(locationSearchBundle.getEntry()).thenReturn(bundleEntryComponents);
 
-        thrown.expect(LocationNotFoundException.class);
+        thrown.expect(ResourceNotFoundException.class);
         thrown.expectMessage("No locations were found in the FHIR server");
 
         //Act
@@ -201,7 +202,7 @@ public class LocationServiceImplTest {
         List<Bundle.BundleEntryComponent> bundleEntryComponents = new ArrayList<>();
         when(locationSearchBundle.getEntry()).thenReturn(bundleEntryComponents);
 
-        thrown.expect(LocationNotFoundException.class);
+        thrown.expect(ResourceNotFoundException.class);
         thrown.expectMessage("No location found for the given OrganizationID:" + organizationResourceId);
 
         //Act
@@ -267,7 +268,7 @@ public class LocationServiceImplTest {
         List<Bundle.BundleEntryComponent> bundleEntryComponents = new ArrayList<>();
         when(locationSearchBundle.getEntry()).thenReturn(bundleEntryComponents);
 
-        thrown.expect(LocationNotFoundException.class);
+        thrown.expect(ResourceNotFoundException.class);
         thrown.expectMessage("No location was found for the given LocationID:" + locationId);
 
         //Act
