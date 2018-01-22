@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.config;
 import ca.uhn.fhir.context.FhirContext;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.validation.FhirValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,5 +35,9 @@ public class FhirServiceConfig {
         return fhirContext().newJsonParser();
     }
 
+    @Bean
+    public FhirValidator fhirValidator() {
+        return fhirContext().newValidator();
+    }
 
 }
