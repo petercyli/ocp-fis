@@ -4,17 +4,14 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
-import com.sun.org.apache.xpath.internal.operations.Or;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.ContactPoint;
-import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -144,8 +141,28 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public void createOrganization(OrganizationDto organizationDto) {
-        Organization fhirOrganization = modelMapper.map(organizationDto,Organization.class);
-        fhirClient.create().resource(fhirOrganization).execute();
+
+        //Check Duplicate Identifier
+        boolean hasDuplicateIdentifier= organizationDto.getIdentifiers().stream().anyMatch(identifierDto -> {
+            if(fhirClient.search()
+                    .forResource(Organization.class)
+                    .where(new TokenClientParam("identifier")
+                            .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()))
+                    .returnBundle(Bundle.class).execute().getTotal()>0){
+                return true;
+            }
+            return false;
+        });
+
+        //When there is no duplicate identifier, the organization gets created
+        if(!hasDuplicateIdentifier) {
+            //Create Fhir Organization
+            Organization fhirOrganization = modelMapper.map(organizationDto,Organization.class);
+            fhirClient.create().resource(fhirOrganization).execute();
+        }
+        else{
+            throw new DuplicateResourceFoundException("Organization with the same Identifier is already present.");
+        }
     }
 
     private Bundle getOrganizationSearchBundleAfterFirstPage(Bundle OrganizationSearchBundle, int page, int size) {
