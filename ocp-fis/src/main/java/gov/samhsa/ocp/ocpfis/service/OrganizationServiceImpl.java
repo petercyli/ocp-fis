@@ -144,23 +144,24 @@ public class OrganizationServiceImpl implements OrganizationService {
         return new PageDto<>(organizationsList, numberOfOrganizationsPerPage, totalPages, currentPage, organizationsList.size(), otherPageOrganizationSearchBundle.getTotal());
     }
 
+    private int getOrganizationsByIdentifier(String system, String code) {
+        log.info("Searching organizations with identifier.system : " + system + " and code : " + code);
+        IQuery searchQuery = fhirClient.search().forResource(Organization.class)
+                .where(new TokenClientParam("identifier").exactly().systemAndCode(system, code));
+        Bundle searchBundle = (Bundle) searchQuery.returnBundle(Bundle.class).execute();
+        log.info("Total " + searchBundle.getTotal());
+        return searchBundle.getTotal();
+    }
+
+
     @Override
     public void createOrganization(OrganizationDto organizationDto) {
 
         //Check Duplicate Identifier
-        boolean hasDuplicateIdentifier= organizationDto.getIdentifiers().stream().anyMatch(identifierDto -> {
-            if(fhirClient.search()
-                    .forResource(Organization.class)
-                    .where(new TokenClientParam("identifier")
-                            .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()))
-                    .returnBundle(Bundle.class).execute().getTotal()>0){
-                return true;
-            }
-            return false;
-        });
+        int existingNumberOfOrganizations = this.getOrganizationsByIdentifier(organizationDto.getIdentifiers().get(0).getSystem(), organizationDto.getIdentifiers().get(0).getValue());
 
         //When there is no duplicate identifier, the organization gets created
-        if(!hasDuplicateIdentifier) {
+        if(existingNumberOfOrganizations == 0) {
             //Create Fhir Organization
             Organization fhirOrganization = modelMapper.map(organizationDto,Organization.class);
             fhirOrganization.setActive(Boolean.TRUE);
@@ -168,6 +169,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             final ValidationResult validationResult = fhirValidator.validateWithResult(fhirOrganization);
             if (validationResult.isSuccessful()) {
                 fhirClient.create().resource(fhirOrganization).execute();
+                log.info("Created");
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
