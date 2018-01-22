@@ -4,7 +4,9 @@ import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.modelmapper.PropertyMap;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+@Component
 public class OrganizationDtoToOrganizationMap extends PropertyMap<OrganizationDto, Organization> {
     @Autowired
     private IdentifierDtoListToIdentifierListConverter identifierDtoListToIdentifierListConverter;
