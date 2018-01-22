@@ -13,4 +13,6 @@ public interface OrganizationService {
 
     void createOrganization(OrganizationDto organizationDto);
 
+    void updateOrganization(OrganizationDto organizationDto);
+
 }
