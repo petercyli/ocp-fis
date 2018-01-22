@@ -14,6 +14,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
@@ -21,6 +22,8 @@ import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.modelmapper.ModelMapper;
@@ -44,12 +47,15 @@ public class LocationServiceImpl implements LocationService {
 
     private final FisProperties fisProperties;
 
+    private final LookUpService lookUpService;
+
     @Autowired
-    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
+    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
+        this.lookUpService = lookUpService;
     }
 
     @Override
@@ -243,6 +249,7 @@ public class LocationServiceImpl implements LocationService {
 
         Location fhirLocation = modelMapper.map(locationDto, Location.class);
         fhirLocation.setStatus(getLocationStatusFromDto(locationDto));
+        fhirLocation.setPhysicalType(getLocationPhysicalTypeFromDto(locationDto));
         fhirLocation.setManagingOrganization(new Reference("Organization/" + organizationId.trim()));
 
         if (locationId.isPresent() && !locationId.get().trim().isEmpty()) {
@@ -350,5 +357,23 @@ public class LocationServiceImpl implements LocationService {
             return Arrays.stream(LocationInfoEnum.LocationStatus.values()).filter(locStatus -> locationDto.getStatus().equalsIgnoreCase(locStatus.name())).findFirst().map(locStatus -> Location.LocationStatus.valueOf(locStatus.name())).orElse(Location.LocationStatus.ACTIVE);
         }
     }
+
+    private CodeableConcept getLocationPhysicalTypeFromDto(CreateLocationDto locationDto){
+        String physicalType = locationDto.getPhysicalType();
+        List<ValueSetDto> availablePhysicalTypes = lookUpService.getLocationPhysicalTypes();
+        Coding coding = new Coding();
+
+        if(physicalType != null && !physicalType.trim().isEmpty()){
+            availablePhysicalTypes.stream().filter(physicalTypeDto -> physicalTypeDto.getDisplay().equalsIgnoreCase(physicalType.trim())).forEach(physicalTypeDto -> {
+                coding.setCode(physicalTypeDto.getCode());
+                coding.setSystem(physicalTypeDto.getSystem());
+                coding.setDisplay(physicalTypeDto.getDisplay());
+            });
+            return new CodeableConcept().addCoding(coding);
+        }
+        log.warn("Location physical type is empty or NULL.");
+        return null;
+    }
+
 
 }
