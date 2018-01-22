@@ -1,6 +1,5 @@
 package gov.samhsa.ocp.ocpfis.service;
 
-import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 
@@ -50,5 +49,5 @@ public interface LocationService {
      * @param locationId
      * @param locationDto
      */
-    void createLocation(String organizationId, Optional<String> locationId, CreateLocationDto locationDto);
+    void createLocation(String organizationId, Optional<String> locationId, LocationDto locationDto);
 }

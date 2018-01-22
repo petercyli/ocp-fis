@@ -1,7 +1,6 @@
 package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.LocationService;
-import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import org.springframework.http.HttpStatus;
@@ -87,7 +86,7 @@ public class LocationController {
     @ResponseStatus(HttpStatus.CREATED)
     public void createLocation(@PathVariable String organizationId,
                                @RequestParam Optional<String> parentLocationId,
-                               @Valid @RequestBody CreateLocationDto locationDto) {
+                               @Valid @RequestBody LocationDto locationDto) {
         locationService.createLocation(organizationId, parentLocationId, locationDto);
 
     }

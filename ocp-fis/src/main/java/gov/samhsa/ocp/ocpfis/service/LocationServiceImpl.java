@@ -10,7 +10,6 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
-import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -242,7 +241,7 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
-    public void createLocation(String organizationId, Optional<String> locationId, CreateLocationDto locationDto) {
+    public void createLocation(String organizationId, Optional<String> locationId, LocationDto locationDto) {
         log.info("Creating location for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateLocationBasedOnIdentifiersDuringCreate(locationDto);
@@ -299,7 +298,7 @@ public class LocationServiceImpl implements LocationService {
         }
     }
 
-    private void checkForDuplicateLocationBasedOnIdentifiersDuringCreate(CreateLocationDto locationDto) {
+    private void checkForDuplicateLocationBasedOnIdentifiersDuringCreate(LocationDto locationDto) {
         List<IdentifierDto> identifiersList = locationDto.getIdentifiers();
         log.info("Current locationDto has " + identifiersList.size() + " identifiers.");
 
@@ -344,7 +343,7 @@ public class LocationServiceImpl implements LocationService {
         return tempLocationDto;
     }
 
-    private Location.LocationStatus getLocationStatusFromDto(CreateLocationDto locationDto) {
+    private Location.LocationStatus getLocationStatusFromDto(LocationDto locationDto) {
         if (locationDto == null) {
             log.info("Can't read status of the location - LocationDto is NULL!. Setting Location as ACTIVE.");
             return Location.LocationStatus.ACTIVE;
@@ -355,7 +354,7 @@ public class LocationServiceImpl implements LocationService {
         }
     }
 
-    private CodeableConcept getLocationPhysicalTypeFromDto(CreateLocationDto locationDto){
+    private CodeableConcept getLocationPhysicalTypeFromDto(LocationDto locationDto){
         String physicalType = locationDto.getPhysicalType();
         List<ValueSetDto> availablePhysicalTypes = lookUpService.getLocationPhysicalTypes();
         Coding coding = new Coding();

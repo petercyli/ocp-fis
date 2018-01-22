@@ -1,6 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
-import gov.samhsa.ocp.ocpfis.service.dto.CreateLocationDto;
+import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Location;
 import org.modelmapper.PropertyMap;
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class LocationDtoToLocationMap extends PropertyMap<CreateLocationDto, Location> {
+public class LocationDtoToLocationMap extends PropertyMap<LocationDto, Location> {
     @Autowired
     private IdentifierDtoListToIdentifierListConverter identifierDtoListToIdentifierListConverter;
     @Autowired
