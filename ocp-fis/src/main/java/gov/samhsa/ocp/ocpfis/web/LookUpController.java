@@ -129,4 +129,24 @@ public class LookUpController {
     }
 
     //ADDRESS and TELECOM END
+
+    @GetMapping("/administrative-genders")
+    public List<ValueSetDto> getAdministrativeGenders() {
+        return lookUpService.getAdministrativeGenders();
+    }
+
+    @GetMapping("/us-core-races")
+    public List<ValueSetDto> getUSCoreRaces() {
+        return lookUpService.getUSCoreRace();
+    }
+
+    @GetMapping("/us-core-ethnicities")
+    public List<ValueSetDto> getUSCoreEthnicities() {
+        return lookUpService.getUSCoreEthnicity();
+    }
+
+    @GetMapping("/us-core-birthsexes")
+    public List<ValueSetDto> getUSCoreBirthsexes() {
+        return lookUpService.getUSCoreBirthSex();
+    }
 }

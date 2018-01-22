@@ -22,4 +22,11 @@ public interface LookUpService {
 
     List<ValueSetDto> getTelecomUses();
     List<ValueSetDto> getTelecomSystems();
+
+    List<ValueSetDto> getAdministrativeGenders();
+
+    List<ValueSetDto> getUSCoreRace();
+    List<ValueSetDto> getUSCoreEthnicity();
+    List<ValueSetDto> getUSCoreBirthSex();
+
 }
