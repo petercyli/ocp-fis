@@ -14,8 +14,10 @@ import java.util.List;
 public class LocationDto {
     private String logicalId;
     private String resourceURL;
+
     private String status;
     private String name;
+    private String physicalType;
     private AddressDto address;
     private List<TelecomDto> telecoms;
     private List<IdentifierDto> identifiers;

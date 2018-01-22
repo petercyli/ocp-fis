@@ -337,6 +337,10 @@ public class LocationServiceImpl implements LocationService {
     private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel) {
         LocationDto tempLocationDto = modelMapper.map(fhirLocationModel.getResource(), LocationDto.class);
         tempLocationDto.setLogicalId(fhirLocationModel.getResource().getIdElement().getIdPart());
+        Location loc  = (Location)fhirLocationModel.getResource();
+        if(loc.hasPhysicalType()){
+            tempLocationDto.setPhysicalType(loc.getPhysicalType().getCoding().get(0).getDisplay());
+        }
         return tempLocationDto;
     }
 
