@@ -245,7 +245,7 @@ public class LocationServiceImpl implements LocationService {
     public void createLocation(String organizationId, Optional<String> locationId, CreateLocationDto locationDto) {
         log.info("Creating location for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
-        checkForDuplicateLocationBasedOnIdentifiers(locationDto, true);
+        checkForDuplicateLocationBasedOnIdentifiersDuringCreate(locationDto);
 
         Location fhirLocation = modelMapper.map(locationDto, Location.class);
         fhirLocation.setStatus(getLocationStatusFromDto(locationDto));
@@ -299,26 +299,19 @@ public class LocationServiceImpl implements LocationService {
         }
     }
 
-    private void checkForDuplicateLocationBasedOnIdentifiers(CreateLocationDto locationDto, boolean isCreate) {
+    private void checkForDuplicateLocationBasedOnIdentifiersDuringCreate(CreateLocationDto locationDto) {
         List<IdentifierDto> identifiersList = locationDto.getIdentifiers();
         log.info("Current locationDto has " + identifiersList.size() + " identifiers.");
 
         for (IdentifierDto tempIdentifierDto : identifiersList) {
             String identifierSystem = tempIdentifierDto.getSystem();
             String identifierValue = tempIdentifierDto.getValue();
-
-            //The logic for checking duplicates during location creation is different from when it is being updated
-            if (isCreate) {
-                checkForDuplicateLocationDuringCreate(identifierSystem, identifierValue);
-                log.info("Create Location: Found no duplicate location.");
-            } else {
-                //TODO:
-                log.info("Update Location: Found no duplicate location.");
-            }
+            checkDuplicateLocationExists(identifierSystem, identifierValue);
         }
+        log.info("Create Location: Found no duplicate location.");
     }
 
-    private void checkForDuplicateLocationDuringCreate(String identifierSystem, String identifierValue) {
+    private void checkDuplicateLocationExists(String identifierSystem, String identifierValue) {
         Bundle bundle;
         if (identifierSystem != null && !identifierSystem.trim().isEmpty()
                 && identifierValue != null && !identifierValue.trim().isEmpty()) {
