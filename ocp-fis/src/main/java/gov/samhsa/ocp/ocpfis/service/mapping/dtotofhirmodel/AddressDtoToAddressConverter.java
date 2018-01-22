@@ -1,16 +1,24 @@
 package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
-import gov.samhsa.ocp.ocpfis.service.LocationInfoEnum;
+import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.hl7.fhir.dstu3.model.Address;
 import org.modelmapper.AbstractConverter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
 
 @Component
 public class AddressDtoToAddressConverter extends AbstractConverter<AddressDto, Address> {
+    @Autowired
+    private LookUpService lookUpService;
+
     @Override
     protected Address convert(AddressDto source) {
         Address fhirAddress = new Address();
+        List<ValueSetDto> validAddressUses =  lookUpService.getAddressUses();
 
         if (source != null) {
             if (source.getLine1() != null && !source.getLine1().isEmpty()) {
@@ -32,8 +40,8 @@ public class AddressDtoToAddressConverter extends AbstractConverter<AddressDto, 
                 fhirAddress.setCountry(source.getCountryCode().trim());
             }
             if(source.getUse() != null && !source.getUse().isEmpty()){
-               for(LocationInfoEnum.LocationAddressUse addrUse : LocationInfoEnum.LocationAddressUse.values()){
-                   if (source.getUse().equalsIgnoreCase(addrUse.name())){
+               for(ValueSetDto validAddrUse : validAddressUses){
+                   if (source.getUse().equalsIgnoreCase(validAddrUse.getDisplay())){
                        fhirAddress.setUse(Address.AddressUse.valueOf(source.getUse()));
                    }
                }

@@ -25,11 +25,11 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -336,30 +336,42 @@ public class LocationServiceImpl implements LocationService {
     private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel) {
         LocationDto tempLocationDto = modelMapper.map(fhirLocationModel.getResource(), LocationDto.class);
         tempLocationDto.setLogicalId(fhirLocationModel.getResource().getIdElement().getIdPart());
-        Location loc  = (Location)fhirLocationModel.getResource();
-        if(loc.hasPhysicalType()){
+        Location loc = (Location) fhirLocationModel.getResource();
+        if (loc.hasPhysicalType()) {
             tempLocationDto.setPhysicalType(loc.getPhysicalType().getCoding().get(0).getDisplay());
         }
         return tempLocationDto;
     }
 
     private Location.LocationStatus getLocationStatusFromDto(LocationDto locationDto) {
+        List<ValueSetDto> validLocationStatuses = lookUpService.getLocationStatuses();
+
         if (locationDto == null) {
             log.info("Can't read status of the location - LocationDto is NULL!. Setting Location as ACTIVE.");
             return Location.LocationStatus.ACTIVE;
         } else if (locationDto.getStatus() == null || locationDto.getStatus().isEmpty()) {
             return Location.LocationStatus.ACTIVE;
         } else {
-            return Arrays.stream(LocationInfoEnum.LocationStatus.values()).filter(locStatus -> locationDto.getStatus().equalsIgnoreCase(locStatus.name())).findFirst().map(locStatus -> Location.LocationStatus.valueOf(locStatus.name())).orElse(Location.LocationStatus.ACTIVE);
+            for (ValueSetDto validLocationStatus : validLocationStatuses) {
+                if (validLocationStatus.getDisplay().equalsIgnoreCase(locationDto.getStatus())) {
+                    try {
+                        return Location.LocationStatus.fromCode(locationDto.getStatus());
+                    }
+                    catch (FHIRException fe) {
+                        log.error("Could not convert Location Status");
+                    }
+                }
+            }
         }
+        return Location.LocationStatus.ACTIVE;
     }
 
-    private CodeableConcept getLocationPhysicalTypeFromDto(LocationDto locationDto){
+    private CodeableConcept getLocationPhysicalTypeFromDto(LocationDto locationDto) {
         String physicalType = locationDto.getPhysicalType();
         List<ValueSetDto> availablePhysicalTypes = lookUpService.getLocationPhysicalTypes();
         Coding coding = new Coding();
 
-        if(physicalType != null && !physicalType.trim().isEmpty()){
+        if (physicalType != null && !physicalType.trim().isEmpty()) {
             availablePhysicalTypes.stream().filter(physicalTypeDto -> physicalTypeDto.getDisplay().equalsIgnoreCase(physicalType.trim())).forEach(physicalTypeDto -> {
                 coding.setCode(physicalTypeDto.getCode());
                 coding.setSystem(physicalTypeDto.getSystem());
