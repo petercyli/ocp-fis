@@ -281,31 +281,45 @@ public class LocationServiceImpl implements LocationService {
      */
     @Override
     public void updateLocation(String organizationId, String locationId, LocationDto locationDto) {
-        log.info("Updating location ID" + locationId + " for Organization Id:" + organizationId);
+        log.info("Updating location Id: " + locationId + " for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateLocationBasedOnIdentifiersDuringUpdate(locationId, locationDto);
 
-        Location fhirLocation = modelMapper.map(locationDto, Location.class);
-        fhirLocation.setStatus(getLocationStatusFromDto(locationDto));
-        fhirLocation.setPhysicalType(getLocationPhysicalTypeFromDto(locationDto));
-        fhirLocation.setManagingOrganization(new Reference("Organization/" + organizationId.trim()));
+        Location existingFhirLocation;
+
+        //First, get the existing resource from the server
+        try{
+            existingFhirLocation = fhirClient.read().resource(Location.class).withId(locationId.trim()).execute();
+        }catch (BaseServerResponseException e) {
+            log.error("FHIR Client returned with an error while reading the location with ID: " + locationId);
+            throw new ResourceNotFoundException("FHIR Client returned with an error while reading the location:" + e.getMessage());
+        }
+
+        Location updatedFhirLocation = modelMapper.map(locationDto, Location.class);
+        //Overwrite values from the dto
+        existingFhirLocation.setIdentifier(updatedFhirLocation.getIdentifier());
+        existingFhirLocation.setAddress(updatedFhirLocation.getAddress());
+        existingFhirLocation.setTelecom(updatedFhirLocation.getTelecom());
+        existingFhirLocation.setStatus(getLocationStatusFromDto(locationDto));
+        existingFhirLocation.setPhysicalType(getLocationPhysicalTypeFromDto(locationDto));
+        existingFhirLocation.setManagingOrganization(new Reference("Organization/" + organizationId.trim()));
 
         if (locationDto.getManagingLocationLogicalId() != null && !locationDto.getManagingLocationLogicalId().trim().isEmpty()) {
-            fhirLocation.setPartOf(new Reference("Location/" + locationDto.getManagingLocationLogicalId().trim()));
+            existingFhirLocation.setPartOf(new Reference("Location/" + locationDto.getManagingLocationLogicalId().trim()));
         } else{
-            fhirLocation.setPartOf(null);
+            existingFhirLocation.setPartOf(null);
         }
 
         // Validate the resource
-        ValidationResult validationResult = fhirValidator.validateWithResult(fhirLocation);
-        log.info("Update Location: Validation successful? " + validationResult.isSuccessful());
+        ValidationResult validationResult = fhirValidator.validateWithResult(existingFhirLocation);
+        log.info("Update Location: Validation successful? " + validationResult.isSuccessful() + " for LocationID:" + locationId);
 
         if (!validationResult.isSuccessful()) {
             throw new FHIRFormatErrorException("Location Validation was not successful" + validationResult.getMessages());
         }
 
         try {
-            MethodOutcome serverResponse = fhirClient.create().resource(fhirLocation).execute();
+            MethodOutcome serverResponse = fhirClient.update().resource(existingFhirLocation).execute();
             log.info("Updated the location :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
         }
         catch (BaseServerResponseException e) {
