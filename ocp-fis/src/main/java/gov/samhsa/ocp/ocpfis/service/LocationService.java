@@ -49,4 +49,12 @@ public interface LocationService {
      * @param locationDto
      */
     void createLocation(String organizationId, LocationDto locationDto);
+
+    /**
+     *
+     * @param organizationId
+     * @param locationId
+     * @param locationDto
+     */
+    void updateLocation(String organizationId, String locationId, LocationDto locationDto);
 }

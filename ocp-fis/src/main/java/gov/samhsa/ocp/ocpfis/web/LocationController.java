@@ -89,4 +89,13 @@ public class LocationController {
         locationService.createLocation(organizationId, locationDto);
 
     }
+
+    @PostMapping("/organization/{organizationId}/location/{locationId}")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createLocation(@PathVariable String organizationId,
+                               @PathVariable String locationId,
+                               @Valid @RequestBody LocationDto locationDto) {
+        locationService.updateLocation(organizationId, locationId, locationDto);
+
+    }
 }
