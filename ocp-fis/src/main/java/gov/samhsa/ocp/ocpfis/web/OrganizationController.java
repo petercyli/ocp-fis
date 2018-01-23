@@ -50,7 +50,7 @@ public class OrganizationController {
 
     @PutMapping
     @ResponseStatus(HttpStatus.OK)
-    public void updatePatient(@Valid @RequestBody OrganizationDto organizationDto) {
+    public void updateOrganization(@Valid @RequestBody OrganizationDto organizationDto) {
         organizationService.updateOrganization(organizationDto);
         log.info("Organization successfully updated");
     }
