@@ -14,17 +14,13 @@ import javax.validation.constraints.Pattern;
 public class AddressDto {
 
     private String line1;
-
     private String line2;
-
     private String city;
-
-    private String stateCode;
 
     @Pattern(regexp = "\\d{5}(?:[-\\s]\\d{4})?")
     private String postalCode;
 
+    private String stateCode;
     private String countryCode;
-
     private String use;
 }

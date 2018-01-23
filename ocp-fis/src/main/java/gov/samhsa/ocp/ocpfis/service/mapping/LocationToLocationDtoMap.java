@@ -15,6 +15,9 @@ public class LocationToLocationDtoMap extends PropertyMap<Location, LocationDto>
     @Autowired
     private TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter;
 
+    @Autowired
+    private IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter;
+
     @Override
     protected void configure() {
         map().setResourceURL(source.getId());
@@ -22,5 +25,6 @@ public class LocationToLocationDtoMap extends PropertyMap<Location, LocationDto>
         map().setStatus(source.getStatusElement().asStringValue());
         using(addressToAddressDtoConverter).map(source.getAddress()).setAddress(null);
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecoms(null);
+        using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
     }
 }
