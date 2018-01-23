@@ -12,5 +12,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PractitionerRoleDto {
+    private String system;
+
     private String code;
+
+    private String display;
 }
