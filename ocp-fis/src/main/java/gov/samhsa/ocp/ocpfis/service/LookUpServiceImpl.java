@@ -4,6 +4,7 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.IdentifierTypeEnum;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
+import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
@@ -464,6 +465,23 @@ public class LookUpServiceImpl implements LookUpService {
 
         return usCoreBirthsexes;
 
+    }
+
+    @Override
+    public List<ValueSetDto> getLanguages() {
+        //Use temporary list of enums
+        //list to be provided by eversolve
+        List<ValueSetDto> languageList = new ArrayList<>();
+        List<LanguageEnum> languageEnums = Arrays.asList(LanguageEnum.values());
+
+        languageList = languageEnums.stream().map(object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getName());
+            return temp;
+        }).collect(Collectors.toList());
+
+        return languageList;
     }
 
     private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ValueSetExpansionContainsComponent identifierType) {

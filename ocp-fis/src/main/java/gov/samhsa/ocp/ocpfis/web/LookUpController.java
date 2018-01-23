@@ -149,4 +149,9 @@ public class LookUpController {
     public List<ValueSetDto> getUSCoreBirthsexes() {
         return lookUpService.getUSCoreBirthSex();
     }
+
+    @GetMapping("/languages")
+    public List<ValueSetDto> getLanguages() {
+        return lookUpService.getLanguages();
+    }
 }

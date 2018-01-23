@@ -28,5 +28,6 @@ public interface LookUpService {
     List<ValueSetDto> getUSCoreRace();
     List<ValueSetDto> getUSCoreEthnicity();
     List<ValueSetDto> getUSCoreBirthSex();
+    List<ValueSetDto> getLanguages();
 
 }
