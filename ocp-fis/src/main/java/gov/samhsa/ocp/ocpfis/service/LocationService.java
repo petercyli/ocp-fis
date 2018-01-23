@@ -46,8 +46,7 @@ public interface LocationService {
 
     /**
      * @param organizationId
-     * @param locationId
      * @param locationDto
      */
-    void createLocation(String organizationId, Optional<String> locationId, LocationDto locationDto);
+    void createLocation(String organizationId, LocationDto locationDto);
 }

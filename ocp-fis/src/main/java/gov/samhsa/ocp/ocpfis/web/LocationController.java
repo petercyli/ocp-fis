@@ -85,9 +85,8 @@ public class LocationController {
     @PostMapping("/organization/{organizationId}/location")
     @ResponseStatus(HttpStatus.CREATED)
     public void createLocation(@PathVariable String organizationId,
-                               @RequestParam Optional<String> parentLocationId,
                                @Valid @RequestBody LocationDto locationDto) {
-        locationService.createLocation(organizationId, parentLocationId, locationDto);
+        locationService.createLocation(organizationId, locationDto);
 
     }
 }

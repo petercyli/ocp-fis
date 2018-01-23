@@ -14,6 +14,7 @@ import java.util.List;
 public class LocationDto {
     private String logicalId;
     private String resourceURL;
+    private String managingLocationLogicalId;
 
     private String status;
     private String name;
