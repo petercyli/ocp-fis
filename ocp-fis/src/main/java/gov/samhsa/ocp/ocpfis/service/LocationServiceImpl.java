@@ -285,6 +285,34 @@ public class LocationServiceImpl implements LocationService {
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateLocationBasedOnIdentifiersDuringUpdate(locationId, locationDto);
 
+        Location fhirLocation = modelMapper.map(locationDto, Location.class);
+        fhirLocation.setStatus(getLocationStatusFromDto(locationDto));
+        fhirLocation.setPhysicalType(getLocationPhysicalTypeFromDto(locationDto));
+        fhirLocation.setManagingOrganization(new Reference("Organization/" + organizationId.trim()));
+
+        if (locationDto.getManagingLocationLogicalId() != null && !locationDto.getManagingLocationLogicalId().trim().isEmpty()) {
+            fhirLocation.setPartOf(new Reference("Location/" + locationDto.getManagingLocationLogicalId().trim()));
+        } else{
+            fhirLocation.setPartOf(null);
+        }
+
+        // Validate the resource
+        ValidationResult validationResult = fhirValidator.validateWithResult(fhirLocation);
+        log.info("Update Location: Validation successful? " + validationResult.isSuccessful());
+
+        if (!validationResult.isSuccessful()) {
+            throw new FHIRFormatErrorException("Location Validation was not successful" + validationResult.getMessages());
+        }
+
+        try {
+            MethodOutcome serverResponse = fhirClient.create().resource(fhirLocation).execute();
+            log.info("Updated the location :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT update location for Organization Id:" + organizationId);
+            throw new FHIRClientException("FHIR Client returned with an error while updating the location:" + e.getMessage());
+        }
+
     }
 
     private Bundle getLocationSearchBundleAfterFirstPage(Bundle locationSearchBundle, int pageNumber, int pageSize) {
