@@ -9,12 +9,14 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
@@ -23,6 +25,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -156,9 +159,12 @@ public class PractitionerServiceImpl implements PractitionerService {
             PractitionerRole practitionerRole = new PractitionerRole();
             practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
                         //Assign fhir practitionerRole codes.
-                        CodeableConcept codeableConcept = new CodeableConcept();
-                        codeableConcept.setText(practitionerRoleCode.getCode());
-                        practitionerRole.addCode(codeableConcept);
+                CodeableConcept codeableConcept = new CodeableConcept();
+                Coding coding=new Coding().setCode(practitionerRoleCode.getCode()).setDisplay(practitionerRoleCode.getDisplay()).setSystem(practitionerRoleCode.getSystem());
+                List<Coding> codings=new ArrayList<>();
+                codings.add(coding);
+                codeableConcept.setCoding(codings);
+                practitionerRole.addCode(codeableConcept);
                     }
             );
 
@@ -176,11 +182,9 @@ public class PractitionerServiceImpl implements PractitionerService {
     @Override
     public void updatePractitioner(PractitionerDto practitionerDto) {
         //Getting resource id from resource URL and setting it to practitioner.
-        String resourceId = practitionerDto.getResourceURL().replace("http://fhirtest.uhn.ca/baseDstu3/Practitioner/", "");
-        resourceId = resourceId.split("/")[0];
+        String resourceId = practitionerDto.getLogicalId();
 
         //Check Duplicate Identifier
-        String finalResourceId = resourceId;
         boolean hasDuplicateIdentifier = practitionerDto.getIdentifiers().stream().anyMatch(identifierDto -> {
             IQuery practitionersWithUpdatedIdentifierQuery = fhirClient.search()
                     .forResource(Practitioner.class)
@@ -188,7 +192,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                             .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()));
 
             Bundle practitionerWithUpdatedIdentifierBundle = (Bundle) practitionersWithUpdatedIdentifierQuery.returnBundle(Bundle.class).execute();
-            Bundle practitionerWithUpdatedIdentifierAndSameResourceIdBundle = (Bundle) practitionersWithUpdatedIdentifierQuery.where(new TokenClientParam("_id").exactly().code(finalResourceId)).returnBundle(Bundle.class).execute();
+            Bundle practitionerWithUpdatedIdentifierAndSameResourceIdBundle = (Bundle) practitionersWithUpdatedIdentifierQuery.where(new TokenClientParam("_id").exactly().code(resourceId)).returnBundle(Bundle.class).execute();
             if (practitionerWithUpdatedIdentifierBundle.getTotal() > 0) {
                 if (practitionerWithUpdatedIdentifierBundle.getTotal() == practitionerWithUpdatedIdentifierAndSameResourceIdBundle.getTotal()) {
                     return false;
@@ -202,7 +206,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         if (!hasDuplicateIdentifier) {
             Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
 
-            practitioner.setId(new IdType(finalResourceId));
+            practitioner.setId(new IdType(resourceId));
 
             MethodOutcome methodOutcome = fhirClient.update().resource(practitioner)
                     .execute();
@@ -212,7 +216,10 @@ public class PractitionerServiceImpl implements PractitionerService {
             practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
                         //Assign fhir practitionerRole codes.
                         CodeableConcept codeableConcept = new CodeableConcept();
-                        codeableConcept.setText(practitionerRoleCode.getCode());
+                        Coding coding=new Coding().setCode(practitionerRoleCode.getCode()).setDisplay(practitionerRoleCode.getDisplay()).setSystem(practitionerRoleCode.getSystem());
+                        List<Coding> codings=new ArrayList<>();
+                        codings.add(coding);
+                        codeableConcept.setCoding(codings);
                         practitionerRole.addCode(codeableConcept);
                     }
             );
@@ -256,7 +263,12 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     private PageDto<PractitionerDto> practitionersInPage(List<Bundle.BundleEntryComponent> retrievedPractitioners, Bundle otherPagePractitionerBundle, int numberOfPractitionersPerPage, boolean firstPage, Optional<Integer> page) {
-        List<PractitionerDto> practitionersList = retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
+        List<PractitionerDto> practitionersList = retrievedPractitioners.stream().map(retrievedPractitioner -> {
+           PractitionerDto practitionerDto= modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class);
+           practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
+           return practitionerDto;
+        }).collect(Collectors.toList());
+
         double totalPages = Math.ceil((double) otherPagePractitionerBundle.getTotal() / numberOfPractitionersPerPage);
         int currentPage = firstPage ? 1 : page.get();
 

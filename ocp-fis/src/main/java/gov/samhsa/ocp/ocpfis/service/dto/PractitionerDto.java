@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class PractitionerDto {
-    private String resourceURL;
+    private String logicalId;
 
     private List<IdentifierDto> identifiers;
 

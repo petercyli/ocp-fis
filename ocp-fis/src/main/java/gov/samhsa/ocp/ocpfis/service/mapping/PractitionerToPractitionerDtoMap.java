@@ -23,7 +23,6 @@ public class PractitionerToPractitionerDtoMap extends PropertyMap<Practitioner,P
 
     @Override
     protected void configure() {
-        map().setResourceURL(source.getId());
         map().setActive(source.getActive());
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecoms(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
