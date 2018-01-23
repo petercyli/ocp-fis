@@ -241,7 +241,7 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
-    public void createLocation(String organizationId, Optional<String> locationId, LocationDto locationDto) {
+    public void createLocation(String organizationId, LocationDto locationDto) {
         log.info("Creating location for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateLocationBasedOnIdentifiersDuringCreate(locationDto);
@@ -251,8 +251,8 @@ public class LocationServiceImpl implements LocationService {
         fhirLocation.setPhysicalType(getLocationPhysicalTypeFromDto(locationDto));
         fhirLocation.setManagingOrganization(new Reference("Organization/" + organizationId.trim()));
 
-        if (locationId.isPresent() && !locationId.get().trim().isEmpty()) {
-            fhirLocation.setPartOf(new Reference("Location/" + locationId.get().trim()));
+        if (locationDto.getManagingLocationLogicalId() != null && !locationDto.getManagingLocationLogicalId().trim().isEmpty()) {
+            fhirLocation.setPartOf(new Reference("Location/" + locationDto.getManagingLocationLogicalId().trim()));
         }
 
         // Validate the resource
