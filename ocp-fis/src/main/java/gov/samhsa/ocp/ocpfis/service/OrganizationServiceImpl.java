@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
@@ -144,7 +145,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         return new PageDto<>(organizationsList, numberOfOrganizationsPerPage, totalPages, currentPage, organizationsList.size(), otherPageOrganizationSearchBundle.getTotal());
     }
 
-    private int getOrganizationsByIdentifier(String system, String code) {
+    private int getOrganizationsCountByIdentifier(String system, String code) {
         log.info("Searching organizations with identifier.system : " + system + " and code : " + code);
         IQuery searchQuery = fhirClient.search().forResource(Organization.class)
                 .where(new TokenClientParam("identifier").exactly().systemAndCode(system, code));
@@ -158,7 +159,8 @@ public class OrganizationServiceImpl implements OrganizationService {
     public void createOrganization(OrganizationDto organizationDto) {
 
         //Check Duplicate Identifier
-        int existingNumberOfOrganizations = this.getOrganizationsByIdentifier(organizationDto.getIdentifiers().get(0).getSystem(), organizationDto.getIdentifiers().get(0).getValue());
+        int existingNumberOfOrganizations = this.getOrganizationsCountByIdentifier(organizationDto.getIdentifiers().get(0).getSystem(), organizationDto.getIdentifiers().get(0).getValue());
+        String identifier = organizationDto.getIdentifiers().get(0).getValue();
 
         //When there is no duplicate identifier, the organization gets created
         if(existingNumberOfOrganizations == 0) {
@@ -168,14 +170,14 @@ public class OrganizationServiceImpl implements OrganizationService {
 
             final ValidationResult validationResult = fhirValidator.validateWithResult(fhirOrganization);
             if (validationResult.isSuccessful()) {
-                fhirClient.create().resource(fhirOrganization).execute();
-                log.info("Created");
+                MethodOutcome serverResponse = fhirClient.create().resource(fhirOrganization).execute();
+                log.info("Created a new organization :" + serverResponse.getId().getIdPart());
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
         }
         else{
-            throw new DuplicateResourceFoundException("Organization with the same Identifier is already present.");
+            throw new DuplicateResourceFoundException("Organization with the Identifier " + identifier + " is already present.");
         }
     }
 
@@ -189,8 +191,6 @@ public class OrganizationServiceImpl implements OrganizationService {
             log.debug("Calling FHIR Organization Update");
 
             fhirClient.update().resource(organization)
-                    //.conditional()
-                    //.where(Patient.IDENTIFIER.exactly().systemAndCode(getCodeSystemByValue(patientDto.getIdentifier(), patient.getId()), patient.getId()))
                     .execute();
         } else {
             throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
