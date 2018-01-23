@@ -43,4 +43,11 @@ public interface LocationService {
      * @return
      */
     LocationDto getChildLocation(String locationId);
+
+    /**
+     * @param organizationId
+     * @param locationId
+     * @param locationDto
+     */
+    void createLocation(String organizationId, Optional<String> locationId, LocationDto locationDto);
 }
