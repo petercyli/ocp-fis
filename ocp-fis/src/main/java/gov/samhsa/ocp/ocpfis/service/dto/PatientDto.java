@@ -47,4 +47,7 @@ public class PatientDto {
 
     private List<TelecomDto> telecom;
 
+    private String language;
+
+
 }
