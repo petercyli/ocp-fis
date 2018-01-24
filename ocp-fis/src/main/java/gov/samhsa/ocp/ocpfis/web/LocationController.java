@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -87,6 +88,15 @@ public class LocationController {
     public void createLocation(@PathVariable String organizationId,
                                @Valid @RequestBody LocationDto locationDto) {
         locationService.createLocation(organizationId, locationDto);
+
+    }
+
+    @PutMapping("/organization/{organizationId}/location/{locationId}")
+    @ResponseStatus(HttpStatus.OK)
+    public void createLocation(@PathVariable String organizationId,
+                               @PathVariable String locationId,
+                               @Valid @RequestBody LocationDto locationDto) {
+        locationService.updateLocation(organizationId, locationId, locationDto);
 
     }
 }
