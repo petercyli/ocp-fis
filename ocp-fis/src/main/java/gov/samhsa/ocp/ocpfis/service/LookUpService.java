@@ -24,5 +24,5 @@ public interface LookUpService {
     List<ValueSetDto> getTelecomUses();
     List<ValueSetDto> getTelecomSystems();
 
-    List<OrganizationStatusDto> getOrganizationActiveStatus();
+    List<OrganizationStatusDto> getOrganizationStatuses();
 }

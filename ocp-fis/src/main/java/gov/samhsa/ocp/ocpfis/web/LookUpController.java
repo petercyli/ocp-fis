@@ -132,9 +132,9 @@ public class LookUpController {
     //ADDRESS and TELECOM END
 
 
-    @GetMapping("/organization-status")
-    public List<OrganizationStatusDto> getOrganizationActiveStatus() {
-        return lookUpService.getOrganizationActiveStatus();
+    @GetMapping("/organization-statuses")
+    public List<OrganizationStatusDto> getOrganizationStatuses() {
+        return lookUpService.getOrganizationStatuses();
     }
 
 }

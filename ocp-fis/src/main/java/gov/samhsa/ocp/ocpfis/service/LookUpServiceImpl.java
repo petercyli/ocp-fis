@@ -257,10 +257,10 @@ public class LookUpServiceImpl implements LookUpService {
 
 
     @Override
-    public List<OrganizationStatusDto>  getOrganizationActiveStatus() {
-        List<OrganizationStatusDto> organizationActiveStatus = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
+    public List<OrganizationStatusDto>  getOrganizationStatuses() {
+        List<OrganizationStatusDto> organizationStatuses = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
         log.info("Fetching ALL Organization Active Status");
-        return organizationActiveStatus;
+        return organizationStatuses;
     }
 
     @Override

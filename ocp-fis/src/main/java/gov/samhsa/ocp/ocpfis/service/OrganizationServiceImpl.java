@@ -187,8 +187,6 @@ public class OrganizationServiceImpl implements OrganizationService {
         organization.setId(new IdType(organizationDto.getLogicalId()));
         log.info("Updating for Organization Id:" + organizationDto.getLogicalId());
 
-        log.info("But first, checking if a duplicate organization(active/inactive) exists based on the Identifiers provided.");
-
         // Validate the resource
         final ValidationResult validationResult = fhirValidator.validateWithResult(organization);
         if (validationResult.isSuccessful()) {
