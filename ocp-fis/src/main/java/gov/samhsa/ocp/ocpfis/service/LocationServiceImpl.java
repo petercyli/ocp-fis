@@ -223,10 +223,7 @@ public class LocationServiceImpl implements LocationService {
     @Override
     public LocationDto getChildLocation(String locationId) {
         log.info("Searching Child Location for Location Id:" + locationId);
-        Bundle childLocationBundle = fhirClient.search().forResource(Location.class)
-                .where(new ReferenceClientParam("partof").hasId(locationId))
-                .returnBundle(Bundle.class)
-                .execute();
+        Bundle childLocationBundle = getChildLocationBundleFromServer(locationId);
 
         if (childLocationBundle == null || childLocationBundle.getEntry().size() < 1) {
             log.info("No child location found for the given LocationID:" + locationId);
@@ -285,15 +282,8 @@ public class LocationServiceImpl implements LocationService {
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateLocationBasedOnIdentifiersDuringUpdate(locationId, locationDto);
 
-        Location existingFhirLocation;
-
         //First, get the existing resource from the server
-        try{
-            existingFhirLocation = fhirClient.read().resource(Location.class).withId(locationId.trim()).execute();
-        }catch (BaseServerResponseException e) {
-            log.error("FHIR Client returned with an error while reading the location with ID: " + locationId);
-            throw new ResourceNotFoundException("FHIR Client returned with an error while reading the location:" + e.getMessage());
-        }
+        Location existingFhirLocation = readLocationFromServer(locationId);
 
         Location updatedFhirLocation = modelMapper.map(locationDto, Location.class);
         //Overwrite values from the dto
@@ -306,7 +296,7 @@ public class LocationServiceImpl implements LocationService {
 
         if (locationDto.getManagingLocationLogicalId() != null && !locationDto.getManagingLocationLogicalId().trim().isEmpty()) {
             existingFhirLocation.setPartOf(new Reference("Location/" + locationDto.getManagingLocationLogicalId().trim()));
-        } else{
+        } else {
             existingFhirLocation.setPartOf(null);
         }
 
@@ -327,6 +317,45 @@ public class LocationServiceImpl implements LocationService {
             throw new FHIRClientException("FHIR Client returned with an error while updating the location:" + e.getMessage());
         }
 
+    }
+
+    @Override
+    public void inactivateLocation(String locationId) {
+        log.info("Inactivating the location Id: " + locationId);
+        Location existingFhirLocation = readLocationFromServer(locationId);
+        setLocationStatusToInactive(existingFhirLocation);
+    }
+
+    private Location readLocationFromServer(String locationId) {
+        Location existingFhirLocation;
+
+        try {
+            existingFhirLocation = fhirClient.read().resource(Location.class).withId(locationId.trim()).execute();
+        }
+        catch (BaseServerResponseException e) {
+            log.error("FHIR Client returned with an error while reading the location with ID: " + locationId);
+            throw new ResourceNotFoundException("FHIR Client returned with an error while reading the location:" + e.getMessage());
+        }
+        return existingFhirLocation;
+    }
+
+    private void setLocationStatusToInactive(Location existingFhirLocation) {
+        existingFhirLocation.setStatus(Location.LocationStatus.INACTIVE);
+        try {
+            MethodOutcome serverResponse = fhirClient.update().resource(existingFhirLocation).execute();
+            log.info("Inactivated the location :" + serverResponse.getId().getIdPart());
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT inactivate location");
+            throw new FHIRClientException("FHIR Client returned with an error while inactivating the location:" + e.getMessage());
+        }
+    }
+
+    private Bundle getChildLocationBundleFromServer(String locationId) {
+        return fhirClient.search().forResource(Location.class)
+                .where(new ReferenceClientParam("partof").hasId(locationId))
+                .returnBundle(Bundle.class)
+                .execute();
     }
 
     private Bundle getLocationSearchBundleAfterFirstPage(Bundle locationSearchBundle, int pageNumber, int pageSize) {
@@ -387,7 +416,7 @@ public class LocationServiceImpl implements LocationService {
         }
     }
 
-    private void checkForDuplicateLocationBasedOnIdentifiersDuringUpdate(String locationId, LocationDto locationDto){
+    private void checkForDuplicateLocationBasedOnIdentifiersDuringUpdate(String locationId, LocationDto locationDto) {
         List<IdentifierDto> identifiersList = locationDto.getIdentifiers();
         log.info("Current locationDto has " + identifiersList.size() + " identifiers.");
 
@@ -418,10 +447,10 @@ public class LocationServiceImpl implements LocationService {
 
         if (bundle != null && bundle.getEntry().size() > 1) {
             throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
-        } else if(bundle != null && bundle.getEntry().size() == 1){
+        } else if (bundle != null && bundle.getEntry().size() == 1) {
             LocationDto temp = convertLocationBundleEntryToLocationDto(bundle.getEntry().get(0));
 
-            if(temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())){
+            if (temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
                 throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
             }
         }
