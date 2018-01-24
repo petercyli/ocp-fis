@@ -72,6 +72,9 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList;
 
         final List<String> allowedLocationIdentifierTypes = Arrays.asList("EN", "TAX", "NIIP", "PRN");
+        final List<String> allowedOrganizationIdentifierTypes = Arrays.asList("EN", "TAX", "NIIP", "PRN");
+        final List<String> allowedPatientIdentifierTypes = Arrays.asList("DL", "PPN", "TAX", "MR", "DR", "SB");
+        final List<String> allowedPractitionerIdentifierTypes = Arrays.asList("PRN", "TAX", "MD", "SB");
 
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";
@@ -98,6 +101,27 @@ public class LookUpServiceImpl implements LookUpService {
             log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
             for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
                 if (allowedLocationIdentifierTypes.contains(type.getCode().toUpperCase())) {
+                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                }
+            }
+        } else if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.ORGANIZATION.name()))) {
+            log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
+            for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
+                if (allowedOrganizationIdentifierTypes.contains(type.getCode().toUpperCase())) {
+                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                }
+            }
+        } else if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.PATIENT.name()))) {
+            log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
+            for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
+                if (allowedPatientIdentifierTypes.contains(type.getCode().toUpperCase())) {
+                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                }
+            }
+        } else if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.PRACTITIONER.name()))) {
+            log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
+            for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
+                if (allowedPractitionerIdentifierTypes.contains(type.getCode().toUpperCase())) {
                     identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
                 }
             }
