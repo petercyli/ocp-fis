@@ -93,7 +93,7 @@ public class LocationController {
 
     @PutMapping("/organization/{organizationId}/location/{locationId}")
     @ResponseStatus(HttpStatus.OK)
-    public void createLocation(@PathVariable String organizationId,
+    public void updateLocation(@PathVariable String organizationId,
                                @PathVariable String locationId,
                                @Valid @RequestBody LocationDto locationDto) {
         locationService.updateLocation(organizationId, locationId, locationDto);
