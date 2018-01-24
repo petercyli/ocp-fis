@@ -111,23 +111,25 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<IdentifierSystemDto> getIdentifierSystems(Optional<String> identifierType) {
+    public List<IdentifierSystemDto> getIdentifierSystems(Optional<List<String>> identifierTypeList) {
         // No FHIR-API or ENUMS available. Creating our own ENUMS instead
         List<IdentifierSystemDto> identifierSystemList = new ArrayList<>();
-        List<KnownIdentifierSystemEnum> identifierSystemsByIdentifierTypeEnum;
+        List<KnownIdentifierSystemEnum> identifierSystemsByIdentifierTypeEnum = new ArrayList<>();
 
-        if (!identifierType.isPresent()) {
-            log.info("Fetching ALL IdentifierSystems");
-            identifierSystemsByIdentifierTypeEnum = Arrays.asList(KnownIdentifierSystemEnum.values());
-        } else if (identifierType.get().trim().isEmpty()) {
+        if (!identifierTypeList.isPresent() || identifierTypeList.get().size() == 0) {
             log.info("Fetching ALL IdentifierSystems");
             identifierSystemsByIdentifierTypeEnum = Arrays.asList(KnownIdentifierSystemEnum.values());
         } else {
-            log.info("Fetching IdentifierSystems for identifierType  = " + identifierType.get().trim());
-            identifierSystemsByIdentifierTypeEnum = KnownIdentifierSystemEnum.identifierSystemsByIdentifierTypeEnum(IdentifierTypeEnum.valueOf(identifierType.get().toUpperCase()));
+            log.info("Fetching IdentifierSystems for identifierType(s): ");
+            identifierTypeList.get().forEach(log::info);
+
+            for (String tempIdentifierType : identifierTypeList.get()) {
+                List<KnownIdentifierSystemEnum> tempList = KnownIdentifierSystemEnum.identifierSystemsByIdentifierTypeEnum(IdentifierTypeEnum.valueOf(tempIdentifierType.toUpperCase()));
+                identifierSystemsByIdentifierTypeEnum.addAll(tempList);
+            }
         }
 
-        if (identifierSystemsByIdentifierTypeEnum == null || identifierSystemsByIdentifierTypeEnum.size() < 1) {
+        if (identifierSystemsByIdentifierTypeEnum.size() < 1) {
             log.error("No Identifier Systems found");
             throw new ResourceNotFoundException("Query was successful, but found no identifier systems found in the configured FHIR server");
         }
