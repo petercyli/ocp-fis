@@ -5,6 +5,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.IdentifierTypeEnum;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -230,8 +231,8 @@ public class LookUpServiceImpl implements LookUpService {
 
 
     @Override
-    public boolean[] getOrganizationActiveStatus() {
-        boolean organizationActiveStatus[]= {false, true};
+    public List<OrganizationStatusDto>  getOrganizationActiveStatus() {
+        List<OrganizationStatusDto> organizationActiveStatus = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
         log.info("Fetching ALL Organization Active Status");
         return organizationActiveStatus;
     }

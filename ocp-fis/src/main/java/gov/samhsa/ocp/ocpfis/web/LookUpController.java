@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -132,7 +133,7 @@ public class LookUpController {
 
 
     @GetMapping("/organization-status")
-    public boolean[] getOrganizationActiveStatus() {
+    public List<OrganizationStatusDto> getOrganizationActiveStatus() {
         return lookUpService.getOrganizationActiveStatus();
     }
 
