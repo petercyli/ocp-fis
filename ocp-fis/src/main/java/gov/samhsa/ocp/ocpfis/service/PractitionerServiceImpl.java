@@ -153,6 +153,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         if (!hasDuplicateIdentifier) {
             //Create Fhir Practitioner
             Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
+            practitioner.setActive(true);
             MethodOutcome methodOutcome = fhirClient.create().resource(practitioner).execute();
 
             //Create PractitionerRole for the practitioner
@@ -265,7 +266,7 @@ public class PractitionerServiceImpl implements PractitionerService {
     private PageDto<PractitionerDto> practitionersInPage(List<Bundle.BundleEntryComponent> retrievedPractitioners, Bundle otherPagePractitionerBundle, int numberOfPractitionersPerPage, boolean firstPage, Optional<Integer> page) {
         List<PractitionerDto> practitionersList = retrievedPractitioners.stream().map(retrievedPractitioner -> {
            PractitionerDto practitionerDto= modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class);
-           practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
+            practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
            return practitionerDto;
         }).collect(Collectors.toList());
 
