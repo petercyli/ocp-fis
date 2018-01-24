@@ -12,6 +12,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -181,19 +182,15 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     @Override
-    public void updatePractitioner(PractitionerDto practitionerDto) {
-        //Getting resource id from resource URL and setting it to practitioner.
-        String resourceId = practitionerDto.getLogicalId();
-
+    public void updatePractitioner(String practitionerId, PractitionerDto practitionerDto) {
         //Check Duplicate Identifier
         boolean hasDuplicateIdentifier = practitionerDto.getIdentifiers().stream().anyMatch(identifierDto -> {
             IQuery practitionersWithUpdatedIdentifierQuery = fhirClient.search()
                     .forResource(Practitioner.class)
                     .where(new TokenClientParam("identifier")
                             .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()));
-
             Bundle practitionerWithUpdatedIdentifierBundle = (Bundle) practitionersWithUpdatedIdentifierQuery.returnBundle(Bundle.class).execute();
-            Bundle practitionerWithUpdatedIdentifierAndSameResourceIdBundle = (Bundle) practitionersWithUpdatedIdentifierQuery.where(new TokenClientParam("_id").exactly().code(resourceId)).returnBundle(Bundle.class).execute();
+            Bundle practitionerWithUpdatedIdentifierAndSameResourceIdBundle = (Bundle) practitionersWithUpdatedIdentifierQuery.where(new TokenClientParam("_id").exactly().code(practitionerId)).returnBundle(Bundle.class).execute();
             if (practitionerWithUpdatedIdentifierBundle.getTotal() > 0) {
                 if (practitionerWithUpdatedIdentifierBundle.getTotal() == practitionerWithUpdatedIdentifierAndSameResourceIdBundle.getTotal()) {
                     return false;
@@ -204,12 +201,18 @@ public class PractitionerServiceImpl implements PractitionerService {
             return false;
         });
 
+
+        Practitioner existingPractitioner=fhirClient.read().resource(Practitioner.class).withId(practitionerId.trim()).execute();
+
         if (!hasDuplicateIdentifier) {
-            Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
+            Practitioner updatedpractitioner = modelMapper.map(practitionerDto, Practitioner.class);
+            existingPractitioner.setIdentifier(updatedpractitioner.getIdentifier());
+            existingPractitioner.setName(updatedpractitioner.getName());
+            existingPractitioner.setActive(updatedpractitioner.getActive());
+            existingPractitioner.setTelecom(updatedpractitioner.getTelecom());
+            existingPractitioner.setAddress(updatedpractitioner.getAddress());
 
-            practitioner.setId(new IdType(resourceId));
-
-            MethodOutcome methodOutcome = fhirClient.update().resource(practitioner)
+            MethodOutcome methodOutcome = fhirClient.update().resource(existingPractitioner)
                     .execute();
 
             //Update PractitionerRole for the practitioner
@@ -226,10 +229,10 @@ public class PractitionerServiceImpl implements PractitionerService {
             );
 
             //Assign fhir Practitioner resource id.
-            Reference practitionerId = new Reference();
-            practitionerId.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
+            Reference practitionerResourceId = new Reference();
+            practitionerResourceId.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
 
-            practitionerRole.setPractitioner(practitionerId);
+            practitionerRole.setPractitioner(practitionerResourceId);
 
             fhirClient.update().resource(practitionerRole).conditional()
                     .where(new ReferenceClientParam("practitioner")
@@ -237,6 +240,24 @@ public class PractitionerServiceImpl implements PractitionerService {
         } else {
             throw new DuplicateResourceFoundException("Practitioner with the same Identifier is already present");
         }
+    }
+
+    @Override
+    public PractitionerDto getPractitioner(String practitionerId) {
+        Bundle practitionerBundle=fhirClient.search().forResource(Practitioner.class)
+                .where(new TokenClientParam("_id").exactly().code(practitionerId))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if(practitionerBundle==null || practitionerBundle.getEntry().size()<1){
+            throw new ResourceNotFoundException("No practitioner was found for the givecn practitionerID:"+practitionerId);
+        }
+
+        Bundle.BundleEntryComponent retrievedPractitioner=practitionerBundle.getEntry().get(0);
+
+        PractitionerDto practitionerDto=modelMapper.map(retrievedPractitioner.getResource(),PractitionerDto.class);
+        practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
+        return practitionerDto;
     }
 
 
