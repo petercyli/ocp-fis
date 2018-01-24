@@ -232,6 +232,7 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public boolean[] getOrganizationActiveStatus() {
         boolean organizationActiveStatus[]= {false, true};
+        log.info("Fetching ALL Organization Active Status");
         return organizationActiveStatus;
     }
 
