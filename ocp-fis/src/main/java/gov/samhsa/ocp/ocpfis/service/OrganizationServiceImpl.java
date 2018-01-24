@@ -225,7 +225,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             }
         }
         else {
-            throw new DuplicateResourceFoundException("Organization with the same Identifier is already present");
+            throw new DuplicateResourceFoundException("Organization with the Identifier " + organizationId + " is already present.");
         }
     }
 
