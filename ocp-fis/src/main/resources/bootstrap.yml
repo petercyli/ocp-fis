@@ -7,7 +7,21 @@ spring:
 spring.profiles: application-default
 spring:
   profiles:
-    include: eureka-instance,eureka-client
+    include: config-client,eureka-instance,eureka-client
+---
+spring.profiles: config-client
+spring:
+  cloud:
+    config:
+      discovery:
+        enabled: true
+        service-id: ocp-config-server
+      fail-fast: true
+      retry:
+        initial-interval: 2000
+        max-attempts: 20
+        multiplier: 2
+        max-interval: 20000
 ---
 spring.profiles: eureka-instance
 eureka:
@@ -22,8 +36,6 @@ eureka:
     serviceUrl:
       # endpoint for discovery-server, pass '--eureka.client.protocol=https' if discovery-server is running on https
       defaultZone: ${eureka.client.protocol:http}://localhost:8761/eureka/
-    healthcheck:
-      enabled: true
 ---
 # updates configuration for docker environment
 spring.profiles: docker
