@@ -39,8 +39,8 @@ public class LookUpController {
 
 
     @GetMapping("/identifier-systems")
-    public List<IdentifierSystemDto> getIdentifierSystems(@RequestParam(value = "identifierType") Optional<String> identifierType){
-        return lookUpService.getIdentifierSystems(identifierType);
+    public List<IdentifierSystemDto> getIdentifierSystems(@RequestParam(value = "identifierTypeList") Optional<List<String>> identifierTypeList){
+        return lookUpService.getIdentifierSystems(identifierTypeList);
     }
 
     /**
