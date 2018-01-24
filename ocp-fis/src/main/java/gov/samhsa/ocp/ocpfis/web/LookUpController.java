@@ -38,8 +38,8 @@ public class LookUpController {
 
 
     @GetMapping("/identifier-systems")
-    public List<IdentifierSystemDto> getIdentifierSystems(@RequestParam(value = "identifierType") Optional<String> identifierType){
-        return lookUpService.getIdentifierSystems(identifierType);
+    public List<IdentifierSystemDto> getIdentifierSystems(@RequestParam(value = "identifierTypeList") Optional<List<String>> identifierTypeList){
+        return lookUpService.getIdentifierSystems(identifierTypeList);
     }
 
     /**
@@ -78,9 +78,9 @@ public class LookUpController {
      * Physical form of the location
      * e.g. building, room, vehicle, road.
      */
-    @GetMapping("/location-types")
-    public List<ValueSetDto> getLocationTypes() {
-        return lookUpService.getLocationTypes();
+    @GetMapping("/location-physical-types")
+    public List<ValueSetDto> getLocationPhysicalTypes() {
+        return lookUpService.getLocationPhysicalTypes();
     }
 
 
