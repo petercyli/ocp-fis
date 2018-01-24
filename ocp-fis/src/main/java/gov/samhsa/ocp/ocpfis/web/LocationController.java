@@ -3,11 +3,17 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.LocationService;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,7 +26,6 @@ public class LocationController {
     }
 
     /**
-     *
      * @param statusList
      * @param searchKey
      * @param searchValue
@@ -32,13 +37,14 @@ public class LocationController {
     public PageDto<LocationDto> getAllLocations(@RequestParam(value = "statusList") Optional<List<String>> statusList,
                                                 @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                 @RequestParam(value = "searchValue") Optional<String> searchValue,
-                                                @RequestParam(value = "pageNumber")Optional<Integer> pageNumber,
+                                                @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                 @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
         return locationService.getAllLocations(statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
     /**
      * Gets all locations(all levels) that are managed under a given Organization Id
+     *
      * @param organizationId
      * @param statusList
      * @param searchKey
@@ -58,7 +64,6 @@ public class LocationController {
     }
 
     /**
-     *
      * @param locationId
      * @return
      */
@@ -69,6 +74,7 @@ public class LocationController {
 
     /**
      * Gets level 1 child location for a given Location Id
+     *
      * @param locationId
      * @return
      */
@@ -77,4 +83,20 @@ public class LocationController {
         return locationService.getChildLocation(locationId);
     }
 
+    @PostMapping("/organization/{organizationId}/location")
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createLocation(@PathVariable String organizationId,
+                               @Valid @RequestBody LocationDto locationDto) {
+        locationService.createLocation(organizationId, locationDto);
+
+    }
+
+    @PutMapping("/organization/{organizationId}/location/{locationId}")
+    @ResponseStatus(HttpStatus.OK)
+    public void updateLocation(@PathVariable String organizationId,
+                               @PathVariable String locationId,
+                               @Valid @RequestBody LocationDto locationDto) {
+        locationService.updateLocation(organizationId, locationId, locationDto);
+
+    }
 }

@@ -4,10 +4,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-public class FHIRFormatErrorException extends RuntimeException {
-    public FHIRFormatErrorException() { }
-    public FHIRFormatErrorException(String message) {
+public class FHIRClientException  extends RuntimeException {
+    public FHIRClientException() {
+        super();
+    }
+    public FHIRClientException(String message) {
         super(message);
     }
-
 }

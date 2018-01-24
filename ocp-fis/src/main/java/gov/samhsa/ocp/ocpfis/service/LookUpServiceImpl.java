@@ -72,6 +72,9 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList;
 
         final List<String> allowedLocationIdentifierTypes = Arrays.asList("EN", "TAX", "NIIP", "PRN");
+        final List<String> allowedOrganizationIdentifierTypes = Arrays.asList("EN", "TAX", "NIIP", "PRN");
+        final List<String> allowedPatientIdentifierTypes = Arrays.asList("DL", "PPN", "TAX", "MR", "DR", "SB");
+        final List<String> allowedPractitionerIdentifierTypes = Arrays.asList("PRN", "TAX", "MD", "SB");
 
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";
@@ -101,6 +104,27 @@ public class LookUpServiceImpl implements LookUpService {
                     identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
                 }
             }
+        } else if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.ORGANIZATION.name()))) {
+            log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
+            for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
+                if (allowedOrganizationIdentifierTypes.contains(type.getCode().toUpperCase())) {
+                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                }
+            }
+        } else if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.PATIENT.name()))) {
+            log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
+            for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
+                if (allowedPatientIdentifierTypes.contains(type.getCode().toUpperCase())) {
+                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                }
+            }
+        } else if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.PRACTITIONER.name()))) {
+            log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
+            for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
+                if (allowedPractitionerIdentifierTypes.contains(type.getCode().toUpperCase())) {
+                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                }
+            }
         } else {
             log.info("Fetching ALL IdentifierTypes");
             identifierTypes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
@@ -111,23 +135,25 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<IdentifierSystemDto> getIdentifierSystems(Optional<String> identifierType) {
+    public List<IdentifierSystemDto> getIdentifierSystems(Optional<List<String>> identifierTypeList) {
         // No FHIR-API or ENUMS available. Creating our own ENUMS instead
         List<IdentifierSystemDto> identifierSystemList = new ArrayList<>();
-        List<KnownIdentifierSystemEnum> identifierSystemsByIdentifierTypeEnum;
+        List<KnownIdentifierSystemEnum> identifierSystemsByIdentifierTypeEnum = new ArrayList<>();
 
-        if (!identifierType.isPresent()) {
-            log.info("Fetching ALL IdentifierSystems");
-            identifierSystemsByIdentifierTypeEnum = Arrays.asList(KnownIdentifierSystemEnum.values());
-        } else if (identifierType.get().trim().isEmpty()) {
+        if (!identifierTypeList.isPresent() || identifierTypeList.get().size() == 0) {
             log.info("Fetching ALL IdentifierSystems");
             identifierSystemsByIdentifierTypeEnum = Arrays.asList(KnownIdentifierSystemEnum.values());
         } else {
-            log.info("Fetching IdentifierSystems for identifierType  = " + identifierType.get().trim());
-            identifierSystemsByIdentifierTypeEnum = KnownIdentifierSystemEnum.identifierSystemsByIdentifierTypeEnum(IdentifierTypeEnum.valueOf(identifierType.get().toUpperCase()));
+            log.info("Fetching IdentifierSystems for identifierType(s): ");
+            identifierTypeList.get().forEach(log::info);
+
+            for (String tempIdentifierType : identifierTypeList.get()) {
+                List<KnownIdentifierSystemEnum> tempList = KnownIdentifierSystemEnum.identifierSystemsByIdentifierTypeEnum(IdentifierTypeEnum.valueOf(tempIdentifierType.toUpperCase()));
+                identifierSystemsByIdentifierTypeEnum.addAll(tempList);
+            }
         }
 
-        if (identifierSystemsByIdentifierTypeEnum == null || identifierSystemsByIdentifierTypeEnum.size() < 1) {
+        if (identifierSystemsByIdentifierTypeEnum.size() < 1) {
             log.error("No Identifier Systems found");
             throw new ResourceNotFoundException("Query was successful, but found no identifier systems found in the configured FHIR server");
         }
@@ -229,8 +255,8 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<ValueSetDto> getLocationTypes() {
-        List<ValueSetDto> locationTypes;
+    public List<ValueSetDto> getLocationPhysicalTypes() {
+        List<ValueSetDto> physicalLocationTypes;
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/location-physical-type";
 
@@ -238,22 +264,22 @@ public class LookUpServiceImpl implements LookUpService {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
         }
         catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any location type", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any location type", e);
+            log.error("Query was unsuccessful - Could not find any physical location type", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any physical location type", e);
         }
 
         if (response == null ||
                 response.getExpansion() == null ||
                 response.getExpansion().getContains() == null ||
                 response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no location type in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no location type in the configured FHIR server");
+            log.error("Query was successful, but found no physical location type in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no physical location type in the configured FHIR server");
         } else {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            locationTypes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            physicalLocationTypes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
-        log.info("Found " + locationTypes.size() + " location type codes.");
-        return locationTypes;
+        log.info("Found " + physicalLocationTypes.size() + " physical location type codes.");
+        return physicalLocationTypes;
 
     }
 
