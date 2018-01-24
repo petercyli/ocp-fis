@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -48,10 +49,10 @@ public class OrganizationController {
         log.info("Organization successfully created");
     }
 
-    @PutMapping
+    @PutMapping("/{organizationId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateOrganization(@Valid @RequestBody OrganizationDto organizationDto) {
-        organizationService.updateOrganization(organizationDto);
+    public void updateOrganization(@PathVariable String organizationId, @Valid @RequestBody OrganizationDto organizationDto) {
+        organizationService.updateOrganization(organizationId, organizationDto);
         log.info("Organization successfully updated");
     }
 
