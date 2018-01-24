@@ -6,6 +6,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,9 +43,14 @@ public class PractitionerController {
         practitionerService.createPractitioner(practitionerDto);
     }
 
-    @PutMapping
+    @GetMapping("/{practitionerId}")
+    public PractitionerDto getPractitioner(@PathVariable String practitionerId){
+        return practitionerService.getPractitioner(practitionerId);
+    }
+
+    @PutMapping("/{practitionerId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updatePractitioner(@Valid @RequestBody PractitionerDto practitionerDto) {
-        practitionerService.updatePractitioner(practitionerDto);
+    public void updatePractitioner(@PathVariable String practitionerId, @Valid @RequestBody PractitionerDto practitionerDto) {
+        practitionerService.updatePractitioner(practitionerId,practitionerDto);
     }
 }
