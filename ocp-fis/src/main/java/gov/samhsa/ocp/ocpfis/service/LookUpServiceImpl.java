@@ -228,6 +228,13 @@ public class LookUpServiceImpl implements LookUpService {
         return locationStatuses;
     }
 
+
+    @Override
+    public boolean[] getOrganizationActiveStatus() {
+        boolean organizationActiveStatus[]= {false, true};
+        return organizationActiveStatus;
+    }
+
     @Override
     public List<ValueSetDto> getLocationPhysicalTypes() {
         List<ValueSetDto> physicalLocationTypes;

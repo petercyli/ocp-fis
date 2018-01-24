@@ -129,4 +129,11 @@ public class LookUpController {
     }
 
     //ADDRESS and TELECOM END
+
+
+    @GetMapping("/organization-status")
+    public boolean[] getOrganizationActiveStatus() {
+        return lookUpService.getOrganizationActiveStatus();
+    }
+
 }
