@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 
 import java.util.List;
@@ -22,4 +23,6 @@ public interface LookUpService {
 
     List<ValueSetDto> getTelecomUses();
     List<ValueSetDto> getTelecomSystems();
+
+    List<OrganizationStatusDto> getOrganizationStatuses();
 }
