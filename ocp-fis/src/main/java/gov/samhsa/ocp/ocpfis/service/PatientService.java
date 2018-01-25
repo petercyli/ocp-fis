@@ -16,4 +16,6 @@ public interface PatientService {
     void createPatient(PatientDto patientDto);
 
     void updatePatient(PatientDto patientDto);
+
+    PatientDto getPatientById(String patientId);
 }

@@ -17,6 +17,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -171,6 +172,26 @@ public class PatientServiceImpl implements PatientService {
         } else {
             throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
         }
+    }
+
+    @Override
+    public PatientDto getPatientById(String patientId) {
+        Bundle patientBundle = fhirClient.search().forResource(Patient.class)
+                .where(new TokenClientParam("_id").exactly().code(patientId))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if(patientBundle == null || patientBundle.getEntry().size() < 1) {
+            throw new ResourceNotFoundException("No patient was found for the given patientID : " + patientId);
+        }
+
+        Bundle.BundleEntryComponent patientBundleEntry = patientBundle.getEntry().get(0);
+        Patient patient = (Patient) patientBundleEntry.getResource();
+        PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
+        patientDto.setId(patient.getIdElement().getIdPart());
+        mapExtensionFields(patient, patientDto);
+
+        return patientDto;
     }
 
     private List<PatientDto> convertBundleToPatientDtos(Bundle response, boolean isSearch) {
