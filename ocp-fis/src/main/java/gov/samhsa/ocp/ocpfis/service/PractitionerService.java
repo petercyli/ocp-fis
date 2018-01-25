@@ -13,7 +13,7 @@ public interface PractitionerService {
 
     void createPractitioner(PractitionerDto practitionerDto);
 
-    void updatePractitioner(String practitionerId,PractitionerDto practitionerDto);
+    void updatePractitioner(String practitionerId, PractitionerDto practitionerDto);
 
     PractitionerDto getPractitioner(String practitionerId);
 }
