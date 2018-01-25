@@ -257,6 +257,11 @@ public class PractitionerServiceImpl implements PractitionerService {
 
         PractitionerDto practitionerDto=modelMapper.map(retrievedPractitioner.getResource(),PractitionerDto.class);
         practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
+
+        //Get Practitioner Role for the practitioner.
+        List<PractitionerRoleDto> practitionerRoleDtos=getPractitionerRolesForEachPractitioner(retrievedPractitioner.getResource().getIdElement().getIdPart());
+        practitionerDto.setPractitionerRoles(practitionerRoleDtos);
+
         return practitionerDto;
     }
 
@@ -288,6 +293,11 @@ public class PractitionerServiceImpl implements PractitionerService {
         List<PractitionerDto> practitionersList = retrievedPractitioners.stream().map(retrievedPractitioner -> {
            PractitionerDto practitionerDto= modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class);
             practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
+
+          //Getting practitioner role into practitioner dto
+            List<PractitionerRoleDto> practitionerRoleDtos=getPractitionerRolesForEachPractitioner(retrievedPractitioner.getResource().getIdElement().getIdPart());
+            practitionerDto.setPractitionerRoles(practitionerRoleDtos);
+
            return practitionerDto;
         }).collect(Collectors.toList());
 
@@ -296,6 +306,26 @@ public class PractitionerServiceImpl implements PractitionerService {
 
         return new PageDto<>(practitionersList, numberOfPractitionersPerPage, totalPages, currentPage, practitionersList.size(),
                 otherPagePractitionerBundle.getTotal());
+    }
+
+    private List<PractitionerRoleDto> getPractitionerRolesForEachPractitioner(String practitionerId){
+        Bundle practitionerRoleBundle= (Bundle) fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId("Practitioner/"+practitionerId))
+                .execute();
+        List<PractitionerRoleDto> practitionerRoleDtos = new ArrayList<>();
+        if(!practitionerRoleBundle.isEmpty()&&practitionerRoleBundle.getEntry() !=null && practitionerRoleBundle.getEntry().size()>0) {
+            PractitionerRole practitionerRole = (PractitionerRole) practitionerRoleBundle.getEntry().get(0).getResource();
+
+            if(practitionerRole.getCode().size()>0  && practitionerRole.getCode()!=null) {
+                practitionerRole.getCode().stream().forEach(code -> {
+                    PractitionerRoleDto practitionerRoleDto = new PractitionerRoleDto();
+                    practitionerRoleDto.setCode((code.getCoding().size()>0 || code.getCoding()!=null)?code.getCoding().get(0).getCode():"");
+                    practitionerRoleDto.setDisplay((code.getCoding().size()>0 || code.getCoding()!=null)?code.getCoding().get(0).getDisplay():"");
+                    practitionerRoleDto.setSystem((code.getCoding().size()>0 || code.getCoding()!=null)?code.getCoding().get(0).getSystem():"");
+                    practitionerRoleDtos.add(practitionerRoleDto);
+                });
+            }
+        }
+        return practitionerRoleDtos;
     }
 
 }
