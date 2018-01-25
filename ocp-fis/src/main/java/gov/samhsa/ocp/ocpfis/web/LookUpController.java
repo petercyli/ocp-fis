@@ -145,14 +145,13 @@ public class LookUpController {
         return lookUpService.getOrganizationStatuses();
     }
 
-
+    /**
+     Gives Practitioner roles.
+     Eg: DOCTOR, NURSE, PHARMACIST, RESEARCHER, TEACHER, ICT
+     */
     @GetMapping("/practitioner-roles")
     public List<ValueSetDto> getPractitionerRoles() {
         return lookUpService.getPractitionerRoles();
     }
 
-    /**
-     Gives Practitioner roles.
-     Eg: DOCTOR, NURSE, PHARMACIST, RESEARCHER, TEACHER, ICT
-     */
 }
