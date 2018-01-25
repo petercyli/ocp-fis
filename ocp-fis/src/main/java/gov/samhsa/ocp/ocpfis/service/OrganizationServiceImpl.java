@@ -18,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -182,20 +183,49 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public void updateOrganization(OrganizationDto organizationDto) {
-        final Organization organization = modelMapper.map(organizationDto, Organization.class);
-        organization.setId(new IdType(organizationDto.getLogicalId()));
-        log.info("Updating for Organization Id:" + organizationDto.getLogicalId());
+    public void updateOrganization(String organizationId, OrganizationDto organizationDto) {
+        log.info("Updating for Organization Id:" + organizationId);
+        //Check Duplicate Identifier
+        boolean hasDuplicateIdentifier = organizationDto.getIdentifiers().stream().anyMatch(identifierDto -> {
+            IQuery organizationsWithUpdatedIdentifierQuery = fhirClient.search()
+                    .forResource(Organization.class)
+                    .where(new TokenClientParam("identifier")
+                            .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()));
+            Bundle organizationWithUpdatedIdentifierBundle = (Bundle) organizationsWithUpdatedIdentifierQuery.returnBundle(Bundle.class).execute();
+            Bundle organizationWithUpdatedIdentifierAndSameResourceIdBundle = (Bundle) organizationsWithUpdatedIdentifierQuery.where(new TokenClientParam("_id").exactly().code(organizationId)).returnBundle(Bundle.class).execute();
+            if (organizationWithUpdatedIdentifierBundle.getTotal() > 0) {
+                if (organizationWithUpdatedIdentifierBundle.getTotal() == organizationWithUpdatedIdentifierAndSameResourceIdBundle.getTotal()) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            return false;
+        });
 
-        // Validate the resource
-        final ValidationResult validationResult = fhirValidator.validateWithResult(organization);
-        if (validationResult.isSuccessful()) {
-            log.info("Update Organization: Validation successful? " + validationResult.isSuccessful() + " for OrganizationID:" + organizationDto.getLogicalId());
+        Organization existingOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
 
-            fhirClient.update().resource(organization)
-                    .execute();
-        } else {
-            throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
+        if (!hasDuplicateIdentifier) {
+            Organization updatedorganization = modelMapper.map(organizationDto, Organization.class);
+            existingOrganization.setIdentifier(updatedorganization.getIdentifier());
+            existingOrganization.setName(updatedorganization.getName());
+            existingOrganization.setActive(updatedorganization.getActive());
+            existingOrganization.setTelecom(updatedorganization.getTelecom());
+            existingOrganization.setAddress(updatedorganization.getAddress());
+
+            // Validate the resource
+            final ValidationResult validationResult = fhirValidator.validateWithResult(existingOrganization);
+            if (validationResult.isSuccessful()) {
+                log.info("Update Organization: Validation successful? " + validationResult.isSuccessful() + " for OrganizationID:" + organizationId);
+
+                fhirClient.update().resource(existingOrganization)
+                        .execute();
+            } else {
+                throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
+            }
+        }
+        else {
+            throw new DuplicateResourceFoundException("Organization with the Identifier " + organizationId + " is already present.");
         }
     }
 
