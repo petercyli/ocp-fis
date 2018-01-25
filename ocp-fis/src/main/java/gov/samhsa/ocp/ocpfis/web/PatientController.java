@@ -8,6 +8,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -61,5 +62,10 @@ public class PatientController {
     public void updatePatient(@Valid @RequestBody PatientDto patientDto) {
         patientService.updatePatient(patientDto);
         log.info("Patient successfully updated");
+    }
+
+    @GetMapping("/{patientId}")
+    public PatientDto getPatientById(@PathVariable String patientId) {
+        return patientService.getPatientById(patientId);
     }
 }
