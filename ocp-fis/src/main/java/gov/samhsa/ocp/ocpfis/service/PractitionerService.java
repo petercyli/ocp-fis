@@ -10,4 +10,10 @@ public interface PractitionerService {
     PageDto<PractitionerDto> getAllPractitioners(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
 
     PageDto<PractitionerDto> searchPractitioners(PractitionerController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
+
+    void createPractitioner(PractitionerDto practitionerDto);
+
+    void updatePractitioner(String practitionerId, PractitionerDto practitionerDto);
+
+    PractitionerDto getPractitioner(String practitionerId);
 }
