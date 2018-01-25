@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @ResponseStatus(HttpStatus.CONFLICT)
 public class DuplicateResourceFoundException extends RuntimeException {
     public DuplicateResourceFoundException() {
+        super();
     }
 
     public DuplicateResourceFoundException(String message) {

@@ -4,6 +4,8 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.IdentifierTypeEnum;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
+import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
+import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
@@ -418,6 +420,120 @@ public class LookUpServiceImpl implements LookUpService {
         }
         log.info("Found " + practitionerRoles.size() + " telecom use codes.");
         return practitionerRoles;
+    }
+
+    @Override
+    public List<ValueSetDto> getAdministrativeGenders() {
+        List<Enumerations.AdministrativeGender> administrativeGenderEnums = Arrays.asList(Enumerations.AdministrativeGender.values());
+
+        List<ValueSetDto> administrativeGenders = administrativeGenderEnums.stream().map(gender -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setDefinition(gender.getDefinition());
+            temp.setDisplay(gender.getDisplay());
+            temp.setSystem(gender.getSystem());
+            temp.setCode(gender.toCode());
+            return temp;
+        }).collect(Collectors.toList());
+
+        log.info("Found " + administrativeGenders.size() + " AdministrativeGenders.");
+        return administrativeGenders;
+    }
+
+    @Override
+    public List<ValueSetDto> getUSCoreRace() {
+        List<ValueSetDto> usCoreRaces;
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/us/core/ValueSet/omb-race-category";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        } catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-race-category", e);
+        }
+
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+
+        usCoreRaces = valueSetList.stream().map(object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setSystem(object.getSystem());
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getDisplay());
+            return temp;
+        }).collect(Collectors.toList());
+
+        return usCoreRaces;
+    }
+
+    @Override
+    public List<ValueSetDto> getUSCoreEthnicity() {
+        List<ValueSetDto> usCoreEthnicites;
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/us/core/ValueSet/omb-ethnicity-category";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        } catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-ethnicity-category", e);
+        }
+
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+
+        usCoreEthnicites = valueSetList.stream().map(object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setSystem(object.getSystem());
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getDisplay());
+            return temp;
+        }).collect(Collectors.toList());
+
+        return usCoreEthnicites;
+
+    }
+
+    @Override
+    public List<ValueSetDto> getUSCoreBirthSex() {
+        List<ValueSetDto> usCoreBirthsexes;
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/us/core/ValueSet/us-core-birthsex";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        } catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any us-core-birthsex", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any us-core-birthsex", e);
+        }
+
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+
+        usCoreBirthsexes = valueSetList.stream().map(object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setSystem(object.getSystem());
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getDisplay());
+            return temp;
+        }).collect(Collectors.toList());
+
+        return usCoreBirthsexes;
+
+    }
+
+    @Override
+    public List<ValueSetDto> getLanguages() {
+        //Use temporary list of enums
+        //list to be provided by eversolve
+        List<ValueSetDto> languageList = new ArrayList<>();
+        List<LanguageEnum> languageEnums = Arrays.asList(LanguageEnum.values());
+
+        languageList = languageEnums.stream().map(object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getName());
+            return temp;
+        }).collect(Collectors.toList());
+
+        return languageList;
     }
 
     private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ValueSetExpansionContainsComponent identifierType) {

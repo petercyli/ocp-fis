@@ -30,6 +30,14 @@ public interface LookUpService {
 
     List<ValueSetDto> getTelecomSystems();
 
+    List<ValueSetDto> getAdministrativeGenders();
+
+    List<ValueSetDto> getUSCoreRace();
+    List<ValueSetDto> getUSCoreEthnicity();
+    List<ValueSetDto> getUSCoreBirthSex();
+    List<ValueSetDto> getLanguages();
+
+
     List<OrganizationStatusDto> getOrganizationStatuses();
 
     List<ValueSetDto> getPractitionerRoles();
