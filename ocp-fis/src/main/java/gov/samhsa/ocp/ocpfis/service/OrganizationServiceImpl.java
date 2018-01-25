@@ -5,14 +5,17 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -226,6 +229,38 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
         else {
             throw new DuplicateResourceFoundException("Organization with the Identifier " + organizationId + " is already present.");
+        }
+    }
+
+    @Override
+    public void inactivateOrganization(String organizationId) {
+        log.info("Inactivating the organization Id: " + organizationId);
+        Organization existingFhirOrganization = readOrganizationFromServer(organizationId);
+        setOrganizationStatusToInactive(existingFhirOrganization);
+    }
+
+    private Organization readOrganizationFromServer(String organizationId) {
+        Organization existingFhirOrganization;
+
+        try {
+            existingFhirOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
+        }
+        catch (BaseServerResponseException e) {
+            log.error("FHIR Client returned with an error while reading the organization with ID: " + organizationId);
+            throw new ResourceNotFoundException("FHIR Client returned with an error while reading the organization:" + e.getMessage());
+        }
+        return existingFhirOrganization;
+    }
+
+    private void setOrganizationStatusToInactive(Organization existingFhirOrganization) {
+        existingFhirOrganization.setActive(false);
+        try {
+            MethodOutcome serverResponse = fhirClient.update().resource(existingFhirOrganization).execute();
+            log.info("Inactivated the organization :" + serverResponse.getId().getIdPart());
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT inactivate organization");
+            throw new FHIRClientException("FHIR Client returned with an error while inactivating the organization:" + e.getMessage());
         }
     }
 
