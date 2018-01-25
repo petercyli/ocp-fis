@@ -6,6 +6,7 @@ import gov.samhsa.ocp.ocpfis.domain.IdentifierTypeEnum;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -253,6 +254,14 @@ public class LookUpServiceImpl implements LookUpService {
         }
         log.info("Found " + locationStatuses.size() + " location status codes.");
         return locationStatuses;
+    }
+
+
+    @Override
+    public List<OrganizationStatusDto>  getOrganizationStatuses() {
+        List<OrganizationStatusDto> organizationStatuses = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
+        log.info("Fetching ALL Organization Active Status");
+        return organizationStatuses;
     }
 
     @Override

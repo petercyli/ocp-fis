@@ -99,4 +99,10 @@ public class LocationController {
         locationService.updateLocation(organizationId, locationId, locationDto);
 
     }
+
+    @PutMapping("/location/{locationId}/inactive")
+    @ResponseStatus(HttpStatus.OK)
+    public void inactivateLocation(@PathVariable String locationId) {
+        locationService.inactivateLocation(locationId);
+    }
 }

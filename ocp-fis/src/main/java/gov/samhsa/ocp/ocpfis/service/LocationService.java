@@ -51,10 +51,14 @@ public interface LocationService {
     void createLocation(String organizationId, LocationDto locationDto);
 
     /**
-     *
      * @param organizationId
      * @param locationId
      * @param locationDto
      */
     void updateLocation(String organizationId, String locationId, LocationDto locationDto);
+
+    /**
+     * @param locationId
+     */
+    void inactivateLocation(String locationId);
 }
