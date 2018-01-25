@@ -166,8 +166,6 @@ public class PatientServiceImpl implements PatientService {
                 log.debug("Calling FHIR Patient Update");
 
                 fhirClient.update().resource(patient)
-                        //.conditional()
-                        //.where(Patient.IDENTIFIER.exactly().systemAndCode(getCodeSystemByValue(patientDto.getIdentifier(), patient.getId()), patient.getId()))
                         .execute();
         } else {
             throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
