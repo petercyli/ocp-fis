@@ -185,10 +185,12 @@ public class OrganizationServiceImpl implements OrganizationService {
     public void updateOrganization(OrganizationDto organizationDto) {
         final Organization organization = modelMapper.map(organizationDto, Organization.class);
         organization.setId(new IdType(organizationDto.getLogicalId()));
+        log.info("Updating for Organization Id:" + organizationDto.getLogicalId());
 
+        // Validate the resource
         final ValidationResult validationResult = fhirValidator.validateWithResult(organization);
         if (validationResult.isSuccessful()) {
-            log.debug("Calling FHIR Organization Update");
+            log.info("Update Organization: Validation successful? " + validationResult.isSuccessful() + " for OrganizationID:" + organizationDto.getLogicalId());
 
             fhirClient.update().resource(organization)
                     .execute();
