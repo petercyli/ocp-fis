@@ -138,6 +138,8 @@ public class PatientServiceImpl implements PatientService {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setActive(Boolean.TRUE);
+            patient.setGender(getPatientGender(patientDto.getGenderCode()));
+            patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
 

@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
+import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.modelmapper.PropertyMap;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,8 +34,6 @@ public class PatientDtoToPatientMap extends PropertyMap<PatientDto, Patient> {
     @Override
     protected void configure() {
         map().setActive(source.isActive());
-        map(source.getGenderCode()).setGender(null);
-        map(source.getBirthDate()).setBirthDate(null);
 
         using(nameDtoListToHumanNameListConverter).map(source.getName()).setName(null);
         using(addressDtoListToAddressListConverter).map(source.getAddress()).setAddress(null);
