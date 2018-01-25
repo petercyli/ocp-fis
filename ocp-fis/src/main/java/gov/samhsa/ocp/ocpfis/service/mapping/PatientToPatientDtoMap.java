@@ -31,7 +31,6 @@ public class PatientToPatientDtoMap extends PropertyMap<Patient, PatientDto> {
 
     @Override
     protected void configure() {
-        map().setId(source.getId());
         map().setResourceURL(source.getId());
         map().setActive(source.getActive());
         map(source.getGender()).setGenderCode(null);
