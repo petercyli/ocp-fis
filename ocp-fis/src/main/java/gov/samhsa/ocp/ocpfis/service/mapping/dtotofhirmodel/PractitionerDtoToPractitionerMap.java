@@ -1,8 +1,9 @@
-package gov.samhsa.ocp.ocpfis.service.mapping;
+package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AddressDtoListToAddressListConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.IdentifierDtoListToIdentifierListConverter;
+import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.NameDtoListToHumanNameListConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TelecomDtoListToTelecomListConverter;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.modelmapper.PropertyMap;
