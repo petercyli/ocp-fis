@@ -22,7 +22,7 @@ public class TelecomListToTelecomDtoListConverter extends AbstractConverter<List
                 TelecomDto tempTelecomDto = new TelecomDto();
                 tempTelecomDto.setValue(tempTelecom.getValue());
                 if (tempTelecom.getSystem() != null)
-                    tempTelecomDto.setSystem(tempTelecom.getSystem().toString());
+                    tempTelecomDto.setSystem(tempTelecom.getSystem().toString().toLowerCase());
                 if (tempTelecom.getUse() != null)
                     tempTelecomDto.setUse(tempTelecom.getUse().toString());
                 telecomDtoList.add(tempTelecomDto);

@@ -40,8 +40,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any state code", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any state code", e);
         }
@@ -82,8 +81,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any identifier type", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any identifier type", e);
         }
@@ -177,8 +175,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any identifier use", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any identifier use", e);
         }
@@ -206,8 +203,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any location mode", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any location mode", e);
         }
@@ -235,8 +231,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any location status", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any location status", e);
         }
@@ -255,9 +250,8 @@ public class LookUpServiceImpl implements LookUpService {
         return locationStatuses;
     }
 
-
     @Override
-    public List<OrganizationStatusDto>  getOrganizationStatuses() {
+    public List<OrganizationStatusDto> getOrganizationStatuses() {
         List<OrganizationStatusDto> organizationStatuses = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
         log.info("Fetching ALL Organization Active Status");
         return organizationStatuses;
@@ -271,8 +265,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any physical location type", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any physical location type", e);
         }
@@ -300,8 +293,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any address type", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any address type", e);
         }
@@ -328,8 +320,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any address use", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any address use", e);
         }
@@ -356,8 +347,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any telecom use", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any telecom use", e);
         }
@@ -384,8 +374,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any telecom use", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any telecom use", e);
         }
@@ -402,6 +391,33 @@ public class LookUpServiceImpl implements LookUpService {
         }
         log.info("Found " + telecomSystems.size() + " telecom system codes.");
         return telecomSystems;
+    }
+
+    @Override
+    public List<ValueSetDto> getPractitionerRoles() {
+        List<ValueSetDto> practitionerRoles;
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/practitioner-role";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any practitioner roles", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any practitioner roles", e);
+        }
+
+        if (response == null ||
+                response.getExpansion() == null ||
+                response.getExpansion().getContains() == null ||
+                response.getExpansion().getContains().size() < 1) {
+            log.error("Query was successful, but found no practitioner roles in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no practitioner roles in the configured FHIR server");
+        } else {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            practitionerRoles = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + practitionerRoles.size() + " telecom use codes.");
+        return practitionerRoles;
     }
 
     private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ValueSetExpansionContainsComponent identifierType) {

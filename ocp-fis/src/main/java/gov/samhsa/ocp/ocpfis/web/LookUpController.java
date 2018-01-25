@@ -30,6 +30,7 @@ public class LookUpController {
     /**
      * Determine identifier to use for a specific purpose
      * Eg: PRN , EN
+     *
      * @return
      */
     @GetMapping("/identifier-types")
@@ -39,13 +40,14 @@ public class LookUpController {
 
 
     @GetMapping("/identifier-systems")
-    public List<IdentifierSystemDto> getIdentifierSystems(@RequestParam(value = "identifierTypeList") Optional<List<String>> identifierTypeList){
+    public List<IdentifierSystemDto> getIdentifierSystems(@RequestParam(value = "identifierTypeList") Optional<List<String>> identifierTypeList) {
         return lookUpService.getIdentifierSystems(identifierTypeList);
     }
 
     /**
      * Identifies the purpose for this identifier, if known
      * Eg: Usual, Official, Temp
+     *
      * @return
      */
     @GetMapping("/identifier-uses")
@@ -58,6 +60,7 @@ public class LookUpController {
     /**
      * Indicates whether a resource instance represents a specific location or a class of locations
      * Eg: INSTANCE, KIND, NULL
+     *
      * @return
      */
     @GetMapping("/location-modes")
@@ -68,6 +71,7 @@ public class LookUpController {
     /**
      * general availability of the resource
      * Eg: ACTIVE, SUSPENDED, INACTIVE, NULL
+     *
      * @return
      */
     @GetMapping("/location-statuses")
@@ -92,6 +96,7 @@ public class LookUpController {
     /**
      * The type of an address (physical / postal)
      * Eg: POSTAL, PHYSICAL, POSTAL & PHYSICAL, NULL
+     *
      * @return
      */
     @GetMapping("/address-types")
@@ -102,6 +107,7 @@ public class LookUpController {
     /**
      * The use of an address
      * Eg: HOME, WORK, TEMP, OLD, NULL
+     *
      * @return
      */
     @GetMapping("/address-uses")
@@ -112,6 +118,7 @@ public class LookUpController {
     /**
      * Identifies the purpose for the contact point
      * Eg: HOME, WORK, TEMP, OLD, MOBILE, NULL
+     *
      * @return
      */
     @GetMapping("/telecom-uses")
@@ -122,6 +129,7 @@ public class LookUpController {
     /**
      * Telecommunications form for contact point - what communications system is required to make use of the contact.
      * Eg: PHONE, FAX, EMAIL, PAGER, URL, SMS, OTHER, NULL
+     *
      * @return
      */
     @GetMapping("/telecom-systems")
@@ -135,6 +143,15 @@ public class LookUpController {
     @GetMapping("/organization-statuses")
     public List<OrganizationStatusDto> getOrganizationStatuses() {
         return lookUpService.getOrganizationStatuses();
+    }
+
+    /**
+     * Gives Practitioner roles.
+     * Eg: DOCTOR, NURSE, PHARMACIST, RESEARCHER, TEACHER, ICT
+     */
+    @GetMapping("/practitioner-roles")
+    public List<ValueSetDto> getPractitionerRoles() {
+        return lookUpService.getPractitionerRoles();
     }
 
 }
