@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,8 +40,8 @@ public class LookUpController {
 
 
     @GetMapping("/identifier-systems")
-    public List<IdentifierSystemDto> getIdentifierSystems(@RequestParam(value = "identifierType") Optional<String> identifierType) {
-        return lookUpService.getIdentifierSystems(identifierType);
+    public List<IdentifierSystemDto> getIdentifierSystems(@RequestParam(value = "identifierTypeList") Optional<List<String>> identifierTypeList) {
+        return lookUpService.getIdentifierSystems(identifierTypeList);
     }
 
     /**
@@ -82,9 +83,9 @@ public class LookUpController {
      * Physical form of the location
      * e.g. building, room, vehicle, road.
      */
-    @GetMapping("/location-types")
-    public List<ValueSetDto> getLocationTypes() {
-        return lookUpService.getLocationTypes();
+    @GetMapping("/location-physical-types")
+    public List<ValueSetDto> getLocationPhysicalTypes() {
+        return lookUpService.getLocationPhysicalTypes();
     }
 
 
@@ -137,6 +138,13 @@ public class LookUpController {
     }
 
     //ADDRESS and TELECOM END
+
+
+    @GetMapping("/organization-statuses")
+    public List<OrganizationStatusDto> getOrganizationStatuses() {
+        return lookUpService.getOrganizationStatuses();
+    }
+
 
     @GetMapping("/practitioner-roles")
     public List<ValueSetDto> getPractitionerRoles() {

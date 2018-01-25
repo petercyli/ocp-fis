@@ -1,10 +1,5 @@
 server:
   port: 8444
-spring:
-  application:
-    name: ocp-fis
-  jmx:
-    default-domain: ocp-fis
 logging:
   file: /java/OCP_LOGS/ocp-fis/ocp-fis.log
 info:
