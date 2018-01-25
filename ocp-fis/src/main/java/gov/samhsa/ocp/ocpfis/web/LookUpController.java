@@ -146,8 +146,8 @@ public class LookUpController {
     }
 
     /**
-     Gives Practitioner roles.
-     Eg: DOCTOR, NURSE, PHARMACIST, RESEARCHER, TEACHER, ICT
+     * Gives Practitioner roles.
+     * Eg: DOCTOR, NURSE, PHARMACIST, RESEARCHER, TEACHER, ICT
      */
     @GetMapping("/practitioner-roles")
     public List<ValueSetDto> getPractitionerRoles() {
