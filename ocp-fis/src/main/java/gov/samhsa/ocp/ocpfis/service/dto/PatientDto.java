@@ -43,8 +43,6 @@ public class PatientDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate birthDate;
 
-    private String locale;
-
     @RaceConstraint
     private String race;
 
