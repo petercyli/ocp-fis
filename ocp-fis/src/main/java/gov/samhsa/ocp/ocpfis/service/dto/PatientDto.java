@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import gov.samhsa.ocp.ocpfis.service.validation.AdministrativeGenderConstraint;
 import gov.samhsa.ocp.ocpfis.service.validation.BirthsexConstraint;
@@ -39,6 +40,7 @@ public class PatientDto {
     @AdministrativeGenderConstraint
     private String genderCode;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
     private LocalDate birthDate;
 
     private String locale;
