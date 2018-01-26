@@ -16,7 +16,6 @@ import org.hibernate.validator.constraints.NotEmpty;
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @Data
 @Builder
@@ -40,7 +39,7 @@ public class PatientDto {
     @AdministrativeGenderConstraint
     private String genderCode;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private LocalDate birthDate;
 
     @RaceConstraint
