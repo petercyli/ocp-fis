@@ -32,6 +32,7 @@ import org.hl7.fhir.dstu3.model.Type;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -160,6 +161,8 @@ public class PatientServiceImpl implements PatientService {
     public void updatePatient(PatientDto patientDto) {
         final Patient patient = modelMapper.map(patientDto, Patient.class);
         patient.setId(new IdType(patientDto.getId()));
+        patient.setGender(getPatientGender(patientDto.getGenderCode()));
+        patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
         final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
         if (validationResult.isSuccessful()) {
@@ -187,6 +190,9 @@ public class PatientServiceImpl implements PatientService {
         Patient patient = (Patient) patientBundleEntry.getResource();
         PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
         patientDto.setId(patient.getIdElement().getIdPart());
+        patientDto.setBirthDate(patient.getBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+        patientDto.setGenderCode(patient.getGender().toCode());
+
         mapExtensionFields(patient, patientDto);
 
         return patientDto;

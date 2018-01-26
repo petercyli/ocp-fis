@@ -33,8 +33,7 @@ public class PatientToPatientDtoMap extends PropertyMap<Patient, PatientDto> {
     protected void configure() {
         map().setResourceURL(source.getId());
         map().setActive(source.getActive());
-        map(source.getGender()).setGenderCode(null);
-        map().setLocale(source.getLanguage());
+
         using(addressListToAddressDtoListConverter).map(source.getAddress()).setAddress(null);
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecom(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifier(null);
