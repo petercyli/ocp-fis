@@ -310,9 +310,9 @@ public class PatientServiceImpl implements PatientService {
         extensionList.add(ethnicityExtension);
 
         //us-core-birthsex
-        Coding birthsexCoding = createCoding(CODING_SYSTEM_BIRTHSEX, patientDto.getBirthSex());
-        Extension birthsexExtension = createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthsexCoding));
-        extensionList.add(birthsexExtension);
+        Coding birthSexCoding = createCoding(CODING_SYSTEM_BIRTHSEX, patientDto.getBirthSex());
+        Extension birthSexExtension = createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthSexCoding));
+        extensionList.add(birthSexExtension);
 
         patient.setExtension(extensionList);
     }
