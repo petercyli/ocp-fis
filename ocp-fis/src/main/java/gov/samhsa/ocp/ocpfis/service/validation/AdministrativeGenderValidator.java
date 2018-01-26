@@ -20,14 +20,21 @@ public class AdministrativeGenderValidator implements ConstraintValidator<Admini
 
     @Override
     public boolean isValid(String administrativeGenderCodeToCheck, ConstraintValidatorContext cxt) {
+
+        if (administrativeGenderCodeToCheck == null) {
+            //this value is optional
+            return true;
+        }
+
         List<ValueSetDto> list = lookUpService.getAdministrativeGenders();
 
         boolean isValid = list.stream().anyMatch(t -> t.getCode().equals(administrativeGenderCodeToCheck));
 
-        if(!isValid) {
+        if (!isValid) {
             throw new InvalidValueException("Received invalid AdministrativeGender code.");
         }
 
         return isValid;
+
     }
 }

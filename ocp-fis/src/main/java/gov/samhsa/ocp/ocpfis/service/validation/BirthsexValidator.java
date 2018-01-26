@@ -20,14 +20,21 @@ public class BirthsexValidator implements ConstraintValidator<BirthsexConstraint
 
     @Override
     public boolean isValid(String birthsexToCheck, ConstraintValidatorContext cxt) {
+
+        if (birthsexToCheck == null) {
+            //this value is optional
+            return true;
+        }
+
         List<ValueSetDto> list = lookUpService.getUSCoreBirthSex();
 
         boolean isValid = list.stream().anyMatch(t -> t.getCode().equals(birthsexToCheck));
 
-        if(!isValid) {
+        if (!isValid) {
             throw new InvalidValueException("Received invalid Birthsex code.");
         }
 
         return isValid;
+
     }
 }

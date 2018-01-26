@@ -20,6 +20,12 @@ public class LanguageValidator implements ConstraintValidator<LanguageConstraint
 
     @Override
     public boolean isValid(String languageToCheck, ConstraintValidatorContext cxt) {
+
+        if(languageToCheck == null) {
+            //this value is optional
+            return true;
+        }
+
         List<ValueSetDto> list = lookUpService.getLanguages();
 
         boolean isValid = list.stream().anyMatch(t -> t.getCode().equals(languageToCheck));
