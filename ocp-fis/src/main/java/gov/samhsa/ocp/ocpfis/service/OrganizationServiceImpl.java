@@ -212,7 +212,6 @@ public class OrganizationServiceImpl implements OrganizationService {
             Organization updatedorganization = modelMapper.map(organizationDto, Organization.class);
             existingOrganization.setIdentifier(updatedorganization.getIdentifier());
             existingOrganization.setName(updatedorganization.getName());
-            existingOrganization.setActive(updatedorganization.getActive());
             existingOrganization.setTelecom(updatedorganization.getTelecom());
             existingOrganization.setAddress(updatedorganization.getAddress());
 
