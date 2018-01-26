@@ -441,52 +441,97 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getUSCoreRace() {
-        List<ValueSetDto> usCoreRaces;
-        ValueSet response;
+        List<ValueSetDto> usCoreRaces = new ArrayList<>();
+        ValueSet response = null;
         String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/us/core/ValueSet/omb-race-category";
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-race-category", e);
+
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+
+            usCoreRaces = valueSetList.stream().map(object -> {
+                ValueSetDto temp = new ValueSetDto();
+                temp.setSystem(object.getSystem());
+                temp.setCode(object.getCode());
+                temp.setDisplay(object.getDisplay());
+                return temp;
+            }).collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.debug("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
         }
 
-        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        if(response == null) {
+            url = fisProperties.getFhir().getServerUrl() + "/ValueSet/omb-race-category";
+            try {
+                response = (ValueSet) fhirClient.search().byUrl(url).execute();
 
-        usCoreRaces = valueSetList.stream().map(object -> {
-            ValueSetDto temp = new ValueSetDto();
-            temp.setSystem(object.getSystem());
-            temp.setCode(object.getCode());
-            temp.setDisplay(object.getDisplay());
-            return temp;
-        }).collect(Collectors.toList());
+                List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
+
+                usCoreRaces = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(object -> {
+                    ValueSetDto temp = new ValueSetDto();
+                    temp.setCode(object.getCode());
+                    temp.setDisplay(object.getDisplay());
+                    return temp;
+                }).collect(Collectors.toList());
+
+
+            } catch (ResourceNotFoundException e) {
+                log.error("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
+                throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-race-category", e);
+            }
+        }
+
+
 
         return usCoreRaces;
     }
 
     @Override
     public List<ValueSetDto> getUSCoreEthnicity() {
-        List<ValueSetDto> usCoreEthnicites;
-        ValueSet response;
+        List<ValueSetDto> usCoreEthnicites = new ArrayList<>();
+        ValueSet response = null;
         String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/us/core/ValueSet/omb-ethnicity-category";
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-ethnicity-category", e);
+
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+
+            usCoreEthnicites = valueSetList.stream().map(object -> {
+                ValueSetDto temp = new ValueSetDto();
+                temp.setSystem(object.getSystem());
+                temp.setCode(object.getCode());
+                temp.setDisplay(object.getDisplay());
+                return temp;
+            }).collect(Collectors.toList());
+
+        } catch (Exception e) {
+            log.debug("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
         }
 
-        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        if(response == null) {
+            url = fisProperties.getFhir().getServerUrl() + "/ValueSet/omb-ethnicity-category";
+            try {
+                response = (ValueSet) fhirClient.search().byUrl(url).execute();
 
-        usCoreEthnicites = valueSetList.stream().map(object -> {
-            ValueSetDto temp = new ValueSetDto();
-            temp.setSystem(object.getSystem());
-            temp.setCode(object.getCode());
-            temp.setDisplay(object.getDisplay());
-            return temp;
-        }).collect(Collectors.toList());
+                List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
+
+                usCoreEthnicites = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(object -> {
+                    ValueSetDto temp = new ValueSetDto();
+                    temp.setCode(object.getCode());
+                    temp.setDisplay(object.getDisplay());
+                    return temp;
+                }).collect(Collectors.toList());
+
+            } catch (ResourceNotFoundException e) {
+                log.error("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
+                throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-ethnicity-category", e);
+            }
+        }
+
+
 
         return usCoreEthnicites;
 
@@ -546,3 +591,4 @@ public class LookUpServiceImpl implements LookUpService {
 
 
 }
+
