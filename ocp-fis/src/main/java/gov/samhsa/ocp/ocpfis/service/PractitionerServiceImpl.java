@@ -221,7 +221,6 @@ public class PractitionerServiceImpl implements PractitionerService {
             Practitioner updatedpractitioner = modelMapper.map(practitionerDto, Practitioner.class);
             existingPractitioner.setIdentifier(updatedpractitioner.getIdentifier());
             existingPractitioner.setName(updatedpractitioner.getName());
-            existingPractitioner.setActive(updatedpractitioner.getActive());
             existingPractitioner.setTelecom(updatedpractitioner.getTelecom());
             existingPractitioner.setAddress(updatedpractitioner.getAddress());
 
