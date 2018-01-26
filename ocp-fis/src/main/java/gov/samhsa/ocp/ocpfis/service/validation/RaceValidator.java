@@ -21,6 +21,12 @@ public class RaceValidator implements ConstraintValidator<RaceConstraint, String
 
     @Override
     public boolean isValid(String raceCodeToCheck, ConstraintValidatorContext cxt) {
+
+        if(raceCodeToCheck == null) {
+            //this value is optional
+            return true;
+        }
+
         List<ValueSetDto> list = lookUpService.getUSCoreRace();
 
         boolean isValid = list.stream().anyMatch(t -> t.getCode().equals(raceCodeToCheck));

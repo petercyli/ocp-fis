@@ -20,6 +20,12 @@ public class EthnicityValidator implements ConstraintValidator<EthnicityConstrai
 
     @Override
     public boolean isValid(String ethnicityConstraintToCheck, ConstraintValidatorContext cxt) {
+
+        if(ethnicityConstraintToCheck == null) {
+            //this value is optional
+            return true;
+        }
+
         List<ValueSetDto> list = lookUpService.getUSCoreEthnicity();
 
         boolean isValid = list.stream().anyMatch(t -> t.getCode().equals(ethnicityConstraintToCheck));
