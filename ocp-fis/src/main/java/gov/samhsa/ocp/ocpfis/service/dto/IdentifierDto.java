@@ -14,15 +14,13 @@ import org.springframework.util.StringUtils;
 @NoArgsConstructor
 @ScriptAssert(alias = "_", lang = "javascript", script = "_.hasSystemOrOid()")
 public class IdentifierDto {
-
+    @NotBlank
     private String system;
-
     private String oid;
+
     @NotBlank
     private String value;
-
     private int priority;
-
     private String display;
 
     public boolean hasSystemOrOid() {

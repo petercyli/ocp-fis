@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.validator.constraints.NotBlank;
 
 import java.util.List;
 
@@ -17,6 +18,7 @@ public class LocationDto {
     private String managingLocationLogicalId;
 
     private String status;
+    @NotBlank
     private String name;
     private String physicalType;
     private AddressDto address;
