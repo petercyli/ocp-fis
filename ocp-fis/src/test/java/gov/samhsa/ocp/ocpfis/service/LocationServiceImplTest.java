@@ -29,8 +29,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@Ignore
 @RunWith(MockitoJUnitRunner.class)
+@Ignore("Depends on config-server on bootstrap")
 public class LocationServiceImplTest {
 
     @Rule

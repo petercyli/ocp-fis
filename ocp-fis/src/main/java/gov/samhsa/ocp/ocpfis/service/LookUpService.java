@@ -11,18 +11,34 @@ public interface LookUpService {
     List<ValueSetDto> getUspsStates();
 
     List<ValueSetDto> getIdentifierTypes(Optional<String> resourceType);
-    List<IdentifierSystemDto> getIdentifierSystems(Optional<List<String>>  identifierTypeList);
+
+    List<IdentifierSystemDto> getIdentifierSystems(Optional<List<String>> identifierTypeList);
+
     List<ValueSetDto> getIdentifierUses();
 
     List<ValueSetDto> getLocationModes();
+
     List<ValueSetDto> getLocationStatuses();
+
     List<ValueSetDto> getLocationPhysicalTypes();
 
     List<ValueSetDto> getAddressTypes();
+
     List<ValueSetDto> getAddressUses();
 
     List<ValueSetDto> getTelecomUses();
+
     List<ValueSetDto> getTelecomSystems();
 
+    List<ValueSetDto> getAdministrativeGenders();
+
+    List<ValueSetDto> getUSCoreRace();
+    List<ValueSetDto> getUSCoreEthnicity();
+    List<ValueSetDto> getUSCoreBirthSex();
+    List<ValueSetDto> getLanguages();
+
+
     List<OrganizationStatusDto> getOrganizationStatuses();
+
+    List<ValueSetDto> getPractitionerRoles();
 }

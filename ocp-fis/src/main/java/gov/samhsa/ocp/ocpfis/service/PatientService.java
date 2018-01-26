@@ -12,4 +12,10 @@ public interface PatientService {
     List<PatientDto> getPatients();
 
     PageDto<PatientDto> getPatientsByValue(String value, String type, boolean showInactive, Optional<Integer> page, Optional<Integer> size);
+
+    void createPatient(PatientDto patientDto);
+
+    void updatePatient(PatientDto patientDto);
+
+    PatientDto getPatientById(String patientId);
 }

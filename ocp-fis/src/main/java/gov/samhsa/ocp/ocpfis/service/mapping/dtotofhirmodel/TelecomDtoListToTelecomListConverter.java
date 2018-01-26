@@ -29,25 +29,26 @@ public class TelecomDtoListToTelecomListConverter extends AbstractConverter<List
 
                 tempContactPoint.setRank(++rank);
 
-                if (tempTelecomDto.getSystem() != null && !tempTelecomDto.getSystem().trim().isEmpty()) {
-                    for (ValueSetDto validTelecomSystem : validTelecomSystems) {
-                        if (validTelecomSystem.getDisplay().equalsIgnoreCase(tempTelecomDto.getSystem())) {
-                            tempContactPoint.setSystem(ContactPoint.ContactPointSystem.valueOf(validTelecomSystem.getDisplay().toUpperCase()));
-                        }
-                    }
-                }
+                tempTelecomDto.getSystem().ifPresent(obj -> {
+                            for (ValueSetDto validTelecomSystem : validTelecomSystems) {
+                                if (validTelecomSystem.getDisplay().equalsIgnoreCase(obj)) {
+                                    tempContactPoint.setSystem(ContactPoint.ContactPointSystem.valueOf(validTelecomSystem.getDisplay().toUpperCase()));
+                                }
+                            }
+                        });
 
-                if (tempTelecomDto.getValue() != null && !tempTelecomDto.getValue().isEmpty()) {
-                    tempContactPoint.setValue(tempTelecomDto.getValue());
-                }
+                tempTelecomDto.getValue().ifPresent(obj -> {
+                    tempContactPoint.setValue(obj);
+                });
 
-                if (tempTelecomDto.getUse() != null && !tempTelecomDto.getUse().trim().isEmpty()) {
+                tempTelecomDto.getUse().ifPresent(obj -> {
                     for (ValueSetDto validTelecomUse : validTelecomUses) {
-                        if (validTelecomUse.getDisplay().equalsIgnoreCase(tempTelecomDto.getUse())) {
+                        if (validTelecomUse.getDisplay().equalsIgnoreCase(obj)) {
                             tempContactPoint.setUse(ContactPoint.ContactPointUse.valueOf(validTelecomUse.getDisplay().toUpperCase()));
                         }
                     }
-                }
+                });
+
                 telecomList.add(tempContactPoint);
             }
         }

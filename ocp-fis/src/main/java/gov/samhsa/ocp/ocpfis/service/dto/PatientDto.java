@@ -1,6 +1,11 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import gov.samhsa.ocp.ocpfis.service.validation.AdministrativeGenderConstraint;
+import gov.samhsa.ocp.ocpfis.service.validation.BirthsexConstraint;
+import gov.samhsa.ocp.ocpfis.service.validation.EthnicityConstraint;
+import gov.samhsa.ocp.ocpfis.service.validation.LanguageConstraint;
+import gov.samhsa.ocp.ocpfis.service.validation.RaceConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,6 +15,7 @@ import org.hibernate.validator.constraints.NotEmpty;
 import javax.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Data
 @Builder
@@ -30,21 +36,28 @@ public class PatientDto {
     private List<NameDto> name;
 
     @NotEmpty
+    @AdministrativeGenderConstraint
     private String genderCode;
 
     private LocalDate birthDate;
 
     private String locale;
 
+    @RaceConstraint
     private String race;
 
+    @EthnicityConstraint
     private String ethnicity;
 
+    @BirthsexConstraint
     private String birthSex;
-
 
     private List<AddressDto> address;
 
     private List<TelecomDto> telecom;
+
+    @LanguageConstraint
+    private String language;
+
 
 }

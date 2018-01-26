@@ -1,24 +1,38 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.PractitionerRole;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
 
 @Service
 @Slf4j
@@ -30,11 +44,14 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     private final FisProperties fisProperties;
 
+    private final FhirValidator fhirValidator;
+
     @Autowired
-    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties) {
+    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fisProperties = fisProperties;
+        this.fhirValidator = fhirValidator;
     }
 
     @Override
@@ -125,6 +142,149 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
 
+    public void createPractitioner(PractitionerDto practitionerDto) {
+        //Check Duplicate Identifier
+        boolean hasDuplicateIdentifier = practitionerDto.getIdentifiers().stream().anyMatch(identifierDto -> {
+            if (fhirClient.search()
+                    .forResource(Practitioner.class)
+                    .where(new TokenClientParam("identifier")
+                            .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()))
+                    .returnBundle(Bundle.class).execute().getTotal() > 0) {
+                return true;
+            }
+            return false;
+        });
+
+        //When there is no duplicate identifier, practitioner gets created
+        if (!hasDuplicateIdentifier) {
+            //Create Fhir Practitioner
+            Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
+            practitioner.setActive(true);
+
+            final ValidationResult validationResult = fhirValidator.validateWithResult(practitioner);
+
+            if (!validationResult.isSuccessful()) {
+                throw new FHIRFormatErrorException("FHIR Practitioner Validation was not successful " + validationResult.getMessages());
+            }
+
+            MethodOutcome methodOutcome = fhirClient.create().resource(practitioner).execute();
+
+            //Create PractitionerRole for the practitioner
+            PractitionerRole practitionerRole = new PractitionerRole();
+            practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
+                        //Assign fhir practitionerRole codes.
+                        CodeableConcept codeableConcept = new CodeableConcept();
+                        Coding coding = new Coding().setCode(practitionerRoleCode.getCode()).setDisplay(practitionerRoleCode.getDisplay()).setSystem(practitionerRoleCode.getSystem());
+                        List<Coding> codings = new ArrayList<>();
+                        codings.add(coding);
+                        codeableConcept.setCoding(codings);
+                        practitionerRole.addCode(codeableConcept);
+                    }
+            );
+
+            //Assign fhir Practitioner resource id.
+            Reference practitionerId = new Reference();
+            practitionerId.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
+            practitionerRole.setPractitioner(practitionerId);
+
+            fhirClient.create().resource(practitionerRole).execute();
+
+        } else {
+            throw new DuplicateResourceFoundException("Practitioner with the same Identifier is already present.");
+        }
+    }
+
+    @Override
+    public void updatePractitioner(String practitionerId, PractitionerDto practitionerDto) {
+        //Check Duplicate Identifier
+        boolean hasDuplicateIdentifier = practitionerDto.getIdentifiers().stream().anyMatch(identifierDto -> {
+            IQuery practitionersWithUpdatedIdentifierQuery = fhirClient.search()
+                    .forResource(Practitioner.class)
+                    .where(new TokenClientParam("identifier")
+                            .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()));
+            Bundle practitionerWithUpdatedIdentifierBundle = (Bundle) practitionersWithUpdatedIdentifierQuery.returnBundle(Bundle.class).execute();
+            Bundle practitionerWithUpdatedIdentifierAndSameResourceIdBundle = (Bundle) practitionersWithUpdatedIdentifierQuery.where(new TokenClientParam("_id").exactly().code(practitionerId)).returnBundle(Bundle.class).execute();
+            if (practitionerWithUpdatedIdentifierBundle.getTotal() > 0) {
+                if (practitionerWithUpdatedIdentifierBundle.getTotal() == practitionerWithUpdatedIdentifierAndSameResourceIdBundle.getTotal()) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            return false;
+        });
+
+
+        Practitioner existingPractitioner = fhirClient.read().resource(Practitioner.class).withId(practitionerId.trim()).execute();
+
+        if (!hasDuplicateIdentifier) {
+            Practitioner updatedpractitioner = modelMapper.map(practitionerDto, Practitioner.class);
+            existingPractitioner.setIdentifier(updatedpractitioner.getIdentifier());
+            existingPractitioner.setName(updatedpractitioner.getName());
+            existingPractitioner.setActive(updatedpractitioner.getActive());
+            existingPractitioner.setTelecom(updatedpractitioner.getTelecom());
+            existingPractitioner.setAddress(updatedpractitioner.getAddress());
+
+            final ValidationResult validationResult = fhirValidator.validateWithResult(existingPractitioner);
+
+            if (!validationResult.isSuccessful()) {
+                throw new FHIRFormatErrorException("FHIR Practitioner Validation was not successful " + validationResult.getMessages());
+            }
+
+            MethodOutcome methodOutcome = fhirClient.update().resource(existingPractitioner)
+                    .execute();
+
+            //Update PractitionerRole for the practitioner
+            PractitionerRole practitionerRole = new PractitionerRole();
+            practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
+                        //Assign fhir practitionerRole codes.
+                        CodeableConcept codeableConcept = new CodeableConcept();
+                        Coding coding = new Coding().setCode(practitionerRoleCode.getCode()).setDisplay(practitionerRoleCode.getDisplay()).setSystem(practitionerRoleCode.getSystem());
+                        List<Coding> codings = new ArrayList<>();
+                        codings.add(coding);
+                        codeableConcept.setCoding(codings);
+                        practitionerRole.addCode(codeableConcept);
+                    }
+            );
+
+            //Assign fhir Practitioner resource id.
+            Reference practitionerResourceId = new Reference();
+            practitionerResourceId.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
+
+            practitionerRole.setPractitioner(practitionerResourceId);
+
+            fhirClient.update().resource(practitionerRole).conditional()
+                    .where(new ReferenceClientParam("practitioner")
+                            .hasId("Practitioner/" + methodOutcome.getId().getIdPart())).execute();
+        } else {
+            throw new DuplicateResourceFoundException("Practitioner with the same Identifier is already present");
+        }
+    }
+
+    @Override
+    public PractitionerDto getPractitioner(String practitionerId) {
+        Bundle practitionerBundle = fhirClient.search().forResource(Practitioner.class)
+                .where(new TokenClientParam("_id").exactly().code(practitionerId))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (practitionerBundle == null || practitionerBundle.getEntry().size() < 1) {
+            throw new ResourceNotFoundException("No practitioner was found for the givecn practitionerID:" + practitionerId);
+        }
+
+        Bundle.BundleEntryComponent retrievedPractitioner = practitionerBundle.getEntry().get(0);
+
+        PractitionerDto practitionerDto = modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class);
+        practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
+
+        //Get Practitioner Role for the practitioner.
+        List<PractitionerRoleDto> practitionerRoleDtos = getPractitionerRolesForEachPractitioner(retrievedPractitioner.getResource().getIdElement().getIdPart());
+        practitionerDto.setPractitionerRoles(practitionerRoleDtos);
+
+        return practitionerDto;
+    }
+
+
     private Bundle getPractitionerSearchBundleAfterFirstPage(Bundle practitionerSearchBundle, int page, int size) {
         if (practitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             //Assuming page number starts with 1
@@ -149,11 +309,42 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     private PageDto<PractitionerDto> practitionersInPage(List<Bundle.BundleEntryComponent> retrievedPractitioners, Bundle otherPagePractitionerBundle, int numberOfPractitionersPerPage, boolean firstPage, Optional<Integer> page) {
-        List<PractitionerDto> practitionersList = retrievedPractitioners.stream().map(retrievedPractitioner -> modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class)).collect(Collectors.toList());
+        List<PractitionerDto> practitionersList = retrievedPractitioners.stream().map(retrievedPractitioner -> {
+            PractitionerDto practitionerDto = modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class);
+            practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
+
+            //Getting practitioner role into practitioner dto
+            List<PractitionerRoleDto> practitionerRoleDtos = getPractitionerRolesForEachPractitioner(retrievedPractitioner.getResource().getIdElement().getIdPart());
+            practitionerDto.setPractitionerRoles(practitionerRoleDtos);
+
+            return practitionerDto;
+        }).collect(Collectors.toList());
+
         double totalPages = Math.ceil((double) otherPagePractitionerBundle.getTotal() / numberOfPractitionersPerPage);
         int currentPage = firstPage ? 1 : page.get();
 
         return new PageDto<>(practitionersList, numberOfPractitionersPerPage, totalPages, currentPage, practitionersList.size(),
                 otherPagePractitionerBundle.getTotal());
     }
+
+    private List<PractitionerRoleDto> getPractitionerRolesForEachPractitioner(String practitionerId) {
+        Bundle practitionerRoleBundle = (Bundle) fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId("Practitioner/" + practitionerId))
+                .execute();
+        List<PractitionerRoleDto> practitionerRoleDtos = new ArrayList<>();
+        if (!practitionerRoleBundle.isEmpty() && practitionerRoleBundle.getEntry() != null && practitionerRoleBundle.getEntry().size() > 0) {
+            PractitionerRole practitionerRole = (PractitionerRole) practitionerRoleBundle.getEntry().get(0).getResource();
+
+            if (practitionerRole.getCode().size() > 0 && practitionerRole.getCode() != null) {
+                practitionerRole.getCode().stream().forEach(code -> {
+                    PractitionerRoleDto practitionerRoleDto = new PractitionerRoleDto();
+                    practitionerRoleDto.setCode((code.getCoding().size() > 0 || code.getCoding() != null) ? code.getCoding().get(0).getCode() : "");
+                    practitionerRoleDto.setDisplay((code.getCoding().size() > 0 || code.getCoding() != null) ? code.getCoding().get(0).getDisplay() : "");
+                    practitionerRoleDto.setSystem((code.getCoding().size() > 0 || code.getCoding() != null) ? code.getCoding().get(0).getSystem() : "");
+                    practitionerRoleDtos.add(practitionerRoleDto);
+                });
+            }
+        }
+        return practitionerRoleDtos;
+    }
+
 }
