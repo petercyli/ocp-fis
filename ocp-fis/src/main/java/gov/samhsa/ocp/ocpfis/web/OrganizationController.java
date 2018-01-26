@@ -56,4 +56,10 @@ public class OrganizationController {
         log.info("Organization successfully updated");
     }
 
+    @PutMapping("/{organizationId}/inactive")
+    @ResponseStatus(HttpStatus.OK)
+    public void inactivateOrganization(@PathVariable String organizationId) {
+        organizationService.inactivateOrganization(organizationId);
+    }
+
 }

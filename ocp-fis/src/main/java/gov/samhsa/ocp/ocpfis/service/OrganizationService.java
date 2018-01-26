@@ -15,4 +15,5 @@ public interface OrganizationService {
 
     void updateOrganization(String organizationId, OrganizationDto organizationDto);
 
+    void inactivateOrganization(String organizationId);
 }
