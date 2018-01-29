@@ -164,12 +164,11 @@ public class PatientServiceImpl implements PatientService {
         patient.setGender(getPatientGender(patientDto.getGenderCode()));
         patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
+        setExtensionFields(patient, patientDto);
+
         final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
         if (validationResult.isSuccessful()) {
-                log.debug("Calling FHIR Patient Update");
-
-                fhirClient.update().resource(patient)
-                        .execute();
+                fhirClient.update().resource(patient).execute();
         } else {
             throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
         }
@@ -353,10 +352,24 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private Optional<Coding> convertExtensionToCoding(Extension extension) {
+        Optional<Coding> coding = Optional.empty();
+
         Type type = extension.getValue();
-        CodeableConcept codeableConcept = (CodeableConcept) type;
-        List<Coding> codingList = codeableConcept.getCoding();
-        return Optional.ofNullable(codingList.get(0));
+        if (type != null) {
+            if(type instanceof CodeableConcept) {
+                CodeableConcept codeableConcept = (CodeableConcept) type;
+
+                if (codeableConcept != null) {
+                    List<Coding> codingList = codeableConcept.getCoding();
+
+                    if (codingList != null) {
+                        coding = Optional.of(codingList.get(0));
+                    }
+                }
+            }
+        }
+
+        return coding;
     }
 }
 
