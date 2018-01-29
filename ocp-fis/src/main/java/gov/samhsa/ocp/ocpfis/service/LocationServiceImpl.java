@@ -450,7 +450,7 @@ public class LocationServiceImpl implements LocationService {
         } else if (bundle != null && bundle.getEntry().size() == 1) {
             LocationDto temp = convertLocationBundleEntryToLocationDto(bundle.getEntry().get(0));
 
-            if (temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
+            if (!temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
                 throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
             }
         }
