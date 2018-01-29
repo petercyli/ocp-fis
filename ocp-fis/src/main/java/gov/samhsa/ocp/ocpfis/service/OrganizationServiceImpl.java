@@ -214,6 +214,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             existingOrganization.setName(updatedorganization.getName());
             existingOrganization.setTelecom(updatedorganization.getTelecom());
             existingOrganization.setAddress(updatedorganization.getAddress());
+            existingOrganization.setActive(updatedorganization.getActive());
 
             // Validate the resource
             final ValidationResult validationResult = fhirValidator.validateWithResult(existingOrganization);
