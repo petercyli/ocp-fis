@@ -12,18 +12,11 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
-import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
-import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.*;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.Practitioner;
-import org.hl7.fhir.dstu3.model.PractitionerRole;
-import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.*;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -45,6 +38,9 @@ public class PractitionerServiceImpl implements PractitionerService {
     private final FisProperties fisProperties;
 
     private final FhirValidator fhirValidator;
+
+    @Autowired
+    private LookUpService lookUpService;
 
     @Autowired
     public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
@@ -174,7 +170,7 @@ public class PractitionerServiceImpl implements PractitionerService {
             practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
                         //Assign fhir practitionerRole codes.
                         CodeableConcept codeableConcept = new CodeableConcept();
-                        Coding coding = new Coding().setCode(practitionerRoleCode.getCode()).setDisplay(practitionerRoleCode.getDisplay()).setSystem(practitionerRoleCode.getSystem());
+                        Coding coding = mapPractitionerRoleToCode(practitionerRoleCode);
                         List<Coding> codings = new ArrayList<>();
                         codings.add(coding);
                         codeableConcept.setCoding(codings);
@@ -238,7 +234,7 @@ public class PractitionerServiceImpl implements PractitionerService {
             practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
                         //Assign fhir practitionerRole codes.
                         CodeableConcept codeableConcept = new CodeableConcept();
-                        Coding coding = new Coding().setCode(practitionerRoleCode.getCode()).setDisplay(practitionerRoleCode.getDisplay()).setSystem(practitionerRoleCode.getSystem());
+                        Coding coding = mapPractitionerRoleToCode(practitionerRoleCode);
                         List<Coding> codings = new ArrayList<>();
                         codings.add(coding);
                         codeableConcept.setCoding(codings);
@@ -346,4 +342,16 @@ public class PractitionerServiceImpl implements PractitionerService {
         return practitionerRoleDtos;
     }
 
+    private Coding mapPractitionerRoleToCode(PractitionerRoleDto practitionerRoleDto) {
+        ValueSetDto practitionerValueSet = getValueSetDtoByCode(practitionerRoleDto.getCode());
+        return new Coding().setCode(practitionerValueSet.getCode()).setDisplay(practitionerValueSet.getDisplay()).setSystem(practitionerValueSet.getSystem());
+    }
+
+    private ValueSetDto getValueSetDtoByCode(String code) {
+        List<ValueSetDto> practitionerRoleLookups = lookUpService.getPractitionerRoles();
+        return practitionerRoleLookups.stream()
+                .filter(practitionerRole -> practitionerRole.getCode().equalsIgnoreCase(code))
+                .findAny()
+                .orElseThrow(PractitionerRoleNotFoundException::new);
+    }
 }
