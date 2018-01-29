@@ -30,6 +30,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -177,7 +178,7 @@ public class LocationServiceImpl implements LocationService {
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
-            throw new ResourceNotFoundException("No location found for the given OrganizationID:" + organizationResourceId);
+            return new PageDto<>(new ArrayList<>(), numberOfLocationsPerPage, 0, 0, 0, 0);
         }
 
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
@@ -287,6 +288,7 @@ public class LocationServiceImpl implements LocationService {
 
         Location updatedFhirLocation = modelMapper.map(locationDto, Location.class);
         //Overwrite values from the dto
+        existingFhirLocation.setName(updatedFhirLocation.getName());
         existingFhirLocation.setIdentifier(updatedFhirLocation.getIdentifier());
         existingFhirLocation.setAddress(updatedFhirLocation.getAddress());
         existingFhirLocation.setTelecom(updatedFhirLocation.getTelecom());
@@ -450,7 +452,7 @@ public class LocationServiceImpl implements LocationService {
         } else if (bundle != null && bundle.getEntry().size() == 1) {
             LocationDto temp = convertLocationBundleEntryToLocationDto(bundle.getEntry().get(0));
 
-            if (temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
+            if (!temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
                 throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
             }
         }
