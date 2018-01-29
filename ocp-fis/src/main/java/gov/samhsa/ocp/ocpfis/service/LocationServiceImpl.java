@@ -287,6 +287,7 @@ public class LocationServiceImpl implements LocationService {
 
         Location updatedFhirLocation = modelMapper.map(locationDto, Location.class);
         //Overwrite values from the dto
+        existingFhirLocation.setName(updatedFhirLocation.getName());
         existingFhirLocation.setIdentifier(updatedFhirLocation.getIdentifier());
         existingFhirLocation.setAddress(updatedFhirLocation.getAddress());
         existingFhirLocation.setTelecom(updatedFhirLocation.getTelecom());
