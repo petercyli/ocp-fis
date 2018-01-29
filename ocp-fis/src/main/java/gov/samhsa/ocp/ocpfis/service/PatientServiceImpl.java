@@ -212,6 +212,8 @@ public class PatientServiceImpl implements PatientService {
                     .map(patient -> {
                         PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
                         patientDto.setId(patient.getIdElement().getIdPart());
+                        if ( patient.getGender()!=null )
+                            patientDto.setGenderCode(patient.getGender().toCode());
                         mapExtensionFields(patient, patientDto);
                         return patientDto;
                     })
