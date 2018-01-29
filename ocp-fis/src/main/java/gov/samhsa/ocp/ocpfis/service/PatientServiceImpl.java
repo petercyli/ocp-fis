@@ -159,18 +159,26 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public void updatePatient(PatientDto patientDto) {
-        final Patient patient = modelMapper.map(patientDto, Patient.class);
-        patient.setId(new IdType(patientDto.getId()));
-        patient.setGender(getPatientGender(patientDto.getGenderCode()));
-        patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
+        int existingNumberOfPatients = this.getPatientsByIdentifier(patientDto.getIdentifier().get(0).getSystem(), patientDto.getIdentifier().get(0).getValue());
 
-        setExtensionFields(patient, patientDto);
+        if(existingNumberOfPatients == 0) {
 
-        final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
-        if (validationResult.isSuccessful()) {
+            final Patient patient = modelMapper.map(patientDto, Patient.class);
+            patient.setId(new IdType(patientDto.getId()));
+            patient.setGender(getPatientGender(patientDto.getGenderCode()));
+            patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
+
+            setExtensionFields(patient, patientDto);
+
+            final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
+            if (validationResult.isSuccessful()) {
                 fhirClient.update().resource(patient).execute();
+            } else {
+                throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
+            }
         } else {
-            throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
+            log.info("Patient already exists with the given identifier system and value");
+            throw new DuplicateResourceFoundException("Patient already exists with the given identifier system and value");
         }
     }
 
