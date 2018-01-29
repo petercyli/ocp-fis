@@ -42,7 +42,7 @@ public class AddressDtoToAddressConverter extends AbstractConverter<AddressDto, 
             if(source.getUse() != null && !source.getUse().isEmpty()){
                for(ValueSetDto validAddrUse : validAddressUses){
                    if (source.getUse().equalsIgnoreCase(validAddrUse.getDisplay())){
-                       fhirAddress.setUse(Address.AddressUse.valueOf(source.getUse()));
+                       fhirAddress.setUse(Address.AddressUse.valueOf(source.getUse().toUpperCase()));
                    }
                }
             }
