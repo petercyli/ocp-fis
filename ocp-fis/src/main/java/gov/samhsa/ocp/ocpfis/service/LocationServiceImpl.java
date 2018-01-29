@@ -30,6 +30,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -177,7 +178,7 @@ public class LocationServiceImpl implements LocationService {
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
-            throw new ResourceNotFoundException("No location found for the given OrganizationID:" + organizationResourceId);
+            return new PageDto<>(new ArrayList<>(), numberOfLocationsPerPage, 0, 0, 0, 0);
         }
 
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
