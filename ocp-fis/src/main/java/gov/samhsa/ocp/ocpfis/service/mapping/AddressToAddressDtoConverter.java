@@ -27,7 +27,7 @@ public class AddressToAddressDtoConverter extends AbstractConverter<Address, Add
             if (source.getState() != null)
                 tempAddressDto.setStateCode(source.getState());
             if (source.getUse() != null)
-                tempAddressDto.setUse(source.getUse().toString());
+                tempAddressDto.setUse(source.getUse().toCode());
             tempAddressDto.setPostalCode(source.getPostalCode());
         }
         return tempAddressDto;
