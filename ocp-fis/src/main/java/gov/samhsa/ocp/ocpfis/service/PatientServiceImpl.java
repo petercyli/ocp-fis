@@ -159,19 +159,26 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public void updatePatient(PatientDto patientDto) {
-        final Patient patient = modelMapper.map(patientDto, Patient.class);
-        patient.setId(new IdType(patientDto.getId()));
-        patient.setGender(getPatientGender(patientDto.getGenderCode()));
-        patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
+        int existingNumberOfPatients = this.getPatientsByIdentifier(patientDto.getIdentifier().get(0).getSystem(), patientDto.getIdentifier().get(0).getValue());
 
-        final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
-        if (validationResult.isSuccessful()) {
-                log.debug("Calling FHIR Patient Update");
+        if(existingNumberOfPatients == 0) {
 
-                fhirClient.update().resource(patient)
-                        .execute();
+            final Patient patient = modelMapper.map(patientDto, Patient.class);
+            patient.setId(new IdType(patientDto.getId()));
+            patient.setGender(getPatientGender(patientDto.getGenderCode()));
+            patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
+
+            setExtensionFields(patient, patientDto);
+
+            final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
+            if (validationResult.isSuccessful()) {
+                fhirClient.update().resource(patient).execute();
+            } else {
+                throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
+            }
         } else {
-            throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
+            log.info("Patient already exists with the given identifier system and value");
+            throw new DuplicateResourceFoundException("Patient already exists with the given identifier system and value");
         }
     }
 
@@ -353,10 +360,24 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private Optional<Coding> convertExtensionToCoding(Extension extension) {
+        Optional<Coding> coding = Optional.empty();
+
         Type type = extension.getValue();
-        CodeableConcept codeableConcept = (CodeableConcept) type;
-        List<Coding> codingList = codeableConcept.getCoding();
-        return Optional.ofNullable(codingList.get(0));
+        if (type != null) {
+            if(type instanceof CodeableConcept) {
+                CodeableConcept codeableConcept = (CodeableConcept) type;
+
+                if (codeableConcept != null) {
+                    List<Coding> codingList = codeableConcept.getCoding();
+
+                    if (codingList != null) {
+                        coding = Optional.of(codingList.get(0));
+                    }
+                }
+            }
+        }
+
+        return coding;
     }
 }
 
