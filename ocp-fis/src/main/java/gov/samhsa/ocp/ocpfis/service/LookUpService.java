@@ -33,12 +33,21 @@ public interface LookUpService {
     List<ValueSetDto> getAdministrativeGenders();
 
     List<ValueSetDto> getUSCoreRace();
-    List<ValueSetDto> getUSCoreEthnicity();
-    List<ValueSetDto> getUSCoreBirthSex();
-    List<ValueSetDto> getLanguages();
 
+    List<ValueSetDto> getUSCoreEthnicity();
+
+    List<ValueSetDto> getUSCoreBirthSex();
+
+    List<ValueSetDto> getLanguages();
 
     List<OrganizationStatusDto> getOrganizationStatuses();
 
     List<ValueSetDto> getPractitionerRoles();
+
+    List<ValueSetDto> getCareTeamCategories();
+
+    List<ValueSetDto> getParticipantTypes();
+
+    List<ValueSetDto> getCareTeamStatuses();
+
 }
