@@ -13,5 +13,6 @@ import java.util.List;
 @NoArgsConstructor
 public class CareTeamDto {
 
+    String id;
 
 }
