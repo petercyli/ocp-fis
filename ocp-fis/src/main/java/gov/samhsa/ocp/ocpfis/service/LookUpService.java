@@ -41,4 +41,6 @@ public interface LookUpService {
     List<OrganizationStatusDto> getOrganizationStatuses();
 
     List<ValueSetDto> getPractitionerRoles();
+
+    List<ValueSetDto> getServiceTypes();
 }

@@ -581,6 +581,41 @@ public class LookUpServiceImpl implements LookUpService {
         return languageList;
     }
 
+    @Override
+    public List<ValueSetDto> getServiceTypes() {
+        List<ValueSetDto> serviceTypeCodes = new ArrayList<>();
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-type";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any service type", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any service type", e);
+        }
+
+        if (response == null || response.getCompose() == null ||
+                response.getCompose().getInclude() == null ||
+                response.getCompose().getInclude().size() < 1 ||
+                response.getCompose().getInclude().get(0).getConcept() == null ||
+                response.getCompose().getInclude().get(0).getConcept().size() < 1) {
+            log.error("Query was successful, but found no service types in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no service types in the configured FHIR server");
+        } else {
+
+            List<ValueSet.ConceptReferenceComponent> statesList = response.getCompose().getInclude().get(0).getConcept();
+            statesList.forEach(state -> {
+                ValueSetDto temp = new ValueSetDto();
+                temp.setCode(state.getCode());
+                temp.setDisplay(state.getDisplay());
+                serviceTypeCodes.add(temp);
+            });
+        }
+        log.info("Found " + serviceTypeCodes.size() + " service types.");
+        return serviceTypeCodes;
+    }
+
+
     private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ValueSetExpansionContainsComponent identifierType) {
         ValueSetDto temp = new ValueSetDto();
         temp.setSystem(identifierType.getSystem());
