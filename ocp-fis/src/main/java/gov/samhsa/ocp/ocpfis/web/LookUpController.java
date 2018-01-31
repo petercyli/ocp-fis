@@ -179,4 +179,19 @@ public class LookUpController {
         return lookUpService.getLanguages();
     }
 
+    @GetMapping("/care-team-categories")
+    public List<ValueSetDto> getCareTeamCategories() {
+        return lookUpService.getCareTeamCategories();
+    }
+
+    @GetMapping("/participant-types")
+    public List<ValueSetDto> getParticipantTypes() {
+        return lookUpService.getParticipantTypes();
+    }
+
+    @GetMapping("/care-team-statuses")
+    public List<ValueSetDto> getCareTeamStatuses() {
+        return lookUpService.getCareTeamStatuses();
+    }
+
 }
