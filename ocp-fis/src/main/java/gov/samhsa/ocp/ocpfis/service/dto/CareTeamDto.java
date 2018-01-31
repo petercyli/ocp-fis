@@ -12,7 +12,16 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CareTeamDto {
+    private String id;
+    private String name;
+    private List<IdentifierDto> identifiers;
 
-    String id;
+    private ValueSetDto status;
+
+    private List<ValueSetDto> categories;
+
+    private SubjectDto subject;
+
+    private List<ParticipantDto> praticipants;
 
 }
