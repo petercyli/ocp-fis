@@ -184,4 +184,9 @@ public class LookUpController {
         return lookUpService.getHealthCareServiceTypes();
     }
 
+    @GetMapping("/healthcareservice-categories")
+    public List<ValueSetDto> getHealthCareServiceCategories() {
+        return lookUpService.getHealthCareServiceCategories();
+    }
+
 }

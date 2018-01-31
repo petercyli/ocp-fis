@@ -43,4 +43,6 @@ public interface LookUpService {
     List<ValueSetDto> getPractitionerRoles();
 
     List<ValueSetDto> getHealthCareServiceTypes();
+
+    List<ValueSetDto> getHealthCareServiceCategories();
 }

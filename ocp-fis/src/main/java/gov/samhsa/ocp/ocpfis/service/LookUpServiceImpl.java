@@ -596,7 +596,7 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getHealthCareServiceTypes() {
-        List<ValueSetDto> serviceTypeCodes = new ArrayList<>();
+        List<ValueSetDto> healthCareServiceTypeCodes = new ArrayList<>();
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-type";
 
@@ -621,13 +621,46 @@ public class LookUpServiceImpl implements LookUpService {
                 temp.setCode(type.getCode());
                 temp.setDisplay(type.getDisplay());
                 temp.setSystem(type.getSystem());
-                serviceTypeCodes.add(temp);
+                healthCareServiceTypeCodes.add(temp);
             });
         }
-        log.info("Found " + serviceTypeCodes.size() + " health care service types.");
-        return serviceTypeCodes;
+        log.info("Found " + healthCareServiceTypeCodes.size() + " health care service types.");
+        return healthCareServiceTypeCodes;
     }
 
+    @Override
+    public List<ValueSetDto> getHealthCareServiceCategories() {
+        List<ValueSetDto> healthCareServiceCategoryCodes = new ArrayList<>();
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-category";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any healthcare service category", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any health care service category", e);
+        }
+
+        if (response.getExpansion() == null ||
+                response.getExpansion().getContains() == null ||
+                response.getExpansion().getContains().size() < 1) {
+            log.error("Query was successful, but found no service categories in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no health care service categories in the configured FHIR server");
+        } else {
+
+            List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceCategoryList = response.getExpansion().getContains();
+            healthCareServiceCategoryList.forEach(type -> {
+                ValueSetDto temp = new ValueSetDto();
+                temp.setCode(type.getCode());
+                temp.setDisplay(type.getDisplay());
+                temp.setSystem(type.getSystem());
+                healthCareServiceCategoryCodes.add(temp);
+            });
+        }
+        log.info("Found " + healthCareServiceCategoryCodes.size() + " health care service categories.");
+        return healthCareServiceCategoryCodes;
+    }
 
     private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ValueSetExpansionContainsComponent identifierType) {
         ValueSetDto temp = new ValueSetDto();
