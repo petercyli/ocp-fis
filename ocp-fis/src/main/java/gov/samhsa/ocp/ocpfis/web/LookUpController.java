@@ -179,9 +179,9 @@ public class LookUpController {
         return lookUpService.getLanguages();
     }
 
-    @GetMapping("/service-types")
-    public List<ValueSetDto> getServiceTypes() {
-        return lookUpService.getServiceTypes();
+    @GetMapping("/healthcareservice-types")
+    public List<ValueSetDto> getHealthCareServiceTypes() {
+        return lookUpService.getHealthCareServiceTypes();
     }
 
 }
