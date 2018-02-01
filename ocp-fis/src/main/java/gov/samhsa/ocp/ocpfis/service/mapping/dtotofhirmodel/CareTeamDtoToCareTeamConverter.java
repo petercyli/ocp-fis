@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
+import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantMemberDto;
@@ -50,7 +51,7 @@ public class CareTeamDtoToCareTeamConverter {
 
         //subject
         SubjectDto subjectDto = careTeamDto.getSubject();
-        careTeam.getSubject().setReference("patient/" + subjectDto.getId());
+        careTeam.getSubject().setReference("Patient/" + subjectDto.getId());
 
         //participants
         List<ParticipantDto> participantDtoList = careTeamDto.getParticipants();
@@ -62,14 +63,14 @@ public class CareTeamDtoToCareTeamConverter {
             //member
             ParticipantMemberDto memberDto = participantDto.getMember();
 
-            if(memberDto.getType().equalsIgnoreCase("participant")) {
-                careTeamParticipant.getMember().setReference("participant/" + memberDto.getId());
+            if(memberDto.getType().equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
+                careTeamParticipant.getMember().setReference("Practitioner/" + memberDto.getId());
 
-            } else if (memberDto.getType().equalsIgnoreCase("patient")) {
-                careTeamParticipant.getMember().setReference("patient/" + memberDto.getId());
+            } else if (memberDto.getType().equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
+                careTeamParticipant.getMember().setReference("Patient/" + memberDto.getId());
 
-            } else if (memberDto.getType().equalsIgnoreCase("organization")) {
-                careTeamParticipant.getMember().setReference("organization/" + memberDto.getId());
+            } else if (memberDto.getType().equalsIgnoreCase(ParticipantTypeEnum.organization.getCode())) {
+                careTeamParticipant.getMember().setReference("Organization/" + memberDto.getId());
             }
 
             //TODO: onBehalfOfDto
