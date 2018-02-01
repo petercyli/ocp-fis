@@ -40,4 +40,10 @@ public class HealthCareServiceController {
                                                                                 @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
         return healthCareServiceService.getAllHealthCareServicesByOrganization(organizationId, locationId, statusList, searchKey, searchValue, pageNumber, pageSize);
     }
+
+    @GetMapping("/health-care-services/{healthCareServiceId}")
+    public HealthCareServiceDto get(@PathVariable String healthCareServiceId) {
+        return healthCareServiceService.getHealthCareService(healthCareServiceId);
+    }
+
 }
