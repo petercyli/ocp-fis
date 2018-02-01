@@ -50,4 +50,6 @@ public interface LookUpService {
 
     List<ValueSetDto> getCareTeamStatuses();
 
+    List<ValueSetDto> getParticipantRoles();
+
 }
