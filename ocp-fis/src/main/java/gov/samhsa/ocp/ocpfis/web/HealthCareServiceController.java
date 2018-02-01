@@ -43,7 +43,7 @@ public class HealthCareServiceController {
     }
 
     @GetMapping("/health-care-services/{healthCareServiceId}")
-    public HealthCareServiceDto get(@PathVariable String healthCareServiceId) {
+    public HealthCareServiceDto getHealthCareService(@PathVariable String healthCareServiceId) {
         return healthCareServiceService.getHealthCareService(healthCareServiceId);
     }
 

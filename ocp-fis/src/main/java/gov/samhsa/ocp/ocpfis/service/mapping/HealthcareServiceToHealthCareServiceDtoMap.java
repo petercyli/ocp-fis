@@ -9,11 +9,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<HealthcareService, HealthCareServiceDto> {
 
-    @Autowired
-    private TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter;
+    private final TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter;
+
+    private final IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter;
 
     @Autowired
-    private IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter;
+    public HealthcareServiceToHealthCareServiceDtoMap(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter) {
+        this.telecomListToTelecomDtoListConverter = telecomListToTelecomDtoListConverter;
+        this.identifierListToIdentifierDtoListConverter = identifierListToIdentifierDtoListConverter;
+    }
 
     @Override
     protected void configure() {
