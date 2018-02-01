@@ -26,8 +26,8 @@ public class ParticipantController {
     public PageDto<ParticipantDto> getAllParticipants(@RequestParam(value = "member") ParticipantTypeEnum member,
                                                       @RequestParam(value = "value") String value,
                                                       @RequestParam(value = "showInActive", defaultValue = "false") Optional<Boolean> showInActive,
-                                                      @RequestParam(value = "page") Optional<Integer> page,
-                                                      @RequestParam(value = "size") Optional<Integer> size) {
+                                                      @RequestParam(value = "page", required = false) Optional<Integer> page,
+                                                      @RequestParam(value = "size", required = false) Optional<Integer> size) {
         return participantService.getAllParticipants(member, value, showInActive, page, size);
     }
 
