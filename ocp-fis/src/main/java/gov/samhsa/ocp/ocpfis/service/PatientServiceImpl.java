@@ -81,14 +81,17 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(String value, String type, boolean showInactive, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<PatientDto> getPatientsByValue(String value, String type, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfPatientsPerPage = size.filter(s -> s > 0 &&
                 s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getPatient().getPagination().getDefaultSize());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
-        if (!showInactive) {
-            // show only active patients
-            PatientSearchQuery.where(new TokenClientParam("active").exactly().code(Boolean.TRUE.toString()));
+
+        if(showInactive.isPresent()) {
+            if (!showInactive.get()) {
+                // show only active patients
+                PatientSearchQuery.where(new TokenClientParam("active").exactly().code(Boolean.TRUE.toString()));
+            }
         }
 
         if (type.equalsIgnoreCase(SearchType.NAME.name())) {
