@@ -12,6 +12,7 @@ import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
@@ -39,15 +40,13 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
     private final IGenericClient fhirClient;
     private final FhirValidator fhirValidator;
     private final FisProperties fisProperties;
-    private final LookUpService lookUpService;
 
     @Autowired
-    public HealthCareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator, LookUpService lookUpService) {
+    public HealthCareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fisProperties = fisProperties;
         this.fhirValidator = fhirValidator;
-        this.lookUpService = lookUpService;
     }
 
     @Override
