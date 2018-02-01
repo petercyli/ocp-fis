@@ -10,19 +10,23 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
 @RestController
-@RequestMapping("/healthcareservice")
 
 public class HealthCareServiceController {
 
     @Autowired
     private HealthCareServiceService healthCareServiceService;
 
-    @GetMapping
-    public PageDto<HealthCareServiceDto> getAllHealthCareServices(@RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
-        return null;
+    @GetMapping("/healthcareservices")
+    public PageDto<HealthCareServiceDto> getAllHealthCareServices(@RequestParam(value = "statusList") Optional<List<String>> statusList,
+                                                @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+        return healthCareServiceService.getAllHealthCareServices(statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 }

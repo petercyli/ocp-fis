@@ -14,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,17 +27,17 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
 
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
-    private final FisProperties ocpFisProperties;
-    private final FisProperties fisProperties;
     private final FhirValidator fhirValidator;
+    private final FisProperties fisProperties;
+    private final LookUpService lookUpService;
 
-    public HealthCareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
+    @Autowired
+    public HealthCareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator,LookUpService lookUpService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
-        this.ocpFisProperties = fisProperties;
-        this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
-
+        this.fhirValidator = fhirValidator;
+        this.lookUpService = lookUpService;
     }
 
     @Override
@@ -91,7 +92,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
             throw new ResourceNotFoundException("No locations were found in the FHIR server");
         }
 
-        log.info("FHIR Location(s) bundle retrieved " + firstPageHeathcareServiceSearchBundle.getTotal() + " location(s) from FHIR server successfully");
+        log.info("FHIR Healthcare Service(s) bundle retrieved " + firstPageHeathcareServiceSearchBundle.getTotal() + " Healthcare Service(s) from FHIR server successfully");
         otherPageHealthcareServiceSearchBundle = firstPageHeathcareServiceSearchBundle;
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
@@ -118,17 +119,17 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         return tempHealthCareServiceDto;
     }
 
-    private Bundle getHealthcareServiceSearchBundleAfterFirstPage(Bundle locationSearchBundle, int pageNumber, int pageSize) {
-        if (locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+    private Bundle getHealthcareServiceSearchBundleAfterFirstPage(Bundle healthcareServiceSearchBundle, int pageNumber, int pageSize) {
+        if (healthcareServiceSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             //Assuming page number starts with 1
             int offset = ((pageNumber >= 1 ? pageNumber : 1) - 1) * pageSize;
 
-            if (offset >= locationSearchBundle.getTotal()) {
-                throw new ResourceNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
+            if (offset >= healthcareServiceSearchBundle.getTotal()) {
+                throw new ResourceNotFoundException("No healthcare services were found in the FHIR server for the page number: " + pageNumber);
             }
 
             String pageUrl = fisProperties.getFhir().getServerUrl()
-                    + "?_getpages=" + locationSearchBundle.getId()
+                    + "?_getpages=" + healthcareServiceSearchBundle.getId()
                     + "&_getpagesoffset=" + offset
                     + "&_count=" + pageSize
                     + "&_bundletype=searchset";
@@ -138,7 +139,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                     .returnBundle(Bundle.class)
                     .execute();
         } else {
-            throw new ResourceNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
+            throw new ResourceNotFoundException("No healthcare services were found in the FHIR server for the page number: " + pageNumber);
         }
     }
 
