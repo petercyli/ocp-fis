@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -40,4 +41,13 @@ public class HealthCareServiceController {
                                                                                 @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
         return healthCareServiceService.getAllHealthCareServicesByOrganization(organizationId, locationId, statusList, searchKey, searchValue, pageNumber, pageSize);
     }
+
+    @PutMapping("/health-care-services/{healthCareServiceId}/assign")
+    public void assignLocationToHealthCareService(@PathVariable String healthCareServiceId,
+                                                  @RequestParam(value = "organizationId") String organizationId,
+                                                  @RequestParam(value = "locationIdList") List<String> locationIdList) {
+        healthCareServiceService.assignLocationToHealthCareService(healthCareServiceId, organizationId, locationIdList);
+    }
+
+
 }

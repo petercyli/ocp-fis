@@ -1,24 +1,33 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.HealthcareService;
+import org.hl7.fhir.dstu3.model.Location;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -114,6 +123,80 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         return null;
 
         //Note to Ming: If locationResourceId.isPresent(), then set appropriate value to HealthCareServiceDto.assignedToCurrentLocation
+    }
+
+    @Override
+    public void assignLocationToHealthCareService(String healthCareServiceId, String organizationResourceId, List<String> locationIdList) {
+        //First, validate if the given location(s) belong to the given organization Id
+        IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
+
+        Bundle locationSearchBundle = (Bundle) locationsSearchQuery.count(1000)
+                .returnBundle(Bundle.class)
+                .encodedJson()
+                .execute();
+        if (locationSearchBundle == null || locationSearchBundle.getEntry().size() < 1) {
+            log.info("Assign location to a HealthCareService: No location found for the given organization ID:" + organizationResourceId);
+            throw new ResourceNotFoundException("Cannot assign the given location(s) to healthCareService, because no location(s) were found belonging to the organization ID: " + organizationResourceId);
+        }
+
+        boolean allChecksPassed = false;
+
+        List<String> retrievedLocationsList = locationSearchBundle.getEntry().stream().map(fhirLocationModel -> fhirLocationModel.getResource().getIdElement().getIdPart()).collect(Collectors.toList());
+
+        if (retrievedLocationsList.containsAll(locationIdList)) {
+            log.info("Assign location to a HealthCareService: Successful check 1: The given location(s)  belong to the given organization ID: " + organizationResourceId);
+
+            HealthcareService existingHealthCareService = readHealthCareServiceFromServer(healthCareServiceId);
+            List<Reference> assignedLocations = existingHealthCareService.getLocation();
+
+            //Next, avoid adding redundant location data
+            Set<String> existingAssignedLocations = assignedLocations.stream().map(locReference -> locReference.getReference().substring(9)).collect(Collectors.toSet());
+            locationIdList.removeIf(existingAssignedLocations::contains);
+
+            if (locationIdList.size() == 0) {
+                log.info("Assign location to a HealthCareService: All location(s) from the query params have already been assigned to belonged to health care Service ID:" + healthCareServiceId + ". Nothing to do!");
+            } else {
+                log.info("Assign location to a HealthCareService: Successful check 2: Found some location(s) from the query params that CAN be assigned to belonged to health care Service ID:" + healthCareServiceId);
+                allChecksPassed = true;
+            }
+
+            if (allChecksPassed) {
+                locationIdList.forEach(locationId -> assignedLocations.add(new Reference("Location/" + locationId)));
+
+                // Validate the resource
+                ValidationResult validationResult = fhirValidator.validateWithResult(existingHealthCareService);
+                log.info("Assign location to a HealthCareService: Validation successful? " + validationResult.isSuccessful() + " for health care Service ID:" + healthCareServiceId);
+
+                if (!validationResult.isSuccessful()) {
+                    throw new FHIRFormatErrorException("HealthCareService validation was not successful" + validationResult.getMessages());
+                }
+
+                //Update
+                try {
+                    MethodOutcome serverResponse = fhirClient.update().resource(existingHealthCareService).execute();
+                    log.info("Successfully assigned location(s) to HealthCareService ID :" + serverResponse.getId().getIdPart());
+                }
+                catch (BaseServerResponseException e) {
+                    log.error("Assign location to a HealthCareService: Could NOT update location for HealthCareService ID:" + healthCareServiceId);
+                    throw new FHIRClientException("FHIR Client returned with an error while updating the location:" + e.getMessage());
+                }
+            }
+        } else {
+            throw new BadRequestException("Cannot assign the given location(s) to healthCareService, because not all location(s) from the query params belonged to the organization ID: " + organizationResourceId);
+        }
+    }
+
+    private HealthcareService readHealthCareServiceFromServer(String healthCareServiceId) {
+        HealthcareService existingHealthCareService;
+
+        try {
+            existingHealthCareService = fhirClient.read().resource(HealthcareService.class).withId(healthCareServiceId.trim()).execute();
+        }
+        catch (BaseServerResponseException e) {
+            log.error("FHIR Client returned with an error while reading the HealthcareService with ID: " + healthCareServiceId);
+            throw new ResourceNotFoundException("FHIR Client returned with an error while reading the HealthcareService: " + e.getMessage());
+        }
+        return existingHealthCareService;
     }
 
     private HealthCareServiceDto convertHealthCareServiceBundleEntryToHealthCareServiceDto(Bundle.BundleEntryComponent fhirHealthcareServiceModel) {
