@@ -22,6 +22,6 @@ public class CareTeamDto {
 
     private SubjectDto subject;
 
-    private List<ParticipantDto> praticipants;
+    private List<ParticipantDto> participants;
 
 }
