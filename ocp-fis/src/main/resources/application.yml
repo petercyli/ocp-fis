@@ -24,6 +24,9 @@ ocp-fis:
   patient:
     pagination:
       default-size: 20
+  healthCareService:
+    pagination:
+      default-size: 20
 ---
 # updates configuration for docker environment
 spring.profiles: docker
