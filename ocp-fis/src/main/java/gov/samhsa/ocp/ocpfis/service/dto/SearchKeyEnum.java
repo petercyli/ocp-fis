@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.service;
+package gov.samhsa.ocp.ocpfis.service.dto;
 
 public class SearchKeyEnum {
     public enum LocationSearchKey {

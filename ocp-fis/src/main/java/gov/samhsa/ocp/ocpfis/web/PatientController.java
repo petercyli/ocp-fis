@@ -3,7 +3,6 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.PatientService;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
-import gov.samhsa.ocp.ocpfis.service.dto.SearchType;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -27,6 +26,10 @@ import java.util.Optional;
 @RequestMapping("/patients")
 public class PatientController {
 
+    public enum SearchType {
+        identifier, name, logicalId
+    }
+
     private final PatientService patientService;
 
     public PatientController(PatientService patientService) {
@@ -41,7 +44,9 @@ public class PatientController {
 
 
     @GetMapping("/search")
-    public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "value") String value, @RequestParam(value = "type", defaultValue = "name") String type, @RequestParam(value = "showInactive", defaultValue = "false") boolean showInactive,
+    public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "value") String value,
+                                                  @RequestParam(value = "type", defaultValue = "name") String type,
+                                                  @RequestParam(value = "showInactive", defaultValue = "false") Optional<Boolean> showInactive,
                                                   @RequestParam Optional<Integer> page,
                                                   @RequestParam Optional<Integer> size) {
         if (type == null || !Arrays.stream(SearchType.values()).anyMatch(searchType -> searchType.name().equalsIgnoreCase(type.trim()))) {
