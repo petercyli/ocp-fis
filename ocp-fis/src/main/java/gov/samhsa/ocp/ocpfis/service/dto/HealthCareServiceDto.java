@@ -22,6 +22,6 @@ public class HealthCareServiceDto {
     private List<IdentifierDto> identifier;
     private List<TelecomDto> telecom;
     private List<ValueSetDto> type;
-    private List<String> locationId;
-
+    private List<NameLogicalIdIdentifiersDto> location;
+      private  boolean assignedToCurrentLocation;
 }
