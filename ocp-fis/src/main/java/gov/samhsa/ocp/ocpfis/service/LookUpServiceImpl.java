@@ -5,7 +5,6 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.IdentifierTypeEnum;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
-import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
@@ -44,7 +43,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any state code", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any state code", e);
         }
@@ -85,7 +85,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any identifier type", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any identifier type", e);
         }
@@ -179,7 +180,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any identifier use", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any identifier use", e);
         }
@@ -207,7 +209,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any location mode", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any location mode", e);
         }
@@ -235,7 +238,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any location status", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any location status", e);
         }
@@ -269,7 +273,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any physical location type", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any physical location type", e);
         }
@@ -297,7 +302,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any address type", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any address type", e);
         }
@@ -324,7 +330,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any address use", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any address use", e);
         }
@@ -351,7 +358,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any telecom use", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any telecom use", e);
         }
@@ -378,7 +386,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any telecom use", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any telecom use", e);
         }
@@ -405,7 +414,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any practitioner roles", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any practitioner roles", e);
         }
@@ -460,11 +470,12 @@ public class LookUpServiceImpl implements LookUpService {
                 return temp;
             }).collect(Collectors.toList());
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.debug("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
         }
 
-        if(response == null) {
+        if (response == null) {
             url = fisProperties.getFhir().getServerUrl() + "/ValueSet/omb-race-category";
             try {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
@@ -479,12 +490,12 @@ public class LookUpServiceImpl implements LookUpService {
                 }).collect(Collectors.toList());
 
 
-            } catch (ResourceNotFoundException e) {
+            }
+            catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-race-category", e);
             }
         }
-
 
 
         return usCoreRaces;
@@ -509,11 +520,12 @@ public class LookUpServiceImpl implements LookUpService {
                 return temp;
             }).collect(Collectors.toList());
 
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.debug("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
         }
 
-        if(response == null) {
+        if (response == null) {
             url = fisProperties.getFhir().getServerUrl() + "/ValueSet/omb-ethnicity-category";
             try {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
@@ -527,12 +539,12 @@ public class LookUpServiceImpl implements LookUpService {
                     return temp;
                 }).collect(Collectors.toList());
 
-            } catch (ResourceNotFoundException e) {
+            }
+            catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-ethnicity-category", e);
             }
         }
-
 
 
         return usCoreEthnicites;
@@ -547,7 +559,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ResourceNotFoundException e) {
+        }
+        catch (ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any us-core-birthsex", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any us-core-birthsex", e);
         }
@@ -581,6 +594,74 @@ public class LookUpServiceImpl implements LookUpService {
         }).collect(Collectors.toList());
 
         return languageList;
+    }
+
+    @Override
+    public List<ValueSetDto> getHealthCareServiceTypes() {
+        List<ValueSetDto> healthCareServiceTypeCodes = new ArrayList<>();
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-type";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any healthcare service type", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any health care service type", e);
+        }
+
+        if (response.getExpansion() == null ||
+                response.getExpansion().getContains() == null ||
+                response.getExpansion().getContains().size() < 1) {
+            log.error("Query was successful, but found no service types in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no health care service types in the configured FHIR server");
+        } else {
+
+            List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceTypeList = response.getExpansion().getContains();
+            healthCareServiceTypeList.forEach(type -> {
+                ValueSetDto temp = new ValueSetDto();
+                temp.setCode(type.getCode());
+                temp.setDisplay(type.getDisplay());
+                temp.setSystem(type.getSystem());
+                healthCareServiceTypeCodes.add(temp);
+            });
+        }
+        log.info("Found " + healthCareServiceTypeCodes.size() + " health care service types.");
+        return healthCareServiceTypeCodes;
+    }
+
+    @Override
+    public List<ValueSetDto> getHealthCareServiceCategories() {
+        List<ValueSetDto> healthCareServiceCategoryCodes = new ArrayList<>();
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-category";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any healthcare service category", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any health care service category", e);
+        }
+
+        if (response.getExpansion() == null ||
+                response.getExpansion().getContains() == null ||
+                response.getExpansion().getContains().size() < 1) {
+            log.error("Query was successful, but found no service categories in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no health care service categories in the configured FHIR server");
+        } else {
+
+            List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceCategoryList = response.getExpansion().getContains();
+            healthCareServiceCategoryList.forEach(type -> {
+                ValueSetDto temp = new ValueSetDto();
+                temp.setCode(type.getCode());
+                temp.setDisplay(type.getDisplay());
+                temp.setSystem(type.getSystem());
+                healthCareServiceCategoryCodes.add(temp);
+            });
+        }
+        log.info("Found " + healthCareServiceCategoryCodes.size() + " health care service categories.");
+        return healthCareServiceCategoryCodes;
     }
 
     @Override
