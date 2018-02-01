@@ -22,5 +22,5 @@ public class HealthCareServiceDto extends NameLogicalIdIdentifiersDto{
     private List<TelecomDto> telecom;
     private List<ValueSetDto> type;
     private List<NameLogicalIdIdentifiersDto> location;
-      private  boolean assignedToCurrentLocation;
+    private Boolean assignedToCurrentLocation;
 }
