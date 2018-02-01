@@ -15,6 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 public class HealthCareServiceDto extends NameLogicalIdIdentifiersDto{
     private String organizationId;
+    private String organizationName;
     private boolean active;
     private String categorySystem;
     private String categoryValue;
