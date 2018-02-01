@@ -5,6 +5,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.IdentifierTypeEnum;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
+import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -581,7 +583,7 @@ public class LookUpServiceImpl implements LookUpService {
     public List<ValueSetDto> getLanguages() {
         //Use temporary list of enums
         //list to be provided by eversolve
-        List<ValueSetDto> languageList;
+        List<ValueSetDto> languageList = new ArrayList<>();
         List<LanguageEnum> languageEnums = Arrays.asList(LanguageEnum.values());
 
         languageList = languageEnums.stream().map(object -> {
@@ -660,6 +662,100 @@ public class LookUpServiceImpl implements LookUpService {
         }
         log.info("Found " + healthCareServiceCategoryCodes.size() + " health care service categories.");
         return healthCareServiceCategoryCodes;
+    }
+
+    @Override
+    public List<ValueSetDto> getCareTeamCategories() {
+        List<ValueSetDto> careTeamCategory;
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-category";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        } catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any care-team-category", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any care-team-category", e);
+        }
+
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+
+        careTeamCategory = valueSetList.stream().map(object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setSystem(object.getSystem());
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getDisplay());
+            return temp;
+        }).collect(Collectors.toList());
+
+        return careTeamCategory;
+    }
+
+    @Override
+    public List<ValueSetDto> getCareTeamStatuses() {
+        List<ValueSetDto> careTeamStatusList;
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-status";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        } catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any care-team-status", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any care-team-status", e);
+        }
+
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+
+        careTeamStatusList = valueSetList.stream().map(object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setSystem(object.getSystem());
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getDisplay());
+            return temp;
+        }).collect(Collectors.toList());
+
+        return careTeamStatusList;
+    }
+
+    @Override
+    public List<ValueSetDto> getParticipantTypes() {
+        List<ValueSetDto> participantTypeList = new ArrayList<>();
+        List<ParticipantTypeEnum> participantTypeEnums = Arrays.asList(ParticipantTypeEnum.values());
+
+        participantTypeList = participantTypeEnums.stream().map(object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getName());
+            return temp;
+        }).collect(Collectors.toList());
+
+        return participantTypeList;
+    }
+
+    @Override
+    public List<ValueSetDto> getParticipantRoles() {
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=" + "http://hl7.org/fhir/ValueSet/participant-role";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        } catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any participant-roles", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any participant-roles", e);
+        }
+
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+
+        return valueSetList.stream().map(convertToValueSetDto()).collect(Collectors.toList());
+    }
+
+    private Function<ValueSet.ValueSetExpansionContainsComponent, ValueSetDto> convertToValueSetDto() {
+        return object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setSystem(object.getSystem());
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getDisplay());
+            return temp;
+        };
     }
 
     private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ValueSetExpansionContainsComponent identifierType) {
