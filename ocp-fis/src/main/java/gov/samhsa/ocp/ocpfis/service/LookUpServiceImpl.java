@@ -7,6 +7,7 @@ import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
+import gov.samhsa.ocp.ocpfis.service.dto.LookupPathUrls;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
@@ -38,25 +39,8 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public List<ValueSetDto> getUspsStates() {
         List<ValueSetDto> stateCodes = new ArrayList<>();
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/usps-state/";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any state code", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any state code", e);
-        }
-
-        if (response == null || response.getCompose() == null ||
-                response.getCompose().getInclude() == null ||
-                response.getCompose().getInclude().size() < 1 ||
-                response.getCompose().getInclude().get(0).getConcept() == null ||
-                response.getCompose().getInclude().get(0).getConcept().size() < 1) {
-            log.error("Query was successful, but found no state codes in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no state codes in the configured FHIR server");
-        } else {
+        ValueSet response = getValueSets(LookupPathUrls.US_STATE.getUrlPath(), LookupPathUrls.US_STATE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.US_STATE.getType())) {
 
             List<ValueSet.ConceptReferenceComponent> statesList = response.getCompose().getInclude().get(0).getConcept();
             statesList.forEach(state -> {
@@ -73,31 +57,15 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public List<ValueSetDto> getIdentifierTypes(Optional<String> resourceType) {
         List<ValueSetDto> identifierTypes = new ArrayList<>();
-        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList;
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = new ArrayList<>();
 
         final List<String> allowedLocationIdentifierTypes = Arrays.asList("EN", "TAX", "NIIP", "PRN");
         final List<String> allowedOrganizationIdentifierTypes = Arrays.asList("EN", "TAX", "NIIP", "PRN");
         final List<String> allowedPatientIdentifierTypes = Arrays.asList("DL", "PPN", "TAX", "MR", "DR", "SB");
         final List<String> allowedPractitionerIdentifierTypes = Arrays.asList("PRN", "TAX", "MD", "SB");
 
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any identifier type", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any identifier type", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no identifier types in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no identifier types in the configured FHIR server");
-        } else {
+        ValueSet response = getValueSets(LookupPathUrls.IDENTIFIER_TYPE.getUrlPath(), LookupPathUrls.IDENTIFIER_TYPE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.IDENTIFIER_TYPE.getType())) {
             valueSetList = response.getExpansion().getContains();
         }
 
@@ -174,25 +142,9 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getIdentifierUses() {
-        List<ValueSetDto> identifierUses;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-use";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any identifier use", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any identifier use", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no identifier use in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no identifier use in the configured FHIR server");
-        } else {
+        List<ValueSetDto> identifierUses = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.IDENTIFIER_USE.getUrlPath(), LookupPathUrls.IDENTIFIER_USE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.IDENTIFIER_USE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             identifierUses = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
@@ -203,25 +155,9 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getLocationModes() {
-        List<ValueSetDto> locationModes;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/location-mode";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any location mode", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any location mode", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no location mode in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no location mode in the configured FHIR server");
-        } else {
+        List<ValueSetDto> locationModes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.LOCATION_MODE.getUrlPath(), LookupPathUrls.LOCATION_MODE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.LOCATION_MODE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             locationModes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
@@ -232,25 +168,9 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getLocationStatuses() {
-        List<ValueSetDto> locationStatuses;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/location-status";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any location status", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any location status", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no location status in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no location status in the configured FHIR server");
-        } else {
+        List<ValueSetDto> locationStatuses = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.LOCATION_STATUS.getUrlPath(), LookupPathUrls.LOCATION_STATUS.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.LOCATION_STATUS.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             locationStatuses = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
@@ -267,25 +187,9 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getLocationPhysicalTypes() {
-        List<ValueSetDto> physicalLocationTypes;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/location-physical-type";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any physical location type", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any physical location type", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no physical location type in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no physical location type in the configured FHIR server");
-        } else {
+        List<ValueSetDto> physicalLocationTypes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.LOCATION_PHYSICAL_TYPE.getUrlPath(), LookupPathUrls.LOCATION_PHYSICAL_TYPE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.LOCATION_PHYSICAL_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             physicalLocationTypes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
@@ -296,25 +200,9 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getAddressTypes() {
-        List<ValueSetDto> addressTypes;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/address-type";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any address type", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any address type", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no address type in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no address type in the configured FHIR server");
-        } else {
+        List<ValueSetDto> addressTypes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.ADDRESS_TYPE.getUrlPath(), LookupPathUrls.ADDRESS_TYPE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.ADDRESS_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             addressTypes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
@@ -324,25 +212,9 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getAddressUses() {
-        List<ValueSetDto> addressUses;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/address-use";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any address use", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any address use", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no address use in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no address use in the configured FHIR server");
-        } else {
+        List<ValueSetDto> addressUses = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.ADDRESS_USE.getUrlPath(), LookupPathUrls.ADDRESS_USE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.ADDRESS_USE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             addressUses = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
@@ -352,25 +224,9 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getTelecomUses() {
-        List<ValueSetDto> telecomUses;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/contact-point-use";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any telecom use", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any telecom use", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no telecom use in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no telecom use in the configured FHIR server");
-        } else {
+        List<ValueSetDto> telecomUses = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.TELECOM_USE.getUrlPath(), LookupPathUrls.TELECOM_USE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.TELECOM_USE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             telecomUses = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
@@ -380,25 +236,9 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getTelecomSystems() {
-        List<ValueSetDto> telecomSystems;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/contact-point-system";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any telecom use", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any telecom use", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no telecom use in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no telecom use in the configured FHIR server");
-        } else {
+        List<ValueSetDto> telecomSystems = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.TELECOM_SYSTEM.getUrlPath(), LookupPathUrls.TELECOM_SYSTEM.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.TELECOM_SYSTEM.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             telecomSystems = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
@@ -408,25 +248,9 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getPractitionerRoles() {
-        List<ValueSetDto> practitionerRoles;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/practitioner-role";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any practitioner roles", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any practitioner roles", e);
-        }
-
-        if (response == null ||
-                response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no practitioner roles in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no practitioner roles in the configured FHIR server");
-        } else {
+        List<ValueSetDto> practitionerRoles = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.PRACTITIONER_ROLE.getUrlPath(), LookupPathUrls.PRACTITIONER_ROLE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.PRACTITIONER_ROLE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             practitionerRoles = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
         }
@@ -553,17 +377,8 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getUSCoreBirthSex() {
-        List<ValueSetDto> usCoreBirthsexes;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/us/core/ValueSet/us-core-birthsex";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any us-core-birthsex", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any us-core-birthsex", e);
-        }
+        List<ValueSetDto> usCoreBirthsexes= new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.BIRTH_SEX.getUrlPath(), LookupPathUrls.BIRTH_SEX.getType());
 
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
 
@@ -599,24 +414,8 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public List<ValueSetDto> getHealthCareServiceTypes() {
         List<ValueSetDto> healthCareServiceTypeCodes = new ArrayList<>();
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-type";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any healthcare service type", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any health care service type", e);
-        }
-
-        if (response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no service types in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no health care service types in the configured FHIR server");
-        } else {
-
+        ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceTypeList = response.getExpansion().getContains();
             healthCareServiceTypeList.forEach(type -> {
                 ValueSetDto temp = new ValueSetDto();
@@ -633,24 +432,8 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public List<ValueSetDto> getHealthCareServiceCategories() {
         List<ValueSetDto> healthCareServiceCategoryCodes = new ArrayList<>();
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-category";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any healthcare service category", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any health care service category", e);
-        }
-
-        if (response.getExpansion() == null ||
-                response.getExpansion().getContains() == null ||
-                response.getExpansion().getContains().size() < 1) {
-            log.error("Query was successful, but found no service categories in the configured FHIR server");
-            throw new ResourceNotFoundException("Query was successful, but found no health care service categories in the configured FHIR server");
-        } else {
-
+        ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceCategoryList = response.getExpansion().getContains();
             healthCareServiceCategoryList.forEach(type -> {
                 ValueSetDto temp = new ValueSetDto();
@@ -666,17 +449,8 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getCareTeamCategories() {
-        List<ValueSetDto> careTeamCategory;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-category";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any care-team-category", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any care-team-category", e);
-        }
-
+        List<ValueSetDto> careTeamCategory = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_CATEGORY.getUrlPath(), LookupPathUrls.CARE_TEAM_CATEGORY.getType());
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
 
         careTeamCategory = valueSetList.stream().map(object -> {
@@ -692,16 +466,8 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getCareTeamStatuses() {
-        List<ValueSetDto> careTeamStatusList;
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-status";
-
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any care-team-status", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any care-team-status", e);
-        }
+        List<ValueSetDto> careTeamStatusList= new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_STATUS.getUrlPath(), LookupPathUrls.CARE_TEAM_STATUS.getType());
 
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
 
@@ -733,15 +499,9 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getParticipantRoles() {
-        ValueSet response;
-        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=" + "http://hl7.org/fhir/ValueSet/participant-role";
 
-        try {
-            response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ResourceNotFoundException e) {
-            log.error("Query was unsuccessful - Could not find any participant-roles", e.getMessage());
-            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any participant-roles", e);
-        }
+        ValueSet response = getValueSets(LookupPathUrls.PARTICIPANT_ROLE.getUrlPath(), LookupPathUrls.PARTICIPANT_ROLE.getType());
+
 
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
 
@@ -766,6 +526,44 @@ public class LookUpServiceImpl implements LookUpService {
         return temp;
     }
 
+    private ValueSet getValueSets(String urlPath, String type) {
 
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + urlPath;
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any " + type + " code", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any " + type + " code", e);
+        }
+        return response;
+    }
+
+
+    private boolean isValueSetAvailableInServer(ValueSet response, String type) {
+        boolean isAvailable = true;
+        if (type.equalsIgnoreCase(LookupPathUrls.US_STATE.getType())) {
+            if (response == null || response.getCompose() == null ||
+                    response.getCompose().getInclude() == null ||
+                    response.getCompose().getInclude().size() < 1 ||
+                    response.getCompose().getInclude().get(0).getConcept() == null ||
+                    response.getCompose().getInclude().get(0).getConcept().size() < 1) {
+                isAvailable = false;
+             }
+        } else{
+            if (response == null ||
+                    response.getExpansion() == null ||
+                    response.getExpansion().getContains() == null ||
+                    response.getExpansion().getContains().size() < 1) {
+                isAvailable = false;
+            }
+        }
+        if(! isAvailable) {
+            log.error("Query was successful, but found no " + type + " codes in the configured FHIR server");
+            throw new ResourceNotFoundException("Query was successful, but found no " + type + " codes in the configured FHIR server");
+        }
+        return isAvailable;
+    }
 }
 
