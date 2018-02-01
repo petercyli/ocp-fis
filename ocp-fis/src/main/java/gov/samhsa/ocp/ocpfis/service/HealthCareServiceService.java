@@ -11,8 +11,11 @@ public interface HealthCareServiceService {
 
     PageDto<HealthCareServiceDto> getAllHealthCareServicesByOrganization(String organizationResourceId, Optional<String> locationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
 
+    HealthCareServiceDto getHealthCareService(String healthCareServiceId);
+
+
     /**
-     * Adds a givel location to a HealthCareService
+     * Adds a given location(s) to a HealthCareService
      *
      * @param healthCareServiceId
      * @param organizationResourceId

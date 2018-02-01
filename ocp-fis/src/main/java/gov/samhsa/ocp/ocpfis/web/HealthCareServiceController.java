@@ -42,6 +42,12 @@ public class HealthCareServiceController {
         return healthCareServiceService.getAllHealthCareServicesByOrganization(organizationId, locationId, statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
+    @GetMapping("/health-care-services/{healthCareServiceId}")
+    public HealthCareServiceDto get(@PathVariable String healthCareServiceId) {
+        return healthCareServiceService.getHealthCareService(healthCareServiceId);
+    }
+
+
     @PutMapping("/health-care-services/{healthCareServiceId}/assign")
     public void assignLocationToHealthCareService(@PathVariable String healthCareServiceId,
                                                   @RequestParam(value = "organizationId") String organizationId,
