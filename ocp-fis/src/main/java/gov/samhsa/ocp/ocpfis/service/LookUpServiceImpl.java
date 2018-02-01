@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -647,6 +648,33 @@ public class LookUpServiceImpl implements LookUpService {
         }).collect(Collectors.toList());
 
         return participantTypeList;
+    }
+
+    @Override
+    public List<ValueSetDto> getParticipantRoles() {
+        ValueSet response;
+        String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=" + "http://hl7.org/fhir/ValueSet/participant-role";
+
+        try {
+            response = (ValueSet) fhirClient.search().byUrl(url).execute();
+        } catch (ResourceNotFoundException e) {
+            log.error("Query was unsuccessful - Could not find any participant-roles", e.getMessage());
+            throw new ResourceNotFoundException("Query was unsuccessful - Could not find any participant-roles", e);
+        }
+
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+
+        return valueSetList.stream().map(convertToValueSetDto()).collect(Collectors.toList());
+    }
+
+    private Function<ValueSet.ValueSetExpansionContainsComponent, ValueSetDto> convertToValueSetDto() {
+        return object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setSystem(object.getSystem());
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getDisplay());
+            return temp;
+        };
     }
 
     private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ValueSetExpansionContainsComponent identifierType) {

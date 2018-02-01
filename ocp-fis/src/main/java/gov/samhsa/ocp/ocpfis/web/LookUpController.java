@@ -194,4 +194,9 @@ public class LookUpController {
         return lookUpService.getCareTeamStatuses();
     }
 
+    @GetMapping("/participant-roles")
+    public List<ValueSetDto> getParticipantRole() {
+        return lookUpService.getParticipantRoles();
+    }
+
 }
