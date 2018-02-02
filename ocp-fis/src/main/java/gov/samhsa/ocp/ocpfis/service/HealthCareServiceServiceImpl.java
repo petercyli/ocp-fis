@@ -216,24 +216,20 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
 
     @Override
     public void assignLocationToHealthCareService(String healthCareServiceId, String organizationResourceId, List<String> locationIdList) {
-        //First, validate if the given location(s) belong to the given organization Id
-        IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
+        boolean allChecksPassed = false;
 
-        Bundle locationSearchBundle = (Bundle) locationsSearchQuery.count(1000)
-                .returnBundle(Bundle.class)
-                .encodedJson()
-                .execute();
+        //First, validate if the given location(s) belong to the given organization Id
+        Bundle locationSearchBundle = getLocationBundle(organizationResourceId);
+
         if (locationSearchBundle == null || locationSearchBundle.getEntry().size() < 1) {
             log.info("Assign location to a HealthCareService: No location found for the given organization ID:" + organizationResourceId);
             throw new ResourceNotFoundException("Cannot assign the given location(s) to healthCareService, because no location(s) were found belonging to the organization ID: " + organizationResourceId);
         }
 
-        boolean allChecksPassed = false;
-
         List<String> retrievedLocationsList = locationSearchBundle.getEntry().stream().map(fhirLocationModel -> fhirLocationModel.getResource().getIdElement().getIdPart()).collect(Collectors.toList());
 
         if (retrievedLocationsList.containsAll(locationIdList)) {
-            log.info("Assign location to a HealthCareService: Successful check 1: The given location(s)  belong to the given organization ID: " + organizationResourceId);
+            log.info("Assign location to a HealthCareService: Successful Check 1: The given location(s)  belong to the given organization ID: " + organizationResourceId);
 
             HealthcareService existingHealthCareService = readHealthCareServiceFromServer(healthCareServiceId);
             List<Reference> assignedLocations = existingHealthCareService.getLocation();
@@ -245,7 +241,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
             if (locationIdList.size() == 0) {
                 log.info("Assign location to a HealthCareService: All location(s) from the query params have already been assigned to belonged to health care Service ID:" + healthCareServiceId + ". Nothing to do!");
             } else {
-                log.info("Assign location to a HealthCareService: Successful check 2: Found some location(s) from the query params that CAN be assigned to belonged to health care Service ID:" + healthCareServiceId);
+                log.info("Assign location to a HealthCareService: Successful Check 2: Found some location(s) from the query params that CAN be assigned to belonged to health care Service ID:" + healthCareServiceId);
                 allChecksPassed = true;
             }
 
@@ -253,12 +249,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                 locationIdList.forEach(locationId -> assignedLocations.add(new Reference("Location/" + locationId)));
 
                 // Validate the resource
-                ValidationResult validationResult = fhirValidator.validateWithResult(existingHealthCareService);
-                log.info("Assign location to a HealthCareService: Validation successful? " + validationResult.isSuccessful() + " for health care Service ID:" + healthCareServiceId);
-
-                if (!validationResult.isSuccessful()) {
-                    throw new FHIRFormatErrorException("HealthCareService validation was not successful" + validationResult.getMessages());
-                }
+                validateHealthCareServiceResource(existingHealthCareService, Optional.of(healthCareServiceId), "Assign location to a HealthCareService: ");
 
                 //Update
                 try {
@@ -282,10 +273,34 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
             existingHealthCareService = fhirClient.read().resource(HealthcareService.class).withId(healthCareServiceId.trim()).execute();
         }
         catch (BaseServerResponseException e) {
-            log.error("FHIR Client returned with an error while reading the HealthcareService with ID: " + healthCareServiceId);
-            throw new ResourceNotFoundException("FHIR Client returned with an error while reading the HealthcareService: " + e.getMessage());
+            log.error("FHIR Client returned with an error while reading the HealthCareService with ID: " + healthCareServiceId);
+            throw new ResourceNotFoundException("FHIR Client returned with an error while reading the HealthCareService: " + e.getMessage());
         }
         return existingHealthCareService;
+    }
+
+    private void validateHealthCareServiceResource(HealthcareService healthCareService, Optional<String> healthCareServiceId, String functionName) {
+        ValidationResult validationResult = fhirValidator.validateWithResult(healthCareService);
+
+        if (healthCareServiceId.isPresent()) {
+            log.info(functionName + "Validation successful? " + validationResult.isSuccessful() + " for health care Service ID: " + healthCareServiceId);
+        } else {
+            log.info(functionName + "Validation successful? " + validationResult.isSuccessful());
+        }
+
+        if (!validationResult.isSuccessful()) {
+            throw new FHIRFormatErrorException("HealthCareService validation was not successful" + validationResult.getMessages());
+        }
+    }
+
+    private Bundle getLocationBundle(String organizationResourceId) {
+        IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId.trim()));
+
+        Bundle locationSearchBundle = (Bundle) locationsSearchQuery.count(1000)
+                .returnBundle(Bundle.class)
+                .encodedJson()
+                .execute();
+        return locationSearchBundle;
     }
 
     private HealthCareServiceDto convertHealthCareServiceBundleEntryToHealthCareServiceDto(Bundle.BundleEntryComponent fhirHealthcareServiceModel) {
@@ -321,6 +336,4 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
             throw new ResourceNotFoundException("No HealthCare services were found in the FHIR server for the page number: " + pageNumber);
         }
     }
-
-
 }
