@@ -10,7 +10,7 @@ public interface CareTeamService {
 
     void createCareTeam(CareTeamDto careTeamDto);
 
-    void updateCareTeam(String careTeamId, CareTeamDto careTeamDto);
+    void updateCareTeam(CareTeamDto careTeamDto);
 
     PageDto<CareTeamDto> getCareTeam(String searchType, String searchValue, Optional<String> showInactive,Optional<Integer> page, Optional<Integer> size);
 }
