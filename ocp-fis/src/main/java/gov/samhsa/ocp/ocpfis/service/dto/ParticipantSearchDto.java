@@ -9,12 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ParticipantDto {
+public class ParticipantSearchDto {
+    private ValueSetDto role;
 
-    private String roleCode;
+    private ParticipantMemberDto member;
 
-    private String memberId;
-
-    private String memberType;
-
+    private ParticipantOnBehalfOfDto onBehalfOfDto;
 }
