@@ -9,18 +9,28 @@ import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantMemberDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SubjectDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.HumanName;
+import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.Resource;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,6 +49,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     private final FisProperties fisProperties;
 
     private final LookUpService lookUpService;
+
 
     @Autowired
     public CareTeamServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties,LookUpService lookUpService) {
@@ -91,12 +102,13 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         List<Bundle.BundleEntryComponent> retrievedCareTeamMembers=otherPageCareTeamBundle.getEntry();
 
-        IQuery careTeamWithItsSubjectAndParticipantQuery= iQuery.include(new Include("CareTeam:subject"))
-                .include(new Include("CareTeam:participant"));
-
+        IQuery careTeamWithItsSubjectAndParticipantQuery= iQuery.include(CareTeam.INCLUDE_PARTICIPANT)
+                .include(CareTeam.INCLUDE_SUBJECT);
 
         Bundle careTeamWithItsSubjectAndParticipantBundle= (Bundle) careTeamWithItsSubjectAndParticipantQuery.returnBundle(Bundle.class).execute();
 
+
+        careTeamWithItsSubjectAndParticipantBundle.getTotal();
         List<CareTeamDto> careTeamDtos=retrievedCareTeamMembers.stream().map(retrievedCareTeamMember->{
             CareTeam careTeam= (CareTeam) retrievedCareTeamMember.getResource();
              CareTeamDto careTeamDto=  modelMapper.map(careTeam,CareTeamDto.class);
@@ -128,7 +140,65 @@ public class CareTeamServiceImpl implements CareTeamService {
                        .build());
            });
 
+           List<ParticipantDto> participantDtos=new ArrayList<>();
+                careTeam.getParticipant().forEach(participant->{
+                    ParticipantDto participantDto=new ParticipantDto();
+                    if(participant.getRole() !=null && !participant.getRole().isEmpty()) {
 
+                        if (participant.getRole().getCoding().size() > 0 && participant.getRole().getCoding() != null){
+                            Coding participantRole=participant.getRole().getCoding().get(0);
+
+                            ValueSetDto roleDto=new ValueSetDto();
+                            roleDto.setCode((participantRole.getCode()!=null && !participantRole.getCode().isEmpty())?participantRole.getCode():"");
+                            roleDto.setDisplay((participantRole.getDisplay()!=null && !participantRole.getDisplay().isEmpty())?participantRole.getDisplay():"");
+                            participantDto.setRole(roleDto);
+                        }
+
+                    }
+
+                    if(participant.getMember() !=null && !participant.getMember().isEmpty()){
+                        String participantMemberReference=participant.getMember().getReference();
+                        String participantId=participantMemberReference.split("/")[1];
+                        String participantType=participantMemberReference.split("/")[0];
+
+                        careTeamWithItsSubjectAndParticipantBundle.getEntry().forEach(careTeamWithItsSubjectAndPartipant->{
+                          Resource resource= careTeamWithItsSubjectAndPartipant.getResource();
+                          if(resource.getResourceType().toString().trim().replaceAll(" ","").equalsIgnoreCase(participantType.trim().replaceAll(" ",""))){
+
+                              if(resource.getIdElement().getIdPart().equalsIgnoreCase(participantId)) {
+                                  ParticipantMemberDto participantMemberDto = new ParticipantMemberDto();
+                                  if(resource.getResourceType().toString().equalsIgnoreCase("Patient")){
+                                      Patient patient= (Patient) resource;
+
+                                      participantMemberDto.setId(participantId);
+                                      participantMemberDto.setFirstName(Optional.ofNullable(patient.getName().get(0).getGiven().get(0).toString()));
+                                      participantMemberDto.setLastName(Optional.of(patient.getName().get(0).getFamily()));
+                                      participantMemberDto.setType(patient.fhirType());
+                                  }else if(resource.getResourceType().toString().equalsIgnoreCase("Practitioner")){
+                                    Practitioner practitioner= (Practitioner) resource;
+                                      participantMemberDto.setId(participantId);
+                                      participantMemberDto.setFirstName(Optional.ofNullable(practitioner.getName().get(0).getGiven().get(0).toString()));
+                                      participantMemberDto.setLastName(Optional.of(practitioner.getName().get(0).getFamily()));
+                                      participantMemberDto.setType(practitioner.fhirType());
+                                  }else if(resource.getResourceType().toString().equalsIgnoreCase("Organization")){
+                                      Organization organization= (Organization) resource;
+                                      participantMemberDto.setId(participantId);
+                                     participantMemberDto.setName(Optional.ofNullable(organization.getName()));
+                                      participantMemberDto.setType(organization.fhirType());
+                                  }
+
+                                  participantDto.setMember(participantMemberDto);
+                              }
+                            }
+
+                        });
+
+                    }
+
+                    participantDtos.add(participantDto);
+                });
+
+            careTeamDto.setPraticipants(participantDtos);
             return careTeamDto;
         }).collect(toList());
 
