@@ -3,9 +3,6 @@ package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ParticipantMemberDto;
-import gov.samhsa.ocp.ocpfis.service.dto.SubjectDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -16,9 +13,6 @@ import java.util.List;
 
 public class CareTeamDtoToCareTeamConverter {
 
-    //@Autowired
-    //private static IdentifierDtoListToIdentifierListConverter identifierDtoListToIdentifierListConverter;
-
     public static CareTeam map(CareTeamDto careTeamDto) throws FHIRException {
         CareTeam careTeam = new CareTeam();
         //id
@@ -27,31 +21,18 @@ public class CareTeamDtoToCareTeamConverter {
         //name
         careTeam.setName(careTeamDto.getName());
 
-        //identifier
-        //careTeam.setIdentifier(identifierDtoListToIdentifierListConverter.convert(careTeamDto.getIdentifiers()));
-
         //status
-        ValueSetDto careTeamDtoStatusDto = careTeamDto.getStatus();
-        CareTeam.CareTeamStatus careTeamStatus = CareTeam.CareTeamStatus.fromCode(careTeamDtoStatusDto.getCode());
+        CareTeam.CareTeamStatus careTeamStatus = CareTeam.CareTeamStatus.fromCode(careTeamDto.getStatusCode());
         careTeam.setStatus(careTeamStatus);
 
         //categories
-        List<ValueSetDto> categoryDtoList = careTeamDto.getCategories();
-        if(categoryDtoList.size() > 0) {
-            ValueSetDto categoryDto = categoryDtoList.get(0);
-            Coding coding = new Coding();
-            coding.setCode(categoryDto.getCode());
-            coding.setDisplay(categoryDto.getDisplay());
-            coding.setSystem(categoryDto.getSystem());
-            //definition?
-
-            CodeableConcept codeableConcept = new CodeableConcept().addCoding(coding);
-            careTeam.addCategory(codeableConcept);
-        }
+        Coding coding = new Coding();
+        coding.setCode(careTeamDto.getCategoryCode());
+        CodeableConcept codeableConcept = new CodeableConcept().addCoding(coding);
+        careTeam.addCategory(codeableConcept);
 
         //subject
-        SubjectDto subjectDto = careTeamDto.getSubject();
-        careTeam.getSubject().setReference("Patient/" + subjectDto.getId());
+        careTeam.getSubject().setReference("Patient/" + careTeamDto.getSubjectId());
 
         //participants
         List<ParticipantDto> participantDtoList = careTeamDto.getParticipants();
@@ -60,17 +41,16 @@ public class CareTeamDtoToCareTeamConverter {
         for(ParticipantDto participantDto : participantDtoList) {
             CareTeam.CareTeamParticipantComponent careTeamParticipant = new CareTeam.CareTeamParticipantComponent();
 
-            //member
-            ParticipantMemberDto memberDto = participantDto.getMember();
+            String memberType = participantDto.getMemberType();
 
-            if(memberDto.getType().equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
-                careTeamParticipant.getMember().setReference("Practitioner/" + memberDto.getId());
+            if(memberType.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
+                careTeamParticipant.getMember().setReference("Practitioner/" + participantDto.getMemberId());
 
-            } else if (memberDto.getType().equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
-                careTeamParticipant.getMember().setReference("Patient/" + memberDto.getId());
+            } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
+                careTeamParticipant.getMember().setReference("Patient/" + participantDto.getMemberId());
 
-            } else if (memberDto.getType().equalsIgnoreCase(ParticipantTypeEnum.organization.getCode())) {
-                careTeamParticipant.getMember().setReference("Organization/" + memberDto.getId());
+            } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.organization.getCode())) {
+                careTeamParticipant.getMember().setReference("Organization/" + participantDto.getMemberId());
             }
 
             //TODO: onBehalfOfDto
