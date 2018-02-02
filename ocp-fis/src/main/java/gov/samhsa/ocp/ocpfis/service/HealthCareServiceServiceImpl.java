@@ -223,13 +223,13 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
 
         if (locationSearchBundle == null || locationSearchBundle.getEntry().size() < 1) {
             log.info("Assign location to a HealthCareService: No location found for the given organization ID:" + organizationResourceId);
-            throw new ResourceNotFoundException("Cannot assign the given location(s) to healthCareService, because no location(s) were found belonging to the organization ID: " + organizationResourceId);
+            throw new ResourceNotFoundException("Cannot assign the given location(s) to healthCareService, because we did not find any location(s) under the organization ID: " + organizationResourceId);
         }
 
         List<String> retrievedLocationsList = locationSearchBundle.getEntry().stream().map(fhirLocationModel -> fhirLocationModel.getResource().getIdElement().getIdPart()).collect(Collectors.toList());
 
         if (retrievedLocationsList.containsAll(locationIdList)) {
-            log.info("Assign location to a HealthCareService: Successful Check 1: The given location(s)  belong to the given organization ID: " + organizationResourceId);
+            log.info("Assign location to a HealthCareService: Successful Check 1: The given location(s) belong to the given organization ID: " + organizationResourceId);
 
             HealthcareService existingHealthCareService = readHealthCareServiceFromServer(healthCareServiceId);
             List<Reference> assignedLocations = existingHealthCareService.getLocation();
@@ -296,11 +296,10 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
     private Bundle getLocationBundle(String organizationResourceId) {
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId.trim()));
 
-        Bundle locationSearchBundle = (Bundle) locationsSearchQuery.count(1000)
+        return (Bundle) locationsSearchQuery.count(1000)
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
-        return locationSearchBundle;
     }
 
     private HealthCareServiceDto convertHealthCareServiceBundleEntryToHealthCareServiceDto(Bundle.BundleEntryComponent fhirHealthcareServiceModel) {
