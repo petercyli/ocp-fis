@@ -179,6 +179,16 @@ public class LookUpController {
         return lookUpService.getLanguages();
     }
 
+    @GetMapping("/healthcareservice-types")
+    public List<ValueSetDto> getHealthCareServiceTypes() {
+        return lookUpService.getHealthCareServiceTypes();
+    }
+
+    @GetMapping("/healthcareservice-categories")
+    public List<ValueSetDto> getHealthCareServiceCategories() {
+        return lookUpService.getHealthCareServiceCategories();
+    }
+
     @GetMapping("/care-team-categories")
     public List<ValueSetDto> getCareTeamCategories() {
         return lookUpService.getCareTeamCategories();
@@ -192,6 +202,11 @@ public class LookUpController {
     @GetMapping("/care-team-statuses")
     public List<ValueSetDto> getCareTeamStatuses() {
         return lookUpService.getCareTeamStatuses();
+    }
+
+    @GetMapping("/participant-roles")
+    public List<ValueSetDto> getParticipantRole() {
+        return lookUpService.getParticipantRoles();
     }
 
 }

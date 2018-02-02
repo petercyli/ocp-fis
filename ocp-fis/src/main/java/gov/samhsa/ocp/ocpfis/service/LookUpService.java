@@ -44,10 +44,16 @@ public interface LookUpService {
 
     List<ValueSetDto> getPractitionerRoles();
 
+    List<ValueSetDto> getHealthCareServiceTypes();
+
+    List<ValueSetDto> getHealthCareServiceCategories();
+
     List<ValueSetDto> getCareTeamCategories();
 
     List<ValueSetDto> getParticipantTypes();
 
     List<ValueSetDto> getCareTeamStatuses();
+
+    List<ValueSetDto> getParticipantRoles();
 
 }
