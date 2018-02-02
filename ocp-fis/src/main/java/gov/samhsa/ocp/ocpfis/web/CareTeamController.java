@@ -19,12 +19,12 @@ public class CareTeamController {
     private CareTeamService careTeamService;
 
     @PostMapping
-    public void createCreateTeam(@Valid @RequestBody CareTeamDto careTeamDto) {
+    public void createCareTeam(@Valid @RequestBody CareTeamDto careTeamDto) {
         careTeamService.createCareTeam(careTeamDto);
     }
 
     @PutMapping
-    public void updateCreateTeam(@Valid @RequestBody CareTeamDto careTeamDto) {
+    public void updateCareTeam(@Valid @RequestBody CareTeamDto careTeamDto) {
         careTeamService.updateCareTeam(careTeamDto);
     }
 
