@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,15 +14,20 @@ import java.util.List;
 @NoArgsConstructor
 public class CareTeamDto {
     private String id;
+
     private String name;
-    private List<IdentifierDto> identifiers;
 
-    private ValueSetDto status;
+    private String statusCode;
 
-    private List<ValueSetDto> categories;
+    private String categoryCode;
 
-    private SubjectDto subject;
+    private String subjectId;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
+    private String startDate;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
+    private String endDate;
 
     private List<ParticipantDto> participants;
-
 }
