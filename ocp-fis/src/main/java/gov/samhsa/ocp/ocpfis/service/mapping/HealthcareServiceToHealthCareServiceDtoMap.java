@@ -31,6 +31,8 @@ public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<Heal
         map().setActive(source.getActive());
         map().setOrganizationId(source.getProvidedBy().getReference());
         map().setOrganizationName(source.getProvidedBy().getDisplay());
+        map().setCategorySystem(source.getCategory().getCodingFirstRep().getSystem());
+        map().setCategoryValue(source.getCategory().getCodingFirstRep().getCode());
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecom(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
         using(healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter).map(source.getType()).setType(null);
