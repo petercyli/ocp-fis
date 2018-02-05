@@ -40,6 +40,6 @@ public class CareTeamController {
 
     @GetMapping("/search")
     private PageDto<CareTeamDto> getCareTeams(@RequestParam Optional<List<String>> statusList, @RequestParam String searchType, @RequestParam String searchValue, @RequestParam Optional<Integer> pageNumber, @RequestParam Optional<Integer> pageSize) {
-        return careTeamService.getCareTeam(statusList, searchType, searchValue, pageNumber, pageSize);
+        return careTeamService.getCareTeams(statusList, searchType, searchValue, pageNumber, pageSize);
     }
 }

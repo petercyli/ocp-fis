@@ -12,5 +12,5 @@ public interface CareTeamService {
 
     void updateCareTeam(String careTeamId, CareTeamDto careTeamDto);
 
-    PageDto<CareTeamDto> getCareTeam(Optional<List<String>> statusList,String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size);
+    PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList,String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size);
 }
