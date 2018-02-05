@@ -21,11 +21,15 @@ public class CareTeamDto {
 
     @CareTeamStatusCodeConstraint
     private String statusCode;
+    private String statusDisplay;
 
     @CareTeamCategoryCodeConstraint
     private String categoryCode;
+    private String categoryDisplay;
 
     private String subjectId;
+    private String subjectFirstName;
+    private String subjectLastName;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private String startDate;
