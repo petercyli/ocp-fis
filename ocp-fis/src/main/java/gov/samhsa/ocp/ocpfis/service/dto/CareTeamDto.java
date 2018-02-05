@@ -1,8 +1,8 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import gov.samhsa.ocp.ocpfis.service.validation.CategoryCodeConstraint;
-import gov.samhsa.ocp.ocpfis.service.validation.StatusCodeConstraint;
+import gov.samhsa.ocp.ocpfis.service.validation.CareTeamCategoryCodeConstraint;
+import gov.samhsa.ocp.ocpfis.service.validation.CareTeamStatusCodeConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,10 +19,10 @@ public class CareTeamDto {
 
     private String name;
 
-    @StatusCodeConstraint
+    @CareTeamStatusCodeConstraint
     private String statusCode;
 
-    @CategoryCodeConstraint
+    @CareTeamCategoryCodeConstraint
     private String categoryCode;
 
     private String subjectId;

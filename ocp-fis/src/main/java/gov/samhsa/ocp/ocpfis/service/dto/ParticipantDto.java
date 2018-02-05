@@ -1,6 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
-import gov.samhsa.ocp.ocpfis.service.validation.RoleCodeConstraint;
+import gov.samhsa.ocp.ocpfis.service.validation.ParticipantRoleCodeConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ParticipantDto {
 
-    @RoleCodeConstraint
+    @ParticipantRoleCodeConstraint
     private String roleCode;
 
     private String memberId;
