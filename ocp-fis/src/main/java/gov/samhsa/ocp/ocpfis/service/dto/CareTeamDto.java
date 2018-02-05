@@ -18,10 +18,14 @@ public class CareTeamDto {
     private String name;
 
     private String statusCode;
+    private String statusDisplay;
 
     private String categoryCode;
+    private String categoryDisplay;
 
     private String subjectId;
+    private String subjectFirstName;
+    private String subjectLastName;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private String startDate;
