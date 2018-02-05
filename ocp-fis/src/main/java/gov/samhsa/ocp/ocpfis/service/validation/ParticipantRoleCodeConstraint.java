@@ -10,10 +10,10 @@ import java.lang.annotation.Target;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
 @Documented
-@Constraint(validatedBy = RoleCodeValidator.class)
+@Constraint(validatedBy = ParticipantRoleCodeValidator.class)
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RUNTIME)
-public @interface RoleCodeConstraint {
+public @interface ParticipantRoleCodeConstraint {
 
     String message() default "Invalid role code";
 

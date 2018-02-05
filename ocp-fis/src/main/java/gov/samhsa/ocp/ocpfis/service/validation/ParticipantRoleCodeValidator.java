@@ -9,13 +9,13 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import java.util.List;
 
-public class RoleCodeValidator implements ConstraintValidator<RoleCodeConstraint, String> {
+public class ParticipantRoleCodeValidator implements ConstraintValidator<ParticipantRoleCodeConstraint, String> {
 
    @Autowired
    LookUpService lookUpService;
 
    @Override
-   public void initialize(RoleCodeConstraint constraint) {
+   public void initialize(ParticipantRoleCodeConstraint constraint) {
    }
 
    public boolean isValid(String roleCodeToCheck, ConstraintValidatorContext context) {
