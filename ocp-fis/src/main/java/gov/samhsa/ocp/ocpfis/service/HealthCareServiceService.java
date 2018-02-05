@@ -15,6 +15,12 @@ public interface HealthCareServiceService {
 
 
     /**
+     * @param organizationId
+     * @param healthCareServiceDto
+     */
+    void createHealthCareService(String organizationId, HealthCareServiceDto healthCareServiceDto);
+
+    /**
      * Adds a given location(s) to a HealthCareService
      *
      * @param healthCareServiceId
