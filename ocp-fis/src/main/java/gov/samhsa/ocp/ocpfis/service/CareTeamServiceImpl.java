@@ -91,7 +91,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public PageDto<CareTeamDto> getCareTeam(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size) {
         int numberOfCareTeamMembersPerPage = size.filter(s -> s > 0 &&
                 s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
 
@@ -102,10 +102,9 @@ public class CareTeamServiceImpl implements CareTeamService {
             iQuery.where(new ReferenceClientParam("patient").hasId("Patient/" + searchValue));
 
         //Check for status
-        if (statusList.isPresent() && statusList.get().size() > 0) {
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
             iQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         }
-
 
         Bundle firstPageCareTeamBundle;
         Bundle otherPageCareTeamBundle;
@@ -115,7 +114,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                 .count(numberOfCareTeamMembersPerPage)
                 .returnBundle(Bundle.class).execute();
 
-        if (firstPageCareTeamBundle == null || firstPageCareTeamBundle.getEntry().size() < 1) {
+        if (firstPageCareTeamBundle == null || firstPageCareTeamBundle.getEntry().isEmpty()) {
             throw new ResourceNotFoundException("No Care Team members were found in the FHIR server.");
         }
 
@@ -146,15 +145,15 @@ public class CareTeamServiceImpl implements CareTeamService {
             CareTeam careTeam = (CareTeam) retrievedCareTeamMember.getResource();
             CareTeamDto careTeamDto = new CareTeamDto();
             careTeamDto.setId(careTeam.getIdElement().getIdPart());
-            careTeamDto.setName((careTeam.getName() != null && !careTeam.getName().isEmpty()) ? careTeam.getName() : "");
+            careTeamDto.setName((careTeam.getName() != null && !careTeam.getName().isEmpty()) ? careTeam.getName() : null);
             if (careTeam.getStatus() != null) {
-                careTeamDto.setStatusCode((careTeam.getStatus().toCode() != null && !careTeam.getStatus().toCode().isEmpty()) ? careTeam.getStatus().toCode() : "");
-                careTeamDto.setStatusDisplay((getCareTeamDisplay(careTeam.getStatus().toCode(), lookUpService.getCareTeamStatuses())).orElse(""));
+                careTeamDto.setStatusCode((careTeam.getStatus().toCode() != null && !careTeam.getStatus().toCode().isEmpty()) ? careTeam.getStatus().toCode() : null);
+                careTeamDto.setStatusDisplay((getCareTeamDisplay(careTeam.getStatus().toCode(), lookUpService.getCareTeamStatuses())).orElse(null));
             }
             careTeam.getCategory().stream().findFirst().ifPresent(category -> {
                 category.getCoding().stream().findFirst().ifPresent(coding -> {
-                    careTeamDto.setCategoryCode((coding.getCode() != null && !coding.getCode().isEmpty()) ? coding.getCode() : "");
-                    careTeamDto.setCategoryDisplay((getCareTeamDisplay(coding.getCode(), lookUpService.getCareTeamCategories())).orElse(""));
+                    careTeamDto.setCategoryCode((coding.getCode() != null && !coding.getCode().isEmpty()) ? coding.getCode() : null);
+                    careTeamDto.setCategoryDisplay((getCareTeamDisplay(coding.getCode(), lookUpService.getCareTeamCategories())).orElse(null));
                 });
             });
             String subjectReference = careTeam.getSubject().getReference();
@@ -169,7 +168,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                 Patient subjectPatient = (Patient) patient.getResource();
 
                 subjectPatient.getName().stream().findFirst().ifPresent(name -> {
-                    careTeamDto.setSubjectLastName((name.getFamily() != null && !name.getFamily().isEmpty()) ? (name.getFamily()) : "");
+                    careTeamDto.setSubjectLastName((name.getFamily() != null && !name.getFamily().isEmpty()) ? (name.getFamily()) : null);
                     name.getGiven().stream().findFirst().ifPresent(firstname -> {
                         careTeamDto.setSubjectFirstName(firstname.toString());
                     });
@@ -186,8 +185,8 @@ public class CareTeamServiceImpl implements CareTeamService {
                 if (participant.getRole() != null && !participant.getRole().isEmpty()) {
 
                     participant.getRole().getCoding().stream().findFirst().ifPresent(participantRole -> {
-                        participantDto.setRoleCode((participantRole.getCode() != null && !participantRole.getCode().isEmpty()) ? participantRole.getCode() : "");
-                        participantDto.setRoleDisplay((participantRole.getDisplay() != null && !participantRole.getDisplay().isEmpty()) ? participantRole.getDisplay() : "");
+                        participantDto.setRoleCode((participantRole.getCode() != null && !participantRole.getCode().isEmpty()) ? participantRole.getCode() : null);
+                        participantDto.setRoleDisplay((participantRole.getDisplay() != null && !participantRole.getDisplay().isEmpty()) ? participantRole.getDisplay() : null);
                     });
 
                 }
@@ -208,8 +207,8 @@ public class CareTeamServiceImpl implements CareTeamService {
                                     case Patient:
                                         Patient patient = (Patient) resource;
                                         patient.getName().stream().findFirst().ifPresent(name->{
-                                            name.getGiven().stream().findFirst().ifPresent(firstname->{
-                                                participantDto.setMemberFirstName(Optional.ofNullable(firstname.toString()));
+                                            name.getGiven().stream().findFirst().ifPresent(firstName->{
+                                                participantDto.setMemberFirstName(Optional.ofNullable(firstName.toString()));
                                             });
                                             participantDto.setMemberLastName(Optional.ofNullable(name.getFamily()));
                                         });
@@ -220,8 +219,8 @@ public class CareTeamServiceImpl implements CareTeamService {
                                     case Practitioner:
                                         Practitioner practitioner = (Practitioner) resource;
                                         practitioner.getName().stream().findFirst().ifPresent(name->{
-                                            name.getGiven().stream().findFirst().ifPresent(firstname->{
-                                                participantDto.setMemberFirstName(Optional.ofNullable(firstname.toString()));
+                                            name.getGiven().stream().findFirst().ifPresent(firstName->{
+                                                participantDto.setMemberFirstName(Optional.ofNullable(firstName.toString()));
                                             });
                                             participantDto.setMemberLastName(Optional.ofNullable(name.getFamily()));
                                         });
