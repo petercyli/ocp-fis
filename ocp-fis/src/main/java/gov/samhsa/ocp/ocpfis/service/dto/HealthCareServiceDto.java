@@ -19,6 +19,7 @@ public class HealthCareServiceDto extends NameLogicalIdIdentifiersDto{
     private boolean active;
     private String categorySystem;
     private String categoryValue;
+    private ValueSetDto category;
     private List<String> programName;
     private List<TelecomDto> telecom;
     private List<ValueSetDto> type;
