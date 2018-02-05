@@ -35,7 +35,7 @@ public class CareTeamController {
     }
 
     @GetMapping("/{careTeamId}")
-    public CareTeamDto getCareTeamByDto(@PathVariable String careTeamId) {
+    public CareTeamDto getCareTeamById(@PathVariable String careTeamId) {
         return careTeamService.getCareTeamById(careTeamId);
     }
 }
