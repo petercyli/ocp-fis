@@ -138,10 +138,16 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         IQuery healthCareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
         //Check for healthcare service status
-        if (statusList.isPresent() && statusList.get().size() > 0) {
-            log.info("Searching for health care service with the following specific status(es) for the given OrganizationID:" + organizationResourceId);
+        if (statusList.isPresent() && statusList.get().size() == 1) {
+            log.info("Searching for health care service with the following specific status" + statusList.get().get(0) +  " for the given OrganizationID:" + organizationResourceId);
             statusList.get().forEach(log::info);
-            healthCareServicesSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
+            if(statusList.get().get(0).trim().equalsIgnoreCase("active")){
+               healthCareServicesSearchQuery.where(new TokenClientParam("active").exactly().codes("true"));
+            } else if(statusList.get().get(0).trim().equalsIgnoreCase("inactive")) {
+               healthCareServicesSearchQuery.where(new TokenClientParam("active").exactly().codes("false"));
+            } else {
+                log.info("Searching for health care services with ALL statuses for the given OrganizationID:" + organizationResourceId);
+            }
         } else {
             log.info("Searching for health care services with ALL statuses for the given OrganizationID:" + organizationResourceId);
         }
@@ -220,6 +226,27 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         return convertHealthCareServiceBundleEntryToHealthCareServiceDto(retrievedHealthCareService, locationNameMap, Optional.empty());
     }
 
+    @Override
+    public void createHealthCareService(String organizationId, HealthCareServiceDto healthCareServiceDto) {
+        log.info("Creating Health Care Service for Organization Id:" + organizationId);
+
+        HealthcareService fhirHealthCareService = modelMapper.map(healthCareServiceDto, HealthcareService.class);
+        fhirHealthCareService.setActive(Boolean.TRUE);
+
+        fhirHealthCareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
+
+        // Validate the resource
+        //validateHealthcareServiceResource(fhirHealthCareService, Optional.empty(), "Create c: ");
+
+        try {
+            MethodOutcome serverResponse = fhirClient.create().resource(fhirHealthCareService).execute();
+            log.info("Created a new Health Care Service :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT create Health Care Service for Organization Id:" + organizationId);
+            throw new FHIRClientException("FHIR Client returned with an error while creating the Health Care Service:" + e.getMessage());
+        }
+    }
 
     @Override
     public void assignLocationToHealthCareService(String healthCareServiceId, String organizationResourceId, List<String> locationIdList) {
