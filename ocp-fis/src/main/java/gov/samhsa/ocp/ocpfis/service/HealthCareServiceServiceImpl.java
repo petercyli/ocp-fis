@@ -61,6 +61,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         Bundle firstPageHealthCareServiceSearchBundle;
         Bundle otherPageHealthCareServiceSearchBundle;
         boolean firstPage = true;
+        Map<String, String> locationNameMap = new HashMap<>();
 
         IQuery healthCareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class);
 
@@ -115,7 +116,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         List<Bundle.BundleEntryComponent> retrievedHealthCareServices = otherPageHealthCareServiceSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<HealthCareServiceDto> healthCareServicesList = retrievedHealthCareServices.stream().map(hcs -> convertHealthCareServiceBundleEntryToHealthCareServiceDto(hcs, Optional.empty(), Optional.empty())).collect(Collectors.toList());
+        List<HealthCareServiceDto> healthCareServicesList = retrievedHealthCareServices.stream().map(hcs -> convertHealthCareServiceBundleEntryToHealthCareServiceDto(hcs, locationNameMap, Optional.empty())).collect(Collectors.toList());
         double totalPages = Math.ceil((double) otherPageHealthCareServiceSearchBundle.getTotal() / numberOfHealthCareServicesPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
@@ -190,7 +191,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         List<Bundle.BundleEntryComponent> retrievedHealthCareServices = otherPageHealthCareServiceSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<HealthCareServiceDto> healthCareServicesList = retrievedHealthCareServices.stream().map(hcs -> convertHealthCareServiceBundleEntryToHealthCareServiceDto(hcs, Optional.of(locationNameMap), assignedToLocationId)).collect(Collectors.toList());
+        List<HealthCareServiceDto> healthCareServicesList = retrievedHealthCareServices.stream().map(hcs -> convertHealthCareServiceBundleEntryToHealthCareServiceDto(hcs, locationNameMap, assignedToLocationId)).collect(Collectors.toList());
         double totalPages = Math.ceil((double) otherPageHealthCareServiceSearchBundle.getTotal() / numberOfHealthCareServicesPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
@@ -200,6 +201,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
     @Override
     public HealthCareServiceDto getHealthCareService(String healthCareServiceId) {
         log.info("Searching for Health Care Service Id:" + healthCareServiceId);
+        Map<String, String> locationNameMap = new HashMap<>();
 
         Bundle healthCareServiceBundle = fhirClient.search().forResource(HealthcareService.class)
                 .where(new TokenClientParam("_id").exactly().code(healthCareServiceId))
@@ -215,7 +217,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
 
         Bundle.BundleEntryComponent retrievedHealthCareService = healthCareServiceBundle.getEntry().get(0);
 
-        return convertHealthCareServiceBundleEntryToHealthCareServiceDto(retrievedHealthCareService, Optional.empty(), Optional.empty());
+        return convertHealthCareServiceBundleEntryToHealthCareServiceDto(retrievedHealthCareService, locationNameMap, Optional.empty());
     }
 
 
@@ -307,7 +309,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                 .execute();
     }
 
-    private HealthCareServiceDto convertHealthCareServiceBundleEntryToHealthCareServiceDto(Bundle.BundleEntryComponent fhirHealthcareServiceModel, Optional<Map<String, String>> locationNameMap, Optional<String> assignedToLocationId) {
+    private HealthCareServiceDto convertHealthCareServiceBundleEntryToHealthCareServiceDto(Bundle.BundleEntryComponent fhirHealthcareServiceModel, Map<String, String> locationNameMap, Optional<String> assignedToLocationId) {
         HealthCareServiceDto tempHealthCareServiceDto = modelMapper.map(fhirHealthcareServiceModel.getResource(), HealthCareServiceDto.class);
         tempHealthCareServiceDto.setLogicalId(fhirHealthcareServiceModel.getResource().getIdElement().getIdPart());
         HealthcareService hcs = (HealthcareService) fhirHealthcareServiceModel.getResource();
@@ -319,8 +321,8 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
             String locLogicalId = locRef.getReference().substring(9).trim();
             String locName;
             //First, check in Map if name Exists
-            if (locationNameMap.isPresent() && locationNameMap.get().containsKey(locLogicalId)) {
-                locName = locationNameMap.get().get(locLogicalId);
+            if (locationNameMap.containsKey(locLogicalId)) {
+                locName = locationNameMap.get(locLogicalId);
             } else {
                 //If not, Check If there is Display element for this location
                 if (locRef.getDisplay() != null) {
@@ -338,10 +340,8 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                 }
             }
             //Add to map
-            if(locationNameMap.isPresent()){
-                locationNameMap.get().put(locLogicalId, locName);
-                locIdSet.add(locLogicalId);
-            }
+            locationNameMap.put(locLogicalId, locName);
+            locIdSet.add(locLogicalId);
 
             //Add locations list to the dto
             NameLogicalIdIdentifiersDto tempIdName = new NameLogicalIdIdentifiersDto();
