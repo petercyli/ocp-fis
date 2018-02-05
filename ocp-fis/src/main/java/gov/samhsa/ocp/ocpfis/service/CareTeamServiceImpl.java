@@ -75,8 +75,9 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public void updateCareTeam(CareTeamDto careTeamDto) {
+    public void updateCareTeam(String careTeamId, CareTeamDto careTeamDto) {
         try {
+            careTeamDto.setId(careTeamId);
             final CareTeam careTeam = CareTeamDtoToCareTeamConverter.map(careTeamDto);
 
             validate(careTeam);
