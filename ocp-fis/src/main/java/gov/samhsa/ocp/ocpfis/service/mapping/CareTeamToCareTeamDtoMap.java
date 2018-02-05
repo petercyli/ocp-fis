@@ -22,7 +22,5 @@ public class CareTeamToCareTeamDtoMap extends PropertyMap<CareTeam, CareTeamDto>
     @Override
     protected void configure() {
         map().setName(source.getName());
-        using(careTeamStatusToValueSetDtoConverter).map(source.getStatus()).setStatus(null);
-        using(categoryToValueSetDtoListConverter).map(source.getCategory()).setCategories(null);
     }
 }
