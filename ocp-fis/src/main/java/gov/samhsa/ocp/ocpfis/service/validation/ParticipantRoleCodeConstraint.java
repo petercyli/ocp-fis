@@ -15,7 +15,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 @Retention(RUNTIME)
 public @interface ParticipantRoleCodeConstraint {
 
-    String message() default "Invalid role code";
+    String message() default "Invalid Participant Role Code";
 
     Class<?>[] groups() default {};
 

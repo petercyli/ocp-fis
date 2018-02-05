@@ -14,7 +14,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CareTeamCategoryCodeConstraint {
 
-    String message() default "Invalid Category code";
+    String message() default "Invalid CareTeam Category Code";
 
     Class<?>[] groups() default {};
 

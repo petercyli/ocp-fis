@@ -29,7 +29,7 @@ public class ParticipantRoleCodeValidator implements ConstraintValidator<Partici
       boolean isValid = list.stream().anyMatch(t -> t.getCode().equals(roleCodeToCheck));
 
       if(!isValid) {
-         throw new InvalidValueException("Received invalid Role code for a participant");
+         throw new InvalidValueException("Received invalid Role Code for a Participant");
       }
 
       return isValid;
