@@ -146,6 +146,7 @@ public class CareTeamServiceImpl implements CareTeamService {
         List<CareTeamDto> careTeamDtos = retrievedCareTeamMembers.stream().map(retrievedCareTeamMember -> {
             CareTeam careTeam = (CareTeam) retrievedCareTeamMember.getResource();
             CareTeamDto careTeamDto = new CareTeamDto();
+            careTeamDto.setId(careTeam.getIdElement().getIdPart());
             careTeamDto.setName((careTeam.getName() != null && !careTeam.getName().isEmpty()) ? careTeam.getName() : "");
             if (careTeam.getStatus() != null) {
                 careTeamDto.setStatusCode((careTeam.getStatus().toCode() != null && !careTeam.getStatus().toCode().isEmpty()) ? careTeam.getStatus().toCode() : "");
