@@ -39,6 +39,7 @@ public class PractitionerController {
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public void createPractitioner(@Valid @RequestBody PractitionerDto practitionerDto) {
         practitionerService.createPractitioner(practitionerDto);
     }

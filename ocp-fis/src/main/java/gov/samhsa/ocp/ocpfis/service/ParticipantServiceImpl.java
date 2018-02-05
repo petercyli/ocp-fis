@@ -4,7 +4,7 @@ import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantSearchDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantMemberDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantOnBehalfOfDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
@@ -33,10 +33,10 @@ public class ParticipantServiceImpl implements ParticipantService {
         this.patientService = patientService;
     }
 
-    public PageDto<ParticipantDto> getAllParticipants(ParticipantTypeEnum participantType, String value, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<ParticipantSearchDto> getAllParticipants(ParticipantTypeEnum participantType, String value, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size) {
         final String typeCode = participantType.getCode();
 
-        PageDto<ParticipantDto> participantsDto = new PageDto<>();
+        PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
 
         if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
             PageDto<PractitionerDto> pageDto = practitionerService.searchPractitioners(PractitionerController.SearchType.name, value, showInActive, page, size);
@@ -56,14 +56,14 @@ public class ParticipantServiceImpl implements ParticipantService {
         return participantsDto;
     }
 
-    private PageDto<ParticipantDto> convertPractitionersToParticipantsDto(PageDto<PractitionerDto> pageDto, ParticipantTypeEnum participantType) {
+    private PageDto<ParticipantSearchDto> convertPractitionersToParticipantsDto(PageDto<PractitionerDto> pageDto, ParticipantTypeEnum participantType) {
         List<PractitionerDto> practitionerDtoList = pageDto.getElements();
-        PageDto<ParticipantDto> participantsDto = new PageDto<>();
+        PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
 
-        List<ParticipantDto> participantDtoList = new ArrayList<>();
+        List<ParticipantSearchDto> ParticipantSearchDtoList = new ArrayList<>();
 
         for(PractitionerDto dto : practitionerDtoList) {
-            ParticipantDto participantDto = new ParticipantDto();
+            ParticipantSearchDto ParticipantSearchDto = new ParticipantSearchDto();
 
             ParticipantMemberDto memberDto = new ParticipantMemberDto();
             List<NameDto> nameList = dto.getName();
@@ -72,19 +72,19 @@ public class ParticipantServiceImpl implements ParticipantService {
             memberDto.setId(dto.getLogicalId());
             memberDto.setType(participantType.getCode());
 
-            participantDto.setMember(memberDto);
+            ParticipantSearchDto.setMember(memberDto);
 
             ParticipantOnBehalfOfDto participantOnBehalfOfDto = new ParticipantOnBehalfOfDto();
-            participantDto.setOnBehalfOfDto(participantOnBehalfOfDto);
+            ParticipantSearchDto.setOnBehalfOfDto(participantOnBehalfOfDto);
 
             ValueSetDto valueSetDto = new ValueSetDto();
-            participantDto.setRole(valueSetDto);
+            ParticipantSearchDto.setRole(valueSetDto);
 
-            participantDtoList.add(participantDto);
+            ParticipantSearchDtoList.add(ParticipantSearchDto);
 
         }
 
-        participantsDto.setElements(participantDtoList);
+        participantsDto.setElements(ParticipantSearchDtoList);
         participantsDto.setSize(pageDto.getSize());
         participantsDto.setTotalNumberOfPages(pageDto.getTotalNumberOfPages());
         participantsDto.setCurrentPage(pageDto.getCurrentPage());
@@ -94,14 +94,14 @@ public class ParticipantServiceImpl implements ParticipantService {
         return  participantsDto;
     }
 
-    private PageDto<ParticipantDto> convertOrganizationsToParticipantsDto(PageDto<OrganizationDto> pageDto, ParticipantTypeEnum participantType) {
+    private PageDto<ParticipantSearchDto> convertOrganizationsToParticipantsDto(PageDto<OrganizationDto> pageDto, ParticipantTypeEnum participantType) {
         List<OrganizationDto> organizationDtoList = pageDto.getElements();
-        PageDto<ParticipantDto> participantsDto = new PageDto<>();
+        PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
 
-        List<ParticipantDto> participantDtoList = new ArrayList<>();
+        List<ParticipantSearchDto> ParticipantSearchDtoList = new ArrayList<>();
 
         for(OrganizationDto dto : organizationDtoList) {
-            ParticipantDto participantDto = new ParticipantDto();
+            ParticipantSearchDto ParticipantSearchDto = new ParticipantSearchDto();
 
             ParticipantMemberDto memberDto = new ParticipantMemberDto();
 
@@ -109,19 +109,19 @@ public class ParticipantServiceImpl implements ParticipantService {
             memberDto.setId(dto.getLogicalId());
             memberDto.setType(participantType.getCode());
 
-            participantDto.setMember(memberDto);
+            ParticipantSearchDto.setMember(memberDto);
 
             ParticipantOnBehalfOfDto participantOnBehalfOfDto = new ParticipantOnBehalfOfDto();
-            participantDto.setOnBehalfOfDto(participantOnBehalfOfDto);
+            ParticipantSearchDto.setOnBehalfOfDto(participantOnBehalfOfDto);
 
             ValueSetDto valueSetDto = new ValueSetDto();
-            participantDto.setRole(valueSetDto);
+            ParticipantSearchDto.setRole(valueSetDto);
 
-            participantDtoList.add(participantDto);
+            ParticipantSearchDtoList.add(ParticipantSearchDto);
 
         }
 
-        participantsDto.setElements(participantDtoList);
+        participantsDto.setElements(ParticipantSearchDtoList);
         participantsDto.setSize(pageDto.getSize());
         participantsDto.setTotalNumberOfPages(pageDto.getTotalNumberOfPages());
         participantsDto.setCurrentPage(pageDto.getCurrentPage());
@@ -131,14 +131,14 @@ public class ParticipantServiceImpl implements ParticipantService {
         return  participantsDto;
     }
 
-    private PageDto<ParticipantDto> convertPatientsToParticipantsDto(PageDto<PatientDto> pageDto, ParticipantTypeEnum participantType) {
+    private PageDto<ParticipantSearchDto> convertPatientsToParticipantsDto(PageDto<PatientDto> pageDto, ParticipantTypeEnum participantType) {
         List<PatientDto> patientList = pageDto.getElements();
-        PageDto<ParticipantDto> participantsDto = new PageDto<>();
+        PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
 
-        List<ParticipantDto> participantDtoList = new ArrayList<>();
+        List<ParticipantSearchDto> ParticipantSearchDtoList = new ArrayList<>();
 
         for(PatientDto dto : patientList) {
-            ParticipantDto participantDto = new ParticipantDto();
+            ParticipantSearchDto ParticipantSearchDto = new ParticipantSearchDto();
 
             ParticipantMemberDto memberDto = new ParticipantMemberDto();
             List<NameDto> nameList = dto.getName();
@@ -147,19 +147,19 @@ public class ParticipantServiceImpl implements ParticipantService {
             memberDto.setId(dto.getId());
             memberDto.setType(participantType.getCode());
 
-            participantDto.setMember(memberDto);
+            ParticipantSearchDto.setMember(memberDto);
 
             ParticipantOnBehalfOfDto participantOnBehalfOfDto = new ParticipantOnBehalfOfDto();
-            participantDto.setOnBehalfOfDto(participantOnBehalfOfDto);
+            ParticipantSearchDto.setOnBehalfOfDto(participantOnBehalfOfDto);
 
             ValueSetDto valueSetDto = new ValueSetDto();
-            participantDto.setRole(valueSetDto);
+            ParticipantSearchDto.setRole(valueSetDto);
 
-            participantDtoList.add(participantDto);
+            ParticipantSearchDtoList.add(ParticipantSearchDto);
 
         }
 
-        participantsDto.setElements(participantDtoList);
+        participantsDto.setElements(ParticipantSearchDtoList);
         participantsDto.setSize(pageDto.getSize());
         participantsDto.setTotalNumberOfPages(pageDto.getTotalNumberOfPages());
         participantsDto.setCurrentPage(pageDto.getCurrentPage());

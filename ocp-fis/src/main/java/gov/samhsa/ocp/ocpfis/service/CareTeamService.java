@@ -7,4 +7,5 @@ public interface CareTeamService {
     void createCareTeam(CareTeamDto careTeamDto);
 
     void updateCareTeam(String careTeamId, CareTeamDto careTeamDto);
+
 }
