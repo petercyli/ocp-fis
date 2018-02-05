@@ -198,22 +198,6 @@ public class CareTeamServiceImpl implements CareTeamService {
                     String participantId = participantMemberReference.split("/")[1];
                     String participantType = participantMemberReference.split("/")[0];
 
-                    if (participantType.equalsIgnoreCase(ResourceType.Practitioner.toString())) {
-                        if (participant.getOnBehalfOf() != null && !participant.getOnBehalfOf().isEmpty()) {
-                            String organizationId = participant.getOnBehalfOf().getReference().split("/")[1];
-
-                            Bundle organizationBundle = (Bundle) fhirClient.search().forResource(Organization.class)
-                                    .where(new TokenClientParam("_id").exactly().code(organizationId))
-                                    .prettyPrint()
-                                    .execute();
-                            Optional<Resource> organizationResource = organizationBundle.getEntry().stream().map(Bundle.BundleEntryComponent::getResource).findFirst();
-                            Organization organization = (Organization) organizationResource.get();
-
-                            participantDto.setOnBehalfOfId(organizationId);
-                            participantDto.setOnBehalfOfName(organization.getName());
-                        }
-                    }
-
                     //Getting the member
                     careTeamWithItsSubjectAndParticipantBundle.getEntry().forEach(careTeamWithItsSubjectAndPartipant -> {
                         Resource resource = careTeamWithItsSubjectAndPartipant.getResource();
@@ -232,6 +216,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                                         participantDto.setMemberId(participantId);
                                         participantDto.setMemberType(patient.fhirType());
                                         break;
+
                                     case Practitioner:
                                         Practitioner practitioner = (Practitioner) resource;
                                         practitioner.getName().stream().findFirst().ifPresent(name->{
@@ -242,7 +227,22 @@ public class CareTeamServiceImpl implements CareTeamService {
                                         });
                                         participantDto.setMemberId(participantId);
                                         participantDto.setMemberType(practitioner.fhirType());
+
+                                        if (participant.getOnBehalfOf() != null && !participant.getOnBehalfOf().isEmpty()) {
+                                            String organizationId = participant.getOnBehalfOf().getReference().split("/")[1];
+
+                                            Bundle organizationBundle = (Bundle) fhirClient.search().forResource(Organization.class)
+                                                    .where(new TokenClientParam("_id").exactly().code(organizationId))
+                                                    .prettyPrint()
+                                                    .execute();
+                                            Optional<Resource> organizationResource = organizationBundle.getEntry().stream().map(Bundle.BundleEntryComponent::getResource).findFirst();
+                                            Organization organization = (Organization) organizationResource.get();
+
+                                            participantDto.setOnBehalfOfId(organizationId);
+                                            participantDto.setOnBehalfOfName(organization.getName());
+                                        }
                                         break;
+
                                     case Organization:
                                         Organization organization = (Organization) resource;
                                         participantDto.setMemberName(Optional.ofNullable(organization.getName()));
