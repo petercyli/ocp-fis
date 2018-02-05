@@ -37,7 +37,7 @@ public class CareTeamController {
     }
 
     @GetMapping("/search")
-    private PageDto<CareTeamDto> getCareTeams(@RequestParam String searchType, @RequestParam String searchValue, @RequestParam Optional<String> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){
-        return careTeamService.getCareTeam(searchType,searchValue,showInactive,page,size);
+    private PageDto<CareTeamDto> getCareTeams(@RequestParam Optional<List<String>> statusList,@RequestParam String searchType, @RequestParam String searchValue, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size){
+        return careTeamService.getCareTeam(statusList,searchType,searchValue,page,size);
     }
 }
