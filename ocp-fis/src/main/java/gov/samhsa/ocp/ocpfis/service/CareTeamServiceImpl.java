@@ -222,19 +222,30 @@ public class CareTeamServiceImpl implements CareTeamService {
                                 switch (resource.getResourceType()) {
                                     case Patient:
                                         Patient patient = (Patient) resource;
-                                        participantDto.setMemberFirstName(Optional.ofNullable(patient.getName().get(0).getGiven().get(0).toString()));
-                                        participantDto.setMemberLastName(Optional.of(patient.getName().get(0).getFamily()));
+                                        patient.getName().stream().findFirst().ifPresent(name->{
+                                            name.getGiven().stream().findFirst().ifPresent(firstname->{
+                                                participantDto.setMemberFirstName(Optional.ofNullable(firstname.toString()));
+                                            });
+                                            participantDto.setMemberLastName(Optional.ofNullable(name.getFamily()));
+                                        });
+                                        participantDto.setMemberId(participantId);
                                         participantDto.setMemberType(patient.fhirType());
                                         break;
                                     case Practitioner:
                                         Practitioner practitioner = (Practitioner) resource;
-                                        participantDto.setMemberFirstName(Optional.ofNullable(practitioner.getName().get(0).getGiven().get(0).toString()));
-                                        participantDto.setMemberLastName(Optional.of(practitioner.getName().get(0).getFamily()));
+                                        practitioner.getName().stream().findFirst().ifPresent(name->{
+                                            name.getGiven().stream().findFirst().ifPresent(firstname->{
+                                                participantDto.setMemberFirstName(Optional.ofNullable(firstname.toString()));
+                                            });
+                                            participantDto.setMemberLastName(Optional.ofNullable(name.getFamily()));
+                                        });
+                                        participantDto.setMemberId(participantId);
                                         participantDto.setMemberType(practitioner.fhirType());
                                         break;
                                     case Organization:
                                         Organization organization = (Organization) resource;
                                         participantDto.setMemberName(Optional.ofNullable(organization.getName()));
+                                        participantDto.setMemberId(participantId);
                                         participantDto.setMemberType(organization.fhirType());
                                         break;
 
