@@ -175,11 +175,11 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                 .execute();
 
         if (firstPageHealthCareServiceSearchBundle == null || firstPageHealthCareServiceSearchBundle.getEntry().size() < 1) {
-            log.info("No location found for the given OrganizationID:" + organizationResourceId);
+            log.info("No Health Care Service found for the given OrganizationID:" + organizationResourceId);
             return new PageDto<>(new ArrayList<>(), numberOfHealthCareServicesPerPage, 0, 0, 0, 0);
         }
 
-        log.info("FHIR Location(s) bundle retrieved " + firstPageHealthCareServiceSearchBundle.getTotal() + " healthcare service(s) from FHIR server successfully");
+        log.info("FHIR Health Care Service(s) bundle retrieved " + firstPageHealthCareServiceSearchBundle.getTotal() + " healthcare service(s) from FHIR server successfully");
 
         otherPageHealthCareServiceSearchBundle = firstPageHealthCareServiceSearchBundle;
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
