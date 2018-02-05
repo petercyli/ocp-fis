@@ -141,8 +141,6 @@ public class CareTeamServiceImpl implements CareTeamService {
                 .returnBundle(Bundle.class)
                 .execute();
 
-
-        careTeamWithItsSubjectAndParticipantBundle.getTotal();
         List<CareTeamDto> careTeamDtos = retrievedCareTeamMembers.stream().map(retrievedCareTeamMember -> {
             CareTeam careTeam = (CareTeam) retrievedCareTeamMember.getResource();
             CareTeamDto careTeamDto = new CareTeamDto();
