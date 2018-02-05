@@ -8,4 +8,6 @@ public interface CareTeamService {
 
     void updateCareTeam(String careTeamId, CareTeamDto careTeamDto);
 
+    CareTeamDto getCareTeamById(String careTeamId);
+
 }
