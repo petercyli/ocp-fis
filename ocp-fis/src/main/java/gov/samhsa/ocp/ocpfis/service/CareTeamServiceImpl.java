@@ -10,6 +10,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
@@ -17,7 +18,6 @@ import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CareTeamDtoToCareTea
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
-import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
@@ -46,13 +46,15 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     private final FisProperties fisProperties;
 
+    private final LookUpService lookUpService;
+
     @Autowired
-    public CareTeamServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
+    public CareTeamServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
-
+        this.lookUpService = lookUpService;
     }
 
     @Override
@@ -88,131 +90,124 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public PageDto<CareTeamDto> getCareTeam(Optional<List<String>> statusList,String searchType, String searchValue,Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<CareTeamDto> getCareTeam(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size) {
         int numberOfCareTeamMembersPerPage = size.filter(s -> s > 0 &&
                 s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
 
-        IQuery iQuery= fhirClient.search().forResource(CareTeam.class);
+        IQuery iQuery = fhirClient.search().forResource(CareTeam.class);
 
         //Check for patient
-        if(searchType.equalsIgnoreCase("patient"))
-            iQuery.where(new ReferenceClientParam("patient").hasId("Patient/"+searchValue));
+        if (searchType.equalsIgnoreCase("patientId"))
+            iQuery.where(new ReferenceClientParam("patient").hasId("Patient/" + searchValue));
 
         //Check for status
-        if(statusList.isPresent() && statusList.get().size()>0){
+        if (statusList.isPresent() && statusList.get().size() > 0) {
             iQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         }
 
 
         Bundle firstPageCareTeamBundle;
         Bundle otherPageCareTeamBundle;
-        boolean firstPage=true;
+        boolean firstPage = true;
 
-        firstPageCareTeamBundle= (Bundle) iQuery
+        firstPageCareTeamBundle = (Bundle) iQuery
                 .count(numberOfCareTeamMembersPerPage)
                 .returnBundle(Bundle.class).execute();
 
-        if(firstPageCareTeamBundle==null || firstPageCareTeamBundle.getEntry().size()<1){
+        if (firstPageCareTeamBundle == null || firstPageCareTeamBundle.getEntry().size() < 1) {
             throw new ResourceNotFoundException("No Care Team members were found in the FHIR server.");
         }
 
-        otherPageCareTeamBundle=firstPageCareTeamBundle;
+        otherPageCareTeamBundle = firstPageCareTeamBundle;
 
-        if(page.isPresent() && page.get()>1 && otherPageCareTeamBundle.getLink(Bundle.LINK_NEXT) !=null){
-            firstPage=false;
-            otherPageCareTeamBundle=getCareTeamBundleAfterFirstPage(firstPageCareTeamBundle,page.get(),numberOfCareTeamMembersPerPage);
+        if (page.isPresent() && page.get() > 1 && otherPageCareTeamBundle.getLink(Bundle.LINK_NEXT) != null) {
+            firstPage = false;
+            otherPageCareTeamBundle = getCareTeamBundleAfterFirstPage(firstPageCareTeamBundle, page.get(), numberOfCareTeamMembersPerPage);
         }
 
-        List<Bundle.BundleEntryComponent> retrievedCareTeamMembers=otherPageCareTeamBundle.getEntry();
+        List<Bundle.BundleEntryComponent> retrievedCareTeamMembers = otherPageCareTeamBundle.getEntry();
 
-        IQuery careTeamWithItsSubjectAndParticipantQuery= iQuery.include(CareTeam.INCLUDE_PARTICIPANT)
+        IQuery careTeamWithItsSubjectAndParticipantQuery = iQuery.include(CareTeam.INCLUDE_PARTICIPANT)
                 .include(CareTeam.INCLUDE_SUBJECT);
 
-        Bundle careTeamWithItsSubjectAndParticipantBundleForTotalEntry= (Bundle) careTeamWithItsSubjectAndParticipantQuery
+        Bundle careTeamWithItsSubjectAndParticipantBundleForTotalEntry = (Bundle) careTeamWithItsSubjectAndParticipantQuery
                 .returnBundle(Bundle.class)
                 .execute();
 
-        int totalEntry=careTeamWithItsSubjectAndParticipantBundleForTotalEntry.getTotal();
+        int totalEntry = careTeamWithItsSubjectAndParticipantBundleForTotalEntry.getTotal();
 
-        Bundle careTeamWithItsSubjectAndParticipantBundle= (Bundle) careTeamWithItsSubjectAndParticipantQuery
+        Bundle careTeamWithItsSubjectAndParticipantBundle = (Bundle) careTeamWithItsSubjectAndParticipantQuery
                 .count(totalEntry)
                 .returnBundle(Bundle.class)
                 .execute();
 
 
         careTeamWithItsSubjectAndParticipantBundle.getTotal();
-        List<CareTeamDto> careTeamDtos=retrievedCareTeamMembers.stream().map(retrievedCareTeamMember->{
-            CareTeam careTeam= (CareTeam) retrievedCareTeamMember.getResource();
-            CareTeamDto careTeamDto=  new CareTeamDto();
-            careTeamDto.setName((careTeam.getName() !=null && !careTeam.getName().isEmpty())?careTeam.getName():"");
-            if(careTeam.getStatus() !=null) {
-                careTeamDto.setStatusDisplay((careTeam.getStatus().getDisplay() != null && !careTeam.getStatus().getDisplay().isEmpty())? careTeam.getStatus().getDisplay() : "");
+        List<CareTeamDto> careTeamDtos = retrievedCareTeamMembers.stream().map(retrievedCareTeamMember -> {
+            CareTeam careTeam = (CareTeam) retrievedCareTeamMember.getResource();
+            CareTeamDto careTeamDto = new CareTeamDto();
+            careTeamDto.setName((careTeam.getName() != null && !careTeam.getName().isEmpty()) ? careTeam.getName() : "");
+            if (careTeam.getStatus() != null) {
                 careTeamDto.setStatusCode((careTeam.getStatus().toCode() != null && !careTeam.getStatus().toCode().isEmpty()) ? careTeam.getStatus().toCode() : "");
+                careTeamDto.setStatusDisplay((getCareTeamDisplay(careTeam.getStatus().toCode(), lookUpService.getCareTeamStatuses())).orElse(""));
             }
-            careTeam.getCategory().stream().findFirst().ifPresent(category->{
-               category.getCoding().stream().findFirst().ifPresent(coding -> {
-                   careTeamDto.setCategoryCode((coding.getCode()!=null && !coding.getCode().isEmpty())?coding.getCode():"");
-                   careTeamDto.setCategoryDisplay((coding.getDisplay()!=null && !coding.getDisplay().isEmpty())?coding.getDisplay():"");
-               });
+            careTeam.getCategory().stream().findFirst().ifPresent(category -> {
+                category.getCoding().stream().findFirst().ifPresent(coding -> {
+                    careTeamDto.setCategoryCode((coding.getCode() != null && !coding.getCode().isEmpty()) ? coding.getCode() : "");
+                    careTeamDto.setCategoryDisplay((getCareTeamDisplay(coding.getCode(), lookUpService.getCareTeamCategories())).orElse(""));
+                });
             });
-            String subjectReference=careTeam.getSubject().getReference();
-            String patientId=subjectReference.substring(subjectReference.lastIndexOf("/")+1);
+            String subjectReference = careTeam.getSubject().getReference();
+            String patientId = subjectReference.substring(subjectReference.lastIndexOf("/") + 1);
 
-            Optional<Bundle.BundleEntryComponent> patientBundleEntryComponent=careTeamWithItsSubjectAndParticipantBundle.getEntry().stream().filter(careTeamWithItsSubjectAndParticipant-> {
+            Optional<Bundle.BundleEntryComponent> patientBundleEntryComponent = careTeamWithItsSubjectAndParticipantBundle.getEntry().stream().filter(careTeamWithItsSubjectAndParticipant -> {
                         return careTeamWithItsSubjectAndParticipant.getResource().getIdElement().getIdPart().equalsIgnoreCase(patientId);
                     }
             ).findFirst();
 
-            patientBundleEntryComponent.ifPresent(patient->{
-                Patient subjectPatient= (Patient) patient.getResource();
-                String firstName="";
-                String lastName="";
-                if(subjectPatient.getName() !=null && subjectPatient.getName().size()>0) {
-                    if (subjectPatient.getName().get(0).getFamily() != null && !subjectPatient.getName().get(0).getFamily().isEmpty()) {
-                        lastName = subjectPatient.getName().get(0).getFamily();
-                    }
-                    if (subjectPatient.getName().get(0).getGiven() != null && subjectPatient.getName().get(0).getGiven().size()>0){
-                        firstName=subjectPatient.getName().get(0).getGiven().get(0).toString();
-                    }
-                }
+            patientBundleEntryComponent.ifPresent(patient -> {
+                Patient subjectPatient = (Patient) patient.getResource();
+
+                subjectPatient.getName().stream().findFirst().ifPresent(name -> {
+                    careTeamDto.setSubjectLastName((name.getFamily() != null && !name.getFamily().isEmpty()) ? (name.getFamily()) : "");
+                    name.getGiven().stream().findFirst().ifPresent(firstname -> {
+                        careTeamDto.setSubjectFirstName(firstname.toString());
+                    });
+                });
                 careTeamDto.setSubjectId(patientId);
-                careTeamDto.setSubjectFirstName(firstName);
-                careTeamDto.setSubjectLastName(lastName);
             });
 
 
             //Getting for participant
-            List<ParticipantDto> participantDtos=new ArrayList<>();
-            careTeam.getParticipant().forEach(participant->{
-                ParticipantDto participantDto=new ParticipantDto();
+            List<ParticipantDto> participantDtos = new ArrayList<>();
+            careTeam.getParticipant().forEach(participant -> {
+                ParticipantDto participantDto = new ParticipantDto();
                 //Getting participant role
-                if(participant.getRole() !=null && !participant.getRole().isEmpty()) {
+                if (participant.getRole() != null && !participant.getRole().isEmpty()) {
 
-                    if (participant.getRole().getCoding().size() > 0 && participant.getRole().getCoding() != null){
-                        Coding participantRole=participant.getRole().getCoding().get(0);
-
-                        participantDto.setRoleCode((participantRole.getCode()!=null && !participantRole.getCode().isEmpty())?participantRole.getCode():"");
-                        participantDto.setRoleDisplay((participantRole.getDisplay()!=null && !participantRole.getDisplay().isEmpty())?participantRole.getDisplay():"");
-                    }
+                    participant.getRole().getCoding().stream().findFirst().ifPresent(participantRole -> {
+                        participantDto.setRoleCode((participantRole.getCode() != null && !participantRole.getCode().isEmpty()) ? participantRole.getCode() : "");
+                        participantDto.setRoleDisplay((participantRole.getDisplay() != null && !participantRole.getDisplay().isEmpty()) ? participantRole.getDisplay() : "");
+                    });
 
                 }
 
                 //Getting participant member and onBehalfof
-                if(participant.getMember() !=null && !participant.getMember().isEmpty()){
-                    String participantMemberReference=participant.getMember().getReference();
-                    String participantId=participantMemberReference.split("/")[1];
-                    String participantType=participantMemberReference.split("/")[0];
+                if (participant.getMember() != null && !participant.getMember().isEmpty()) {
+                    String participantMemberReference = participant.getMember().getReference();
+                    String participantId = participantMemberReference.split("/")[1];
+                    String participantType = participantMemberReference.split("/")[0];
 
-                    if(participantType.equalsIgnoreCase(ResourceType.Practitioner.toString())){
-                        if(participant.getOnBehalfOf()!=null && !participant.getOnBehalfOf().isEmpty()){
-                            String organizationId=participant.getOnBehalfOf().getReference().split("/")[1];
+                    if (participantType.equalsIgnoreCase(ResourceType.Practitioner.toString())) {
+                        if (participant.getOnBehalfOf() != null && !participant.getOnBehalfOf().isEmpty()) {
+                            String organizationId = participant.getOnBehalfOf().getReference().split("/")[1];
 
-                            Bundle organizationBundle= (Bundle) fhirClient.search().forResource(Organization.class)
+                            Bundle organizationBundle = (Bundle) fhirClient.search().forResource(Organization.class)
                                     .where(new TokenClientParam("_id").exactly().code(organizationId))
                                     .prettyPrint()
                                     .execute();
-                            Optional<Resource> organizationResource= organizationBundle.getEntry().stream().map(Bundle.BundleEntryComponent::getResource).findFirst();
-                            Organization organization= (Organization) organizationResource.get();
+                            Optional<Resource> organizationResource = organizationBundle.getEntry().stream().map(Bundle.BundleEntryComponent::getResource).findFirst();
+                            Organization organization = (Organization) organizationResource.get();
 
                             participantDto.setOnBehalfOfId(organizationId);
                             participantDto.setOnBehalfOfName(organization.getName());
@@ -220,26 +215,26 @@ public class CareTeamServiceImpl implements CareTeamService {
                     }
 
                     //Getting the member
-                    careTeamWithItsSubjectAndParticipantBundle.getEntry().forEach(careTeamWithItsSubjectAndPartipant->{
-                        Resource resource= careTeamWithItsSubjectAndPartipant.getResource();
-                        if(resource.getResourceType().toString().trim().replaceAll(" ","").equalsIgnoreCase(participantType.trim().replaceAll(" ",""))){
+                    careTeamWithItsSubjectAndParticipantBundle.getEntry().forEach(careTeamWithItsSubjectAndPartipant -> {
+                        Resource resource = careTeamWithItsSubjectAndPartipant.getResource();
+                        if (resource.getResourceType().toString().trim().replaceAll(" ", "").equalsIgnoreCase(participantType.trim().replaceAll(" ", ""))) {
 
-                            if(resource.getIdElement().getIdPart().equalsIgnoreCase(participantId)) {
-                                switch(resource.getResourceType()){
+                            if (resource.getIdElement().getIdPart().equalsIgnoreCase(participantId)) {
+                                switch (resource.getResourceType()) {
                                     case Patient:
-                                        Patient patient= (Patient) resource;
+                                        Patient patient = (Patient) resource;
                                         participantDto.setMemberFirstName(Optional.ofNullable(patient.getName().get(0).getGiven().get(0).toString()));
                                         participantDto.setMemberLastName(Optional.of(patient.getName().get(0).getFamily()));
                                         participantDto.setMemberType(patient.fhirType());
                                         break;
                                     case Practitioner:
-                                        Practitioner practitioner= (Practitioner) resource;
+                                        Practitioner practitioner = (Practitioner) resource;
                                         participantDto.setMemberFirstName(Optional.ofNullable(practitioner.getName().get(0).getGiven().get(0).toString()));
                                         participantDto.setMemberLastName(Optional.of(practitioner.getName().get(0).getFamily()));
                                         participantDto.setMemberType(practitioner.fhirType());
                                         break;
                                     case Organization:
-                                        Organization organization= (Organization) resource;
+                                        Organization organization = (Organization) resource;
                                         participantDto.setMemberName(Optional.ofNullable(organization.getName()));
                                         participantDto.setMemberType(organization.fhirType());
                                         break;
@@ -262,7 +257,7 @@ public class CareTeamServiceImpl implements CareTeamService {
         double totalPages = Math.ceil((double) otherPageCareTeamBundle.getTotal() / numberOfCareTeamMembersPerPage);
         int currentPage = firstPage ? 1 : page.get();
 
-        return new PageDto<>(careTeamDtos,numberOfCareTeamMembersPerPage,totalPages,currentPage,careTeamDtos.size(),otherPageCareTeamBundle.getTotal());
+        return new PageDto<>(careTeamDtos, numberOfCareTeamMembersPerPage, totalPages, currentPage, careTeamDtos.size(), otherPageCareTeamBundle.getTotal());
     }
 
     private void checkForDuplicates(CareTeamDto careTeamDto) {
@@ -272,9 +267,13 @@ public class CareTeamServiceImpl implements CareTeamService {
     private void validate(CareTeam careTeam) {
         final ValidationResult validationResult = fhirValidator.validateWithResult(careTeam);
 
-        if(!validationResult.isSuccessful()) {
+        if (!validationResult.isSuccessful()) {
             throw new FHIRFormatErrorException("FHIR CareTeam validation is not successful" + validationResult.getMessages());
         }
+    }
+
+    private Optional<String> getCareTeamDisplay(String code, List<ValueSetDto> lookupValues) {
+        return lookupValues.stream().filter(lookupValue -> code.equalsIgnoreCase(lookupValue.getCode())).map(valueSet -> valueSet.getDisplay()).findFirst();
     }
 
     private Bundle getCareTeamBundleAfterFirstPage(Bundle careTeamBundle, int page, int size) {
