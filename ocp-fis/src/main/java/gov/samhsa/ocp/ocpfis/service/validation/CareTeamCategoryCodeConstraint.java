@@ -9,10 +9,10 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Documented
-@Constraint(validatedBy = CategoryCodeValidator.class)
+@Constraint(validatedBy = CareTeamCategoryCodeValidator.class)
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface CategoryCodeConstraint {
+public @interface CareTeamCategoryCodeConstraint {
 
     String message() default "Invalid Category code";
 

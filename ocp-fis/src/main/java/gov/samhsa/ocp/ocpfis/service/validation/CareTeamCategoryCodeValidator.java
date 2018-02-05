@@ -9,13 +9,13 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import java.util.List;
 
-public class CategoryCodeValidator implements ConstraintValidator<CategoryCodeConstraint, String> {
+public class CareTeamCategoryCodeValidator implements ConstraintValidator<CareTeamCategoryCodeConstraint, String> {
 
    @Autowired
    LookUpService lookUpService;
 
    @Override
-   public void initialize(CategoryCodeConstraint constraint) {
+   public void initialize(CareTeamCategoryCodeConstraint constraint) {
    }
 
    @Override
