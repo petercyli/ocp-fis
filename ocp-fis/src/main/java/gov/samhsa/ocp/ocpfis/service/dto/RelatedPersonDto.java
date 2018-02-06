@@ -13,5 +13,7 @@ public class RelatedPersonDto extends NameLogicalIdIdentifiersDto {
 
     private String id;
 
-    private String name;
+    private String firstName;
+
+    private String lastName;
 }
