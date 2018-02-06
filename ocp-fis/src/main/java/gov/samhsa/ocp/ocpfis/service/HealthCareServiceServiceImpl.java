@@ -275,9 +275,9 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
 
         //Arrange Page related info
         List<HealthCareServiceDto> healthCareServicesList = retrivedHealthCareServices.stream().map(hcs -> {
-            HealthCareServiceDto healthCareServiceDto=new HealthCareServiceDto();
-            healthCareServiceDto.setName(hcs.getResource().getId());
-            return healthCareServiceDto;
+           HealthCareServiceDto healthCareServiceDto=modelMapper.map(hcs.getResource(),HealthCareServiceDto.class);
+           healthCareServiceDto.setLogicalId(hcs.getResource().getIdElement().getIdPart());
+           return healthCareServiceDto;
         }).collect(Collectors.toList());
         double totalPages = Math.ceil((double) otherPageHealthCareServiceSearchBundle.getTotal() / numberOfHealthCareServicesPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
