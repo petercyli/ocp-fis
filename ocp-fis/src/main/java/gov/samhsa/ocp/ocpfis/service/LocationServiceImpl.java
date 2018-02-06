@@ -255,12 +255,7 @@ public class LocationServiceImpl implements LocationService {
         }
 
         // Validate the resource
-        ValidationResult validationResult = fhirValidator.validateWithResult(fhirLocation);
-        log.info("Create Location: Validation successful? " + validationResult.isSuccessful());
-
-        if (!validationResult.isSuccessful()) {
-            throw new FHIRFormatErrorException("Location Validation was not successful" + validationResult.getMessages());
-        }
+        validateLocationResource(fhirLocation, Optional.empty(), "Create Location: ");
 
         try {
             MethodOutcome serverResponse = fhirClient.create().resource(fhirLocation).execute();
@@ -304,12 +299,7 @@ public class LocationServiceImpl implements LocationService {
         }
 
         // Validate the resource
-        ValidationResult validationResult = fhirValidator.validateWithResult(existingFhirLocation);
-        log.info("Update Location: Validation successful? " + validationResult.isSuccessful() + " for LocationID:" + locationId);
-
-        if (!validationResult.isSuccessful()) {
-            throw new FHIRFormatErrorException("Location Validation was not successful" + validationResult.getMessages());
-        }
+        validateLocationResource(existingFhirLocation, Optional.of(locationId), "Update Location: ");
 
         try {
             MethodOutcome serverResponse = fhirClient.update().resource(existingFhirLocation).execute();
@@ -328,6 +318,22 @@ public class LocationServiceImpl implements LocationService {
         Location existingFhirLocation = readLocationFromServer(locationId);
         setLocationStatusToInactive(existingFhirLocation);
     }
+
+    private void validateLocationResource(Location fhirLocation, Optional<String> locationId, String createOrUpdateLocation){
+        ValidationResult validationResult = fhirValidator.validateWithResult(fhirLocation);
+
+        if(locationId.isPresent()){
+            log.info(createOrUpdateLocation + "Validation successful? " + validationResult.isSuccessful() + " for LocationID: " + locationId);
+        } else {
+            log.info(createOrUpdateLocation + "Validation successful? " + validationResult.isSuccessful());
+        }
+
+        if (!validationResult.isSuccessful()) {
+            throw new FHIRFormatErrorException("Location Validation was not successful" + validationResult.getMessages());
+        }
+
+    }
+
 
     private Location readLocationFromServer(String locationId) {
         Location existingFhirLocation;

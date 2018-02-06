@@ -15,4 +15,19 @@ public class SearchKeyEnum {
             return false;
         }
     }
+
+    public enum HealthcareServiceSearchKey {
+        /**
+         * Healthcare Services can be searched based on the following keys
+         */
+        NAME, LOGICALID, IDENTIFIERVALUE;
+
+        public static boolean contains(String s) {
+            for (HealthcareServiceSearchKey healthcareServiceSearchKey : values())
+                if (healthcareServiceSearchKey.name().equalsIgnoreCase(s)) {
+                    return true;
+                }
+            return false;
+        }
+    }
 }

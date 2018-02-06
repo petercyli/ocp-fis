@@ -25,6 +25,10 @@ public class FisProperties {
 
     @NotNull
     @Valid
+    private HealthCareService healthCareService;
+
+    @NotNull
+    @Valid
     private Location location;
 
     @NotNull
@@ -49,6 +53,25 @@ public class FisProperties {
         @NotNull
         private EncodingEnum encoding = EncodingEnum.JSON;
 
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class HealthCareService {
+        @Valid
+        private Pagination pagination = new Pagination();
+
+        @Data
+        public static class Pagination {
+            @Min(1)
+            @Max(500)
+            private int defaultSize = 10;
+            @Min(1)
+            @Max(500)
+            private int maxSize = 50;
+        }
     }
 
 
