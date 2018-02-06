@@ -9,9 +9,11 @@ import gov.samhsa.ocp.ocpfis.service.dto.ParticipantOnBehalfOfDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantSearchDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
+import gov.samhsa.ocp.ocpfis.web.RelatedPersonController;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -53,6 +55,9 @@ public class ParticipantServiceImpl implements ParticipantService {
             PageDto<PatientDto> pageDto = patientService.getPatientsByValue(value, "name", showInActive, page, size);
             participantsDto = convertPatientsToParticipantsDto(pageDto, participantType);
 
+        } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
+            PageDto<RelatedPersonDto> pageDto = relatedPersonService.searchRelatedPersons(RelatedPersonController.SearchType.name, value, showInActive, page, size);
+            participantsDto = convertRelatedPersonsToParticipantsDto(pageDto, participantType);
         }
 
         return participantsDto;
@@ -171,5 +176,45 @@ public class ParticipantServiceImpl implements ParticipantService {
         return participantsDto;
     }
 
+    private PageDto<ParticipantSearchDto> convertRelatedPersonsToParticipantsDto(PageDto<RelatedPersonDto> pageDto, ParticipantTypeEnum participantType) {
+        List<RelatedPersonDto> relatedPersonDtos = pageDto.getElements();
+        PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
+
+        List<ParticipantSearchDto> participantSearchDtoList = new ArrayList<>();
+
+        for (RelatedPersonDto dto : relatedPersonDtos) {
+            ParticipantSearchDto participantSearchDto = new ParticipantSearchDto();
+
+            ParticipantMemberDto memberDto = new ParticipantMemberDto();
+
+            memberDto.setFirstName(Optional.of(dto.getFirstName()));
+            memberDto.setLastName(Optional.of(dto.getLastName()));
+            memberDto.setId(dto.getLogicalId());
+            memberDto.setType(participantType.getCode());
+
+            participantSearchDto.setMember(memberDto);
+
+            setOnBehalfOfDtoAndRole(participantSearchDtoList, participantSearchDto);
+        }
+
+        participantsDto.setElements(participantSearchDtoList);
+        participantsDto.setSize(pageDto.getSize());
+        participantsDto.setTotalNumberOfPages(pageDto.getTotalNumberOfPages());
+        participantsDto.setCurrentPage(pageDto.getCurrentPage());
+        participantsDto.setCurrentPageSize(pageDto.getCurrentPageSize());
+        participantsDto.setTotalElements(pageDto.getTotalElements());
+
+        return participantsDto;
+    }
+
+    private void setOnBehalfOfDtoAndRole(List<ParticipantSearchDto> participantSearchDtoList, ParticipantSearchDto participantSearchDto) {
+        ParticipantOnBehalfOfDto participantOnBehalfOfDto = new ParticipantOnBehalfOfDto();
+        participantSearchDto.setOnBehalfOfDto(participantOnBehalfOfDto);
+
+        ValueSetDto valueSetDto = new ValueSetDto();
+        participantSearchDto.setRole(valueSetDto);
+
+        participantSearchDtoList.add(participantSearchDto);
+    }
 
 }
