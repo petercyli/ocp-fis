@@ -4,8 +4,8 @@ import gov.samhsa.ocp.ocpfis.service.CareTeamService;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -41,5 +41,10 @@ public class CareTeamController {
     @GetMapping("/search")
     private PageDto<CareTeamDto> getCareTeams(@RequestParam Optional<List<String>> statusList, @RequestParam String searchType, @RequestParam String searchValue, @RequestParam Optional<Integer> pageNumber, @RequestParam Optional<Integer> pageSize) {
         return careTeamService.getCareTeams(statusList, searchType, searchValue, pageNumber, pageSize);
+    }
+
+    @GetMapping("/{careTeamId}")
+    public CareTeamDto getCareTeamById(@PathVariable String careTeamId) {
+        return careTeamService.getCareTeamById(careTeamId);
     }
 }

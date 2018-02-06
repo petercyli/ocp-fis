@@ -14,6 +14,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.mapping.CareTeamToCareTeamDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CareTeamDtoToCareTeamConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -22,12 +23,12 @@ import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Resource;
-import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -68,7 +69,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
             fhirClient.create().resource(careTeam).execute();
 
-        } catch (FHIRException e) {
+        } catch (FHIRException | ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while creating a care team:" + e.getMessage());
 
         }
@@ -84,7 +85,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
             fhirClient.update().resource(careTeam).execute();
 
-        } catch (FHIRException e) {
+        } catch (FHIRException | ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while creating a care team:" + e.getMessage());
 
         }
@@ -206,8 +207,8 @@ public class CareTeamServiceImpl implements CareTeamService {
                                 switch (resource.getResourceType()) {
                                     case Patient:
                                         Patient patient = (Patient) resource;
-                                        patient.getName().stream().findFirst().ifPresent(name->{
-                                            name.getGiven().stream().findFirst().ifPresent(firstName->{
+                                        patient.getName().stream().findFirst().ifPresent(name -> {
+                                            name.getGiven().stream().findFirst().ifPresent(firstName -> {
                                                 participantDto.setMemberFirstName(Optional.ofNullable(firstName.toString()));
                                             });
                                             participantDto.setMemberLastName(Optional.ofNullable(name.getFamily()));
@@ -218,8 +219,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
                                     case Practitioner:
                                         Practitioner practitioner = (Practitioner) resource;
-                                        practitioner.getName().stream().findFirst().ifPresent(name->{
-                                            name.getGiven().stream().findFirst().ifPresent(firstName->{
+                                        practitioner.getName().stream().findFirst().ifPresent(name -> {
+                                            name.getGiven().stream().findFirst().ifPresent(firstName -> {
                                                 participantDto.setMemberFirstName(Optional.ofNullable(firstName.toString()));
                                             });
                                             participantDto.setMemberLastName(Optional.ofNullable(name.getFamily()));
@@ -268,6 +269,24 @@ public class CareTeamServiceImpl implements CareTeamService {
         int currentPage = firstPage ? 1 : page.get();
 
         return new PageDto<>(careTeamDtos, numberOfCareTeamMembersPerPage, totalPages, currentPage, careTeamDtos.size(), otherPageCareTeamBundle.getTotal());
+    }
+
+    @Override
+    public CareTeamDto getCareTeamById(String careTeamById) {
+        Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
+                .where(new TokenClientParam("_id").exactly().code(careTeamById))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (careTeamBundle == null || careTeamBundle.getEntry().size() < 1) {
+            throw new ResourceNotFoundException("No CareTeam was found for the given careTeamID : " + careTeamById);
+        }
+
+        CareTeam careTeam = (CareTeam) careTeamBundle.getEntry().get(0).getResource();
+
+        final CareTeamDto careTeamDto = CareTeamToCareTeamDtoConverter.map(careTeam);
+
+        return careTeamDto;
     }
 
     private void checkForDuplicates(CareTeamDto careTeamDto) {
