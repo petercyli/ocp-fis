@@ -30,8 +30,11 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.DateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -266,6 +269,8 @@ public class CareTeamServiceImpl implements CareTeamService {
             });
 
             careTeamDto.setParticipants(participantDtos);
+            careTeamDto.setStartDate(convertDateToString(careTeam.getPeriod().getStart()));
+            careTeamDto.setEndDate(convertDateToString(careTeam.getPeriod().getEnd()));
             return careTeamDto;
         }).collect(toList());
 
@@ -340,6 +345,11 @@ public class CareTeamServiceImpl implements CareTeamService {
                     .execute();
         }
         return careTeamBundle;
+    }
+
+    private String convertDateToString(Date date){
+        DateFormat df=new SimpleDateFormat("MM/dd/yyyy");
+        return df.format(date);
     }
 
 
