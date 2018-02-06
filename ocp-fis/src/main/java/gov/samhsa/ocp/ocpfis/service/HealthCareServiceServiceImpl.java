@@ -11,10 +11,12 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameLogicalIdIdentifiersDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
@@ -125,7 +127,6 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
 
     @Override
     public PageDto<HealthCareServiceDto> getAllHealthCareServicesByOrganization(String organizationResourceId, Optional<String> assignedToLocationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        //Note to Ming: If locationResourceId.isPresent(), then set appropriate value to HealthCareServiceDto.assignedToCurrentLocation
 
         int numberOfHealthCareServicesPerPage = pageSize.filter(s -> s > 0 &&
                 s <= fisProperties.getHealthCareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthCareService().getPagination().getDefaultSize());
@@ -228,23 +229,21 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
 
     @Override
     public void createHealthCareService(String organizationId, HealthCareServiceDto healthCareServiceDto) {
-        log.info("Creating Health Care Service for Organization Id:" + organizationId);
+        log.info("Creating Healthcare Service for Organization Id:" + organizationId);
+        log.info("But first, checking if a duplicate Healthcare Service exists based on the Identifiers provided.");
+        checkForDuplicateHealthCareServiceBasedOnIdentifiersDuringCreate(healthCareServiceDto);
 
-        HealthcareService fhirHealthCareService = modelMapper.map(healthCareServiceDto, HealthcareService.class);
-        fhirHealthCareService.setActive(Boolean.TRUE);
-
-        fhirHealthCareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
-
-        // Validate the resource
-        //validateHealthcareServiceResource(fhirHealthCareService, Optional.empty(), "Create c: ");
+        HealthcareService fhirHealthcareService = modelMapper.map(healthCareServiceDto, HealthcareService.class);
+        fhirHealthcareService.setActive(Boolean.TRUE);
+        fhirHealthcareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
 
         try {
-            MethodOutcome serverResponse = fhirClient.create().resource(fhirHealthCareService).execute();
-            log.info("Created a new Health Care Service :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
+            MethodOutcome serverResponse = fhirClient.create().resource(fhirHealthcareService).execute();
+            log.info("Created a new Healthcare Service :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
         }
         catch (BaseServerResponseException e) {
-            log.error("Could NOT create Health Care Service for Organization Id:" + organizationId);
-            throw new FHIRClientException("FHIR Client returned with an error while creating the Health Care Service:" + e.getMessage());
+            log.error("Could NOT create Healthcare Service for Organization Id:" + organizationId);
+            throw new FHIRClientException("FHIR Client returned with an error while creating the Healthcare Service:" + e.getMessage());
         }
     }
 
@@ -409,6 +408,40 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                     .execute();
         } else {
             throw new ResourceNotFoundException("No HealthCare services were found in the FHIR server for the page number: " + pageNumber);
+        }
+    }
+
+    private void checkForDuplicateHealthCareServiceBasedOnIdentifiersDuringCreate(HealthCareServiceDto healthCareServiceDto) {
+        List<IdentifierDto> identifiersList = healthCareServiceDto.getIdentifiers();
+        log.info("Current Healthcare ServiceDto has " + identifiersList.size() + " identifiers.");
+
+        for (IdentifierDto tempIdentifierDto : identifiersList) {
+            String identifierSystem = tempIdentifierDto.getSystem();
+            String identifierValue = tempIdentifierDto.getValue();
+            checkDuplicateHealthCareServiceExists(identifierSystem, identifierValue);
+        }
+        log.info("Create Healthcare Service: Found no duplicate location.");
+    }
+
+    private void checkDuplicateHealthCareServiceExists(String identifierSystem, String identifierValue) {
+        Bundle bundle;
+        if (identifierSystem != null && !identifierSystem.trim().isEmpty()
+                && identifierValue != null && !identifierValue.trim().isEmpty()) {
+            bundle = fhirClient.search().forResource(HealthcareService.class)
+                    .where(new TokenClientParam("identifier").exactly().systemAndCode(identifierSystem.trim(), identifierValue.trim()))
+                    .returnBundle(Bundle.class)
+                    .execute();
+        } else if (identifierValue != null && !identifierValue.trim().isEmpty()) {
+            bundle = fhirClient.search().forResource(HealthcareService.class)
+                    .where(new TokenClientParam("identifier").exactly().code(identifierValue.trim()))
+                    .returnBundle(Bundle.class)
+                    .execute();
+        } else {
+            throw new BadRequestException("Found no valid identifierSystem and/or identifierValue");
+        }
+
+        if (bundle != null && bundle.getEntry().size() > 0) {
+            throw new DuplicateResourceFoundException("A Healthcare Service already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
         }
     }
 }
