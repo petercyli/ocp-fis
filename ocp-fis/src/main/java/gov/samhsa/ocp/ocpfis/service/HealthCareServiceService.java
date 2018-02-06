@@ -11,6 +11,7 @@ public interface HealthCareServiceService {
 
     PageDto<HealthCareServiceDto> getAllHealthCareServicesByOrganization(String organizationResourceId, Optional<String> assignedToLocationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
 
+    PageDto<HealthCareServiceDto> getAllHealthCareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
     HealthCareServiceDto getHealthCareService(String healthCareServiceId);
 
 
