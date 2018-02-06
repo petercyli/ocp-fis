@@ -7,10 +7,12 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.CareTeamFieldEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
@@ -38,6 +40,8 @@ import static java.util.stream.Collectors.toList;
 @Service
 @Slf4j
 public class CareTeamServiceImpl implements CareTeamService {
+
+    public static final String STATUS_ACTIVE = "active";
 
     private final ModelMapper modelMapper;
 
@@ -290,7 +294,17 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     private void checkForDuplicates(CareTeamDto careTeamDto) {
+        Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
+                .where(new TokenClientParam(CareTeamFieldEnum.STATUS.getCode()).exactly().code(STATUS_ACTIVE))
+                .and(new TokenClientParam(CareTeamFieldEnum.SUBJECT.getCode()).exactly().code(careTeamDto.getSubjectId()))
+                .and(new TokenClientParam(CareTeamFieldEnum.CATEGORY.getCode()).exactly().code(careTeamDto.getCategoryCode()))
+                .returnBundle(Bundle.class)
+                .execute();
 
+        log.info("Existing CareTeam size : " + careTeamBundle.getEntry().size());
+        if (careTeamBundle != null && careTeamBundle.getEntry().size() > 1) {
+            throw new DuplicateResourceFoundException("CareTeam already exists with the given subject ID and category Code in active status");
+        }
     }
 
     private void validate(CareTeam careTeam) {
