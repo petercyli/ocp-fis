@@ -11,17 +11,21 @@ import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import gov.samhsa.ocp.ocpfis.web.RelatedPersonController;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.StringType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Service
+@Slf4j
 public class RelatedPersonServiceImpl implements RelatedPersonService {
 
     private final ModelMapper modelMapper;
@@ -61,7 +65,8 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
             RelatedPerson relatedPerson = (RelatedPerson) relatedPersonBundleEntry.getResource();
 
             dto.setId(relatedPerson.getIdElement().getIdPart());
-            dto.setName(toNameFromHumanName(relatedPerson.getName().stream().findFirst().get()));
+            dto.setFirstName(convertToString(relatedPerson.getName().stream().findFirst().get().getGiven()));
+            dto.setLastName(checkString(relatedPerson.getName().stream().findFirst().get().getFamily()));
             return dto;
         }).collect(Collectors.toList());
 
@@ -73,14 +78,14 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
                 s <= fisProperties.getRelatedPerson().getPagination().getMaxSize()).orElse(fisProperties.getRelatedPerson().getPagination().getDefaultSize());
     }
 
-    private String toNameFromHumanName(HumanName humanName) {
+    private String toFirstNameFromHumanName(HumanName humanName) {
         List<StringType> fNameList = humanName.getGiven();
-        List<StringType> lNameList = humanName.getGiven();
 
-        String fName = checkString(fNameList.stream().findFirst().get().toString());
-        String lName = checkString(lNameList.stream().findFirst().get().toString());
+        return checkString(fNameList.stream().findFirst().get().toString());
+    }
 
-        return humanName.getGiven() + " " + humanName.getFamily();
+    private String convertToString(List<StringType> nameList) {
+        return checkString(nameList.stream().findFirst().get().toString());
     }
 
     private String checkString(String string) {
