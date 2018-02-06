@@ -269,8 +269,10 @@ public class CareTeamServiceImpl implements CareTeamService {
             });
 
             careTeamDto.setParticipants(participantDtos);
-            careTeamDto.setStartDate(convertDateToString(careTeam.getPeriod().getStart()));
-            careTeamDto.setEndDate(convertDateToString(careTeam.getPeriod().getEnd()));
+            if(careTeam.getPeriod()!=null &&!careTeam.getPeriod().isEmpty()) {
+                careTeamDto.setStartDate((careTeam.getPeriod().getStart() != null) ? convertDateToString(careTeam.getPeriod().getStart()) : null);
+                careTeamDto.setEndDate((careTeam.getPeriod().getEnd() != null) ? convertDateToString(careTeam.getPeriod().getEnd()):null);
+            }
             return careTeamDto;
         }).collect(toList());
 
