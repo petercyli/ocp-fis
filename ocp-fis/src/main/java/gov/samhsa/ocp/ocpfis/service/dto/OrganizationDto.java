@@ -3,19 +3,18 @@ package gov.samhsa.ocp.ocpfis.service.dto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+@EqualsAndHashCode(callSuper = true)
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class OrganizationDto {
-    private String logicalId;
-    private List<IdentifierDto> identifiers;
+public class OrganizationDto extends NameLogicalIdIdentifiersDto {
     private boolean active;
-    private String name;
     private List<AddressDto> addresses;
     private List<TelecomDto> telecoms;
 }
