@@ -179,14 +179,24 @@ public class LookUpController {
         return lookUpService.getLanguages();
     }
 
-    @GetMapping("/healthcareservice-types")
-    public List<ValueSetDto> getHealthCareServiceTypes() {
-        return lookUpService.getHealthCareServiceTypes();
+    @GetMapping("/healthcare-service-types")
+    public List<ValueSetDto> getHealthcareServiceTypes() {
+        return lookUpService.getHealthcareServiceTypes();
     }
 
-    @GetMapping("/healthcareservice-categories")
-    public List<ValueSetDto> getHealthCareServiceCategories() {
-        return lookUpService.getHealthCareServiceCategories();
+    @GetMapping("/healthcare-service-categories")
+    public List<ValueSetDto> getHealthcareServiceCategories() {
+        return lookUpService.getHealthcareServiceCategories();
+    }
+
+    @GetMapping("/healthcare-service-specialities")
+    public List<ValueSetDto> getHealthcareServiceSpecialities() {
+        return lookUpService.getHealthcareServiceSpecialities();
+    }
+
+    @GetMapping("/healthcare-service-referral-methods")
+    public List<ValueSetDto> getHealthcareServiceReferralMethod() {
+        return lookUpService.getHealthcareServiceReferralMethods();
     }
 
     @GetMapping("/care-team-categories")

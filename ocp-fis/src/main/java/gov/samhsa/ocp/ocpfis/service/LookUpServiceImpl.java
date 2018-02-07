@@ -294,8 +294,7 @@ public class LookUpServiceImpl implements LookUpService {
                 return temp;
             }).collect(Collectors.toList());
 
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.debug("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
         }
 
@@ -314,8 +313,7 @@ public class LookUpServiceImpl implements LookUpService {
                 }).collect(Collectors.toList());
 
 
-            }
-            catch (ResourceNotFoundException e) {
+            } catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-race-category", e);
             }
@@ -427,24 +425,6 @@ public class LookUpServiceImpl implements LookUpService {
         }
         log.info("Found " + healthCareServiceTypeCodes.size() + " health care service types.");
         return healthCareServiceTypeCodes;
-    }
-
-    @Override
-    public List<ValueSetDto> getCareTeamReasons() {
-        List<ValueSetDto> reasonCodes = new ArrayList<>();
-        ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_REASON_CODE.getUrlPath(), LookupPathUrls.CARE_TEAM_REASON_CODE.getType());
-        if (isValueSetAvailableInServer(response, LookupPathUrls.CARE_TEAM_REASON_CODE.getType())) {
-            List<ValueSet.ValueSetExpansionContainsComponent> reasonCodeList = response.getExpansion().getContains();
-            reasonCodeList.forEach(type -> {
-               ValueSetDto temp = new ValueSetDto();
-               temp.setCode(type.getCode());
-               temp.setDisplay(type.getDisplay());
-               temp.setSystem(type.getSystem());
-               reasonCodes.add(temp);
-            });
-        }
-        log.info("Found " + reasonCodes.size() + " CareTeam reason codes.");
-        return reasonCodes;
     }
 
     @Override
