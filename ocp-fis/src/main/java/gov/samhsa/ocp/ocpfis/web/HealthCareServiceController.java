@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.HealthCareServiceService;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthCareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,13 +46,13 @@ public class HealthCareServiceController {
     }
 
     @GetMapping("/organizations/{organizationId}/locations/{locationId}/health-care-services")
-    public PageDto<HealthCareServiceDto> getAllHealthCareServiceByLocation(@PathVariable String organizationId,
-                                                                           @PathVariable String locationId,
-                                                                           @RequestParam(value="statusList") Optional<List<String>> statusList,
-                                                                           @RequestParam(value = "searchKey") Optional<String> searchKey,
-                                                                           @RequestParam(value = "searchValue") Optional<String> searchValue,
-                                                                           @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
-                                                                           @RequestParam(value = "pageSize") Optional<Integer> pageSize){
+    public PageDto<LocationHealthCareServiceDto> getAllHealthCareServiceByLocation(@PathVariable String organizationId,
+                                                                                   @PathVariable String locationId,
+                                                                                   @RequestParam(value="statusList") Optional<List<String>> statusList,
+                                                                                   @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                                                   @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                                                   @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                                                   @RequestParam(value = "pageSize") Optional<Integer> pageSize){
         return healthCareServiceService.getAllHealthCareServicesByLocation(organizationId, locationId, statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
