@@ -42,6 +42,13 @@ public class CareTeamToCareTeamDtoConverter {
         //subject
         careTeamDto.setSubjectId(careTeam.getSubject().getReference().replace("Patient/", ""));
 
+        //reasonCode
+        List<CodeableConcept> codeableConceptReasonCodeList = careTeam.getReasonCode();
+        CodeableConcept codeableConceptReasonCode = codeableConceptReasonCodeList.stream().findFirst().get();
+        List<Coding> codingReasonCodeList = codeableConceptReasonCode.getCoding();
+        Coding codingReasonCode = codingReasonCodeList.stream().findFirst().get();
+        careTeamDto.setReasonCode(codingReasonCode.getCode());
+
         //participants
         List<CareTeam.CareTeamParticipantComponent> careTeamParticipantComponentList = careTeam.getParticipant();
         List<ParticipantDto> participantDtos = new ArrayList<>();

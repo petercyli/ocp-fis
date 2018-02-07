@@ -29,6 +29,7 @@ public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<Heal
     }
     @Override
     protected void configure() {
+        map().setResourceURL(source.getId());
         map().setName(source.getName());
         map().setActive(source.getActive());
         map().setOrganizationId(source.getProvidedBy().getReference());

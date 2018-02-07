@@ -214,6 +214,11 @@ public class LookUpController {
         return lookUpService.getCareTeamStatuses();
     }
 
+    @GetMapping("/care-team-reasons")
+    public List<ValueSetDto> getCareTeamReasons() {
+        return lookUpService.getCareTeamReasons();
+    }
+
     @GetMapping("/participant-roles")
     public List<ValueSetDto> getParticipantRole() {
         return lookUpService.getParticipantRoles();
