@@ -60,4 +60,6 @@ public interface LookUpService {
 
     List<ValueSetDto> getParticipantRoles();
 
+    List<ValueSetDto> getCareTeamReasons();
+
 }
