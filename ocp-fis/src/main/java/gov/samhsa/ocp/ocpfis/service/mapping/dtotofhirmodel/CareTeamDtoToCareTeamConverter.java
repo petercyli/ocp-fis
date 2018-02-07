@@ -13,6 +13,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -45,6 +46,13 @@ public class CareTeamDtoToCareTeamConverter {
         period.setStart(convertToDate(careTeamDto.getStartDate()));
         period.setEnd(convertToDate(careTeamDto.getEndDate()));
         careTeam.setPeriod(period);
+
+        //ReasonCode
+        //just supporting one reasonCode
+        Coding codingReasonCode = new Coding();
+        codingReasonCode.setCode(careTeamDto.getReasonCode());
+        CodeableConcept codeableConceptReasonCode = new CodeableConcept().addCoding(codingReasonCode);
+        careTeam.setReasonCode(Arrays.asList(codeableConceptReasonCode));
 
         //participants
         List<ParticipantDto> participantDtoList = careTeamDto.getParticipants();

@@ -31,6 +31,8 @@ public class CareTeamDto {
     private String subjectFirstName;
     private String subjectLastName;
 
+    private String reasonCode;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private String startDate;
 
