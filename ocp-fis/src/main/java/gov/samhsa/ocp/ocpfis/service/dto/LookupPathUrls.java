@@ -2,26 +2,26 @@ package gov.samhsa.ocp.ocpfis.service.dto;
 
 public enum LookupPathUrls {
 
-    US_STATE("state", Constatns.STATE_PATH),
-    IDENTIFIER_TYPE("identifier type",Constatns.IDENTIFIER_TYPE_PATH),
-    IDENTIFIER_USE("identifier use", Constatns.IDENTIFIER_USE_PATH),
-    LOCATION_MODE("location mode", Constatns.LOCATION_MODE_PATH),
-    LOCATION_STATUS("location status", Constatns.LOCATION_STATUS_PATH),
-    LOCATION_PHYSICAL_TYPE("location physical type", Constatns.LOCATION_PHYSICAL_TYPE_PATH),
-    ADDRESS_TYPE("address type", Constatns.ADDRESS_TYPE_PATH),
-    ADDRESS_USE("address use", Constatns.ADDRESS_USE_PATH),
-    TELECOM_USE("telecom use", Constatns.TELECOM_USE_PATH),
-    TELECOM_SYSTEM("telecom system", Constatns.TELECOM_SYSTEM_PATH),
-    PRACTITIONER_ROLE("practitioner role", Constatns.PRACTITIONER_ROLE_PATH),
-    BIRTH_SEX("birth sex", Constatns.BIRTH_SEX_PATH),
-    HEALTHCARE_SERVICE_TYPE("helathcare service type", Constatns.HEALTHCARE_SERVICE_TYPE_PATH),
-    HEALTHCARE_SERVICE_CATEGORY("healthcare service category", Constatns.HEALTHCARE_SERVICE_CATEGORY_PATH),
-    HEALTHCARE_SERVICE_SPECIALITY("healthcare service speciality", Constatns.HEALTHCARE_SERVICE_SPECIALITY_PATH),
-    HEALTHCARE_SERVICE_SPECIALITY_2("healthcare service speciality 2", Constatns.HEALTHCARE_SERVICE_SPECIALITY_2_PATH),
-    HEALTHCARE_SERVICE_REFERRAL_METHOD("healthcare service speciality", Constatns.HEALTHCARE_SERVICE_REFERRAL_METHOD_PATH),
-    CARE_TEAM_CATEGORY("care team category", Constatns.CARE_TEAM_CATEGORY_PATH),
-    CARE_TEAM_STATUS("care team status", Constatns.CARE_TEAM_STATUS_PATH),
-    PARTICIPANT_ROLE("participant role", Constatns.PARTICIPANT_ROLE_PATH);
+    US_STATE("state", Constants.STATE_PATH),
+    IDENTIFIER_TYPE("identifier type", Constants.IDENTIFIER_TYPE_PATH),
+    IDENTIFIER_USE("identifier use", Constants.IDENTIFIER_USE_PATH),
+    LOCATION_MODE("location mode", Constants.LOCATION_MODE_PATH),
+    LOCATION_STATUS("location status", Constants.LOCATION_STATUS_PATH),
+    LOCATION_PHYSICAL_TYPE("location physical type", Constants.LOCATION_PHYSICAL_TYPE_PATH),
+    ADDRESS_TYPE("address type", Constants.ADDRESS_TYPE_PATH),
+    ADDRESS_USE("address use", Constants.ADDRESS_USE_PATH),
+    TELECOM_USE("telecom use", Constants.TELECOM_USE_PATH),
+    TELECOM_SYSTEM("telecom system", Constants.TELECOM_SYSTEM_PATH),
+    PRACTITIONER_ROLE("practitioner role", Constants.PRACTITIONER_ROLE_PATH),
+    BIRTH_SEX("birth sex", Constants.BIRTH_SEX_PATH),
+    HEALTHCARE_SERVICE_TYPE("healthcare service type", Constants.HEALTHCARE_SERVICE_TYPE_PATH),
+    HEALTHCARE_SERVICE_CATEGORY("healthcare service category", Constants.HEALTHCARE_SERVICE_CATEGORY_PATH),
+    HEALTHCARE_SERVICE_SPECIALITY("healthcare service speciality", Constants.HEALTHCARE_SERVICE_SPECIALITY_PATH),
+    HEALTHCARE_SERVICE_SPECIALITY_2("healthcare service speciality 2", Constants.HEALTHCARE_SERVICE_SPECIALITY_2_PATH),
+    HEALTHCARE_SERVICE_REFERRAL_METHOD("healthcare service speciality", Constants.HEALTHCARE_SERVICE_REFERRAL_METHOD_PATH),
+    CARE_TEAM_CATEGORY("care team category", Constants.CARE_TEAM_CATEGORY_PATH),
+    CARE_TEAM_STATUS("care team status", Constants.CARE_TEAM_STATUS_PATH),
+    PARTICIPANT_ROLE("participant role", Constants.PARTICIPANT_ROLE_PATH);
 
     private final String type;
     private final String urlPath;
@@ -39,7 +39,7 @@ public enum LookupPathUrls {
         return urlPath;
     }
 
-    private static class Constatns{
+    private static class Constants{
         static final String STATE_PATH = "/ValueSet/usps-state/";
         static final String IDENTIFIER_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";
         static final String IDENTIFIER_USE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-use";
