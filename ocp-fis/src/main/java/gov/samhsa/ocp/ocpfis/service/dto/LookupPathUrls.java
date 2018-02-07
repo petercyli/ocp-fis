@@ -18,6 +18,7 @@ public enum LookupPathUrls {
     HEALTHCARE_SERVICE_CATEGORY("healthcare service category", Constatns.HEALTHCARE_SERVICE_CATEGORY_PATH),
     CARE_TEAM_CATEGORY("care team category", Constatns.CARE_TEAM_CATEGORY_PATH),
     CARE_TEAM_STATUS("care team status", Constatns.CARE_TEAM_STATUS_PATH),
+    CARE_TEAM_REASON_CODE("care team reason", Constatns.CARE_TEAM_REASON_CODE),
     PARTICIPANT_ROLE("participant role", Constatns.PARTICIPANT_ROLE_PATH);
 
     private final String type;
@@ -54,6 +55,7 @@ public enum LookupPathUrls {
         static final String HEALTHCARE_SERVICE_CATEGORY_PATH =  "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-category";
         static final String CARE_TEAM_CATEGORY_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-category";
         static final String CARE_TEAM_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-status";
+        static final String CARE_TEAM_REASON_CODE = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/clinical-findings";
         static final String PARTICIPANT_ROLE_PATH = "/ValueSet/$expand?url=" + "http://hl7.org/fhir/ValueSet/participant-role";
     }
 

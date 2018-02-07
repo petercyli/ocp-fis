@@ -430,6 +430,24 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
+    public List<ValueSetDto> getCareTeamReasons() {
+        List<ValueSetDto> reasonCodes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_REASON_CODE.getUrlPath(), LookupPathUrls.CARE_TEAM_REASON_CODE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.CARE_TEAM_REASON_CODE.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> reasonCodeList = response.getExpansion().getContains();
+            reasonCodeList.forEach(type -> {
+               ValueSetDto temp = new ValueSetDto();
+               temp.setCode(type.getCode());
+               temp.setDisplay(type.getDisplay());
+               temp.setSystem(type.getSystem());
+               reasonCodes.add(temp);
+            });
+        }
+        log.info("Found " + reasonCodes.size() + " CareTeam reason codes.");
+        return reasonCodes;
+    }
+
+    @Override
     public List<ValueSetDto> getHealthCareServiceCategories() {
         List<ValueSetDto> healthCareServiceCategoryCodes = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getType());
