@@ -429,22 +429,22 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         log.info("Create Healthcare Service: Found no duplicate Healthcare service.");
     }
 
-    private void checkDuplicateHealthCareServiceExists(String organizationId, String categorySystem, String categoryCode, String System, String Code) {
+    private void checkDuplicateHealthCareServiceExists(String organizationId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
         Bundle bundle;
-        if (System != null && !System.trim().isEmpty()
-                && Code != null && !Code.trim().isEmpty()) {
+        if (typeSystem != null && !typeSystem.trim().isEmpty()
+                && typeCode != null && !typeCode.trim().isEmpty()) {
             bundle = fhirClient.search().forResource(HealthcareService.class)
                     .where(new ReferenceClientParam("organization").hasId(organizationId))
                     .and(new TokenClientParam("active").exactly().code("true"))
-                    .and(new TokenClientParam("type").exactly().systemAndCode(System.trim(), Code.trim()))
+                    .and(new TokenClientParam("type").exactly().systemAndCode(typeSystem.trim(), typeCode.trim()))
                     .and(new TokenClientParam("category").exactly().systemAndCode(categorySystem.trim(), categoryCode.trim()))
                     .returnBundle(Bundle.class)
                     .execute();
-        } else if (Code != null && !Code.trim().isEmpty()) {
+        } else if (typeCode != null && !typeCode.trim().isEmpty()) {
             bundle = fhirClient.search().forResource(HealthcareService.class)
                     .where(new ReferenceClientParam("organization").hasId(organizationId))
                     .and(new TokenClientParam("active").exactly().code("true"))
-                    .and(new TokenClientParam("type").exactly().code(Code.trim()))
+                    .and(new TokenClientParam("type").exactly().code(typeCode.trim()))
                     .and(new TokenClientParam("category").exactly().systemAndCode(categorySystem.trim(), categoryCode.trim()))
                     .returnBundle(Bundle.class)
                     .execute();
@@ -453,7 +453,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         }
 
         if (bundle != null && bundle.getEntry().size() > 0) {
-            throw new DuplicateResourceFoundException("The current organization " + organizationId + " already have the active Healthcare Service with the Category System" + categorySystem + " and Category Code " + categoryCode + " with Type system" + System + " and Type Code: " + Code);
+            throw new DuplicateResourceFoundException("The current organization " + organizationId + " already have the active Healthcare Service with the Category System" + categorySystem + " and Category Code " + categoryCode + " with Type system" + typeSystem + " and Type Code: " + typeCode);
         }
     }
 }
