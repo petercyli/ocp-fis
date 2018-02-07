@@ -453,7 +453,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         }
 
         if (bundle != null && bundle.getEntry().size() > 0) {
-            throw new DuplicateResourceFoundException("The current organization " + organizationId + " already have the active Healthcare Service with the Category System" + categorySystem + " and Category Code " + categoryCode + " with Type system" + typeSystem + " and Type Code: " + typeCode);
+            throw new DuplicateResourceFoundException("The current organization " + organizationId + " already have the active Healthcare Service with the Category System " + categorySystem + " and Category Code " + categoryCode + " with Type system " + typeSystem + " and Type Code: " + typeCode);
         }
     }
 }
