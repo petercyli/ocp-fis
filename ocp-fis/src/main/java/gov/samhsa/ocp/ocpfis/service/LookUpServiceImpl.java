@@ -412,16 +412,13 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<ValueSetDto> getHealthCareServiceTypes() {
+    public List<ValueSetDto> getHealthcareServiceTypes() {
         List<ValueSetDto> healthCareServiceTypeCodes = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceTypeList = response.getExpansion().getContains();
             healthCareServiceTypeList.forEach(type -> {
-                ValueSetDto temp = new ValueSetDto();
-                temp.setCode(type.getCode());
-                temp.setDisplay(type.getDisplay());
-                temp.setSystem(type.getSystem());
+                ValueSetDto temp = getValueSetDto(type);
                 healthCareServiceTypeCodes.add(temp);
             });
         }
@@ -430,21 +427,56 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<ValueSetDto> getHealthCareServiceCategories() {
+    public List<ValueSetDto> getHealthcareServiceCategories() {
         List<ValueSetDto> healthCareServiceCategoryCodes = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceCategoryList = response.getExpansion().getContains();
             healthCareServiceCategoryList.forEach(type -> {
-                ValueSetDto temp = new ValueSetDto();
-                temp.setCode(type.getCode());
-                temp.setDisplay(type.getDisplay());
-                temp.setSystem(type.getSystem());
+                ValueSetDto temp = getValueSetDto(type);
                 healthCareServiceCategoryCodes.add(temp);
             });
         }
         log.info("Found " + healthCareServiceCategoryCodes.size() + " health care service categories.");
         return healthCareServiceCategoryCodes;
+    }
+
+    @Override
+    public List<ValueSetDto> getHealthcareServiceSpecialities() {
+        List<ValueSetDto> healthCareServiceSpecialitiesCodes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceCategoryList = response.getExpansion().getContains();
+            healthCareServiceCategoryList.forEach(type -> {
+                ValueSetDto temp = getValueSetDto(type);
+                healthCareServiceSpecialitiesCodes.add(temp);
+            });
+        }
+        log.info("Found " + healthCareServiceSpecialitiesCodes.size() + " health care service categories.");
+        return healthCareServiceSpecialitiesCodes;
+    }
+
+    private ValueSetDto getValueSetDto(ValueSet.ValueSetExpansionContainsComponent type) {
+        ValueSetDto temp = new ValueSetDto();
+        temp.setCode(type.getCode());
+        temp.setDisplay(type.getDisplay());
+        temp.setSystem(type.getSystem());
+        return temp;
+    }
+
+    @Override
+    public List<ValueSetDto> getHealthcareServiceReferralMethods() {
+        List<ValueSetDto> healthCareServiceReferralMethodCodes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_REFERRAL_METHOD.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_REFERRAL_METHOD.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_REFERRAL_METHOD.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceCategoryList = response.getExpansion().getContains();
+            healthCareServiceCategoryList.forEach(type -> {
+                ValueSetDto temp = getValueSetDto(type);
+                healthCareServiceReferralMethodCodes.add(temp);
+            });
+        }
+        log.info("Found " + healthCareServiceReferralMethodCodes.size() + " health care service categories.");
+        return healthCareServiceReferralMethodCodes;
     }
 
     @Override

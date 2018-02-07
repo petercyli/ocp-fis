@@ -16,6 +16,8 @@ public enum LookupPathUrls {
     BIRTH_SEX("birth sex", Constatns.BIRTH_SEX_PATH),
     HEALTHCARE_SERVICE_TYPE("helathcare service type", Constatns.HEALTHCARE_SERVICE_TYPE_PATH),
     HEALTHCARE_SERVICE_CATEGORY("healthcare service category", Constatns.HEALTHCARE_SERVICE_CATEGORY_PATH),
+    HEALTHCARE_SERVICE_SPECIALITY("healthcare service speciality", Constatns.HEALTHCARE_SERVICE_SPECIALITY_PATH),
+    HEALTHCARE_SERVICE_REFERRAL_METHOD("healthcare service speciality", Constatns.HEALTHCARE_SERVICE_REFERRAL_METHOD_PATH),
     CARE_TEAM_CATEGORY("care team category", Constatns.CARE_TEAM_CATEGORY_PATH),
     CARE_TEAM_STATUS("care team status", Constatns.CARE_TEAM_STATUS_PATH),
     PARTICIPANT_ROLE("participant role", Constatns.PARTICIPANT_ROLE_PATH);
@@ -37,7 +39,6 @@ public enum LookupPathUrls {
     }
 
     private static class Constatns{
-
         static final String STATE_PATH = "/ValueSet/usps-state/";
         static final String IDENTIFIER_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";
         static final String IDENTIFIER_USE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-use";
@@ -52,9 +53,10 @@ public enum LookupPathUrls {
         static final String BIRTH_SEX_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/us/core/ValueSet/us-core-birthsex";
         static final String HEALTHCARE_SERVICE_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-type";
         static final String HEALTHCARE_SERVICE_CATEGORY_PATH =  "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-category";
+        static final String HEALTHCARE_SERVICE_SPECIALITY_PATH =  "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/c80-practice-codes";
+        static final String HEALTHCARE_SERVICE_REFERRAL_METHOD_PATH =  "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-referral-method";
         static final String CARE_TEAM_CATEGORY_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-category";
         static final String CARE_TEAM_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-status";
         static final String PARTICIPANT_ROLE_PATH = "/ValueSet/$expand?url=" + "http://hl7.org/fhir/ValueSet/participant-role";
     }
-
 }
