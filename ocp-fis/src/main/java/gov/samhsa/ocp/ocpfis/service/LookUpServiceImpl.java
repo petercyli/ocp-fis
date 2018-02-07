@@ -414,8 +414,7 @@ public class LookUpServiceImpl implements LookUpService {
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceTypeList = response.getExpansion().getContains();
             healthCareServiceTypeList.forEach(type -> {
-                ValueSetDto temp = convertIdentifierTypeToValueSetDto(type);
-                healthCareServiceTypeCodes.add(temp);
+                healthCareServiceTypeCodes.add(convertIdentifierTypeToValueSetDto(type));
             });
         }
         log.info("Found " + healthCareServiceTypeCodes.size() + " health care service types.");
@@ -429,8 +428,7 @@ public class LookUpServiceImpl implements LookUpService {
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceCategoryList = response.getExpansion().getContains();
             healthCareServiceCategoryList.forEach(type -> {
-                ValueSetDto temp = convertIdentifierTypeToValueSetDto(type);
-                healthCareServiceCategoryCodes.add(temp);
+                 healthCareServiceCategoryCodes.add(convertIdentifierTypeToValueSetDto(type));
             });
         }
         log.info("Found " + healthCareServiceCategoryCodes.size() + " health care service categories.");
@@ -470,8 +468,7 @@ public class LookUpServiceImpl implements LookUpService {
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_REFERRAL_METHOD.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthCareServiceCategoryList = response.getExpansion().getContains();
             healthCareServiceCategoryList.forEach(type -> {
-                ValueSetDto temp = convertIdentifierTypeToValueSetDto(type);
-                healthCareServiceReferralMethodCodes.add(temp);
+                healthCareServiceReferralMethodCodes.add(convertIdentifierTypeToValueSetDto(type));
             });
         }
         log.info("Found " + healthCareServiceReferralMethodCodes.size() + " health care service referral methods.");
