@@ -1,6 +1,5 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
-import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthCareServiceDto;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.modelmapper.PropertyMap;
@@ -14,17 +13,17 @@ public class HealthcareServiceToLocationHealthCareServiceDtoMapper extends Prope
 
     private final IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter;
 
-    private final HealthecareServiceTypeListToHealthcareServiceTypeDtoListConverter healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter;
+    private final CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter;
 
-    private final HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter;
+    private final CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter;
 
 
     @Autowired
-    public HealthcareServiceToLocationHealthCareServiceDtoMapper(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, HealthecareServiceTypeListToHealthcareServiceTypeDtoListConverter healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter, HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter) {
+    public HealthcareServiceToLocationHealthCareServiceDtoMapper(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter, CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter) {
         this.telecomListToTelecomDtoListConverter = telecomListToTelecomDtoListConverter;
         this.identifierListToIdentifierDtoListConverter = identifierListToIdentifierDtoListConverter;
-        this.healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter = healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter;
-        this.healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter = healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter;
+        this.codeableConceptListToValueSetDtoListConverter = codeableConceptListToValueSetDtoListConverter;
+        this.codeableConceptToValueSetDtoConverter = codeableConceptToValueSetDtoConverter;
     }
 
     @Override
@@ -37,7 +36,7 @@ public class HealthcareServiceToLocationHealthCareServiceDtoMapper extends Prope
         map().setCategoryValue(source.getCategory().getCodingFirstRep().getCode());
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecom(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
-        using(healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter).map(source.getType()).setType(null);
-        using(healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter).map(source.getCategory()).setCategory(null);
+        using(codeableConceptListToValueSetDtoListConverter).map(source.getType()).setType(null);
+        using(codeableConceptToValueSetDtoConverter).map(source.getCategory()).setCategory(null);
     }
 }
