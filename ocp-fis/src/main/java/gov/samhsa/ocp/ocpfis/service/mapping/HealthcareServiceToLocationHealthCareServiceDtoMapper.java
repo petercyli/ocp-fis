@@ -32,7 +32,6 @@ public class HealthcareServiceToLocationHealthCareServiceDtoMapper extends Prope
         map().setResourceURL(source.getId());
         map().setName(source.getName());
         map().setActive(source.getActive());
-        map().setOrganizationId(source.getProvidedBy().getReference());
         map().setOrganizationName(source.getProvidedBy().getDisplay());
         map().setCategorySystem(source.getCategory().getCodingFirstRep().getSystem());
         map().setCategoryValue(source.getCategory().getCodingFirstRep().getCode());

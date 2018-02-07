@@ -287,6 +287,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
             HealthcareService healthcareServiceResource = (HealthcareService) hcs.getResource();
             LocationHealthCareServiceDto healthCareServiceDto = modelMapper.map(healthcareServiceResource, LocationHealthCareServiceDto.class);
             healthCareServiceDto.setLogicalId(hcs.getResource().getIdElement().getIdPart());
+            healthCareServiceDto.setOrganizationId(organizationResourceId);
 
             //Getting location
             List<NameLogicalIdIdentifiersDto> locationsForHealthService = new ArrayList<>();
@@ -307,7 +308,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                                         locationsForHealthService.add(locationForHealthServiceDto);
 
                                         if (locationResourceId.equalsIgnoreCase(locationId)) {
-                                            healthCareServiceDto.setLocationId("Location/" + locationId);
+                                            healthCareServiceDto.setLocationId(locationId);
                                             healthCareServiceDto.setLocationName(locationPresent.getName());
                                         }
                                     }
