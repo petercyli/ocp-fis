@@ -17,13 +17,15 @@ public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<Heal
 
     private final HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter  healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter;
 
+    private final StringTypeListToStringListConverter stringTypeListToStringListConverter;
 
     @Autowired
-    public HealthcareServiceToHealthCareServiceDtoMap(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, HealthecareServiceTypeListToHealthcareServiceTypeDtoListConverter healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter, HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter  healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter) {
+    public HealthcareServiceToHealthCareServiceDtoMap(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, HealthecareServiceTypeListToHealthcareServiceTypeDtoListConverter healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter, HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter  healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter, StringTypeListToStringListConverter stringTypeListToStringListConverter) {
         this.telecomListToTelecomDtoListConverter = telecomListToTelecomDtoListConverter;
         this.identifierListToIdentifierDtoListConverter = identifierListToIdentifierDtoListConverter;
         this.healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter = healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter;
         this.healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter = healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter;
+        this.stringTypeListToStringListConverter = stringTypeListToStringListConverter;
     }
     @Override
     protected void configure() {
@@ -33,6 +35,7 @@ public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<Heal
         map().setOrganizationName(source.getProvidedBy().getDisplay());
         map().setCategorySystem(source.getCategory().getCodingFirstRep().getSystem());
         map().setCategoryValue(source.getCategory().getCodingFirstRep().getCode());
+        using(stringTypeListToStringListConverter).map(source.getProgramName()).setProgramName(null);
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecom(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
         using(healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter).map(source.getType()).setType(null);
