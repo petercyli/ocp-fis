@@ -11,27 +11,24 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameLogicalIdIdentifiersDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchKeyEnum;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
-import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.HealthCareServiceDtoToHealthCareServiceConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Reference;
-import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -234,16 +231,14 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
     public void createHealthCareService(String organizationId, HealthCareServiceDto healthCareServiceDto) {
         log.info("Creating Healthcare Service for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate Healthcare Service exists based on the Identifiers provided.");
-        //checkForDuplicateHealthCareServiceBasedOnIdentifiersDuringCreate(healthCareServiceDto);
+
+        checkForDuplicateHealthCareServiceBasedOnTypesDuringCreate(healthCareServiceDto,organizationId);
 
         HealthcareService fhirHealthcareService = modelMapper.map(healthCareServiceDto, HealthcareService.class);
         fhirHealthcareService.setActive(Boolean.TRUE);
         fhirHealthcareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
 
         try {
-
-           // final  HealthcareService fhirHealthcareService  = HealthCareServiceDtoToHealthCareServiceConverter.map(healthCareServiceDto);
-           // fhirHealthcareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
             MethodOutcome serverResponse = fhirClient.create().resource(fhirHealthcareService).execute();
             log.info("Created a new Healthcare Service :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
         }
@@ -417,37 +412,48 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         }
     }
 
-    private void checkForDuplicateHealthCareServiceBasedOnIdentifiersDuringCreate(HealthCareServiceDto healthCareServiceDto) {
-        List<IdentifierDto> identifiersList = healthCareServiceDto.getIdentifiers();
-        log.info("Current Healthcare ServiceDto has " + identifiersList.size() + " identifiers.");
+    private void checkForDuplicateHealthCareServiceBasedOnTypesDuringCreate(HealthCareServiceDto healthCareServiceDto, String organizationId) {
+        List<ValueSetDto> typeList = healthCareServiceDto.getType();
+        log.info("Current HealthcareServiceDto has " + typeList.size() + " service type(s).");
 
-        for (IdentifierDto tempIdentifierDto : identifiersList) {
-            String identifierSystem = tempIdentifierDto.getSystem();
-            String identifierValue = tempIdentifierDto.getValue();
-            checkDuplicateHealthCareServiceExists(identifierSystem, identifierValue);
+        ValueSetDto serviceCategory = healthCareServiceDto.getCategory();
+        String categorySystem = serviceCategory.getSystem();
+        String categoryCode = serviceCategory.getCode();
+
+
+        for (ValueSetDto tempType : typeList) {
+            String typeSystem = tempType.getSystem();
+            String typeCode = tempType.getCode();
+            checkDuplicateHealthCareServiceExists(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
         }
-        log.info("Create Healthcare Service: Found no duplicate location.");
+        log.info("Create Healthcare Service: Found no duplicate Healthcare service.");
     }
 
-    private void checkDuplicateHealthCareServiceExists(String identifierSystem, String identifierValue) {
+    private void checkDuplicateHealthCareServiceExists(String organizationId, String categorySystem, String categoryCode, String System, String Code) {
         Bundle bundle;
-        if (identifierSystem != null && !identifierSystem.trim().isEmpty()
-                && identifierValue != null && !identifierValue.trim().isEmpty()) {
+        if (System != null && !System.trim().isEmpty()
+                && Code != null && !Code.trim().isEmpty()) {
             bundle = fhirClient.search().forResource(HealthcareService.class)
-                    .where(new TokenClientParam("identifier").exactly().systemAndCode(identifierSystem.trim(), identifierValue.trim()))
+                    .where(new ReferenceClientParam("organization").hasId(organizationId))
+                    .and(new TokenClientParam("active").exactly().code("true"))
+                    .and(new TokenClientParam("type").exactly().systemAndCode(System.trim(), Code.trim()))
+                    .and(new TokenClientParam("category").exactly().systemAndCode(categorySystem.trim(), categoryCode.trim()))
                     .returnBundle(Bundle.class)
                     .execute();
-        } else if (identifierValue != null && !identifierValue.trim().isEmpty()) {
+        } else if (Code != null && !Code.trim().isEmpty()) {
             bundle = fhirClient.search().forResource(HealthcareService.class)
-                    .where(new TokenClientParam("identifier").exactly().code(identifierValue.trim()))
+                    .where(new ReferenceClientParam("organization").hasId(organizationId))
+                    .and(new TokenClientParam("active").exactly().code("true"))
+                    .and(new TokenClientParam("type").exactly().code(Code.trim()))
+                    .and(new TokenClientParam("category").exactly().systemAndCode(categorySystem.trim(), categoryCode.trim()))
                     .returnBundle(Bundle.class)
                     .execute();
         } else {
-            throw new BadRequestException("Found no valid identifierSystem and/or identifierValue");
+            throw new BadRequestException("Found no valid System and/or Code");
         }
 
         if (bundle != null && bundle.getEntry().size() > 0) {
-            throw new DuplicateResourceFoundException("A Healthcare Service already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
+            throw new DuplicateResourceFoundException("The current organization " + organizationId + " already have the active Healthcare Service with the Category System" + categorySystem + " and Category Code " + categoryCode + " with Type system" + System + " and Type Code: " + Code);
         }
     }
 }
