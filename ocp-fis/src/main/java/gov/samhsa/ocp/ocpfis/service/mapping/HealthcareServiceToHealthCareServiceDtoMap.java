@@ -13,18 +13,18 @@ public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<Heal
 
     private final IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter;
 
-    private final HealthecareServiceTypeListToHealthcareServiceTypeDtoListConverter healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter;
+    private final CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter;
 
-    private final HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter  healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter;
+    private final CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter;
 
     private final StringTypeListToStringListConverter stringTypeListToStringListConverter;
 
     @Autowired
-    public HealthcareServiceToHealthCareServiceDtoMap(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, HealthecareServiceTypeListToHealthcareServiceTypeDtoListConverter healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter, HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter  healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter, StringTypeListToStringListConverter stringTypeListToStringListConverter) {
+    public HealthcareServiceToHealthCareServiceDtoMap(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter, CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter, StringTypeListToStringListConverter stringTypeListToStringListConverter) {
         this.telecomListToTelecomDtoListConverter = telecomListToTelecomDtoListConverter;
         this.identifierListToIdentifierDtoListConverter = identifierListToIdentifierDtoListConverter;
-        this.healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter = healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter;
-        this.healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter = healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter;
+        this.codeableConceptListToValueSetDtoListConverter = codeableConceptListToValueSetDtoListConverter;
+        this.codeableConceptToValueSetDtoConverter = codeableConceptToValueSetDtoConverter;
         this.stringTypeListToStringListConverter = stringTypeListToStringListConverter;
     }
     @Override
@@ -38,10 +38,10 @@ public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<Heal
         using(stringTypeListToStringListConverter).map(source.getProgramName()).setProgramName(null);
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecom(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
-        using(healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter).map(source.getType()).setType(null);
-        using(healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter).map(source.getSpecialty()).setSpecialty(null);
-        using(healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter).map(source.getReferralMethod()).setReferralMethod(null);
-        using(healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter).map(source.getCategory()).setCategory(null);
+        using(codeableConceptListToValueSetDtoListConverter).map(source.getType()).setType(null);
+        using(codeableConceptListToValueSetDtoListConverter).map(source.getSpecialty()).setSpecialty(null);
+        using(codeableConceptListToValueSetDtoListConverter).map(source.getReferralMethod()).setReferralMethod(null);
+        using(codeableConceptToValueSetDtoConverter).map(source.getCategory()).setCategory(null);
     }
 }
 

@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 
 @Component
-public class HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter extends AbstractConverter<CodeableConcept,ValueSetDto> {
+public class CodeableConceptToValueSetDtoConverter extends AbstractConverter<CodeableConcept,ValueSetDto> {
     @Override
     protected ValueSetDto convert(CodeableConcept  source) {
         ValueSetDto tempValueSetDto=new ValueSetDto();
