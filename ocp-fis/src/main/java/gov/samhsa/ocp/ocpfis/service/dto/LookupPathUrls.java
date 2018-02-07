@@ -20,7 +20,7 @@ public enum LookupPathUrls {
     HEALTHCARE_SERVICE_SPECIALITY_2("healthcare service speciality 2", Constants.HEALTHCARE_SERVICE_SPECIALITY_2_PATH),
     HEALTHCARE_SERVICE_REFERRAL_METHOD("healthcare service referral method", Constants.HEALTHCARE_SERVICE_REFERRAL_METHOD_PATH),
     CARE_TEAM_CATEGORY("care team category", Constants.CARE_TEAM_CATEGORY_PATH),
-    CARE_TEAM_REASON_CODE("care team reason", Constatns.CARE_TEAM_REASON_CODE),
+    CARE_TEAM_REASON_CODE("care team reason", Constants.CARE_TEAM_REASON_CODE),
     CARE_TEAM_STATUS("care team status", Constants.CARE_TEAM_STATUS_PATH),
     PARTICIPANT_ROLE("participant role", Constants.PARTICIPANT_ROLE_PATH);
 
