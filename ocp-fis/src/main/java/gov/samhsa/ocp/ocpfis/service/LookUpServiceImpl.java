@@ -546,19 +546,19 @@ public class LookUpServiceImpl implements LookUpService {
         };
     }
 
-    private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ConceptReferenceComponent object) {
-        ValueSetDto temp = new ValueSetDto();
-        temp.setCode(object.getCode());
-        temp.setDisplay(object.getDisplay());
-        return temp;
+    private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ConceptReferenceComponent conceptReferenceComponent) {
+        ValueSetDto valueSetDto = new ValueSetDto();
+        valueSetDto.setCode(conceptReferenceComponent.getCode());
+        valueSetDto.setDisplay(conceptReferenceComponent.getDisplay());
+        return valueSetDto;
     }
 
     private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ValueSetExpansionContainsComponent identifierType) {
-        ValueSetDto temp = new ValueSetDto();
-        temp.setSystem(identifierType.getSystem());
-        temp.setCode(identifierType.getCode());
-        temp.setDisplay(identifierType.getDisplay());
-        return temp;
+        ValueSetDto valueSetDto = new ValueSetDto();
+        valueSetDto.setSystem(identifierType.getSystem());
+        valueSetDto.setCode(identifierType.getCode());
+        valueSetDto.setDisplay(identifierType.getDisplay());
+        return valueSetDto;
     }
 
     private ValueSet getValueSets(String urlPath, String type) {
