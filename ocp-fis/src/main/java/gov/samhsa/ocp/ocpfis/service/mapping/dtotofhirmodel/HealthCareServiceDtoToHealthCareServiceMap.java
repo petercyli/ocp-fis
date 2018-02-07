@@ -18,10 +18,18 @@ public class HealthCareServiceDtoToHealthCareServiceMap extends PropertyMap<Heal
     @Autowired
     TelecomDtoListToTelecomListConverter telecomDtoListToTelecomListConverter;
 
+    @Autowired
+    ValuesetDtoListToCodeableConceptListConverter valuesetDtoListToCodeableConceptListConverter;
+
+    @Autowired
+    ValuesetDtoToCodeableConceptConverter valuesetDtoToCodeableConceptConverter;
+
     @Override
     protected void configure() {
         using(identifierDtoListToIdentifierListConverter).map(source.getIdentifiers()).setIdentifier(null);
         using(telecomDtoListToTelecomListConverter).map(source.getTelecom()).setTelecom(null);
+        using(valuesetDtoListToCodeableConceptListConverter).map(source.getType()).setType(null);
+        using(valuesetDtoToCodeableConceptConverter).map(source.getCategory()).setCategory(null);
     }
 
 }

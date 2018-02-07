@@ -20,15 +20,18 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.HealthCareServiceDtoToHealthCareServiceConverter;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -231,13 +234,16 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
     public void createHealthCareService(String organizationId, HealthCareServiceDto healthCareServiceDto) {
         log.info("Creating Healthcare Service for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate Healthcare Service exists based on the Identifiers provided.");
-        checkForDuplicateHealthCareServiceBasedOnIdentifiersDuringCreate(healthCareServiceDto);
+        //checkForDuplicateHealthCareServiceBasedOnIdentifiersDuringCreate(healthCareServiceDto);
 
         HealthcareService fhirHealthcareService = modelMapper.map(healthCareServiceDto, HealthcareService.class);
         fhirHealthcareService.setActive(Boolean.TRUE);
         fhirHealthcareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
 
         try {
+
+           // final  HealthcareService fhirHealthcareService  = HealthCareServiceDtoToHealthCareServiceConverter.map(healthCareServiceDto);
+           // fhirHealthcareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
             MethodOutcome serverResponse = fhirClient.create().resource(fhirHealthcareService).execute();
             log.info("Created a new Healthcare Service :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
         }

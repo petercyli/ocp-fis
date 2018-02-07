@@ -53,7 +53,7 @@ public class HealthCareServiceController {
     }
 
 
-    @PostMapping("/organization/{organizationId}/healthCareService")
+    @PostMapping("/organization/{organizationId}/health-care-service")
     @ResponseStatus(HttpStatus.CREATED)
     public void createHealthCareService(@PathVariable String organizationId,
                                @Valid @RequestBody HealthCareServiceDto healthCareServiceDto) {
