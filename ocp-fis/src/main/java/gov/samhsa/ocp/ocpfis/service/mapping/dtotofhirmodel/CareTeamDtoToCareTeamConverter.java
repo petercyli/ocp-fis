@@ -64,13 +64,16 @@ public class CareTeamDtoToCareTeamConverter {
             String memberType = participantDto.getMemberType();
 
             if(memberType.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
-                careTeamParticipant.getMember().setReference("Practitioner/" + participantDto.getMemberId());
+                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.practitioner.getName() + "/" + participantDto.getMemberId());
 
             } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
-                careTeamParticipant.getMember().setReference("Patient/" + participantDto.getMemberId());
+                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.patient.getName() + "/" + participantDto.getMemberId());
 
             } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.organization.getCode())) {
-                careTeamParticipant.getMember().setReference("Organization/" + participantDto.getMemberId());
+                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.organization.getName() + "/" + participantDto.getMemberId());
+
+            } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
+                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.relatedPerson.getName() + "/" + participantDto.getMemberId());
             }
 
             Coding codingRoleCode = new Coding();
