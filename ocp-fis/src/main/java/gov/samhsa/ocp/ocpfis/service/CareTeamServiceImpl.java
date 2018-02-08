@@ -24,6 +24,7 @@ import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
@@ -272,6 +273,17 @@ public class CareTeamServiceImpl implements CareTeamService {
                                         participantDto.setMemberType(organization.fhirType());
                                         break;
 
+                                    case RelatedPerson:
+                                        RelatedPerson relatedPerson= (RelatedPerson) resource;
+                                        relatedPerson.getName().stream().findFirst().ifPresent(name -> {
+                                            name.getGiven().stream().findFirst().ifPresent(firstName -> {
+                                                participantDto.setMemberFirstName(Optional.ofNullable(firstName.toString()));
+                                            });
+                                            participantDto.setMemberLastName(Optional.ofNullable(name.getFamily()));
+                                        });
+                                        participantDto.setMemberId(participantId);
+                                        participantDto.setMemberType(relatedPerson.fhirType());
+                                        break;
                                 }
                             }
                         }
