@@ -75,8 +75,10 @@ public class ParticipantServiceImpl implements ParticipantService {
             ParticipantMemberDto memberDto = new ParticipantMemberDto();
 
             List<NameDto> nameList = dto.getName();
-            memberDto.setFirstName(Optional.of(nameList.get(0).getFirstName()));
-            memberDto.setLastName(Optional.of(nameList.get(0).getLastName()));
+            if(nameList != null && nameList.size() > 0) {
+                memberDto.setFirstName(Optional.of(nameList.get(0).getFirstName()));
+                memberDto.setLastName(Optional.of(nameList.get(0).getLastName()));
+            }
             memberDto.setId(dto.getLogicalId());
             memberDto.setType(participantType.getCode());
 
@@ -150,8 +152,10 @@ public class ParticipantServiceImpl implements ParticipantService {
 
             ParticipantMemberDto memberDto = new ParticipantMemberDto();
             List<NameDto> nameList = dto.getName();
-            memberDto.setFirstName(Optional.of(nameList.get(0).getFirstName()));
-            memberDto.setLastName(Optional.of(nameList.get(0).getLastName()));
+            if(nameList != null && nameList.size() > 0) {
+                memberDto.setFirstName(Optional.of(nameList.get(0).getFirstName()));
+                memberDto.setLastName(Optional.of(nameList.get(0).getLastName()));
+            }
             memberDto.setId(dto.getId());
             memberDto.setType(participantType.getCode());
 
