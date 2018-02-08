@@ -1,8 +1,8 @@
 package gov.samhsa.ocp.ocpfis.web;
 
-import gov.samhsa.ocp.ocpfis.service.HealthCareServiceService;
-import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthCareServiceDto;
+import gov.samhsa.ocp.ocpfis.service.HealthcareServiceService;
+import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,62 +23,62 @@ import java.util.Optional;
 @Slf4j
 @RestController
 
-public class HealthCareServiceController {
+public class HealthcareServiceController {
 
     @Autowired
-    private HealthCareServiceService healthCareServiceService;
+    private HealthcareServiceService healthcareServiceService;
 
-    @GetMapping("/health-care-services")
-    public PageDto<HealthCareServiceDto> getAllHealthCareServices(@RequestParam(value = "statusList") Optional<List<String>> statusList,
+    @GetMapping("/healthcare-services")
+    public PageDto<HealthcareServiceDto> getAllHealthcareServices(@RequestParam(value = "statusList") Optional<List<String>> statusList,
                                                                   @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                                   @RequestParam(value = "searchValue") Optional<String> searchValue,
                                                                   @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                                   @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return healthCareServiceService.getAllHealthCareServices(statusList, searchKey, searchValue, pageNumber, pageSize);
+        return healthcareServiceService.getAllHealthcareServices(statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
-    @GetMapping("/organizations/{organizationId}/health-care-services")
-    public PageDto<HealthCareServiceDto> getAllHealthCareServicesByOrganization(@PathVariable String organizationId,
+    @GetMapping("/organizations/{organizationId}/healthcare-services")
+    public PageDto<HealthcareServiceDto> getAllHealthcareServicesByOrganization(@PathVariable String organizationId,
                                                                                 @RequestParam(value = "assignedToLocationId") Optional<String> assignedToLocationId,
                                                                                 @RequestParam(value = "statusList") Optional<List<String>> statusList,
                                                                                 @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                                                 @RequestParam(value = "searchValue") Optional<String> searchValue,
                                                                                 @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                                                 @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return healthCareServiceService.getAllHealthCareServicesByOrganization(organizationId, assignedToLocationId, statusList, searchKey, searchValue, pageNumber, pageSize);
+        return healthcareServiceService.getAllHealthcareServicesByOrganization(organizationId, assignedToLocationId, statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
-    @GetMapping("/organizations/{organizationId}/locations/{locationId}/health-care-services")
-    public PageDto<LocationHealthCareServiceDto> getAllHealthCareServiceByLocation(@PathVariable String organizationId,
+    @GetMapping("/organizations/{organizationId}/locations/{locationId}/healthcare-services")
+    public PageDto<LocationHealthcareServiceDto> getAllHealthcareServiceByLocation(@PathVariable String organizationId,
                                                                                    @PathVariable String locationId,
                                                                                    @RequestParam(value="statusList") Optional<List<String>> statusList,
                                                                                    @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                                                    @RequestParam(value = "searchValue") Optional<String> searchValue,
                                                                                    @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                                                    @RequestParam(value = "pageSize") Optional<Integer> pageSize){
-        return healthCareServiceService.getAllHealthCareServicesByLocation(organizationId, locationId, statusList, searchKey, searchValue, pageNumber, pageSize);
+        return healthcareServiceService.getAllHealthcareServicesByLocation(organizationId, locationId, statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
-    @GetMapping("/health-care-services/{healthCareServiceId}")
-    public HealthCareServiceDto getHealthCareService(@PathVariable String healthCareServiceId) {
-        return healthCareServiceService.getHealthCareService(healthCareServiceId);
+    @GetMapping("/healthcare-services/{healthcareServiceId}")
+    public HealthcareServiceDto getHealthcareService(@PathVariable String healthcareServiceId) {
+        return healthcareServiceService.getHealthcareService(healthcareServiceId);
     }
 
 
     @PostMapping("/organization/{organizationId}/healthcare-service")
     @ResponseStatus(HttpStatus.CREATED)
-    public void createHealthCareService(@PathVariable String organizationId,
-                               @Valid @RequestBody HealthCareServiceDto healthCareServiceDto) {
-        healthCareServiceService.createHealthCareService(organizationId, healthCareServiceDto);
+    public void createHealthcareService(@PathVariable String organizationId,
+                                        @Valid @RequestBody HealthcareServiceDto healthcareServiceDto) {
+        healthcareServiceService.createHealthcareService(organizationId, healthcareServiceDto);
 
     }
 
-    @PutMapping("/health-care-services/{healthCareServiceId}/assign")
+    @PutMapping("/healthcare-services/{healthcareServiceId}/assign")
     @ResponseStatus(HttpStatus.OK)
-    public void assignLocationToHealthCareService(@PathVariable String healthCareServiceId,
+    public void assignLocationToHealthcareService(@PathVariable String healthcareServiceId,
                                                   @RequestParam(value = "organizationId") String organizationId,
                                                   @RequestParam(value = "locationIdList") List<String> locationIdList) {
-        healthCareServiceService.assignLocationToHealthCareService(healthCareServiceId, organizationId, locationIdList);
+        healthcareServiceService.assignLocationToHealthcareService(healthcareServiceId, organizationId, locationIdList);
     }
 
 

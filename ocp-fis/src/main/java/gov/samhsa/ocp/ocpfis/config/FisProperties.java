@@ -25,7 +25,7 @@ public class FisProperties {
 
     @NotNull
     @Valid
-    private HealthCareService healthCareService;
+    private HealthcareService healthcareService;
 
     @NotNull
     @Valid
@@ -47,6 +47,10 @@ public class FisProperties {
     @Valid
     private RelatedPerson relatedPerson;
 
+    @NotNull
+    @Valid
+    private CareTeam careTeam;
+
     @Data
     public static class Fhir {
 
@@ -63,7 +67,7 @@ public class FisProperties {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class HealthCareService {
+    public static class HealthcareService {
         @Valid
         private Pagination pagination = new Pagination();
 
@@ -160,6 +164,25 @@ public class FisProperties {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class RelatedPerson {
+        @Valid
+        private Pagination pagination = new Pagination();
+
+        @Data
+        public static class Pagination {
+            @Min(1)
+            @Max(500)
+            private int defaultSize = 10;
+            @Min(1)
+            @Max(500)
+            private int maxSize = 50;
+        }
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CareTeam {
         @Valid
         private Pagination pagination = new Pagination();
 
