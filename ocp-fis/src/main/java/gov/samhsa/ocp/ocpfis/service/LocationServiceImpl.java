@@ -117,7 +117,7 @@ public class LocationServiceImpl implements LocationService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
+            otherPageLocationSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
@@ -188,7 +188,7 @@ public class LocationServiceImpl implements LocationService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
+            otherPageLocationSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
@@ -319,10 +319,10 @@ public class LocationServiceImpl implements LocationService {
         setLocationStatusToInactive(existingFhirLocation);
     }
 
-    private void validateLocationResource(Location fhirLocation, Optional<String> locationId, String createOrUpdateLocation){
+    private void validateLocationResource(Location fhirLocation, Optional<String> locationId, String createOrUpdateLocation) {
         ValidationResult validationResult = fhirValidator.validateWithResult(fhirLocation);
 
-        if(locationId.isPresent()){
+        if (locationId.isPresent()) {
             log.info(createOrUpdateLocation + "Validation successful? " + validationResult.isSuccessful() + " for LocationID: " + locationId);
         } else {
             log.info(createOrUpdateLocation + "Validation successful? " + validationResult.isSuccessful());
@@ -365,30 +365,6 @@ public class LocationServiceImpl implements LocationService {
                 .where(new ReferenceClientParam("partof").hasId(locationId))
                 .returnBundle(Bundle.class)
                 .execute();
-    }
-
-    private Bundle getLocationSearchBundleAfterFirstPage(Bundle locationSearchBundle, int pageNumber, int pageSize) {
-        if (locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
-            //Assuming page number starts with 1
-            int offset = ((pageNumber >= 1 ? pageNumber : 1) - 1) * pageSize;
-
-            if (offset >= locationSearchBundle.getTotal()) {
-                throw new ResourceNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
-            }
-
-            String pageUrl = fisProperties.getFhir().getServerUrl()
-                    + "?_getpages=" + locationSearchBundle.getId()
-                    + "&_getpagesoffset=" + offset
-                    + "&_count=" + pageSize
-                    + "&_bundletype=searchset";
-
-            // Load the required page
-            return fhirClient.search().byUrl(pageUrl)
-                    .returnBundle(Bundle.class)
-                    .execute();
-        } else {
-            throw new ResourceNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
-        }
     }
 
     private void checkForDuplicateLocationBasedOnIdentifiersDuringCreate(LocationDto locationDto) {

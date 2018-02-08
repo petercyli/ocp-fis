@@ -115,7 +115,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageHealthcareServiceSearchBundle = getHealthcareServiceSearchBundleAfterFirstPage(firstPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
 
@@ -194,7 +194,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageHealthcareServiceSearchBundle = getHealthcareServiceSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
@@ -270,7 +270,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             //Load the required page
             firstPage = false;
-            otherPageHealthcareServiceSearchBundle = getHealthcareServiceSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
 
         IQuery healthcareServiceWithLocationQuery = healthcareServiceQuery.include(HealthcareService.INCLUDE_LOCATION);
@@ -356,7 +356,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         log.info("Creating Healthcare Service for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate Healthcare Service exists based on the Identifiers provided.");
 
-        checkForDuplicateHealthcareServiceBasedOnTypesDuringCreate(healthcareServiceDto,organizationId);
+        checkForDuplicateHealthcareServiceBasedOnTypesDuringCreate(healthcareServiceDto, organizationId);
 
         HealthcareService fhirHealthcareService = modelMapper.map(healthcareServiceDto, HealthcareService.class);
         fhirHealthcareService.setActive(Boolean.TRUE);
@@ -413,7 +413,8 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 try {
                     MethodOutcome serverResponse = fhirClient.update().resource(existingHealthcareService).execute();
                     log.info("Successfully assigned location(s) to Healthcare Service ID :" + serverResponse.getId().getIdPart());
-                } catch (BaseServerResponseException e) {
+                }
+                catch (BaseServerResponseException e) {
                     log.error("Assign location to a Healthcare Service: Could NOT update location for Healthcare Service ID:" + healthcareServiceId);
                     throw new FHIRClientException("FHIR Client returned with an error while updating the location:" + e.getMessage());
                 }
@@ -428,7 +429,8 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
         try {
             existingHealthcareService = fhirClient.read().resource(HealthcareService.class).withId(healthcareServiceId.trim()).execute();
-        } catch (BaseServerResponseException e) {
+        }
+        catch (BaseServerResponseException e) {
             log.error("FHIR Client returned with an error while reading the Healthcare Service with ID: " + healthcareServiceId);
             throw new ResourceNotFoundException("FHIR Client returned with an error while reading the Healthcare Service: " + e.getMessage());
         }
@@ -481,7 +483,8 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                     try {
                         Location locationFromServer = fhirClient.read().resource(Location.class).withId(locLogicalId.trim()).execute();
                         locName = locationFromServer.getName().trim();
-                    } catch (BaseServerResponseException e) {
+                    }
+                    catch (BaseServerResponseException e) {
                         log.error("FHIR Client returned with an error while reading the location with ID: " + locLogicalId);
                         throw new ResourceNotFoundException("FHIR Client returned with an error while reading the location:" + e.getMessage());
                     }
@@ -507,30 +510,6 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         }
 
         return tempHealthcareServiceDto;
-    }
-
-    private Bundle getHealthcareServiceSearchBundleAfterFirstPage(Bundle healthcareServiceSearchBundle, int pageNumber, int pageSize) {
-        if (healthcareServiceSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
-            //Assuming page number starts with 1
-            int offset = ((pageNumber >= 1 ? pageNumber : 1) - 1) * pageSize;
-
-            if (offset >= healthcareServiceSearchBundle.getTotal()) {
-                throw new ResourceNotFoundException("No Healthcare Services were found in the FHIR server for the page number: " + pageNumber);
-            }
-
-            String pageUrl = fisProperties.getFhir().getServerUrl()
-                    + "?_getpages=" + healthcareServiceSearchBundle.getId()
-                    + "&_getpagesoffset=" + offset
-                    + "&_count=" + pageSize
-                    + "&_bundletype=searchset";
-
-            // Load the required page
-            return fhirClient.search().byUrl(pageUrl)
-                    .returnBundle(Bundle.class)
-                    .execute();
-        } else {
-            throw new ResourceNotFoundException("No Healthcare services were found in the FHIR server for the page number: " + pageNumber);
-        }
     }
 
     private void checkForDuplicateHealthcareServiceBasedOnTypesDuringCreate(HealthcareServiceDto healthcareServiceDto, String organizationId) {

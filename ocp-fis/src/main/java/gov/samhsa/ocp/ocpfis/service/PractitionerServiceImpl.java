@@ -84,7 +84,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         if (page.isPresent() && page.get() > 1 && otherPagePractitionerBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
             firstPage = false;
-            otherPagePractitionerBundle = getPractitionerSearchBundleAfterFirstPage(firstPagePractitionerBundle, page.get(), numberOfPractitionersPerPage);
+            otherPagePractitionerBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPagePractitionerBundle, page.get(), numberOfPractitionersPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerBundle.getEntry();
@@ -129,7 +129,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
         if (page.isPresent() && page.get() > 1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
-            otherPagePractitionerSearchBundle = getPractitionerSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
+            otherPagePractitionerSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerSearchBundle.getEntry();
@@ -167,7 +167,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
             //Create PractitionerRole for the practitioner
             PractitionerRole practitionerRole = new PractitionerRole();
-            practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
+            practitionerDto.getPractitionerRoles().forEach(practitionerRoleCode -> {
                         //Assign fhir practitionerRole codes.
                         CodeableConcept codeableConcept = new CodeableConcept();
                         Coding coding = mapPractitionerRoleToCode(practitionerRoleCode);
@@ -231,7 +231,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
             //Update PractitionerRole for the practitioner
             PractitionerRole practitionerRole = new PractitionerRole();
-            practitionerDto.getPractitionerRoles().stream().forEach(practitionerRoleCode -> {
+            practitionerDto.getPractitionerRoles().forEach(practitionerRoleCode -> {
                         //Assign fhir practitionerRole codes.
                         CodeableConcept codeableConcept = new CodeableConcept();
                         Coding coding = mapPractitionerRoleToCode(practitionerRoleCode);
@@ -279,30 +279,6 @@ public class PractitionerServiceImpl implements PractitionerService {
         return practitionerDto;
     }
 
-
-    private Bundle getPractitionerSearchBundleAfterFirstPage(Bundle practitionerSearchBundle, int page, int size) {
-        if (practitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
-            //Assuming page number starts with 1
-            int offset = ((page >= 1 ? page : 1) - 1) * size;
-
-            if (offset >= practitionerSearchBundle.getTotal()) {
-                throw new PractitionerNotFoundException("No practitioners were found in the FHIR server for this page number");
-            }
-
-            String pageUrl = fisProperties.getFhir().getServerUrl()
-                    + "?_getpages=" + practitionerSearchBundle.getId()
-                    + "&_getpagesoffset=" + offset
-                    + "&_count=" + size
-                    + "&_bundletype=searchset";
-
-            // Load the required page
-            return fhirClient.search().byUrl(pageUrl)
-                    .returnBundle(Bundle.class)
-                    .execute();
-        }
-        return practitionerSearchBundle;
-    }
-
     private PageDto<PractitionerDto> practitionersInPage(List<Bundle.BundleEntryComponent> retrievedPractitioners, Bundle otherPagePractitionerBundle, int numberOfPractitionersPerPage, boolean firstPage, Optional<Integer> page) {
         List<PractitionerDto> practitionersList = retrievedPractitioners.stream().map(retrievedPractitioner -> {
             PractitionerDto practitionerDto = modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class);
@@ -330,7 +306,7 @@ public class PractitionerServiceImpl implements PractitionerService {
             PractitionerRole practitionerRole = (PractitionerRole) practitionerRoleBundle.getEntry().get(0).getResource();
 
             if (practitionerRole.getCode().size() > 0 && practitionerRole.getCode() != null) {
-                practitionerRole.getCode().stream().forEach(code -> {
+                practitionerRole.getCode().forEach(code -> {
                     PractitionerRoleDto practitionerRoleDto = new PractitionerRoleDto();
                     practitionerRoleDto.setCode((code.getCoding().size() > 0 || code.getCoding() != null) ? code.getCoding().get(0).getCode() : "");
                     practitionerRoleDto.setDisplay((code.getCoding().size() > 0 || code.getCoding() != null) ? code.getCoding().get(0).getDisplay() : "");
