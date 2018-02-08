@@ -101,7 +101,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     @Override
     public PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size) {
         int numberOfCareTeamMembersPerPage = size.filter(s -> s > 0 &&
-                s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
+                s <= fisProperties.getCareTeam().getPagination().getMaxSize()).orElse(fisProperties.getCareTeam().getPagination().getDefaultSize());
 
         IQuery iQuery = fhirClient.search().forResource(CareTeam.class);
 
