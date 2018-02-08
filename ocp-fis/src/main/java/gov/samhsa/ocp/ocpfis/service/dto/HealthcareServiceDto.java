@@ -13,11 +13,9 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class LocationHealthCareServiceDto extends NameLogicalIdIdentifiersDto {
+public class HealthcareServiceDto extends NameLogicalIdIdentifiersDto{
     private String organizationId;
     private String organizationName;
-    private String locationId;
-    private String locationName;
     private boolean active;
     private String categorySystem;
     private String categoryValue;
@@ -25,5 +23,8 @@ public class LocationHealthCareServiceDto extends NameLogicalIdIdentifiersDto {
     private List<String> programName;
     private List<TelecomDto> telecom;
     private List<ValueSetDto> type;
+    private List<ValueSetDto> specialty;
+    private List<ValueSetDto> referralMethod;
     private List<NameLogicalIdIdentifiersDto> location;
+    private Boolean assignedToCurrentLocation;
 }

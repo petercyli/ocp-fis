@@ -1,6 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
-import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.modelmapper.PropertyMap;
@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class HealthCareServiceDtoToHealthCareServiceMap extends PropertyMap<HealthCareServiceDto, HealthcareService> {
+public class HealthcareServiceDtoToHealthcareServiceMap extends PropertyMap<HealthcareServiceDto, HealthcareService> {
 
     @Autowired
     private IdentifierDtoListToIdentifierListConverter identifierDtoListToIdentifierListConverter;
