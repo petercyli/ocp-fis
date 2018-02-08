@@ -24,6 +24,7 @@ import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
@@ -101,7 +102,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     @Override
     public PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size) {
         int numberOfCareTeamMembersPerPage = size.filter(s -> s > 0 &&
-                s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
+                s <= fisProperties.getCareTeam().getPagination().getMaxSize()).orElse(fisProperties.getCareTeam().getPagination().getDefaultSize());
 
         IQuery iQuery = fhirClient.search().forResource(CareTeam.class);
 
@@ -156,12 +157,14 @@ public class CareTeamServiceImpl implements CareTeamService {
             careTeamDto.setName((careTeam.getName() != null && !careTeam.getName().isEmpty()) ? careTeam.getName() : null);
             if (careTeam.getStatus() != null) {
                 careTeamDto.setStatusCode((careTeam.getStatus().toCode() != null && !careTeam.getStatus().toCode().isEmpty()) ? careTeam.getStatus().toCode() : null);
-                careTeamDto.setStatusDisplay((getCareTeamDisplay(careTeam.getStatus().toCode(), lookUpService.getCareTeamStatuses())).orElse(null));
+                careTeamDto.setStatusDisplay((getCareTeamDisplay(careTeam.getStatus().toCode(), Optional.ofNullable(lookUpService.getCareTeamStatuses()))).orElse(null));
             }
+
+            //Get Category
             careTeam.getCategory().stream().findFirst().ifPresent(category -> {
                 category.getCoding().stream().findFirst().ifPresent(coding -> {
                     careTeamDto.setCategoryCode((coding.getCode() != null && !coding.getCode().isEmpty()) ? coding.getCode() : null);
-                    careTeamDto.setCategoryDisplay((getCareTeamDisplay(coding.getCode(), lookUpService.getCareTeamCategories())).orElse(null));
+                    careTeamDto.setCategoryDisplay((getCareTeamDisplay(coding.getCode(), Optional.ofNullable(lookUpService.getCareTeamCategories()))).orElse(null));
                 });
             });
             String subjectReference = careTeam.getSubject().getReference();
@@ -184,6 +187,13 @@ public class CareTeamServiceImpl implements CareTeamService {
                 careTeamDto.setSubjectId(patientId);
             });
 
+            //Getting the reason codes
+            careTeam.getReasonCode().stream().findFirst().ifPresent(reasonCode->{
+                reasonCode.getCoding().stream().findFirst().ifPresent(code->{
+                    careTeamDto.setReasonCode((code.getCode() !=null && !code.getCode().isEmpty())?code.getCode():null);
+                    careTeamDto.setReasonDisplay((getCareTeamDisplay(code.getCode(), Optional.ofNullable(lookUpService.getCareTeamReasons()))).orElse(null));
+                });
+            });
 
             //Getting for participant
             List<ParticipantDto> participantDtos = new ArrayList<>();
@@ -197,6 +207,12 @@ public class CareTeamServiceImpl implements CareTeamService {
                         participantDto.setRoleDisplay((participantRole.getDisplay() != null && !participantRole.getDisplay().isEmpty()) ? participantRole.getDisplay() : null);
                     });
 
+                }
+
+                //Getting participant start and end date
+                if(participant.getPeriod() !=null && !participant.getPeriod().isEmpty()){
+                    participantDto.setStartDate((participant.getPeriod().getStart()!=null)? convertDateToString(participant.getPeriod().getStart()) :null);
+                    participantDto.setEndDate((participant.getPeriod().getEnd()!=null)?convertDateToString(participant.getPeriod().getEnd()): null );
                 }
 
                 //Getting participant member and onBehalfof
@@ -257,6 +273,17 @@ public class CareTeamServiceImpl implements CareTeamService {
                                         participantDto.setMemberType(organization.fhirType());
                                         break;
 
+                                    case RelatedPerson:
+                                        RelatedPerson relatedPerson= (RelatedPerson) resource;
+                                        relatedPerson.getName().stream().findFirst().ifPresent(name -> {
+                                            name.getGiven().stream().findFirst().ifPresent(firstName -> {
+                                                participantDto.setMemberFirstName(Optional.ofNullable(firstName.toString()));
+                                            });
+                                            participantDto.setMemberLastName(Optional.ofNullable(name.getFamily()));
+                                        });
+                                        participantDto.setMemberId(participantId);
+                                        participantDto.setMemberType(relatedPerson.fhirType());
+                                        break;
                                 }
                             }
                         }
@@ -322,8 +349,16 @@ public class CareTeamServiceImpl implements CareTeamService {
         }
     }
 
-    private Optional<String> getCareTeamDisplay(String code, List<ValueSetDto> lookupValues) {
-        return lookupValues.stream().filter(lookupValue -> code.equalsIgnoreCase(lookupValue.getCode())).map(valueSet -> valueSet.getDisplay()).findFirst();
+
+    private Optional<String> getCareTeamDisplay(String code, Optional<List<ValueSetDto>> lookupValueSets) {
+        Optional<String> lookupDisplay=null;
+        if(lookupValueSets.isPresent()){
+            lookupDisplay=lookupValueSets.get().stream()
+                    .filter(lookupValue -> code.equalsIgnoreCase(lookupValue.getCode()))
+                    .map(valueSet -> valueSet.getDisplay()).findFirst();
+
+        }
+        return lookupDisplay;
     }
 
     private Bundle getCareTeamBundleAfterFirstPage(Bundle careTeamBundle, int page, int size) {

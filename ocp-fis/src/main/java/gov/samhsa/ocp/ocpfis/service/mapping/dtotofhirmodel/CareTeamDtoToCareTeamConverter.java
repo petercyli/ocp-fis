@@ -64,20 +64,27 @@ public class CareTeamDtoToCareTeamConverter {
             String memberType = participantDto.getMemberType();
 
             if(memberType.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
-                careTeamParticipant.getMember().setReference("Practitioner/" + participantDto.getMemberId());
+                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.practitioner.getName() + "/" + participantDto.getMemberId());
 
             } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
-                careTeamParticipant.getMember().setReference("Patient/" + participantDto.getMemberId());
+                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.patient.getName() + "/" + participantDto.getMemberId());
 
             } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.organization.getCode())) {
-                careTeamParticipant.getMember().setReference("Organization/" + participantDto.getMemberId());
+                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.organization.getName() + "/" + participantDto.getMemberId());
+
+            } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
+                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.relatedPerson.getName() + "/" + participantDto.getMemberId());
             }
 
-            //TODO: onBehalfOfDto
-            //participantDto.getOnBehalfOfDto();
+            Coding codingRoleCode = new Coding();
+            codingRoleCode.setCode(participantDto.getRoleCode());
+            CodeableConcept codeableConceptRoleCode = new CodeableConcept().addCoding(codingRoleCode);
+            careTeamParticipant.setRole(codeableConceptRoleCode);
 
-            //TODO: onRole
-            //participantDto.getRole()
+            Period participantPeriod = new Period();
+            participantPeriod.setStart(convertToDate(participantDto.getStartDate()));
+            participantPeriod.setEnd(convertToDate(participantDto.getEndDate()));
+            careTeamParticipant.setPeriod(participantPeriod);
 
             participantsList.add(careTeamParticipant);
         }
@@ -90,8 +97,12 @@ public class CareTeamDtoToCareTeamConverter {
 
     private static Date convertToDate(String dateString) throws ParseException {
         DateFormat format = new SimpleDateFormat("MM/dd/yyyy", Locale.US);
-        Date date = format.parse(dateString);
-        return date;
+        if(dateString != null) {
+            Date date = format.parse(dateString);
+            return date;
+        }
+
+        return null;
     }
 
 

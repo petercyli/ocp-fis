@@ -527,30 +527,65 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getParticipantRoles() {
-
+        List<ValueSetDto> participantRolesList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.PARTICIPANT_ROLE.getUrlPath(), LookupPathUrls.PARTICIPANT_ROLE.getType());
-
 
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
 
-        return valueSetList.stream().map(convertToValueSetDto()).collect(Collectors.toList());
+        //TODO: temp fix until data is available
+        participantRolesList = valueSetList.stream().map(convertToValueSetDto()).collect(Collectors.toList());
+
+
+        if (participantRolesList.size() == 0) {
+            ValueSetDto dto = new ValueSetDto();
+            dto.setCode("101Y00000X");
+            dto.setDisplay("Counselor");
+
+            ValueSetDto dto2 = new ValueSetDto();
+            dto2.setCode("101YA0400X");
+            dto2.setDisplay("Addiction (Substance Use Disorder)");
+            participantRolesList.add(dto);
+            participantRolesList.add(dto2);
+        }
+
+
+        return participantRolesList;
     }
 
     @Override
     public List<ValueSetDto> getCareTeamReasons() {
         List<ValueSetDto> reasonCodes = new ArrayList<>();
-        ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_REASON_CODE.getUrlPath(), LookupPathUrls.CARE_TEAM_REASON_CODE.getType());
-        if (isValueSetAvailableInServer(response, LookupPathUrls.CARE_TEAM_REASON_CODE.getType())) {
-            List<ValueSet.ValueSetExpansionContainsComponent> reasonCodeList = response.getExpansion().getContains();
-            reasonCodeList.forEach(type -> {
-                ValueSetDto temp = new ValueSetDto();
-                temp.setCode(type.getCode());
-                temp.setDisplay(type.getDisplay());
-                temp.setSystem(type.getSystem());
-                reasonCodes.add(temp);
-            });
+        try {
+
+            ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_REASON_CODE.getUrlPath(), LookupPathUrls.CARE_TEAM_REASON_CODE.getType());
+            if (isValueSetAvailableInServer(response, LookupPathUrls.CARE_TEAM_REASON_CODE.getType())) {
+                List<ValueSet.ValueSetExpansionContainsComponent> reasonCodeList = response.getExpansion().getContains();
+                reasonCodeList.forEach(type -> {
+                    ValueSetDto temp = new ValueSetDto();
+                    temp.setCode(type.getCode());
+                    temp.setDisplay(type.getDisplay());
+                    temp.setSystem(type.getSystem());
+                    reasonCodes.add(temp);
+                });
+            }
+            log.info("Found " + reasonCodes.size() + " CareTeam reason codes.");
+        } catch (ResourceNotFoundException ex) {
+            //TODO: remove this with the real data is available..
+            if (reasonCodes.size() == 0) {
+                ValueSetDto dto = new ValueSetDto();
+                dto.setCode("109006");
+                dto.setDisplay("Anxiety disorder of childhood OR adolescence");
+
+                ValueSetDto dto2 = new ValueSetDto();
+                dto2.setCode("122003");
+                dto2.setDisplay("Choroidal hemorrhage");
+
+                reasonCodes.add(dto);
+                reasonCodes.add(dto2);
+            }
         }
-        log.info("Found " + reasonCodes.size() + " CareTeam reason codes.");
+
+
         return reasonCodes;
     }
 

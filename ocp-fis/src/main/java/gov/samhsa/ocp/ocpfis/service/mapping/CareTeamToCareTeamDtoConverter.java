@@ -46,8 +46,10 @@ public class CareTeamToCareTeamDtoConverter {
         List<CodeableConcept> codeableConceptReasonCodeList = careTeam.getReasonCode();
         CodeableConcept codeableConceptReasonCode = codeableConceptReasonCodeList.stream().findFirst().get();
         List<Coding> codingReasonCodeList = codeableConceptReasonCode.getCoding();
-        Coding codingReasonCode = codingReasonCodeList.stream().findFirst().get();
-        careTeamDto.setReasonCode(codingReasonCode.getCode());
+        Coding codingReasonCode = codingReasonCodeList.stream().findFirst().orElse(null);
+        if(codingReasonCode != null) {
+            careTeamDto.setReasonCode(codingReasonCode.getCode());
+        }
 
         //participants
         List<CareTeam.CareTeamParticipantComponent> careTeamParticipantComponentList = careTeam.getParticipant();
@@ -86,6 +88,17 @@ public class CareTeamToCareTeamDtoConverter {
                 participantDto.setMemberType(ParticipantTypeEnum.relatedPerson.getCode());
             }
 
+            CodeableConcept roleCodeableConcept = careTeamParticipantComponent.getRole();
+            List<Coding> codingRoleCodeList = roleCodeableConcept.getCoding();
+            Coding codingRoleCode = codingRoleCodeList.stream().findFirst().orElse(null);
+            if(codingRoleCode != null) {
+                participantDto.setRoleCode(codingRoleCode.getCode());
+            }
+
+            participantDto.setStartDate(convertToString(careTeamParticipantComponent.getPeriod().getStart()));
+            participantDto.setEndDate(convertToString(careTeamParticipantComponent.getPeriod().getEnd()));
+
+
             participantDtos.add(participantDto);
         }
 
@@ -96,7 +109,12 @@ public class CareTeamToCareTeamDtoConverter {
 
     private static String convertToString(Date date) {
         DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
-        return df.format(date);
+
+        if(date != null) {
+            return df.format(date);
+        }
+
+        return "";
     }
 
 
