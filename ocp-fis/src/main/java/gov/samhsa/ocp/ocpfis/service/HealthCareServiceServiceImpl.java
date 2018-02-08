@@ -15,7 +15,9 @@ import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthCareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameLogicalIdIdentifiersDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchKeyEnum;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
@@ -127,7 +129,6 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
 
     @Override
     public PageDto<HealthCareServiceDto> getAllHealthCareServicesByOrganization(String organizationResourceId, Optional<String> assignedToLocationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        //Note to Ming: If locationResourceId.isPresent(), then set appropriate value to HealthCareServiceDto.assignedToCurrentLocation
 
         int numberOfHealthCareServicesPerPage = pageSize.filter(s -> s > 0 &&
                 s <= fisProperties.getHealthCareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthCareService().getPagination().getDefaultSize());
@@ -352,22 +353,22 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
 
     @Override
     public void createHealthCareService(String organizationId, HealthCareServiceDto healthCareServiceDto) {
-        log.info("Creating Health Care Service for Organization Id:" + organizationId);
+        log.info("Creating Healthcare Service for Organization Id:" + organizationId);
+        log.info("But first, checking if a duplicate Healthcare Service exists based on the Identifiers provided.");
 
-        HealthcareService fhirHealthCareService = modelMapper.map(healthCareServiceDto, HealthcareService.class);
-        fhirHealthCareService.setActive(Boolean.TRUE);
+        checkForDuplicateHealthCareServiceBasedOnTypesDuringCreate(healthCareServiceDto,organizationId);
 
-        fhirHealthCareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
-
-        // Validate the resource
-        //validateHealthcareServiceResource(fhirHealthCareService, Optional.empty(), "Create c: ");
+        HealthcareService fhirHealthcareService = modelMapper.map(healthCareServiceDto, HealthcareService.class);
+        fhirHealthcareService.setActive(Boolean.TRUE);
+        fhirHealthcareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
 
         try {
-            MethodOutcome serverResponse = fhirClient.create().resource(fhirHealthCareService).execute();
-            log.info("Created a new Health Care Service :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
-        } catch (BaseServerResponseException e) {
-            log.error("Could NOT create Health Care Service for Organization Id:" + organizationId);
-            throw new FHIRClientException("FHIR Client returned with an error while creating the Health Care Service:" + e.getMessage());
+            MethodOutcome serverResponse = fhirClient.create().resource(fhirHealthcareService).execute();
+            log.info("Created a new Healthcare Service :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT create Healthcare Service for Organization Id:" + organizationId);
+            throw new FHIRClientException("FHIR Client returned with an error while creating the Healthcare Service:" + e.getMessage());
         }
     }
 
@@ -529,6 +530,51 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                     .execute();
         } else {
             throw new ResourceNotFoundException("No HealthCare services were found in the FHIR server for the page number: " + pageNumber);
+        }
+    }
+
+    private void checkForDuplicateHealthCareServiceBasedOnTypesDuringCreate(HealthCareServiceDto healthCareServiceDto, String organizationId) {
+        List<ValueSetDto> typeList = healthCareServiceDto.getType();
+        log.info("Current HealthcareServiceDto has " + typeList.size() + " service type(s).");
+
+        ValueSetDto serviceCategory = healthCareServiceDto.getCategory();
+        String categorySystem = serviceCategory.getSystem();
+        String categoryCode = serviceCategory.getCode();
+
+
+        for (ValueSetDto tempType : typeList) {
+            String typeSystem = tempType.getSystem();
+            String typeCode = tempType.getCode();
+            checkDuplicateHealthCareServiceExists(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
+        }
+        log.info("Create Healthcare Service: Found no duplicate Healthcare service.");
+    }
+
+    private void checkDuplicateHealthCareServiceExists(String organizationId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
+        Bundle bundle;
+        if (typeSystem != null && !typeSystem.trim().isEmpty()
+                && typeCode != null && !typeCode.trim().isEmpty()) {
+            bundle = fhirClient.search().forResource(HealthcareService.class)
+                    .where(new ReferenceClientParam("organization").hasId(organizationId))
+                    .and(new TokenClientParam("active").exactly().code("true"))
+                    .and(new TokenClientParam("type").exactly().systemAndCode(typeSystem.trim(), typeCode.trim()))
+                    .and(new TokenClientParam("category").exactly().systemAndCode(categorySystem.trim(), categoryCode.trim()))
+                    .returnBundle(Bundle.class)
+                    .execute();
+        } else if (typeCode != null && !typeCode.trim().isEmpty()) {
+            bundle = fhirClient.search().forResource(HealthcareService.class)
+                    .where(new ReferenceClientParam("organization").hasId(organizationId))
+                    .and(new TokenClientParam("active").exactly().code("true"))
+                    .and(new TokenClientParam("type").exactly().code(typeCode.trim()))
+                    .and(new TokenClientParam("category").exactly().systemAndCode(categorySystem.trim(), categoryCode.trim()))
+                    .returnBundle(Bundle.class)
+                    .execute();
+        } else {
+            throw new BadRequestException("Found no valid System and/or Code");
+        }
+
+        if (bundle != null && bundle.getEntry().size() > 0) {
+            throw new DuplicateResourceFoundException("The current organization " + organizationId + " already have the active Healthcare Service with the Category System " + categorySystem + " and Category Code " + categoryCode + " with Type system " + typeSystem + " and Type Code: " + typeCode);
         }
     }
 }
