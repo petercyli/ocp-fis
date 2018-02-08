@@ -34,21 +34,28 @@ public class CareTeamToCareTeamDtoConverter {
 
         //categories
         List<CodeableConcept> codeableConceptList = careTeam.getCategory();
-        CodeableConcept codeableConcept = codeableConceptList.stream().findFirst().get();
-        List<Coding> codingList = codeableConcept.getCoding();
-        Coding coding = codingList.stream().findFirst().get();
-        careTeamDto.setCategoryCode(coding.getCode());
+        CodeableConcept codeableConcept = codeableConceptList.stream().findFirst().orElse(null);
+        if(codeableConcept != null) {
+            List<Coding> codingList = codeableConcept.getCoding();
+            Coding coding = codingList.stream().findFirst().orElse(null);
+            if(coding != null) {
+                careTeamDto.setCategoryCode(coding.getCode());
+            }
+        }
 
         //subject
         careTeamDto.setSubjectId(careTeam.getSubject().getReference().replace("Patient/", ""));
 
         //reasonCode
         List<CodeableConcept> codeableConceptReasonCodeList = careTeam.getReasonCode();
-        CodeableConcept codeableConceptReasonCode = codeableConceptReasonCodeList.stream().findFirst().get();
-        List<Coding> codingReasonCodeList = codeableConceptReasonCode.getCoding();
-        Coding codingReasonCode = codingReasonCodeList.stream().findFirst().orElse(null);
-        if(codingReasonCode != null) {
-            careTeamDto.setReasonCode(codingReasonCode.getCode());
+        CodeableConcept codeableConceptReasonCode = codeableConceptReasonCodeList.stream().findFirst().orElse(null);
+
+        if(codeableConceptReasonCode != null) {
+            List<Coding> codingReasonCodeList = codeableConceptReasonCode.getCoding();
+            Coding codingReasonCode = codingReasonCodeList.stream().findFirst().orElse(null);
+            if (codingReasonCode != null) {
+                careTeamDto.setReasonCode(codingReasonCode.getCode());
+            }
         }
 
         //participants
