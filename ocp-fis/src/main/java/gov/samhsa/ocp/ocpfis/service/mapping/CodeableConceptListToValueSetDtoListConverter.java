@@ -9,7 +9,7 @@ import java.util.List;
 
 
 @Component
-public class HealthecareServiceTypeListToHealthcareServiceTypeDtoListConverter extends AbstractConverter<List<CodeableConcept>, List<ValueSetDto>> {
+public class CodeableConceptListToValueSetDtoListConverter extends AbstractConverter<List<CodeableConcept>, List<ValueSetDto>> {
 
 
     @Override
