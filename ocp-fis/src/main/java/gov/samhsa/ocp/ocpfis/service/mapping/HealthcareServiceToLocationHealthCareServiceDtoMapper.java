@@ -1,13 +1,14 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
 import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthCareServiceDto;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.modelmapper.PropertyMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<HealthcareService, HealthCareServiceDto> {
+public class HealthcareServiceToLocationHealthCareServiceDtoMapper extends PropertyMap<HealthcareService, LocationHealthCareServiceDto> {
 
     private final TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter;
 
@@ -15,22 +16,22 @@ public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<Heal
 
     private final HealthecareServiceTypeListToHealthcareServiceTypeDtoListConverter healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter;
 
-    private final HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter  healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter;
+    private final HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter;
 
 
     @Autowired
-    public HealthcareServiceToHealthCareServiceDtoMap(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, HealthecareServiceTypeListToHealthcareServiceTypeDtoListConverter healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter, HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter  healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter) {
+    public HealthcareServiceToLocationHealthCareServiceDtoMapper(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, HealthecareServiceTypeListToHealthcareServiceTypeDtoListConverter healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter, HealthecareServiceCategoryToHealthcareServiceCategoryDtoConverter healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter) {
         this.telecomListToTelecomDtoListConverter = telecomListToTelecomDtoListConverter;
         this.identifierListToIdentifierDtoListConverter = identifierListToIdentifierDtoListConverter;
         this.healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter = healthecareServiceTypeListToHealthcareServiceTypeDtoListConverter;
         this.healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter = healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter;
     }
+
     @Override
     protected void configure() {
         map().setResourceURL(source.getId());
         map().setName(source.getName());
         map().setActive(source.getActive());
-        map().setOrganizationId(source.getProvidedBy().getReference());
         map().setOrganizationName(source.getProvidedBy().getDisplay());
         map().setCategorySystem(source.getCategory().getCodingFirstRep().getSystem());
         map().setCategoryValue(source.getCategory().getCodingFirstRep().getCode());
@@ -40,4 +41,3 @@ public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<Heal
         using(healthecareServiceCategoryToHealthcareServiceCategoryDtoConverter).map(source.getCategory()).setCategory(null);
     }
 }
-
