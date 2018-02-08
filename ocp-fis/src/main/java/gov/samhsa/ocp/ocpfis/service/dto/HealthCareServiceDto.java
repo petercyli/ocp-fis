@@ -23,6 +23,8 @@ public class HealthCareServiceDto extends NameLogicalIdIdentifiersDto{
     private List<String> programName;
     private List<TelecomDto> telecom;
     private List<ValueSetDto> type;
+    private List<ValueSetDto> specialty;
+    private List<ValueSetDto> referralMethod;
     private List<NameLogicalIdIdentifiersDto> location;
     private Boolean assignedToCurrentLocation;
 }

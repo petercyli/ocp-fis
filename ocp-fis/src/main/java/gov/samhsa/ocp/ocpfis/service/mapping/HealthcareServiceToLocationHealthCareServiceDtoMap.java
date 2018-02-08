@@ -1,13 +1,13 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
-import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthCareServiceDto;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.modelmapper.PropertyMap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<HealthcareService, HealthCareServiceDto> {
+public class HealthcareServiceToLocationHealthCareServiceDtoMap extends PropertyMap<HealthcareService, LocationHealthCareServiceDto> {
 
     private final TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter;
 
@@ -17,32 +17,26 @@ public class HealthcareServiceToHealthCareServiceDtoMap extends PropertyMap<Heal
 
     private final CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter;
 
-    private final StringTypeListToStringListConverter stringTypeListToStringListConverter;
 
     @Autowired
-    public HealthcareServiceToHealthCareServiceDtoMap(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter, CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter, StringTypeListToStringListConverter stringTypeListToStringListConverter) {
+    public HealthcareServiceToLocationHealthCareServiceDtoMap(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter, CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter) {
         this.telecomListToTelecomDtoListConverter = telecomListToTelecomDtoListConverter;
         this.identifierListToIdentifierDtoListConverter = identifierListToIdentifierDtoListConverter;
         this.codeableConceptListToValueSetDtoListConverter = codeableConceptListToValueSetDtoListConverter;
         this.codeableConceptToValueSetDtoConverter = codeableConceptToValueSetDtoConverter;
-        this.stringTypeListToStringListConverter = stringTypeListToStringListConverter;
     }
+
     @Override
     protected void configure() {
         map().setResourceURL(source.getId());
         map().setName(source.getName());
         map().setActive(source.getActive());
-        map().setOrganizationId(source.getProvidedBy().getReference());
         map().setOrganizationName(source.getProvidedBy().getDisplay());
         map().setCategorySystem(source.getCategory().getCodingFirstRep().getSystem());
         map().setCategoryValue(source.getCategory().getCodingFirstRep().getCode());
-        using(stringTypeListToStringListConverter).map(source.getProgramName()).setProgramName(null);
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecom(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
         using(codeableConceptListToValueSetDtoListConverter).map(source.getType()).setType(null);
-        using(codeableConceptListToValueSetDtoListConverter).map(source.getSpecialty()).setSpecialty(null);
-        using(codeableConceptListToValueSetDtoListConverter).map(source.getReferralMethod()).setReferralMethod(null);
         using(codeableConceptToValueSetDtoConverter).map(source.getCategory()).setCategory(null);
     }
 }
-
