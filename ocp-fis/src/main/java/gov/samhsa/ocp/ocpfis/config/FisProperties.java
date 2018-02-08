@@ -25,7 +25,7 @@ public class FisProperties {
 
     @NotNull
     @Valid
-    private HealthCareService healthCareService;
+    private HealthcareService healthcareService;
 
     @NotNull
     @Valid
@@ -67,7 +67,7 @@ public class FisProperties {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    public static class HealthCareService {
+    public static class HealthcareService {
         @Valid
         private Pagination pagination = new Pagination();
 

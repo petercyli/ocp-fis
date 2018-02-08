@@ -10,8 +10,8 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
-import gov.samhsa.ocp.ocpfis.service.dto.HealthCareServiceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthCareServiceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameLogicalIdIdentifiersDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchKeyEnum;
@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-public class HealthCareServiceServiceImpl implements HealthCareServiceService {
+public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
@@ -50,7 +50,7 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
     private final FisProperties fisProperties;
 
     @Autowired
-    public HealthCareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
+    public HealthcareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fisProperties = fisProperties;
@@ -58,24 +58,24 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
     }
 
     @Override
-    public PageDto<HealthCareServiceDto> getAllHealthCareServices(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfHealthCareServicesPerPage = pageSize.filter(s -> s > 0 &&
-                s <= fisProperties.getHealthCareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthCareService().getPagination().getDefaultSize());
+    public PageDto<HealthcareServiceDto> getAllHealthcareServices(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfHealthcareServicesPerPage = pageSize.filter(s -> s > 0 &&
+                s <= fisProperties.getHealthcareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthcareService().getPagination().getDefaultSize());
 
-        Bundle firstPageHealthCareServiceSearchBundle;
-        Bundle otherPageHealthCareServiceSearchBundle;
+        Bundle firstPageHealthcareServiceSearchBundle;
+        Bundle otherPageHealthcareServiceSearchBundle;
         boolean firstPage = true;
         Map<String, String> locationNameMap = new HashMap<>();
 
-        IQuery healthCareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class);
+        IQuery healthcareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class);
 
-        //Check for HealthCareService status
+        //Check for HealthcareService status
         if (statusList.isPresent() && statusList.get().size() > 0) {
-            log.info("Searching for ALL HealthCare Services with the following specific status(es).");
+            log.info("Searching for ALL Healthcare Services with the following specific status(es).");
             statusList.get().forEach(log::info);
-            healthCareServicesSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
+            healthcareServicesSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         } else {
-            log.info("Searching for HealthCare Services with ALL statuses");
+            log.info("Searching for Healthcare Services with ALL statuses");
         }
 
         //Check for bad requests
@@ -89,70 +89,70 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         // Check if there are any additional search criteria
         if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.NAME.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            healthCareServicesSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+            healthcareServicesSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            healthCareServicesSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
+            healthcareServicesSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
-            healthCareServicesSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
+            healthcareServicesSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
         } else {
             log.info("No additional search criteria entered.");
         }
 
         //The following bundle only contains Page 1 of the resultSet
-        firstPageHealthCareServiceSearchBundle = (Bundle) healthCareServicesSearchQuery.count(numberOfHealthCareServicesPerPage)
+        firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServicesSearchQuery.count(numberOfHealthcareServicesPerPage)
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
 
-        if (firstPageHealthCareServiceSearchBundle == null || firstPageHealthCareServiceSearchBundle.getEntry().size() < 1) {
-            throw new ResourceNotFoundException("No HealthCare Services were found in the FHIR server");
+        if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().size() < 1) {
+            throw new ResourceNotFoundException("No Healthcare Services were found in the FHIR server");
         }
 
-        log.info("FHIR HealthCare Service(s) bundle retrieved " + firstPageHealthCareServiceSearchBundle.getTotal() + " Healthcare Service(s) from FHIR server successfully");
-        otherPageHealthCareServiceSearchBundle = firstPageHealthCareServiceSearchBundle;
+        log.info("FHIR Healthcare Service(s) bundle retrieved " + firstPageHealthcareServiceSearchBundle.getTotal() + " Healthcare Service(s) from FHIR server successfully");
+        otherPageHealthcareServiceSearchBundle = firstPageHealthcareServiceSearchBundle;
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageHealthCareServiceSearchBundle = getHealthCareServiceSearchBundleAfterFirstPage(firstPageHealthCareServiceSearchBundle, pageNumber.get(), numberOfHealthCareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = getHealthcareServiceSearchBundleAfterFirstPage(firstPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
-        List<Bundle.BundleEntryComponent> retrievedHealthCareServices = otherPageHealthCareServiceSearchBundle.getEntry();
+        List<Bundle.BundleEntryComponent> retrievedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<HealthCareServiceDto> healthCareServicesList = retrievedHealthCareServices.stream().map(hcs -> convertHealthCareServiceBundleEntryToHealthCareServiceDto(hcs, locationNameMap, Optional.empty())).collect(Collectors.toList());
-        double totalPages = Math.ceil((double) otherPageHealthCareServiceSearchBundle.getTotal() / numberOfHealthCareServicesPerPage);
+        List<HealthcareServiceDto> healthcareServicesList = retrievedHealthcareServices.stream().map(hcs -> convertHealthcareServiceBundleEntryToHealthcareServiceDto(hcs, locationNameMap, Optional.empty())).collect(Collectors.toList());
+        double totalPages = Math.ceil((double) otherPageHealthcareServiceSearchBundle.getTotal() / numberOfHealthcareServicesPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
-        return new PageDto<>(healthCareServicesList, numberOfHealthCareServicesPerPage, totalPages, currentPage, healthCareServicesList.size(), otherPageHealthCareServiceSearchBundle.getTotal());
+        return new PageDto<>(healthcareServicesList, numberOfHealthcareServicesPerPage, totalPages, currentPage, healthcareServicesList.size(), otherPageHealthcareServiceSearchBundle.getTotal());
     }
 
     @Override
-    public PageDto<HealthCareServiceDto> getAllHealthCareServicesByOrganization(String organizationResourceId, Optional<String> assignedToLocationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<HealthcareServiceDto> getAllHealthcareServicesByOrganization(String organizationResourceId, Optional<String> assignedToLocationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
-        int numberOfHealthCareServicesPerPage = pageSize.filter(s -> s > 0 &&
-                s <= fisProperties.getHealthCareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthCareService().getPagination().getDefaultSize());
+        int numberOfHealthcareServicesPerPage = pageSize.filter(s -> s > 0 &&
+                s <= fisProperties.getHealthcareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthcareService().getPagination().getDefaultSize());
 
-        Bundle firstPageHealthCareServiceSearchBundle;
-        Bundle otherPageHealthCareServiceSearchBundle;
+        Bundle firstPageHealthcareServiceSearchBundle;
+        Bundle otherPageHealthcareServiceSearchBundle;
         boolean firstPage = true;
         Map<String, String> locationNameMap = new HashMap<>();
 
-        IQuery healthCareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
+        IQuery healthcareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
         //Check for healthcare service status
         if (statusList.isPresent() && statusList.get().size() == 1) {
-            log.info("Searching for health care service with the following specific status" + statusList.get().get(0) + " for the given OrganizationID:" + organizationResourceId);
+            log.info("Searching for healthcare service with the following specific status" + statusList.get().get(0) + " for the given OrganizationID:" + organizationResourceId);
             statusList.get().forEach(log::info);
             if (statusList.get().get(0).trim().equalsIgnoreCase("active")) {
-                healthCareServicesSearchQuery.where(new TokenClientParam("active").exactly().codes("true"));
+                healthcareServicesSearchQuery.where(new TokenClientParam("active").exactly().codes("true"));
             } else if (statusList.get().get(0).trim().equalsIgnoreCase("inactive")) {
-                healthCareServicesSearchQuery.where(new TokenClientParam("active").exactly().codes("false"));
+                healthcareServicesSearchQuery.where(new TokenClientParam("active").exactly().codes("false"));
             } else {
-                log.info("Searching for health care services with ALL statuses for the given OrganizationID:" + organizationResourceId);
+                log.info("Searching for healthcare services with ALL statuses for the given OrganizationID:" + organizationResourceId);
             }
         } else {
-            log.info("Searching for health care services with ALL statuses for the given OrganizationID:" + organizationResourceId);
+            log.info("Searching for healthcare services with ALL statuses for the given OrganizationID:" + organizationResourceId);
         }
 
         //Check for bad requests
@@ -166,56 +166,56 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         // Check if there are any additional search criteria
         if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.NAME.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            healthCareServicesSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+            healthcareServicesSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            healthCareServicesSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
+            healthcareServicesSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
-            healthCareServicesSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
+            healthcareServicesSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
         } else {
             log.info("No additional search criteria entered.");
         }
 
         //The following bundle only contains Page 1 of the resultSet
-        firstPageHealthCareServiceSearchBundle = (Bundle) healthCareServicesSearchQuery.count(numberOfHealthCareServicesPerPage)
+        firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServicesSearchQuery.count(numberOfHealthcareServicesPerPage)
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
 
-        if (firstPageHealthCareServiceSearchBundle == null || firstPageHealthCareServiceSearchBundle.getEntry().size() < 1) {
-            log.info("No Health Care Service found for the given OrganizationID:" + organizationResourceId);
-            return new PageDto<>(new ArrayList<>(), numberOfHealthCareServicesPerPage, 0, 0, 0, 0);
+        if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().size() < 1) {
+            log.info("No Healthcare Service found for the given OrganizationID:" + organizationResourceId);
+            return new PageDto<>(new ArrayList<>(), numberOfHealthcareServicesPerPage, 0, 0, 0, 0);
         }
 
-        log.info("FHIR Health Care Service(s) bundle retrieved " + firstPageHealthCareServiceSearchBundle.getTotal() + " healthcare service(s) from FHIR server successfully");
+        log.info("FHIR Healthcare Service(s) bundle retrieved " + firstPageHealthcareServiceSearchBundle.getTotal() + " healthcare service(s) from FHIR server successfully");
 
-        otherPageHealthCareServiceSearchBundle = firstPageHealthCareServiceSearchBundle;
+        otherPageHealthcareServiceSearchBundle = firstPageHealthcareServiceSearchBundle;
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageHealthCareServiceSearchBundle = getHealthCareServiceSearchBundleAfterFirstPage(otherPageHealthCareServiceSearchBundle, pageNumber.get(), numberOfHealthCareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = getHealthcareServiceSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
 
-        List<Bundle.BundleEntryComponent> retrievedHealthCareServices = otherPageHealthCareServiceSearchBundle.getEntry();
+        List<Bundle.BundleEntryComponent> retrievedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<HealthCareServiceDto> healthCareServicesList = retrievedHealthCareServices.stream().map(hcs -> convertHealthCareServiceBundleEntryToHealthCareServiceDto(hcs, locationNameMap, assignedToLocationId)).collect(Collectors.toList());
-        double totalPages = Math.ceil((double) otherPageHealthCareServiceSearchBundle.getTotal() / numberOfHealthCareServicesPerPage);
+        List<HealthcareServiceDto> healthcareServicesList = retrievedHealthcareServices.stream().map(hcs -> convertHealthcareServiceBundleEntryToHealthcareServiceDto(hcs, locationNameMap, assignedToLocationId)).collect(Collectors.toList());
+        double totalPages = Math.ceil((double) otherPageHealthcareServiceSearchBundle.getTotal() / numberOfHealthcareServicesPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
-        return new PageDto<>(healthCareServicesList, numberOfHealthCareServicesPerPage, totalPages, currentPage, healthCareServicesList.size(), otherPageHealthCareServiceSearchBundle.getTotal());
+        return new PageDto<>(healthcareServicesList, numberOfHealthcareServicesPerPage, totalPages, currentPage, healthcareServicesList.size(), otherPageHealthcareServiceSearchBundle.getTotal());
     }
 
     @Override
-    public PageDto<LocationHealthCareServiceDto> getAllHealthCareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfHealthCareServicesPerPage = pageSize.filter(s -> s > 0 &&
-                s <= fisProperties.getHealthCareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthCareService().getPagination().getDefaultSize());
-        Bundle firstPageHealthCareServiceSearchBundle;
-        Bundle otherPageHealthCareServiceSearchBundle;
+    public PageDto<LocationHealthcareServiceDto> getAllHealthcareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfHealthcareServicesPerPage = pageSize.filter(s -> s > 0 &&
+                s <= fisProperties.getHealthcareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthcareService().getPagination().getDefaultSize());
+        Bundle firstPageHealthcareServiceSearchBundle;
+        Bundle otherPageHealthcareServiceSearchBundle;
         boolean firstPage = true;
 
-        IQuery healthCareServiceQuery = fhirClient.search().forResource(HealthcareService.class)
+        IQuery healthcareServiceQuery = fhirClient.search().forResource(HealthcareService.class)
                 .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
                 .where(new ReferenceClientParam("location").hasId(locationId));
 
@@ -224,11 +224,11 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
 
             statusList.get().stream().findFirst().ifPresent(status -> {
                 if (status.trim().equalsIgnoreCase("active")) {
-                    healthCareServiceQuery.where(new TokenClientParam("active").exactly().codes("true"));
+                    healthcareServiceQuery.where(new TokenClientParam("active").exactly().codes("true"));
                 } else if (status.trim().equalsIgnoreCase("inactive")) {
-                    healthCareServiceQuery.where(new TokenClientParam("active").exactly().codes("false"));
+                    healthcareServiceQuery.where(new TokenClientParam("active").exactly().codes("false"));
                 } else {
-                    log.info("Searching for health care services with all statuses for the given location id:" + locationId);
+                    log.info("Searching for healthcare services with all statuses for the given location id:" + locationId);
                 }
             });
 
@@ -241,54 +241,54 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
             throw new BadRequestException("No search value found for the search key" + searchKey.get());
         } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.NAME.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            healthCareServiceQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+            healthcareServiceQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            healthCareServiceQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
+            healthcareServiceQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
-            healthCareServiceQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
+            healthcareServiceQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
         } else {
             log.info("No additional search criteria entered.");
         }
 
         //The following bundle only contains page 1 of the resultset
-        firstPageHealthCareServiceSearchBundle = (Bundle) healthCareServiceQuery.count(numberOfHealthCareServicesPerPage)
+        firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServiceQuery.count(numberOfHealthcareServicesPerPage)
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
 
 
-        if (firstPageHealthCareServiceSearchBundle == null || firstPageHealthCareServiceSearchBundle.getEntry().isEmpty()) {
-            log.info("No Health Care Service found for the given OrganizationID:" + organizationResourceId);
-            return new PageDto<>(new ArrayList<>(), numberOfHealthCareServicesPerPage, 0, 0, 0, 0);
+        if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().isEmpty()) {
+            log.info("No Healthcare Service found for the given OrganizationID:" + organizationResourceId);
+            return new PageDto<>(new ArrayList<>(), numberOfHealthcareServicesPerPage, 0, 0, 0, 0);
         }
 
-        log.info("FHIR Health Care Service(s) bundle retrieved " + firstPageHealthCareServiceSearchBundle.getTotal() + " healthcare service(s) from FHIR server successfully");
+        log.info("FHIR Healthcare Service(s) bundle retrieved " + firstPageHealthcareServiceSearchBundle.getTotal() + " healthcare service(s) from FHIR server successfully");
 
-        otherPageHealthCareServiceSearchBundle = firstPageHealthCareServiceSearchBundle;
+        otherPageHealthcareServiceSearchBundle = firstPageHealthcareServiceSearchBundle;
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             //Load the required page
             firstPage = false;
-            otherPageHealthCareServiceSearchBundle = getHealthCareServiceSearchBundleAfterFirstPage(otherPageHealthCareServiceSearchBundle, pageNumber.get(), numberOfHealthCareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = getHealthcareServiceSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
 
-        IQuery healthCareServiceWithLocationQuery = healthCareServiceQuery.include(HealthcareService.INCLUDE_LOCATION);
+        IQuery healthcareServiceWithLocationQuery = healthcareServiceQuery.include(HealthcareService.INCLUDE_LOCATION);
 
-        Bundle healthCareServiceWithLocationTotalEntry = (Bundle) healthCareServiceWithLocationQuery.returnBundle(Bundle.class).execute();
+        Bundle healthcareServiceWithLocationTotalEntry = (Bundle) healthcareServiceWithLocationQuery.returnBundle(Bundle.class).execute();
 
-        int totalEntry = healthCareServiceWithLocationTotalEntry.getTotal();
+        int totalEntry = healthcareServiceWithLocationTotalEntry.getTotal();
 
-        Bundle healthCareServiceWithLocationBundle = (Bundle) healthCareServiceWithLocationQuery.count(totalEntry).returnBundle(Bundle.class).execute();
+        Bundle healthcareServiceWithLocationBundle = (Bundle) healthcareServiceWithLocationQuery.count(totalEntry).returnBundle(Bundle.class).execute();
 
-        List<Bundle.BundleEntryComponent> retrivedHealthCareServices = otherPageHealthCareServiceSearchBundle.getEntry();
+        List<Bundle.BundleEntryComponent> retrivedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<LocationHealthCareServiceDto> healthCareServicesList = retrivedHealthCareServices.stream().map(hcs -> {
+        List<LocationHealthcareServiceDto> healthcareServicesList = retrivedHealthcareServices.stream().map(hcs -> {
             HealthcareService healthcareServiceResource = (HealthcareService) hcs.getResource();
-            LocationHealthCareServiceDto healthCareServiceDto = modelMapper.map(healthcareServiceResource, LocationHealthCareServiceDto.class);
-            healthCareServiceDto.setLogicalId(hcs.getResource().getIdElement().getIdPart());
-            healthCareServiceDto.setOrganizationId(organizationResourceId);
+            LocationHealthcareServiceDto healthcareServiceDto = modelMapper.map(healthcareServiceResource, LocationHealthcareServiceDto.class);
+            healthcareServiceDto.setLogicalId(hcs.getResource().getIdElement().getIdPart());
+            healthcareServiceDto.setOrganizationId(organizationResourceId);
 
             //Getting location
             List<NameLogicalIdIdentifiersDto> locationsForHealthService = new ArrayList<>();
@@ -299,8 +299,8 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                             String locationResourceId = locationReference.split("/")[1];
                             String locationType = locationReference.split("/")[0];
 
-                            healthCareServiceWithLocationBundle.getEntry().forEach(healthCareServiceWithLocation -> {
-                                Resource resource = healthCareServiceWithLocation.getResource();
+                            healthcareServiceWithLocationBundle.getEntry().forEach(healthcareServiceWithLocation -> {
+                                Resource resource = healthcareServiceWithLocation.getResource();
                                 if (resource.getResourceType().toString().trim().replaceAll(" ", "").equalsIgnoreCase(locationType.trim().replaceAll(" ", ""))) {
                                     if (resource.getIdElement().getIdPart().equalsIgnoreCase(locationResourceId)) {
                                         Location locationPresent = (Location) resource;
@@ -309,56 +309,56 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                                         locationsForHealthService.add(locationForHealthServiceDto);
 
                                         if (locationResourceId.equalsIgnoreCase(locationId)) {
-                                            healthCareServiceDto.setLocationId(locationId);
-                                            healthCareServiceDto.setLocationName(locationPresent.getName());
+                                            healthcareServiceDto.setLocationId(locationId);
+                                            healthcareServiceDto.setLocationName(locationPresent.getName());
                                         }
                                     }
                                 }
                             });
                         }
-                        healthCareServiceDto.setLocation(locationsForHealthService);
+                        healthcareServiceDto.setLocation(locationsForHealthService);
                     }
             );
 
-            return healthCareServiceDto;
+            return healthcareServiceDto;
         }).collect(Collectors.toList());
 
-        double totalPages = Math.ceil((double) otherPageHealthCareServiceSearchBundle.getTotal() / numberOfHealthCareServicesPerPage);
+        double totalPages = Math.ceil((double) otherPageHealthcareServiceSearchBundle.getTotal() / numberOfHealthcareServicesPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
-        return new PageDto<>(healthCareServicesList, numberOfHealthCareServicesPerPage, totalPages, currentPage, healthCareServicesList.size(), otherPageHealthCareServiceSearchBundle.getTotal());
+        return new PageDto<>(healthcareServicesList, numberOfHealthcareServicesPerPage, totalPages, currentPage, healthcareServicesList.size(), otherPageHealthcareServiceSearchBundle.getTotal());
     }
 
     @Override
-    public HealthCareServiceDto getHealthCareService(String healthCareServiceId) {
-        log.info("Searching for Health Care Service Id:" + healthCareServiceId);
+    public HealthcareServiceDto getHealthcareService(String healthcareServiceId) {
+        log.info("Searching for Healthcare Service Id:" + healthcareServiceId);
         Map<String, String> locationNameMap = new HashMap<>();
 
-        Bundle healthCareServiceBundle = fhirClient.search().forResource(HealthcareService.class)
-                .where(new TokenClientParam("_id").exactly().code(healthCareServiceId))
+        Bundle healthcareServiceBundle = fhirClient.search().forResource(HealthcareService.class)
+                .where(new TokenClientParam("_id").exactly().code(healthcareServiceId))
                 .returnBundle(Bundle.class)
                 .execute();
 
-        if (healthCareServiceBundle == null || healthCareServiceBundle.getEntry().size() < 1) {
-            log.info("No health care service was found for the given Health Care Service ID:" + healthCareServiceId);
-            throw new ResourceNotFoundException("No health care service was found for the given Health Care Service ID:" + healthCareServiceId);
+        if (healthcareServiceBundle == null || healthcareServiceBundle.getEntry().size() < 1) {
+            log.info("No healthcare service was found for the given Healthcare Service ID:" + healthcareServiceId);
+            throw new ResourceNotFoundException("No healthcare service was found for the given Healthcare Service ID:" + healthcareServiceId);
         }
 
-        log.info("FHIR Health Care Service bundle retrieved from FHIR server successfully for Health Care Service Id:" + healthCareServiceId);
+        log.info("FHIR Healthcare Service bundle retrieved from FHIR server successfully for Healthcare Service Id:" + healthcareServiceId);
 
-        Bundle.BundleEntryComponent retrievedHealthCareService = healthCareServiceBundle.getEntry().get(0);
+        Bundle.BundleEntryComponent retrievedHealthcareService = healthcareServiceBundle.getEntry().get(0);
 
-        return convertHealthCareServiceBundleEntryToHealthCareServiceDto(retrievedHealthCareService, locationNameMap, Optional.empty());
+        return convertHealthcareServiceBundleEntryToHealthcareServiceDto(retrievedHealthcareService, locationNameMap, Optional.empty());
     }
 
     @Override
-    public void createHealthCareService(String organizationId, HealthCareServiceDto healthCareServiceDto) {
+    public void createHealthcareService(String organizationId, HealthcareServiceDto healthcareServiceDto) {
         log.info("Creating Healthcare Service for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate Healthcare Service exists based on the Identifiers provided.");
 
-        checkForDuplicateHealthCareServiceBasedOnTypesDuringCreate(healthCareServiceDto,organizationId);
+        checkForDuplicateHealthcareServiceBasedOnTypesDuringCreate(healthcareServiceDto,organizationId);
 
-        HealthcareService fhirHealthcareService = modelMapper.map(healthCareServiceDto, HealthcareService.class);
+        HealthcareService fhirHealthcareService = modelMapper.map(healthcareServiceDto, HealthcareService.class);
         fhirHealthcareService.setActive(Boolean.TRUE);
         fhirHealthcareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
 
@@ -373,33 +373,33 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
     }
 
     @Override
-    public void assignLocationToHealthCareService(String healthCareServiceId, String organizationResourceId, List<String> locationIdList) {
+    public void assignLocationToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList) {
         boolean allChecksPassed = false;
 
         //First, validate if the given location(s) belong to the given organization Id
         Bundle locationSearchBundle = getLocationBundle(organizationResourceId);
 
         if (locationSearchBundle == null || locationSearchBundle.getEntry().size() < 1) {
-            log.info("Assign location to a HealthCareService: No location found for the given organization ID:" + organizationResourceId);
-            throw new ResourceNotFoundException("Cannot assign the given location(s) to healthCareService, because we did not find any location(s) under the organization ID: " + organizationResourceId);
+            log.info("Assign location to a HealthcareService: No location found for the given organization ID:" + organizationResourceId);
+            throw new ResourceNotFoundException("Cannot assign the given location(s) to Healthcare Service, because we did not find any location(s) under the organization ID: " + organizationResourceId);
         }
 
         List<String> retrievedLocationsList = locationSearchBundle.getEntry().stream().map(fhirLocationModel -> fhirLocationModel.getResource().getIdElement().getIdPart()).collect(Collectors.toList());
 
         if (retrievedLocationsList.containsAll(locationIdList)) {
-            log.info("Assign location to a HealthCareService: Successful Check 1: The given location(s) belong to the given organization ID: " + organizationResourceId);
+            log.info("Assign location to a Healthcare Service: Successful Check 1: The given location(s) belong to the given organization ID: " + organizationResourceId);
 
-            HealthcareService existingHealthCareService = readHealthCareServiceFromServer(healthCareServiceId);
-            List<Reference> assignedLocations = existingHealthCareService.getLocation();
+            HealthcareService existingHealthcareService = readHealthcareServiceFromServer(healthcareServiceId);
+            List<Reference> assignedLocations = existingHealthcareService.getLocation();
 
             //Next, avoid adding redundant location data
             Set<String> existingAssignedLocations = assignedLocations.stream().map(locReference -> locReference.getReference().substring(9)).collect(Collectors.toSet());
             locationIdList.removeIf(existingAssignedLocations::contains);
 
             if (locationIdList.size() == 0) {
-                log.info("Assign location to a HealthCareService: All location(s) from the query params have already been assigned to belonged to health care Service ID:" + healthCareServiceId + ". Nothing to do!");
+                log.info("Assign location to a Healthcare Service: All location(s) from the query params have already been assigned to belonged to healthcare Service ID:" + healthcareServiceId + ". Nothing to do!");
             } else {
-                log.info("Assign location to a HealthCareService: Successful Check 2: Found some location(s) from the query params that CAN be assigned to belonged to health care Service ID:" + healthCareServiceId);
+                log.info("Assign location to a Healthcare Service: Successful Check 2: Found some location(s) from the query params that CAN be assigned to belonged to healthcare Service ID:" + healthcareServiceId);
                 allChecksPassed = true;
             }
 
@@ -407,45 +407,45 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                 locationIdList.forEach(locationId -> assignedLocations.add(new Reference("Location/" + locationId)));
 
                 // Validate the resource
-                validateHealthCareServiceResource(existingHealthCareService, Optional.of(healthCareServiceId), "Assign location to a HealthCareService: ");
+                validateHealthcareServiceResource(existingHealthcareService, Optional.of(healthcareServiceId), "Assign location to a Healthcare Service: ");
 
                 //Update
                 try {
-                    MethodOutcome serverResponse = fhirClient.update().resource(existingHealthCareService).execute();
-                    log.info("Successfully assigned location(s) to HealthCareService ID :" + serverResponse.getId().getIdPart());
+                    MethodOutcome serverResponse = fhirClient.update().resource(existingHealthcareService).execute();
+                    log.info("Successfully assigned location(s) to Healthcare Service ID :" + serverResponse.getId().getIdPart());
                 } catch (BaseServerResponseException e) {
-                    log.error("Assign location to a HealthCareService: Could NOT update location for HealthCareService ID:" + healthCareServiceId);
+                    log.error("Assign location to a Healthcare Service: Could NOT update location for Healthcare Service ID:" + healthcareServiceId);
                     throw new FHIRClientException("FHIR Client returned with an error while updating the location:" + e.getMessage());
                 }
             }
         } else {
-            throw new BadRequestException("Cannot assign the given location(s) to healthCareService, because not all location(s) from the query params belonged to the organization ID: " + organizationResourceId);
+            throw new BadRequestException("Cannot assign the given location(s) to Healthcare Service, because not all location(s) from the query params belonged to the organization ID: " + organizationResourceId);
         }
     }
 
-    private HealthcareService readHealthCareServiceFromServer(String healthCareServiceId) {
-        HealthcareService existingHealthCareService;
+    private HealthcareService readHealthcareServiceFromServer(String healthcareServiceId) {
+        HealthcareService existingHealthcareService;
 
         try {
-            existingHealthCareService = fhirClient.read().resource(HealthcareService.class).withId(healthCareServiceId.trim()).execute();
+            existingHealthcareService = fhirClient.read().resource(HealthcareService.class).withId(healthcareServiceId.trim()).execute();
         } catch (BaseServerResponseException e) {
-            log.error("FHIR Client returned with an error while reading the HealthCareService with ID: " + healthCareServiceId);
-            throw new ResourceNotFoundException("FHIR Client returned with an error while reading the HealthCareService: " + e.getMessage());
+            log.error("FHIR Client returned with an error while reading the Healthcare Service with ID: " + healthcareServiceId);
+            throw new ResourceNotFoundException("FHIR Client returned with an error while reading the Healthcare Service: " + e.getMessage());
         }
-        return existingHealthCareService;
+        return existingHealthcareService;
     }
 
-    private void validateHealthCareServiceResource(HealthcareService healthCareService, Optional<String> healthCareServiceId, String functionName) {
-        ValidationResult validationResult = fhirValidator.validateWithResult(healthCareService);
+    private void validateHealthcareServiceResource(HealthcareService healthcareService, Optional<String> healthcareServiceId, String functionName) {
+        ValidationResult validationResult = fhirValidator.validateWithResult(healthcareService);
 
-        if (healthCareServiceId.isPresent()) {
-            log.info(functionName + "Validation successful? " + validationResult.isSuccessful() + " for health care Service ID: " + healthCareServiceId);
+        if (healthcareServiceId.isPresent()) {
+            log.info(functionName + "Validation successful? " + validationResult.isSuccessful() + " for Healthcare Service ID: " + healthcareServiceId);
         } else {
             log.info(functionName + "Validation successful? " + validationResult.isSuccessful());
         }
 
         if (!validationResult.isSuccessful()) {
-            throw new FHIRFormatErrorException("HealthCareService validation was not successful" + validationResult.getMessages());
+            throw new FHIRFormatErrorException("Healthcare Service validation was not successful" + validationResult.getMessages());
         }
     }
 
@@ -458,9 +458,9 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                 .execute();
     }
 
-    private HealthCareServiceDto convertHealthCareServiceBundleEntryToHealthCareServiceDto(Bundle.BundleEntryComponent fhirHealthcareServiceModel, Map<String, String> locationNameMap, Optional<String> assignedToLocationId) {
-        HealthCareServiceDto tempHealthCareServiceDto = modelMapper.map(fhirHealthcareServiceModel.getResource(), HealthCareServiceDto.class);
-        tempHealthCareServiceDto.setLogicalId(fhirHealthcareServiceModel.getResource().getIdElement().getIdPart());
+    private HealthcareServiceDto convertHealthcareServiceBundleEntryToHealthcareServiceDto(Bundle.BundleEntryComponent fhirHealthcareServiceModel, Map<String, String> locationNameMap, Optional<String> assignedToLocationId) {
+        HealthcareServiceDto tempHealthcareServiceDto = modelMapper.map(fhirHealthcareServiceModel.getResource(), HealthcareServiceDto.class);
+        tempHealthcareServiceDto.setLogicalId(fhirHealthcareServiceModel.getResource().getIdElement().getIdPart());
         HealthcareService hcs = (HealthcareService) fhirHealthcareServiceModel.getResource();
         List<Reference> locationRefList = hcs.getLocation();
         List<NameLogicalIdIdentifiersDto> locNameList = new ArrayList<>();
@@ -498,28 +498,28 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
             locNameList.add(tempIdName);
         }
 
-        tempHealthCareServiceDto.setLocation(locNameList);
+        tempHealthcareServiceDto.setLocation(locNameList);
 
         if (assignedToLocationId.isPresent() && locIdSet.contains(assignedToLocationId.get())) {
-            tempHealthCareServiceDto.setAssignedToCurrentLocation(true);
+            tempHealthcareServiceDto.setAssignedToCurrentLocation(true);
         } else if (assignedToLocationId.isPresent() && !locIdSet.contains(assignedToLocationId.get())) {
-            tempHealthCareServiceDto.setAssignedToCurrentLocation(false);
+            tempHealthcareServiceDto.setAssignedToCurrentLocation(false);
         }
 
-        return tempHealthCareServiceDto;
+        return tempHealthcareServiceDto;
     }
 
-    private Bundle getHealthCareServiceSearchBundleAfterFirstPage(Bundle healthCareServiceSearchBundle, int pageNumber, int pageSize) {
-        if (healthCareServiceSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+    private Bundle getHealthcareServiceSearchBundleAfterFirstPage(Bundle healthcareServiceSearchBundle, int pageNumber, int pageSize) {
+        if (healthcareServiceSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             //Assuming page number starts with 1
             int offset = ((pageNumber >= 1 ? pageNumber : 1) - 1) * pageSize;
 
-            if (offset >= healthCareServiceSearchBundle.getTotal()) {
-                throw new ResourceNotFoundException("No HealthCare Services were found in the FHIR server for the page number: " + pageNumber);
+            if (offset >= healthcareServiceSearchBundle.getTotal()) {
+                throw new ResourceNotFoundException("No Healthcare Services were found in the FHIR server for the page number: " + pageNumber);
             }
 
             String pageUrl = fisProperties.getFhir().getServerUrl()
-                    + "?_getpages=" + healthCareServiceSearchBundle.getId()
+                    + "?_getpages=" + healthcareServiceSearchBundle.getId()
                     + "&_getpagesoffset=" + offset
                     + "&_count=" + pageSize
                     + "&_bundletype=searchset";
@@ -529,15 +529,15 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
                     .returnBundle(Bundle.class)
                     .execute();
         } else {
-            throw new ResourceNotFoundException("No HealthCare services were found in the FHIR server for the page number: " + pageNumber);
+            throw new ResourceNotFoundException("No Healthcare services were found in the FHIR server for the page number: " + pageNumber);
         }
     }
 
-    private void checkForDuplicateHealthCareServiceBasedOnTypesDuringCreate(HealthCareServiceDto healthCareServiceDto, String organizationId) {
-        List<ValueSetDto> typeList = healthCareServiceDto.getType();
+    private void checkForDuplicateHealthcareServiceBasedOnTypesDuringCreate(HealthcareServiceDto healthcareServiceDto, String organizationId) {
+        List<ValueSetDto> typeList = healthcareServiceDto.getType();
         log.info("Current HealthcareServiceDto has " + typeList.size() + " service type(s).");
 
-        ValueSetDto serviceCategory = healthCareServiceDto.getCategory();
+        ValueSetDto serviceCategory = healthcareServiceDto.getCategory();
         String categorySystem = serviceCategory.getSystem();
         String categoryCode = serviceCategory.getCode();
 
@@ -545,12 +545,12 @@ public class HealthCareServiceServiceImpl implements HealthCareServiceService {
         for (ValueSetDto tempType : typeList) {
             String typeSystem = tempType.getSystem();
             String typeCode = tempType.getCode();
-            checkDuplicateHealthCareServiceExists(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
+            checkDuplicateHealthcareServiceExists(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
         }
         log.info("Create Healthcare Service: Found no duplicate Healthcare service.");
     }
 
-    private void checkDuplicateHealthCareServiceExists(String organizationId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
+    private void checkDuplicateHealthcareServiceExists(String organizationId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
         Bundle bundle;
         if (typeSystem != null && !typeSystem.trim().isEmpty()
                 && typeCode != null && !typeCode.trim().isEmpty()) {
