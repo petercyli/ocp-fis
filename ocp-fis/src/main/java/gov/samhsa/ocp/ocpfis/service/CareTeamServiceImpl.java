@@ -204,7 +204,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
                     participant.getRole().getCoding().stream().findFirst().ifPresent(participantRole -> {
                         participantDto.setRoleCode((participantRole.getCode() != null && !participantRole.getCode().isEmpty()) ? participantRole.getCode() : null);
-                        participantDto.setRoleDisplay((participantRole.getDisplay() != null && !participantRole.getDisplay().isEmpty()) ? participantRole.getDisplay() : null);
+                        participantDto.setRoleDisplay((getCareTeamDisplay(participantRole.getCode(), Optional.ofNullable(lookUpService.getParticipantRoles()))).orElse(null));
                     });
 
                 }
