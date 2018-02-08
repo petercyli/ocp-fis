@@ -19,6 +19,10 @@ public class ParticipantDto {
 
     private String roleDisplay;
 
+    private String startDate;
+
+    private String endDate;
+
     private Optional<String> memberFirstName;
 
     private Optional<String> memberLastName;
