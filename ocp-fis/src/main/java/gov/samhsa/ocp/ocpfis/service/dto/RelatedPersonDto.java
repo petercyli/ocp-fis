@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class RelatedPersonDto extends NameLogicalIdIdentifiersDto {
+public class RelatedPersonDto {
 
     private String id;
 

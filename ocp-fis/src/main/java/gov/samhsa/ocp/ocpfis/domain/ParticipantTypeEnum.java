@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 
 public enum ParticipantTypeEnum {
     practitioner("practitioner", "Practitioner"),
-    relatedPerson("relatedPerson", "Related Person"),
+    relatedPerson("relatedPerson", "RelatedPerson"),
     patient("patient", "Patient"),
     organization("organization", "Organization");
 
