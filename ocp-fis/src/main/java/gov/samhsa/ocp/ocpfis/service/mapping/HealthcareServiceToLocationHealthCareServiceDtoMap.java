@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-public class HealthcareServiceToLocationHealthCareServiceDtoMapper extends PropertyMap<HealthcareService, LocationHealthCareServiceDto> {
+public class HealthcareServiceToLocationHealthCareServiceDtoMap extends PropertyMap<HealthcareService, LocationHealthCareServiceDto> {
 
     private final TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter;
 
@@ -19,7 +19,7 @@ public class HealthcareServiceToLocationHealthCareServiceDtoMapper extends Prope
 
 
     @Autowired
-    public HealthcareServiceToLocationHealthCareServiceDtoMapper(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter, CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter) {
+    public HealthcareServiceToLocationHealthCareServiceDtoMap(TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter, CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter) {
         this.telecomListToTelecomDtoListConverter = telecomListToTelecomDtoListConverter;
         this.identifierListToIdentifierDtoListConverter = identifierListToIdentifierDtoListConverter;
         this.codeableConceptListToValueSetDtoListConverter = codeableConceptListToValueSetDtoListConverter;
