@@ -24,10 +24,13 @@ ocp-fis:
   patient:
     pagination:
       default-size: 20
-  healthCareService:
+  healthcareService:
     pagination:
       default-size: 20
   relatedPerson:
+    pagination:
+      default-size: 20
+  careTeam:
     pagination:
       default-size: 20
 ---
