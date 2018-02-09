@@ -16,6 +16,8 @@ import java.util.List;
 public class HealthcareServiceDto extends NameLogicalIdIdentifiersDto{
     private String organizationId;
     private String organizationName;
+    private String locationId;
+    private String locationName;
     private boolean active;
     private ValueSetDto category;
     private List<String> programName;
