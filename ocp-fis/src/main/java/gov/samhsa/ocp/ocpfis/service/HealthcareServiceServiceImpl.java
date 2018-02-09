@@ -466,35 +466,37 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         Set<String> locIdSet = new HashSet<>();
 
         for (Reference locRef : locationRefList) {
-            String locLogicalId = locRef.getReference().substring(9).trim();
-            String locName;
-            //First, check in Map if name Exists
-            if (locationNameMap.containsKey(locLogicalId)) {
-                locName = locationNameMap.get(locLogicalId);
-            } else {
-                //If not, Check If there is Display element for this location
-                if (locRef.getDisplay() != null) {
-                    locName = locRef.getDisplay().trim();
+            if(locRef.getReference()!= null) {
+                String locLogicalId = locRef.getReference().substring(9).trim();
+                String locName;
+                //First, check in Map if name Exists
+                if (locationNameMap.containsKey(locLogicalId)) {
+                    locName = locationNameMap.get(locLogicalId);
                 } else {
-                    //If not(last option), read from FHIR server
-                    try {
-                        Location locationFromServer = fhirClient.read().resource(Location.class).withId(locLogicalId.trim()).execute();
-                        locName = locationFromServer.getName().trim();
-                    } catch (BaseServerResponseException e) {
-                        log.error("FHIR Client returned with an error while reading the location with ID: " + locLogicalId);
-                        throw new ResourceNotFoundException("FHIR Client returned with an error while reading the location:" + e.getMessage());
+                    //If not, Check If there is Display element for this location
+                    if (locRef.getDisplay() != null) {
+                        locName = locRef.getDisplay().trim();
+                    } else {
+                        //If not(last option), read from FHIR server
+                        try {
+                            Location locationFromServer = fhirClient.read().resource(Location.class).withId(locLogicalId.trim()).execute();
+                            locName = locationFromServer.getName().trim();
+                        } catch (BaseServerResponseException e) {
+                            log.error("FHIR Client returned with an error while reading the location with ID: " + locLogicalId);
+                            throw new ResourceNotFoundException("FHIR Client returned with an error while reading the location:" + e.getMessage());
+                        }
                     }
                 }
-            }
-            //Add to map
-            locationNameMap.put(locLogicalId, locName);
-            locIdSet.add(locLogicalId);
+                //Add to map
+                locationNameMap.put(locLogicalId, locName);
+                locIdSet.add(locLogicalId);
 
-            //Add locations list to the dto
-            NameLogicalIdIdentifiersDto tempIdName = new NameLogicalIdIdentifiersDto();
-            tempIdName.setLogicalId(locLogicalId);
-            tempIdName.setName(locName);
-            locNameList.add(tempIdName);
+                //Add locations list to the dto
+                NameLogicalIdIdentifiersDto tempIdName = new NameLogicalIdIdentifiersDto();
+                tempIdName.setLogicalId(locLogicalId);
+                tempIdName.setName(locName);
+                locNameList.add(tempIdName);
+            }
         }
 
         tempHealthcareServiceDto.setLocation(locNameList);
