@@ -253,22 +253,18 @@ public class LocationServiceImpl implements LocationService {
         // Validate the resource
         validateLocationResource(existingFhirLocation, Optional.of(locationId), "Update Location: ");
 
-        try {
-            MethodOutcome serverResponse = fhirClient.update().resource(existingFhirLocation).execute();
-            log.info("Updated the location :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
-        }
-        catch (BaseServerResponseException e) {
-            log.error("Could NOT update location for Organization Id:" + organizationId);
-            throw new FHIRClientException("FHIR Client returned with an error while updating the location:" + e.getMessage());
-        }
-
+        //Update the resource
+        updateLocationResource(existingFhirLocation, "Update Location");
     }
 
     @Override
     public void inactivateLocation(String locationId) {
         log.info("Inactivating the location Id: " + locationId);
         Location existingFhirLocation = readLocationFromServer(locationId);
-        setLocationStatusToInactive(existingFhirLocation);
+        existingFhirLocation.setStatus(Location.LocationStatus.INACTIVE);
+
+        //Update the resource
+        updateLocationResource(existingFhirLocation, "Inactivate Location");
     }
 
 
@@ -311,6 +307,18 @@ public class LocationServiceImpl implements LocationService {
 
     }
 
+    private void updateLocationResource(Location fhirLocation, String logMessage){
+        try {
+            MethodOutcome serverResponse = fhirClient.update().resource(fhirLocation).execute();
+            log.info(logMessage + " was successful for Location Id: " + serverResponse.getId().getIdPart());
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT " + logMessage + " for Location Id: " + fhirLocation.getIdElement().getIdPart());
+            throw new FHIRClientException("FHIR Client returned with an error during" + logMessage + " : " + e.getMessage());
+        }
+    }
+
+
     private Location readLocationFromServer(String locationId) {
         Location existingFhirLocation;
 
@@ -322,18 +330,6 @@ public class LocationServiceImpl implements LocationService {
             throw new ResourceNotFoundException("FHIR Client returned with an error while reading the location:" + e.getMessage());
         }
         return existingFhirLocation;
-    }
-
-    private void setLocationStatusToInactive(Location existingFhirLocation) {
-        existingFhirLocation.setStatus(Location.LocationStatus.INACTIVE);
-        try {
-            MethodOutcome serverResponse = fhirClient.update().resource(existingFhirLocation).execute();
-            log.info("Inactivated the location :" + serverResponse.getId().getIdPart());
-        }
-        catch (BaseServerResponseException e) {
-            log.error("Could NOT inactivate location");
-            throw new FHIRClientException("FHIR Client returned with an error while inactivating the location:" + e.getMessage());
-        }
     }
 
     private Bundle getChildLocationBundleFromServer(String locationId) {
