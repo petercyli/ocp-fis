@@ -91,7 +91,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 .encodedJson()
                 .execute();
 
-        if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().size() < 1) {
+        if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().isEmpty()) {
             throw new ResourceNotFoundException("No Healthcare Services were found in the FHIR server");
         }
 
@@ -150,7 +150,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 .encodedJson()
                 .execute();
 
-        if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().size() < 1) {
+        if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().isEmpty()) {
             log.info("No Healthcare Service found for the given OrganizationID:" + organizationResourceId);
             return new PageDto<>(new ArrayList<>(), numberOfHealthcareServicesPerPage, 0, 0, 0, 0);
         }
@@ -293,7 +293,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 .returnBundle(Bundle.class)
                 .execute();
 
-        if (healthcareServiceBundle == null || healthcareServiceBundle.getEntry().size() < 1) {
+        if (healthcareServiceBundle == null || healthcareServiceBundle.getEntry().isEmpty()) {
             log.info("No healthcare service was found for the given Healthcare Service ID:" + healthcareServiceId);
             throw new ResourceNotFoundException("No healthcare service was found for the given Healthcare Service ID:" + healthcareServiceId);
         }
@@ -333,7 +333,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         //First, validate if the given location(s) belong to the given organization Id
         Bundle locationSearchBundle = getLocationBundle(organizationResourceId);
 
-        if (locationSearchBundle == null || locationSearchBundle.getEntry().size() < 1) {
+        if (locationSearchBundle == null || locationSearchBundle.getEntry().isEmpty()) {
             log.info("Assign location to a HealthcareService: No location found for the given organization ID:" + organizationResourceId);
             throw new ResourceNotFoundException("Cannot assign the given location(s) to Healthcare Service, because we did not find any location(s) under the organization ID: " + organizationResourceId);
         }
@@ -350,7 +350,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             Set<String> existingAssignedLocations = assignedLocations.stream().map(locReference -> locReference.getReference().substring(9)).collect(Collectors.toSet());
             locationIdList.removeIf(existingAssignedLocations::contains);
 
-            if (locationIdList.size() == 0) {
+            if (locationIdList.isEmpty()) {
                 log.info("Assign location to a Healthcare Service: All location(s) from the query params have already been assigned to belonged to healthcare Service ID:" + healthcareServiceId + ". Nothing to do!");
             } else {
                 log.info("Assign location to a Healthcare Service: Successful Check 2: Found some location(s) from the query params that CAN be assigned to belonged to healthcare Service ID:" + healthcareServiceId);
@@ -508,7 +508,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             throw new BadRequestException("Found no valid System and/or Code");
         }
 
-        if (bundle != null && bundle.getEntry().size() > 0) {
+        if (bundle != null && !bundle.getEntry().isEmpty()) {
             throw new DuplicateResourceFoundException("The current organization " + organizationId + " already have the active Healthcare Service with the Category System " + categorySystem + " and Category Code " + categoryCode + " with Type system " + typeSystem + " and Type Code: " + typeCode);
         }
     }
