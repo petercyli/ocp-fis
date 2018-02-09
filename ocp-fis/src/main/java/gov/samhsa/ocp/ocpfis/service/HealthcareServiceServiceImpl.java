@@ -9,6 +9,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
+import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameLogicalIdIdentifiersDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -46,17 +47,19 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
     private final FhirValidator fhirValidator;
+    private final FisProperties fisProperties;
 
     @Autowired
-    public HealthcareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator) {
+    public HealthcareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
+        this.fisProperties = fisProperties;
     }
 
     @Override
     public PageDto<HealthcareServiceDto> getAllHealthcareServices(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfHealthcareServicesPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
+        int numberOfHealthcareServicesPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.HealthcareService.name());
 
         Bundle firstPageHealthcareServiceSearchBundle;
         Bundle otherPageHealthcareServiceSearchBundle;
@@ -100,7 +103,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
 
@@ -115,7 +118,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     @Override
     public PageDto<HealthcareServiceDto> getAllHealthcareServicesByOrganization(String organizationResourceId, Optional<String> assignedToLocationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
-        int numberOfHealthcareServicesPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
+        int numberOfHealthcareServicesPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.HealthcareService.name());
 
         Bundle firstPageHealthcareServiceSearchBundle;
         Bundle otherPageHealthcareServiceSearchBundle;
@@ -161,7 +164,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
@@ -176,7 +179,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
     @Override
     public PageDto<HealthcareServiceDto> getAllHealthcareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfHealthcareServicesPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
+        int numberOfHealthcareServicesPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.HealthcareService.name());
 
         Bundle firstPageHealthcareServiceSearchBundle;
         Bundle otherPageHealthcareServiceSearchBundle;
@@ -224,7 +227,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             //Load the required page
             firstPage = false;
-            otherPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
 
         IQuery healthcareServiceWithLocationQuery = healthcareServiceQuery.include(HealthcareService.INCLUDE_LOCATION);

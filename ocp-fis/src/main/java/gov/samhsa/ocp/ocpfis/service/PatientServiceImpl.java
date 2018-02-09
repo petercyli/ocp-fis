@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
+import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
@@ -58,12 +59,14 @@ public class PatientServiceImpl implements PatientService {
     private final IParser iParser;
     private final ModelMapper modelMapper;
     private final FhirValidator fhirValidator;
+    private final FisProperties fisProperties;
 
-    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator) {
+    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.fhirClient = fhirClient;
         this.iParser = iParser;
         this.modelMapper = modelMapper;
         this.fhirValidator = fhirValidator;
+        this.fisProperties = fisProperties;
     }
 
     @Override
@@ -80,7 +83,7 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public PageDto<PatientDto> getPatientsByValue(String value, String type, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(size, ResourceType.Patient.name());
+        int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
 
@@ -113,7 +116,7 @@ public class PatientServiceImpl implements PatientService {
         if (page.isPresent() && page.get() > 1 && firstPagePatientSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
             firstPage = false;
-            otherPagePatientSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPagePatientSearchBundle, page.get(), numberOfPatientsPerPage);
+            otherPagePatientSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPagePatientSearchBundle, page.get(), numberOfPatientsPerPage);
         }
 
         //Arrange Page related info

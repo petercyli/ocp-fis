@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
@@ -25,15 +26,17 @@ import java.util.stream.Collectors;
 public class RelatedPersonServiceImpl implements RelatedPersonService {
 
     private final IGenericClient fhirClient;
+    private final FisProperties fisProperties;
 
     @Autowired
-    public RelatedPersonServiceImpl(IGenericClient fhirClient) {
+    public RelatedPersonServiceImpl(IGenericClient fhirClient, FisProperties fisProperties) {
         this.fhirClient = fhirClient;
+        this.fisProperties = fisProperties;
     }
 
     @Override
     public PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberPerPage = PaginationUtil.getValidPageSize(size, ResourceType.RelatedPerson.name());
+        int numberPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.RelatedPerson.name());
 
         Bundle relatedPersonBundle = fhirClient.search().forResource(RelatedPerson.class)
                 .where(new StringClientParam("name").matches().value(searchValue.trim()))

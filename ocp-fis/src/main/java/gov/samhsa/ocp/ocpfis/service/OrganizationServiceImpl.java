@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
+import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -34,16 +35,18 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
     private final FhirValidator fhirValidator;
+    private final FisProperties fisProperties;
 
-    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator) {
+    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
+        this.fisProperties = fisProperties;
     }
 
     @Override
     public PageDto<OrganizationDto> getAllOrganizations(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(size, ResourceType.Organization.name());
+        int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Organization.name());
 
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
 
@@ -72,7 +75,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (page.isPresent() && page.get() > 1 && otherPageOrganizationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
             // Load the required page
-            otherPageOrganizationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
+            otherPageOrganizationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedOrganizations = otherPageOrganizationSearchBundle.getEntry();
@@ -91,7 +94,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(size, ResourceType.Organization.name());
+        int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Organization.name());
 
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
 
@@ -127,7 +130,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (page.isPresent() && page.get() > 1 && otherPageOrganizationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
 
-            otherPageOrganizationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
+            otherPageOrganizationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedOrganizations = otherPageOrganizationSearchBundle.getEntry();
