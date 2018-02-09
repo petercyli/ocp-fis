@@ -26,6 +26,7 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -119,7 +120,10 @@ public class CareTeamServiceImpl implements CareTeamService {
         Bundle otherPageCareTeamBundle;
         boolean firstPage = true;
 
+        //Bundle retrieves care team along with its participant and subject
         firstPageCareTeamBundle = (Bundle) iQuery
+                .include(CareTeam.INCLUDE_PARTICIPANT)
+                .include(CareTeam.INCLUDE_SUBJECT)
                 .count(numberOfCareTeamMembersPerPage)
                 .returnBundle(Bundle.class).execute();
 
@@ -136,21 +140,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         List<Bundle.BundleEntryComponent> retrievedCareTeamMembers = otherPageCareTeamBundle.getEntry();
 
-        IQuery careTeamWithItsSubjectAndParticipantQuery = iQuery.include(CareTeam.INCLUDE_PARTICIPANT)
-                .include(CareTeam.INCLUDE_SUBJECT);
 
-        Bundle careTeamWithItsSubjectAndParticipantBundleForTotalEntry = (Bundle) careTeamWithItsSubjectAndParticipantQuery
-                .returnBundle(Bundle.class)
-                .execute();
-
-        int totalEntry = careTeamWithItsSubjectAndParticipantBundleForTotalEntry.getTotal();
-
-        Bundle careTeamWithItsSubjectAndParticipantBundle = (Bundle) careTeamWithItsSubjectAndParticipantQuery
-                .count(totalEntry)
-                .returnBundle(Bundle.class)
-                .execute();
-
-        List<CareTeamDto> careTeamDtos = retrievedCareTeamMembers.stream().map(retrievedCareTeamMember -> {
+        List<CareTeamDto> careTeamDtos = retrievedCareTeamMembers.stream().filter(retrivedBundle->retrivedBundle.getResource().getResourceType().equals(ResourceType.CareTeam)).map(retrievedCareTeamMember -> {
             CareTeam careTeam = (CareTeam) retrievedCareTeamMember.getResource();
             CareTeamDto careTeamDto = new CareTeamDto();
             careTeamDto.setId(careTeam.getIdElement().getIdPart());
@@ -170,8 +161,8 @@ public class CareTeamServiceImpl implements CareTeamService {
             String subjectReference = careTeam.getSubject().getReference();
             String patientId = subjectReference.substring(subjectReference.lastIndexOf("/") + 1);
 
-            Optional<Bundle.BundleEntryComponent> patientBundleEntryComponent = careTeamWithItsSubjectAndParticipantBundle.getEntry().stream().filter(careTeamWithItsSubjectAndParticipant -> {
-                        return careTeamWithItsSubjectAndParticipant.getResource().getIdElement().getIdPart().equalsIgnoreCase(patientId);
+            Optional<Bundle.BundleEntryComponent> patientBundleEntryComponent = retrievedCareTeamMembers.stream().filter(careTeamWithItsSubjectAndParticipant->careTeamWithItsSubjectAndParticipant.getResource().getResourceType().equals(ResourceType.Patient)).filter(patientSubject -> {
+                        return patientSubject.getResource().getIdElement().getIdPart().equalsIgnoreCase(patientId);
                     }
             ).findFirst();
 
@@ -222,7 +213,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                     String participantType = participantMemberReference.split("/")[0];
 
                     //Getting the member
-                    careTeamWithItsSubjectAndParticipantBundle.getEntry().forEach(careTeamWithItsSubjectAndPartipant -> {
+                    retrievedCareTeamMembers.forEach(careTeamWithItsSubjectAndPartipant -> {
                         Resource resource = careTeamWithItsSubjectAndPartipant.getResource();
                         if (resource.getResourceType().toString().trim().replaceAll(" ", "").equalsIgnoreCase(participantType.trim().replaceAll(" ", ""))) {
 
