@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -73,33 +72,33 @@ public class LookUpServiceImpl implements LookUpService {
             log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
             for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
                 if (allowedLocationIdentifierTypes.contains(type.getCode().toUpperCase())) {
-                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                    identifierTypes.add(convertExpansionComponentToValueSetDto(type));
                 }
             }
         } else if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.ORGANIZATION.name()))) {
             log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
             for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
                 if (allowedOrganizationIdentifierTypes.contains(type.getCode().toUpperCase())) {
-                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                    identifierTypes.add(convertExpansionComponentToValueSetDto(type));
                 }
             }
         } else if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.PATIENT.name()))) {
             log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
             for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
                 if (allowedPatientIdentifierTypes.contains(type.getCode().toUpperCase())) {
-                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                    identifierTypes.add(convertExpansionComponentToValueSetDto(type));
                 }
             }
         } else if (resourceType.isPresent() && (resourceType.get().trim().equalsIgnoreCase(Enumerations.ResourceType.PRACTITIONER.name()))) {
             log.info("Fetching IdentifierTypes for resource = " + resourceType.get().trim());
             for (ValueSet.ValueSetExpansionContainsComponent type : valueSetList) {
                 if (allowedPractitionerIdentifierTypes.contains(type.getCode().toUpperCase())) {
-                    identifierTypes.add(convertIdentifierTypeToValueSetDto(type));
+                    identifierTypes.add(convertExpansionComponentToValueSetDto(type));
                 }
             }
         } else {
             log.info("Fetching ALL IdentifierTypes");
-            identifierTypes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            identifierTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
 
         log.info("Found " + identifierTypes.size() + " identifier types.");
@@ -146,7 +145,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.IDENTIFIER_USE.getUrlPath(), LookupPathUrls.IDENTIFIER_USE.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.IDENTIFIER_USE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            identifierUses = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            identifierUses = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
 
         log.info("Found " + identifierUses.size() + " identifier use codes.");
@@ -159,7 +158,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.LOCATION_MODE.getUrlPath(), LookupPathUrls.LOCATION_MODE.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.LOCATION_MODE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            locationModes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            locationModes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
 
         log.info("Found " + locationModes.size() + " location modes.");
@@ -172,7 +171,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.LOCATION_STATUS.getUrlPath(), LookupPathUrls.LOCATION_STATUS.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.LOCATION_STATUS.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            locationStatuses = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            locationStatuses = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + locationStatuses.size() + " location status codes.");
         return locationStatuses;
@@ -191,7 +190,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.LOCATION_PHYSICAL_TYPE.getUrlPath(), LookupPathUrls.LOCATION_PHYSICAL_TYPE.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.LOCATION_PHYSICAL_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            physicalLocationTypes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            physicalLocationTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + physicalLocationTypes.size() + " physical location type codes.");
         return physicalLocationTypes;
@@ -204,7 +203,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.ADDRESS_TYPE.getUrlPath(), LookupPathUrls.ADDRESS_TYPE.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.ADDRESS_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            addressTypes = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            addressTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + addressTypes.size() + " address type codes.");
         return addressTypes;
@@ -216,7 +215,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.ADDRESS_USE.getUrlPath(), LookupPathUrls.ADDRESS_USE.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.ADDRESS_USE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            addressUses = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            addressUses = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + addressUses.size() + " address use codes.");
         return addressUses;
@@ -228,7 +227,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.TELECOM_USE.getUrlPath(), LookupPathUrls.TELECOM_USE.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.TELECOM_USE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            telecomUses = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            telecomUses = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + telecomUses.size() + " telecom use codes.");
         return telecomUses;
@@ -240,7 +239,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.TELECOM_SYSTEM.getUrlPath(), LookupPathUrls.TELECOM_SYSTEM.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.TELECOM_SYSTEM.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            telecomSystems = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            telecomSystems = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + telecomSystems.size() + " telecom system codes.");
         return telecomSystems;
@@ -252,7 +251,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.PRACTITIONER_ROLE.getUrlPath(), LookupPathUrls.PRACTITIONER_ROLE.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.PRACTITIONER_ROLE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            practitionerRoles = valueSetList.stream().map(this::convertIdentifierTypeToValueSetDto).collect(Collectors.toList());
+            practitionerRoles = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + practitionerRoles.size() + " telecom use codes.");
         return practitionerRoles;
@@ -283,17 +282,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-
-            usCoreRaces = valueSetList.stream().map(object -> {
-                ValueSetDto temp = new ValueSetDto();
-                temp.setSystem(object.getSystem());
-                temp.setCode(object.getCode());
-                temp.setDisplay(object.getDisplay());
-                return temp;
-            }).collect(Collectors.toList());
-
+            usCoreRaces = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         } catch (Exception e) {
             log.debug("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
         }
@@ -302,17 +292,8 @@ public class LookUpServiceImpl implements LookUpService {
             url = fisProperties.getFhir().getServerUrl() + "/ValueSet/omb-race-category";
             try {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
-
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-
-                usCoreRaces = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(object -> {
-                    ValueSetDto temp = new ValueSetDto();
-                    temp.setCode(object.getCode());
-                    temp.setDisplay(object.getDisplay());
-                    return temp;
-                }).collect(Collectors.toList());
-
-
+                usCoreRaces = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(this::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
             } catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-race-category", e);
@@ -331,17 +312,8 @@ public class LookUpServiceImpl implements LookUpService {
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-
-            usCoreEthnicites = valueSetList.stream().map(object -> {
-                ValueSetDto temp = new ValueSetDto();
-                temp.setSystem(object.getSystem());
-                temp.setCode(object.getCode());
-                temp.setDisplay(object.getDisplay());
-                return temp;
-            }).collect(Collectors.toList());
-
+            usCoreEthnicites = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         } catch (Exception e) {
             log.debug("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
         }
@@ -350,16 +322,8 @@ public class LookUpServiceImpl implements LookUpService {
             url = fisProperties.getFhir().getServerUrl() + "/ValueSet/omb-ethnicity-category";
             try {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
-
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-
-                usCoreEthnicites = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(object -> {
-                    ValueSetDto temp = new ValueSetDto();
-                    temp.setCode(object.getCode());
-                    temp.setDisplay(object.getDisplay());
-                    return temp;
-                }).collect(Collectors.toList());
-
+                usCoreEthnicites = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(this::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
             } catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-ethnicity-category", e);
@@ -378,13 +342,7 @@ public class LookUpServiceImpl implements LookUpService {
 
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
 
-        usCoreBirthsexes = valueSetList.stream().map(object -> {
-            ValueSetDto temp = new ValueSetDto();
-            temp.setSystem(object.getSystem());
-            temp.setCode(object.getCode());
-            temp.setDisplay(object.getDisplay());
-            return temp;
-        }).collect(Collectors.toList());
+        usCoreBirthsexes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
 
         return usCoreBirthsexes;
 
@@ -414,7 +372,7 @@ public class LookUpServiceImpl implements LookUpService {
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthcareServiceTypeList = response.getExpansion().getContains();
             healthcareServiceTypeList.forEach(type -> {
-                healthcareServiceTypeCodes.add(convertIdentifierTypeToValueSetDto(type));
+                healthcareServiceTypeCodes.add(convertExpansionComponentToValueSetDto(type));
             });
         }
         log.info("Found " + healthcareServiceTypeCodes.size() + " healthcare service types.");
@@ -428,7 +386,7 @@ public class LookUpServiceImpl implements LookUpService {
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthcareServiceCategoryList = response.getExpansion().getContains();
             healthcareServiceCategoryList.forEach(type -> {
-                healthcareServiceCategoryCodes.add(convertIdentifierTypeToValueSetDto(type));
+                healthcareServiceCategoryCodes.add(convertExpansionComponentToValueSetDto(type));
             });
         }
         log.info("Found " + healthcareServiceCategoryCodes.size() + " healthcare service categories.");
@@ -442,17 +400,13 @@ public class LookUpServiceImpl implements LookUpService {
         boolean isAvailable = isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY.getType(), Boolean.FALSE);
         if (isAvailable) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthcareServiceCategoryList = response.getExpansion().getContains();
-            healthcareServiceSpecialitiesCodes = healthcareServiceCategoryList.stream().map(object -> {
-                return convertIdentifierTypeToValueSetDto(object);
-            }).collect(Collectors.toList());
+            healthcareServiceSpecialitiesCodes = healthcareServiceCategoryList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         } else {
             // try with different url
             response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType());
             if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType())) {
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-                healthcareServiceSpecialitiesCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(object -> {
-                    return convertIdentifierTypeToValueSetDto(object);
-                }).collect(Collectors.toList());
+                healthcareServiceSpecialitiesCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(this::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
             }
         }
 
@@ -468,7 +422,7 @@ public class LookUpServiceImpl implements LookUpService {
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_REFERRAL_METHOD.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthcareServiceCategoryList = response.getExpansion().getContains();
             healthcareServiceCategoryList.forEach(type -> {
-                healthcareServiceReferralMethodCodes.add(convertIdentifierTypeToValueSetDto(type));
+                healthcareServiceReferralMethodCodes.add(convertExpansionComponentToValueSetDto(type));
             });
         }
         log.info("Found " + healthcareServiceReferralMethodCodes.size() + " healthcare service referral methods.");
@@ -477,18 +431,10 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getCareTeamCategories() {
-        List<ValueSetDto> careTeamCategory = new ArrayList<>();
+        List<ValueSetDto> careTeamCategory;
         ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_CATEGORY.getUrlPath(), LookupPathUrls.CARE_TEAM_CATEGORY.getType());
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-
-        careTeamCategory = valueSetList.stream().map(object -> {
-            ValueSetDto temp = new ValueSetDto();
-            temp.setSystem(object.getSystem());
-            temp.setCode(object.getCode());
-            temp.setDisplay(object.getDisplay());
-            return temp;
-        }).collect(Collectors.toList());
-
+        careTeamCategory = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         return careTeamCategory;
     }
 
@@ -499,20 +445,14 @@ public class LookUpServiceImpl implements LookUpService {
 
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
 
-        careTeamStatusList = valueSetList.stream().map(object -> {
-            ValueSetDto temp = new ValueSetDto();
-            temp.setSystem(object.getSystem());
-            temp.setCode(object.getCode());
-            temp.setDisplay(object.getDisplay());
-            return temp;
-        }).collect(Collectors.toList());
+        careTeamStatusList = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
 
         return careTeamStatusList;
     }
 
     @Override
     public List<ValueSetDto> getParticipantTypes() {
-        List<ValueSetDto> participantTypeList = new ArrayList<>();
+        List<ValueSetDto> participantTypeList;
         List<ParticipantTypeEnum> participantTypeEnums = Arrays.asList(ParticipantTypeEnum.values());
 
         participantTypeList = participantTypeEnums.stream().map(object -> {
@@ -527,14 +467,13 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getParticipantRoles() {
-        List<ValueSetDto> participantRolesList = new ArrayList<>();
+        List<ValueSetDto> participantRolesList;
         ValueSet response = getValueSets(LookupPathUrls.PARTICIPANT_ROLE.getUrlPath(), LookupPathUrls.PARTICIPANT_ROLE.getType());
 
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
 
         //TODO: temp fix until data is available
-        participantRolesList = valueSetList.stream().map(convertToValueSetDto()).collect(Collectors.toList());
-
+        participantRolesList = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
 
         if (participantRolesList.size() == 0) {
             ValueSetDto dto = new ValueSetDto();
@@ -547,8 +486,6 @@ public class LookUpServiceImpl implements LookUpService {
             participantRolesList.add(dto);
             participantRolesList.add(dto2);
         }
-
-
         return participantRolesList;
     }
 
@@ -584,34 +521,7 @@ public class LookUpServiceImpl implements LookUpService {
                 reasonCodes.add(dto2);
             }
         }
-
-
         return reasonCodes;
-    }
-
-    private Function<ValueSet.ValueSetExpansionContainsComponent, ValueSetDto> convertToValueSetDto() {
-        return object -> {
-            ValueSetDto temp = new ValueSetDto();
-            temp.setSystem(object.getSystem());
-            temp.setCode(object.getCode());
-            temp.setDisplay(object.getDisplay());
-            return temp;
-        };
-    }
-
-    private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ConceptReferenceComponent conceptReferenceComponent) {
-        ValueSetDto valueSetDto = new ValueSetDto();
-        valueSetDto.setCode(conceptReferenceComponent.getCode());
-        valueSetDto.setDisplay(conceptReferenceComponent.getDisplay());
-        return valueSetDto;
-    }
-
-    private ValueSetDto convertIdentifierTypeToValueSetDto(ValueSet.ValueSetExpansionContainsComponent identifierType) {
-        ValueSetDto valueSetDto = new ValueSetDto();
-        valueSetDto.setSystem(identifierType.getSystem());
-        valueSetDto.setCode(identifierType.getCode());
-        valueSetDto.setDisplay(identifierType.getDisplay());
-        return valueSetDto;
     }
 
     private ValueSet getValueSets(String urlPath, String type) {
@@ -628,23 +538,22 @@ public class LookUpServiceImpl implements LookUpService {
         return response;
     }
 
-
     private boolean checkIfValueSetAvailableInServer(ValueSet response, String type) {
         boolean isAvailable = true;
         if (type.equalsIgnoreCase(LookupPathUrls.US_STATE.getType())
                 || type.equalsIgnoreCase(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType())) {
             if (response == null || response.getCompose() == null ||
                     response.getCompose().getInclude() == null ||
-                    response.getCompose().getInclude().size() < 1 ||
+                    response.getCompose().getInclude().isEmpty() ||
                     response.getCompose().getInclude().get(0).getConcept() == null ||
-                    response.getCompose().getInclude().get(0).getConcept().size() < 1) {
+                    response.getCompose().getInclude().get(0).getConcept().isEmpty()) {
                 isAvailable = false;
             }
         } else {
             if (response == null ||
                     response.getExpansion() == null ||
                     response.getExpansion().getContains() == null ||
-                    response.getExpansion().getContains().size() < 1) {
+                    response.getExpansion().getContains().isEmpty()) {
                 isAvailable = false;
             }
         }
@@ -663,4 +572,21 @@ public class LookUpServiceImpl implements LookUpService {
         }
         return isAvailable;
     }
+
+
+    private ValueSetDto convertConceptReferenceToValueSetDto(ValueSet.ConceptReferenceComponent conceptReferenceComponent) {
+        ValueSetDto valueSetDto = new ValueSetDto();
+        valueSetDto.setCode(conceptReferenceComponent.getCode());
+        valueSetDto.setDisplay(conceptReferenceComponent.getDisplay());
+        return valueSetDto;
+    }
+
+    private ValueSetDto convertExpansionComponentToValueSetDto(ValueSet.ValueSetExpansionContainsComponent expansionComponent) {
+        ValueSetDto valueSetDto = new ValueSetDto();
+        valueSetDto.setSystem(expansionComponent.getSystem());
+        valueSetDto.setCode(expansionComponent.getCode());
+        valueSetDto.setDisplay(expansionComponent.getDisplay());
+        return valueSetDto;
+    }
+
 }

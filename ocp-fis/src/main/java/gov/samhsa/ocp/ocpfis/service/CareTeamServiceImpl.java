@@ -6,6 +6,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
+import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.CareTeamFieldEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -52,11 +53,14 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     private final LookUpService lookUpService;
 
+    private final FisProperties fisProperties;
+
     @Autowired
-    public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService) {
+    public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
+        this.fisProperties = fisProperties;
     }
 
     @Override
@@ -96,7 +100,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     @Override
     public PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfCareTeamMembersPerPage = PaginationUtil.getValidPageSize(size, ResourceType.CareTeam.name());
+        int numberOfCareTeamMembersPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.CareTeam.name());
         IQuery iQuery = fhirClient.search().forResource(CareTeam.class);
 
         //Check for patient
@@ -127,7 +131,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         if (page.isPresent() && page.get() > 1 && otherPageCareTeamBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
-            otherPageCareTeamBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageCareTeamBundle, page.get(), numberOfCareTeamMembersPerPage);
+            otherPageCareTeamBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageCareTeamBundle, page.get(), numberOfCareTeamMembersPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedCareTeamMembers = otherPageCareTeamBundle.getEntry();
