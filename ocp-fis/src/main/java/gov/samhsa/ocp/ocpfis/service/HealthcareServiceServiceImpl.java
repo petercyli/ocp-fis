@@ -76,27 +76,8 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             log.info("Searching for Healthcare Services with ALL statuses");
         }
 
-        //Check for bad requests
-        if (searchKey.isPresent() && !SearchKeyEnum.HealthcareServiceSearchKey.contains(searchKey.get())) {
-            throw new BadRequestException("Unidentified search key:" + searchKey.get());
-        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
-                (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
-            throw new BadRequestException("No search value found for the search key" + searchKey.get());
-        }
-
         // Check if there are any additional search criteria
-        if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.NAME.name())) {
-            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            healthcareServicesSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name())) {
-            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            healthcareServicesSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name())) {
-            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
-            healthcareServicesSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
-        } else {
-            log.info("No additional search criteria entered.");
-        }
+        healthcareServicesSearchQuery = addAdditionalSearchConditions(healthcareServicesSearchQuery, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
         firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServicesSearchQuery.count(numberOfHealthcareServicesPerPage)
@@ -154,27 +135,8 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             log.info("Searching for healthcare services with ALL statuses for the given OrganizationID:" + organizationResourceId);
         }
 
-        //Check for bad requests
-        if (searchKey.isPresent() && !SearchKeyEnum.HealthcareServiceSearchKey.contains(searchKey.get())) {
-            throw new BadRequestException("Unidentified search key:" + searchKey.get());
-        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
-                (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
-            throw new BadRequestException("No search value found for the search key" + searchKey.get());
-        }
-
         // Check if there are any additional search criteria
-        if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.NAME.name())) {
-            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            healthcareServicesSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name())) {
-            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            healthcareServicesSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name())) {
-            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
-            healthcareServicesSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
-        } else {
-            log.info("No additional search criteria entered.");
-        }
+        healthcareServicesSearchQuery = addAdditionalSearchConditions(healthcareServicesSearchQuery, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
         firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServicesSearchQuery.count(numberOfHealthcareServicesPerPage)
@@ -208,8 +170,8 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
     @Override
     public PageDto<HealthcareServiceDto> getAllHealthcareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfHealthcareServicesPerPage = pageSize.filter(s -> s > 0 &&
-                s <= fisProperties.getHealthcareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthcareService().getPagination().getDefaultSize());
+        int numberOfHealthcareServicesPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
+
         Bundle firstPageHealthcareServiceSearchBundle;
         Bundle otherPageHealthcareServiceSearchBundle;
         boolean firstPage = true;
@@ -220,36 +182,23 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
         //Check for healthcare service status
         if (statusList.isPresent() && statusList.get().size() == 1) {
-
-            statusList.get().stream().findFirst().ifPresent(status -> {
-                if (status.trim().equalsIgnoreCase("active")) {
-                    healthcareServiceQuery.where(new TokenClientParam("active").exactly().codes("true"));
-                } else if (status.trim().equalsIgnoreCase("inactive")) {
-                    healthcareServiceQuery.where(new TokenClientParam("active").exactly().codes("false"));
-                } else {
-                    log.info("Searching for healthcare services with all statuses for the given location id:" + locationId);
-                }
-            });
-
+            log.info("Searching for healthcare service with the following specific status" + statusList.get().get(0) + " for the given OrganizationID:" + organizationResourceId);
+            statusList.get().forEach(log::info);
+            if (statusList.get().get(0).trim().equalsIgnoreCase("active")
+                    || statusList.get().get(0).trim().equalsIgnoreCase("true")) {
+                healthcareServiceQuery.where(new TokenClientParam("active").exactly().codes("true"));
+            } else if (statusList.get().get(0).trim().equalsIgnoreCase("inactive")
+                    || statusList.get().get(0).trim().equalsIgnoreCase("false")) {
+                healthcareServiceQuery.where(new TokenClientParam("active").exactly().codes("false"));
+            } else {
+                log.info("Searching for healthcare services with ALL statuses for the given LocationID:" + locationId);
+            }
+        } else {
+            log.info("Searching for healthcare services with ALL statuses for the given LocationID:" + locationId);
         }
 
         //Check for bad requests and additional criteria
-        if (searchKey.isPresent() && !SearchKeyEnum.HealthcareServiceSearchKey.contains(searchKey.get())) {
-            throw new BadRequestException("Unidentified search key: " + searchKey.get());
-        } else if ((searchKey.isPresent() && !searchValue.isPresent()) || (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
-            throw new BadRequestException("No search value found for the search key" + searchKey.get());
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.NAME.name())) {
-            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            healthcareServiceQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name())) {
-            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            healthcareServiceQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name())) {
-            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
-            healthcareServiceQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
-        } else {
-            log.info("No additional search criteria entered.");
-        }
+        healthcareServiceQuery = addAdditionalSearchConditions(healthcareServiceQuery, searchKey, searchValue);
 
         //The following bundle only contains page 1 of the resultset
         firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServiceQuery.count(numberOfHealthcareServicesPerPage)
@@ -554,5 +503,29 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (bundle != null && bundle.getEntry().size() > 0) {
             throw new DuplicateResourceFoundException("The current organization " + organizationId + " already have the active Healthcare Service with the Category System " + categorySystem + " and Category Code " + categoryCode + " with Type system " + typeSystem + " and Type Code: " + typeCode);
         }
+    }
+
+    private  IQuery addAdditionalSearchConditions(IQuery healthcareServicesSearchQuery, Optional<String> searchKey, Optional<String> searchValue){
+        if (searchKey.isPresent() && !SearchKeyEnum.HealthcareServiceSearchKey.contains(searchKey.get())) {
+            throw new BadRequestException("Unidentified search key:" + searchKey.get());
+        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
+                (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
+            throw new BadRequestException("No search value found for the search key" + searchKey.get());
+        }
+
+        // Check if there are any additional search criteria
+        if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.NAME.name())) {
+            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.NAME.name() + " = " + searchValue.get().trim());
+            healthcareServicesSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name())) {
+            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
+            healthcareServicesSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name())) {
+            log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
+            healthcareServicesSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
+        } else {
+            log.info("No additional search criteria entered.");
+        }
+        return healthcareServicesSearchQuery;
     }
 }
