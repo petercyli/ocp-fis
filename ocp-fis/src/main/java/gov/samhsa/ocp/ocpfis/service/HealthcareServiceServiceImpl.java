@@ -480,12 +480,12 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         for (ValueSetDto tempType : typeList) {
             String typeSystem = tempType.getSystem();
             String typeCode = tempType.getCode();
-            checkDuplicateHealthcareServiceExists(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
+            checkDuplicateHealthcareServiceExistsDuringCreate(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
         }
         log.info("Create Healthcare Service: Found no duplicate Healthcare service.");
     }
 
-    private void checkDuplicateHealthcareServiceExists(String organizationId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
+    private void checkDuplicateHealthcareServiceExistsDuringCreate(String organizationId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
         Bundle bundle;
         if (typeSystem != null && !typeSystem.trim().isEmpty()
                 && typeCode != null && !typeCode.trim().isEmpty()) {
