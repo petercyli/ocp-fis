@@ -1,7 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 
 import java.util.List;
@@ -12,7 +11,7 @@ public interface HealthcareServiceService {
 
     PageDto<HealthcareServiceDto> getAllHealthcareServicesByOrganization(String organizationResourceId, Optional<String> assignedToLocationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
 
-    PageDto<LocationHealthcareServiceDto> getAllHealthcareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
+    PageDto<HealthcareServiceDto> getAllHealthcareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
     HealthcareServiceDto getHealthcareService(String healthcareServiceId);
 
 

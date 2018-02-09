@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
+import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
@@ -56,6 +57,22 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
         }).collect(Collectors.toList());
 
         return new PageDto<>(relatedPersonList, numberPerPage, 1, 1, relatedPersonList.size(), relatedPersonList.size());
+    }
+
+    public RelatedPersonDto getRelatedPersonById(String relatedPersonId) {
+        Bundle relatedPersonBundle = fhirClient.search().forResource(RelatedPerson.class)
+                .where(new TokenClientParam("_id").exactly().code(relatedPersonId))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        Bundle.BundleEntryComponent relatedPersonBundleEntry = relatedPersonBundle.getEntry().get(0);
+        RelatedPerson relatedPerson = (RelatedPerson) relatedPersonBundleEntry.getResource();
+        RelatedPersonDto relatedPersonDto = new RelatedPersonDto();
+        relatedPersonDto.setId(relatedPerson.getIdElement().getIdPart());
+        relatedPersonDto.setFirstName(convertToString(relatedPerson.getName().stream().findFirst().get().getGiven()));
+        relatedPersonDto.setLastName(checkString(relatedPerson.getName().stream().findFirst().get().getFamily()));
+
+        return relatedPersonDto;
     }
 
     private String toFirstNameFromHumanName(HumanName humanName) {

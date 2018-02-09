@@ -11,7 +11,6 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameLogicalIdIdentifiersDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.SearchKeyEnum;
@@ -206,7 +205,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     }
 
     @Override
-    public PageDto<LocationHealthcareServiceDto> getAllHealthcareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<HealthcareServiceDto> getAllHealthcareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfHealthcareServicesPerPage = pageSize.filter(s -> s > 0 &&
                 s <= fisProperties.getHealthcareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthcareService().getPagination().getDefaultSize());
         Bundle firstPageHealthcareServiceSearchBundle;
@@ -282,9 +281,9 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         List<Bundle.BundleEntryComponent> retrivedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<LocationHealthcareServiceDto> healthcareServicesList = retrivedHealthcareServices.stream().map(hcs -> {
+        List<HealthcareServiceDto> healthcareServicesList = retrivedHealthcareServices.stream().map(hcs -> {
             HealthcareService healthcareServiceResource = (HealthcareService) hcs.getResource();
-            LocationHealthcareServiceDto healthcareServiceDto = modelMapper.map(healthcareServiceResource, LocationHealthcareServiceDto.class);
+            HealthcareServiceDto healthcareServiceDto = modelMapper.map(healthcareServiceResource, HealthcareServiceDto.class);
             healthcareServiceDto.setLogicalId(hcs.getResource().getIdElement().getIdPart());
             healthcareServiceDto.setOrganizationId(organizationResourceId);
 
