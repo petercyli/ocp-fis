@@ -141,9 +141,11 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (statusList.isPresent() && statusList.get().size() == 1) {
             log.info("Searching for healthcare service with the following specific status" + statusList.get().get(0) + " for the given OrganizationID:" + organizationResourceId);
             statusList.get().forEach(log::info);
-            if (statusList.get().get(0).trim().equalsIgnoreCase("active")) {
+            if (statusList.get().get(0).trim().equalsIgnoreCase("active")
+                    || statusList.get().get(0).trim().equalsIgnoreCase("true")) {
                 healthcareServicesSearchQuery.where(new TokenClientParam("active").exactly().codes("true"));
-            } else if (statusList.get().get(0).trim().equalsIgnoreCase("inactive")) {
+            } else if (statusList.get().get(0).trim().equalsIgnoreCase("inactive")
+                    || statusList.get().get(0).trim().equalsIgnoreCase("false")) {
                 healthcareServicesSearchQuery.where(new TokenClientParam("active").exactly().codes("false"));
             } else {
                 log.info("Searching for healthcare services with ALL statuses for the given OrganizationID:" + organizationResourceId);
