@@ -442,11 +442,12 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             locationNameMap.put(locLogicalId, locName);
             locIdSet.add(locLogicalId);
 
-            //Add locations list to the dto
-            NameLogicalIdIdentifiersDto tempIdName = new NameLogicalIdIdentifiersDto();
-            tempIdName.setLogicalId(locLogicalId);
-            tempIdName.setName(locName);
-            locNameList.add(tempIdName);
+                //Add locations list to the dto
+                NameLogicalIdIdentifiersDto tempIdName = new NameLogicalIdIdentifiersDto();
+                tempIdName.setLogicalId(locLogicalId);
+                tempIdName.setName(locName);
+                locNameList.add(tempIdName);
+
         }
 
         tempHealthcareServiceDto.setLocation(locNameList);
