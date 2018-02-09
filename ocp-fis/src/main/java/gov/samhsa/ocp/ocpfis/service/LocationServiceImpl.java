@@ -369,29 +369,15 @@ public class LocationServiceImpl implements LocationService {
         for (IdentifierDto tempIdentifierDto : identifiersList) {
             String identifierSystem = tempIdentifierDto.getSystem();
             String identifierValue = tempIdentifierDto.getValue();
-            checkDuplicateLocationExists(identifierSystem, identifierValue);
+            checkDuplicateLocationExistsDuringCreate(identifierSystem, identifierValue);
         }
         log.info("Create Location: Found no duplicate location.");
     }
 
-    private void checkDuplicateLocationExists(String identifierSystem, String identifierValue) {
-        Bundle bundle;
-        if (identifierSystem != null && !identifierSystem.trim().isEmpty()
-                && identifierValue != null && !identifierValue.trim().isEmpty()) {
-            bundle = fhirClient.search().forResource(Location.class)
-                    .where(new TokenClientParam("identifier").exactly().systemAndCode(identifierSystem.trim(), identifierValue.trim()))
-                    .returnBundle(Bundle.class)
-                    .execute();
-        } else if (identifierValue != null && !identifierValue.trim().isEmpty()) {
-            bundle = fhirClient.search().forResource(Location.class)
-                    .where(new TokenClientParam("identifier").exactly().code(identifierValue.trim()))
-                    .returnBundle(Bundle.class)
-                    .execute();
-        } else {
-            throw new BadRequestException("Found no valid identifierSystem and/or identifierValue");
-        }
+    private void checkDuplicateLocationExistsDuringCreate(String identifierSystem, String identifierValue) {
+        Bundle bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
 
-        if (bundle != null && bundle.getEntry().size() > 0) {
+        if (bundle != null && !bundle.getEntry().isEmpty()) {
             throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
         }
     }
@@ -409,6 +395,19 @@ public class LocationServiceImpl implements LocationService {
     }
 
     private void checkDuplicateLocationExistsDuringUpdate(String locationId, String identifierSystem, String identifierValue) {
+        Bundle bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
+
+        if (bundle != null && bundle.getEntry().size() > 1) {
+            throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
+        } else if (bundle != null && bundle.getEntry().size() == 1) {
+            LocationDto temp = convertLocationBundleEntryToLocationDto(bundle.getEntry().get(0));
+            if (!temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
+                throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
+            }
+        }
+    }
+
+    private Bundle getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(String identifierSystem, String identifierValue) {
         Bundle bundle;
         if (identifierSystem != null && !identifierSystem.trim().isEmpty()
                 && identifierValue != null && !identifierValue.trim().isEmpty()) {
@@ -424,18 +423,8 @@ public class LocationServiceImpl implements LocationService {
         } else {
             throw new BadRequestException("Found no valid identifierSystem and/or identifierValue");
         }
-
-        if (bundle != null && bundle.getEntry().size() > 1) {
-            throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
-        } else if (bundle != null && bundle.getEntry().size() == 1) {
-            LocationDto temp = convertLocationBundleEntryToLocationDto(bundle.getEntry().get(0));
-
-            if (!temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
-                throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
-            }
-        }
+        return bundle;
     }
-
 
     private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel) {
         LocationDto tempLocationDto = modelMapper.map(fhirLocationModel.getResource(), LocationDto.class);
