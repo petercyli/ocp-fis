@@ -76,27 +76,8 @@ public class LocationServiceImpl implements LocationService {
             log.info("Searching for locations with ALL statuses");
         }
 
-        //Check for bad requests
-        if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
-            throw new BadRequestException("Unidentified search key:" + searchKey.get());
-        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
-                (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
-            throw new BadRequestException("No search value found for the search key" + searchKey.get());
-        }
-
-        // Check if there are any additional search criteria
-        if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.LOGICALID.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
-        } else {
-            log.info("No additional search criteria entered.");
-        }
+       // Check if there are any additional search criteria
+        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
         firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
@@ -144,27 +125,8 @@ public class LocationServiceImpl implements LocationService {
             log.info("Searching for locations with ALL statuses for the given OrganizationID:" + organizationResourceId);
         }
 
-        //Check for bad requests
-        if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
-            throw new BadRequestException("Unidentified search key:" + searchKey.get());
-        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
-                (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
-            throw new BadRequestException("No search value found for the search key" + searchKey.get());
-        }
-
         // Check if there are any additional search criteria
-        if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.LOGICALID.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
-        } else {
-            log.info("No additional search criteria entered.");
-        }
+        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
         firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
@@ -263,11 +225,6 @@ public class LocationServiceImpl implements LocationService {
 
     }
 
-    /**
-     * @param organizationId
-     * @param locationId
-     * @param locationDto
-     */
     @Override
     public void updateLocation(String organizationId, String locationId, LocationDto locationDto) {
         log.info("Updating location Id: " + locationId + " for Organization Id:" + organizationId);
@@ -314,6 +271,31 @@ public class LocationServiceImpl implements LocationService {
         setLocationStatusToInactive(existingFhirLocation);
     }
 
+
+    private  IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<String> searchKey, Optional<String> searchValue){
+        //Check for bad requests
+        if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
+            throw new BadRequestException("Unidentified search key:" + searchKey.get());
+        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
+                (searchKey.isPresent() && searchValue.get().trim().isEmpty())) {
+            throw new BadRequestException("No search value found for the search key" + searchKey.get());
+        }
+
+        if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.LOGICALID.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
+        } else {
+            log.info("No additional search criteria entered.");
+        }
+        return locationsSearchQuery;
+    }
+
     private void validateLocationResource(Location fhirLocation, Optional<String> locationId, String createOrUpdateLocation) {
         ValidationResult validationResult = fhirValidator.validateWithResult(fhirLocation);
 
@@ -328,7 +310,6 @@ public class LocationServiceImpl implements LocationService {
         }
 
     }
-
 
     private Location readLocationFromServer(String locationId) {
         Location existingFhirLocation;
