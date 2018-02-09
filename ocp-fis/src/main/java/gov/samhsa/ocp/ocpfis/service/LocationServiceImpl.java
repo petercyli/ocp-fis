@@ -9,7 +9,6 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
-import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -26,6 +25,7 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,24 +46,20 @@ public class LocationServiceImpl implements LocationService {
 
     private final FhirValidator fhirValidator;
 
-    private final FisProperties fisProperties;
-
     private final LookUpService lookUpService;
 
     @Autowired
-    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
+    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
-        this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
     }
 
     @Override
     public PageDto<LocationDto> getAllLocations(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
-        int numberOfLocationsPerPage = pageSize.filter(s -> s > 0 &&
-                s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
+        int numberOfLocationsPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.Location.name());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
@@ -72,35 +68,16 @@ public class LocationServiceImpl implements LocationService {
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
         //Check for location status
-        if (statusList.isPresent() && statusList.get().size() > 0) {
-            log.info("Searching for ALL locations with the following specific status(es).");
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
+            log.info("Searching for locations with the following specific status(es).");
             statusList.get().forEach(log::info);
             locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         } else {
             log.info("Searching for locations with ALL statuses");
         }
 
-        //Check for bad requests
-        if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
-            throw new BadRequestException("Unidentified search key:" + searchKey.get());
-        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
-                (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
-            throw new BadRequestException("No search value found for the search key" + searchKey.get());
-        }
-
-        // Check if there are any additional search criteria
-        if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.LOGICALID.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
-        } else {
-            log.info("No additional search criteria entered.");
-        }
+       // Check if there are any additional search criteria
+        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
         firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
@@ -108,7 +85,7 @@ public class LocationServiceImpl implements LocationService {
                 .encodedJson()
                 .execute();
 
-        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
+        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().isEmpty()) {
             throw new ResourceNotFoundException("No locations were found in the FHIR server");
         }
 
@@ -117,7 +94,7 @@ public class LocationServiceImpl implements LocationService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
+            otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
@@ -131,8 +108,7 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfLocationsPerPage = pageSize.filter(s -> s > 0 &&
-                s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
+        int numberOfLocationsPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.Location.name());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
@@ -141,7 +117,7 @@ public class LocationServiceImpl implements LocationService {
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
         //Check for location status
-        if (statusList.isPresent() && statusList.get().size() > 0) {
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
             log.info("Searching for location with the following specific status(es) for the given OrganizationID:" + organizationResourceId);
             statusList.get().forEach(log::info);
             locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
@@ -149,27 +125,8 @@ public class LocationServiceImpl implements LocationService {
             log.info("Searching for locations with ALL statuses for the given OrganizationID:" + organizationResourceId);
         }
 
-        //Check for bad requests
-        if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
-            throw new BadRequestException("Unidentified search key:" + searchKey.get());
-        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
-                (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
-            throw new BadRequestException("No search value found for the search key" + searchKey.get());
-        }
-
         // Check if there are any additional search criteria
-        if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.LOGICALID.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchValue.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
-            locationsSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
-        } else {
-            log.info("No additional search criteria entered.");
-        }
+        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
         firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
@@ -177,7 +134,7 @@ public class LocationServiceImpl implements LocationService {
                 .encodedJson()
                 .execute();
 
-        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
+        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().isEmpty()) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
             return new PageDto<>(new ArrayList<>(), numberOfLocationsPerPage, 0, 0, 0, 0);
         }
@@ -188,7 +145,7 @@ public class LocationServiceImpl implements LocationService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageLocationSearchBundle = getLocationSearchBundleAfterFirstPage(otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
+            otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
@@ -210,7 +167,7 @@ public class LocationServiceImpl implements LocationService {
                 .returnBundle(Bundle.class)
                 .execute();
 
-        if (locationBundle == null || locationBundle.getEntry().size() < 1) {
+        if (locationBundle == null || locationBundle.getEntry().isEmpty()) {
             log.info("No location was found for the given LocationID:" + locationId);
             throw new ResourceNotFoundException("No location was found for the given LocationID:" + locationId);
         }
@@ -227,7 +184,7 @@ public class LocationServiceImpl implements LocationService {
         log.info("Searching Child Location for Location Id:" + locationId);
         Bundle childLocationBundle = getChildLocationBundleFromServer(locationId);
 
-        if (childLocationBundle == null || childLocationBundle.getEntry().size() < 1) {
+        if (childLocationBundle == null || childLocationBundle.getEntry().isEmpty()) {
             log.info("No child location found for the given LocationID:" + locationId);
             throw new ResourceNotFoundException("No child location found for the given LocationID:" + locationId);
         }
@@ -268,11 +225,6 @@ public class LocationServiceImpl implements LocationService {
 
     }
 
-    /**
-     * @param organizationId
-     * @param locationId
-     * @param locationDto
-     */
     @Override
     public void updateLocation(String organizationId, String locationId, LocationDto locationDto) {
         log.info("Updating location Id: " + locationId + " for Organization Id:" + organizationId);
@@ -301,28 +253,49 @@ public class LocationServiceImpl implements LocationService {
         // Validate the resource
         validateLocationResource(existingFhirLocation, Optional.of(locationId), "Update Location: ");
 
-        try {
-            MethodOutcome serverResponse = fhirClient.update().resource(existingFhirLocation).execute();
-            log.info("Updated the location :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
-        }
-        catch (BaseServerResponseException e) {
-            log.error("Could NOT update location for Organization Id:" + organizationId);
-            throw new FHIRClientException("FHIR Client returned with an error while updating the location:" + e.getMessage());
-        }
-
+        //Update the resource
+        updateLocationResource(existingFhirLocation, "Update Location");
     }
 
     @Override
     public void inactivateLocation(String locationId) {
         log.info("Inactivating the location Id: " + locationId);
         Location existingFhirLocation = readLocationFromServer(locationId);
-        setLocationStatusToInactive(existingFhirLocation);
+        existingFhirLocation.setStatus(Location.LocationStatus.INACTIVE);
+
+        //Update the resource
+        updateLocationResource(existingFhirLocation, "Inactivate Location");
     }
 
-    private void validateLocationResource(Location fhirLocation, Optional<String> locationId, String createOrUpdateLocation){
+
+    private  IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<String> searchKey, Optional<String> searchValue){
+        //Check for bad requests
+        if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
+            throw new BadRequestException("Unidentified search key:" + searchKey.get());
+        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
+                (searchKey.isPresent() && searchValue.get().trim().isEmpty())) {
+            throw new BadRequestException("No search value found for the search key" + searchKey.get());
+        }
+
+        if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.LOGICALID.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name())) {
+            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
+            locationsSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
+        } else {
+            log.info("No additional search criteria entered.");
+        }
+        return locationsSearchQuery;
+    }
+
+    private void validateLocationResource(Location fhirLocation, Optional<String> locationId, String createOrUpdateLocation) {
         ValidationResult validationResult = fhirValidator.validateWithResult(fhirLocation);
 
-        if(locationId.isPresent()){
+        if (locationId.isPresent()) {
             log.info(createOrUpdateLocation + "Validation successful? " + validationResult.isSuccessful() + " for LocationID: " + locationId);
         } else {
             log.info(createOrUpdateLocation + "Validation successful? " + validationResult.isSuccessful());
@@ -332,6 +305,17 @@ public class LocationServiceImpl implements LocationService {
             throw new FHIRFormatErrorException("Location Validation was not successful" + validationResult.getMessages());
         }
 
+    }
+
+    private void updateLocationResource(Location fhirLocation, String logMessage){
+        try {
+            MethodOutcome serverResponse = fhirClient.update().resource(fhirLocation).execute();
+            log.info(logMessage + " was successful for Location Id: " + serverResponse.getId().getIdPart());
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT " + logMessage + " for Location Id: " + fhirLocation.getIdElement().getIdPart());
+            throw new FHIRClientException("FHIR Client returned with an error during" + logMessage + " : " + e.getMessage());
+        }
     }
 
 
@@ -348,47 +332,11 @@ public class LocationServiceImpl implements LocationService {
         return existingFhirLocation;
     }
 
-    private void setLocationStatusToInactive(Location existingFhirLocation) {
-        existingFhirLocation.setStatus(Location.LocationStatus.INACTIVE);
-        try {
-            MethodOutcome serverResponse = fhirClient.update().resource(existingFhirLocation).execute();
-            log.info("Inactivated the location :" + serverResponse.getId().getIdPart());
-        }
-        catch (BaseServerResponseException e) {
-            log.error("Could NOT inactivate location");
-            throw new FHIRClientException("FHIR Client returned with an error while inactivating the location:" + e.getMessage());
-        }
-    }
-
     private Bundle getChildLocationBundleFromServer(String locationId) {
         return fhirClient.search().forResource(Location.class)
                 .where(new ReferenceClientParam("partof").hasId(locationId))
                 .returnBundle(Bundle.class)
                 .execute();
-    }
-
-    private Bundle getLocationSearchBundleAfterFirstPage(Bundle locationSearchBundle, int pageNumber, int pageSize) {
-        if (locationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
-            //Assuming page number starts with 1
-            int offset = ((pageNumber >= 1 ? pageNumber : 1) - 1) * pageSize;
-
-            if (offset >= locationSearchBundle.getTotal()) {
-                throw new ResourceNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
-            }
-
-            String pageUrl = fisProperties.getFhir().getServerUrl()
-                    + "?_getpages=" + locationSearchBundle.getId()
-                    + "&_getpagesoffset=" + offset
-                    + "&_count=" + pageSize
-                    + "&_bundletype=searchset";
-
-            // Load the required page
-            return fhirClient.search().byUrl(pageUrl)
-                    .returnBundle(Bundle.class)
-                    .execute();
-        } else {
-            throw new ResourceNotFoundException("No locations were found in the FHIR server for the page number: " + pageNumber);
-        }
     }
 
     private void checkForDuplicateLocationBasedOnIdentifiersDuringCreate(LocationDto locationDto) {
@@ -398,29 +346,15 @@ public class LocationServiceImpl implements LocationService {
         for (IdentifierDto tempIdentifierDto : identifiersList) {
             String identifierSystem = tempIdentifierDto.getSystem();
             String identifierValue = tempIdentifierDto.getValue();
-            checkDuplicateLocationExists(identifierSystem, identifierValue);
+            checkDuplicateLocationExistsDuringCreate(identifierSystem, identifierValue);
         }
         log.info("Create Location: Found no duplicate location.");
     }
 
-    private void checkDuplicateLocationExists(String identifierSystem, String identifierValue) {
-        Bundle bundle;
-        if (identifierSystem != null && !identifierSystem.trim().isEmpty()
-                && identifierValue != null && !identifierValue.trim().isEmpty()) {
-            bundle = fhirClient.search().forResource(Location.class)
-                    .where(new TokenClientParam("identifier").exactly().systemAndCode(identifierSystem.trim(), identifierValue.trim()))
-                    .returnBundle(Bundle.class)
-                    .execute();
-        } else if (identifierValue != null && !identifierValue.trim().isEmpty()) {
-            bundle = fhirClient.search().forResource(Location.class)
-                    .where(new TokenClientParam("identifier").exactly().code(identifierValue.trim()))
-                    .returnBundle(Bundle.class)
-                    .execute();
-        } else {
-            throw new BadRequestException("Found no valid identifierSystem and/or identifierValue");
-        }
+    private void checkDuplicateLocationExistsDuringCreate(String identifierSystem, String identifierValue) {
+        Bundle bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
 
-        if (bundle != null && bundle.getEntry().size() > 0) {
+        if (bundle != null && !bundle.getEntry().isEmpty()) {
             throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
         }
     }
@@ -438,6 +372,19 @@ public class LocationServiceImpl implements LocationService {
     }
 
     private void checkDuplicateLocationExistsDuringUpdate(String locationId, String identifierSystem, String identifierValue) {
+        Bundle bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
+
+        if (bundle != null && bundle.getEntry().size() > 1) {
+            throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
+        } else if (bundle != null && bundle.getEntry().size() == 1) {
+            LocationDto temp = convertLocationBundleEntryToLocationDto(bundle.getEntry().get(0));
+            if (!temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
+                throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
+            }
+        }
+    }
+
+    private Bundle getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(String identifierSystem, String identifierValue) {
         Bundle bundle;
         if (identifierSystem != null && !identifierSystem.trim().isEmpty()
                 && identifierValue != null && !identifierValue.trim().isEmpty()) {
@@ -453,18 +400,8 @@ public class LocationServiceImpl implements LocationService {
         } else {
             throw new BadRequestException("Found no valid identifierSystem and/or identifierValue");
         }
-
-        if (bundle != null && bundle.getEntry().size() > 1) {
-            throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
-        } else if (bundle != null && bundle.getEntry().size() == 1) {
-            LocationDto temp = convertLocationBundleEntryToLocationDto(bundle.getEntry().get(0));
-
-            if (!temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
-                throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
-            }
-        }
+        return bundle;
     }
-
 
     private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel) {
         LocationDto tempLocationDto = modelMapper.map(fhirLocationModel.getResource(), LocationDto.class);
