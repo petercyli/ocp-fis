@@ -26,6 +26,7 @@ import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -176,7 +177,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             log.info("No additional search criteria entered.");
         }
 
-        //The following bundle only contains Page 1 of the resultSet
+        //The following bundle only contains Page 1 of the resultSet with location
         firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServicesSearchQuery.count(numberOfHealthcareServicesPerPage)
                 .returnBundle(Bundle.class)
                 .encodedJson()
@@ -253,6 +254,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
         //The following bundle only contains page 1 of the resultset
         firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServiceQuery.count(numberOfHealthcareServicesPerPage)
+                .include(HealthcareService.INCLUDE_LOCATION)
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
@@ -272,18 +274,11 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             otherPageHealthcareServiceSearchBundle = getHealthcareServiceSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
 
-        IQuery healthcareServiceWithLocationQuery = healthcareServiceQuery.include(HealthcareService.INCLUDE_LOCATION);
-
-        Bundle healthcareServiceWithLocationTotalEntry = (Bundle) healthcareServiceWithLocationQuery.returnBundle(Bundle.class).execute();
-
-        int totalEntry = healthcareServiceWithLocationTotalEntry.getTotal();
-
-        Bundle healthcareServiceWithLocationBundle = (Bundle) healthcareServiceWithLocationQuery.count(totalEntry).returnBundle(Bundle.class).execute();
-
         List<Bundle.BundleEntryComponent> retrivedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<HealthcareServiceDto> healthcareServicesList = retrivedHealthcareServices.stream().map(hcs -> {
+        List<HealthcareServiceDto> healthcareServicesList = retrivedHealthcareServices.stream()
+                .filter(retrivedHealthcareService->retrivedHealthcareService.getResource().getResourceType().equals(ResourceType.HealthcareService)).map(hcs -> {
             HealthcareService healthcareServiceResource = (HealthcareService) hcs.getResource();
             HealthcareServiceDto healthcareServiceDto = modelMapper.map(healthcareServiceResource, HealthcareServiceDto.class);
             healthcareServiceDto.setLogicalId(hcs.getResource().getIdElement().getIdPart());
@@ -298,7 +293,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                             String locationResourceId = locationReference.split("/")[1];
                             String locationType = locationReference.split("/")[0];
 
-                            healthcareServiceWithLocationBundle.getEntry().forEach(healthcareServiceWithLocation -> {
+                            retrivedHealthcareServices.forEach(healthcareServiceWithLocation -> {
                                 Resource resource = healthcareServiceWithLocation.getResource();
                                 if (resource.getResourceType().toString().trim().replaceAll(" ", "").equalsIgnoreCase(locationType.trim().replaceAll(" ", ""))) {
                                     if (resource.getIdElement().getIdPart().equalsIgnoreCase(locationResourceId)) {
