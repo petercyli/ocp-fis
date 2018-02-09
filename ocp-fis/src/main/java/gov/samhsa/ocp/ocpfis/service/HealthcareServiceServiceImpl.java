@@ -27,6 +27,7 @@ import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -59,9 +60,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
     @Override
     public PageDto<HealthcareServiceDto> getAllHealthcareServices(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfHealthcareServicesPerPage = pageSize.filter(s -> s > 0 &&
-                s <= fisProperties.getHealthcareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthcareService().getPagination().getDefaultSize());
-
+        int numberOfHealthcareServicesPerPage = ServiceUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
         Bundle firstPageHealthcareServiceSearchBundle;
         Bundle otherPageHealthcareServiceSearchBundle;
         boolean firstPage = true;
@@ -130,8 +129,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     @Override
     public PageDto<HealthcareServiceDto> getAllHealthcareServicesByOrganization(String organizationResourceId, Optional<String> assignedToLocationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
-        int numberOfHealthcareServicesPerPage = pageSize.filter(s -> s > 0 &&
-                s <= fisProperties.getHealthcareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthcareService().getPagination().getDefaultSize());
+        int numberOfHealthcareServicesPerPage = ServiceUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
 
         Bundle firstPageHealthcareServiceSearchBundle;
         Bundle otherPageHealthcareServiceSearchBundle;

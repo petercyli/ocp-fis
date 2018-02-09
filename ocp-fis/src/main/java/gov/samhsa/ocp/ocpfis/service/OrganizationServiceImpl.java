@@ -8,7 +8,6 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
-import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -20,6 +19,7 @@ import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -33,20 +33,18 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
-    private final FisProperties ocpFisProperties;
     private final FhirValidator fhirValidator;
 
-    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
+    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
-        this.ocpFisProperties = fisProperties;
         this.fhirValidator = fhirValidator;
     }
 
     @Override
     public PageDto<OrganizationDto> getAllOrganizations(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfOrganizationsPerPage = size.filter(s -> s > 0 &&
-                s <= ocpFisProperties.getOrganization().getPagination().getMaxSize()).orElse(ocpFisProperties.getOrganization().getPagination().getDefaultSize());
+        int numberOfOrganizationsPerPage = ServiceUtil.getValidPageSize(size, ResourceType.Organization.name());
+
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
 
         if (showInactive.isPresent()) {
@@ -93,8 +91,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfOrganizationsPerPage = size.filter(s -> s > 0 &&
-                s <= ocpFisProperties.getOrganization().getPagination().getMaxSize()).orElse(ocpFisProperties.getOrganization().getPagination().getDefaultSize());
+        int numberOfOrganizationsPerPage = ServiceUtil.getValidPageSize(size, ResourceType.Organization.name());
 
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
 

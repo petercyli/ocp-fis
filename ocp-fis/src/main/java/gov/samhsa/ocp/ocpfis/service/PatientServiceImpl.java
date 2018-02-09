@@ -8,7 +8,6 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
-import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
@@ -54,17 +53,16 @@ public class PatientServiceImpl implements PatientService {
     public static final String LANGUAGE_CODE = "language";
     public static final String ETHNICITY_CODE = "Ethnicity";
     public static final String GENDER_CODE = "Gender";
+
     private final IGenericClient fhirClient;
     private final IParser iParser;
     private final ModelMapper modelMapper;
-    private final FisProperties fisProperties;
     private final FhirValidator fhirValidator;
 
-    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FisProperties fisProperties, FhirValidator fhirValidator) {
+    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator) {
         this.fhirClient = fhirClient;
         this.iParser = iParser;
         this.modelMapper = modelMapper;
-        this.fisProperties = fisProperties;
         this.fhirValidator = fhirValidator;
     }
 
@@ -82,8 +80,7 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public PageDto<PatientDto> getPatientsByValue(String value, String type, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPatientsPerPage = size.filter(s -> s > 0 &&
-                s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getPatient().getPagination().getDefaultSize());
+        int numberOfPatientsPerPage = ServiceUtil.getValidPageSize(size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
 

@@ -6,7 +6,6 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
-import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.CareTeamFieldEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -26,8 +25,8 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -51,15 +50,12 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     private final FhirValidator fhirValidator;
 
-    private final FisProperties fisProperties;
-
     private final LookUpService lookUpService;
 
     @Autowired
-    public CareTeamServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
+    public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
-        this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
     }
 
@@ -100,9 +96,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     @Override
     public PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfCareTeamMembersPerPage = size.filter(s -> s > 0 &&
-                s <= fisProperties.getCareTeam().getPagination().getMaxSize()).orElse(fisProperties.getCareTeam().getPagination().getDefaultSize());
-
+        int numberOfCareTeamMembersPerPage = ServiceUtil.getValidPageSize(size, ResourceType.CareTeam.name());
         IQuery iQuery = fhirClient.search().forResource(CareTeam.class);
 
         //Check for patient

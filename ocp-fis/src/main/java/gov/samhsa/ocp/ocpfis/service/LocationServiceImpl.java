@@ -9,7 +9,6 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
-import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -26,6 +25,7 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,24 +46,20 @@ public class LocationServiceImpl implements LocationService {
 
     private final FhirValidator fhirValidator;
 
-    private final FisProperties fisProperties;
-
     private final LookUpService lookUpService;
 
     @Autowired
-    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
+    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
-        this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
     }
 
     @Override
     public PageDto<LocationDto> getAllLocations(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
-        int numberOfLocationsPerPage = pageSize.filter(s -> s > 0 &&
-                s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
+        int numberOfLocationsPerPage = ServiceUtil.getValidPageSize(pageSize, ResourceType.Location.name());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
@@ -131,8 +127,7 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfLocationsPerPage = pageSize.filter(s -> s > 0 &&
-                s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
+        int numberOfLocationsPerPage = ServiceUtil.getValidPageSize(pageSize, ResourceType.Location.name());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;

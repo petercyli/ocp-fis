@@ -6,6 +6,8 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 
+import java.util.Optional;
+
 @Slf4j
 public final class ServiceUtil {
     private static IGenericClient fhirClient;
@@ -38,5 +40,47 @@ public final class ServiceUtil {
         } else {
             throw new ResourceNotFoundException("No resources were found in the FHIR server for the page number: " + pageNumber);
         }
+    }
+
+    public static int getValidPageSize(Optional<Integer> pageSize, String resource) {
+        int numberOfResourcesPerPage = 0;
+
+        switch (resource.toUpperCase()) {
+            case "LOCATION":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
+                break;
+            case "CARETEAM":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getCareTeam().getPagination().getMaxSize()).orElse(fisProperties.getCareTeam().getPagination().getDefaultSize());
+                break;
+            case "HEALTHCARESERVICE":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getHealthcareService().getPagination().getMaxSize()).orElse(fisProperties.getHealthcareService().getPagination().getDefaultSize());
+                break;
+            case "ORGANIZATION":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getOrganization().getPagination().getMaxSize()).orElse(fisProperties.getOrganization().getPagination().getDefaultSize());
+                break;
+            case "PATIENT":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getPatient().getPagination().getMaxSize()).orElse(fisProperties.getPatient().getPagination().getDefaultSize());
+                break;
+            case "PRACTITIONER":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                    s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
+                break;
+            case "RELATEDPERSON":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getRelatedPerson().getPagination().getMaxSize()).orElse(fisProperties.getRelatedPerson().getPagination().getDefaultSize());
+                break;
+            default:
+                //Get location's page size. Need to find a better way for default case
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
+
+
+        }
+        return numberOfResourcesPerPage;
     }
 }

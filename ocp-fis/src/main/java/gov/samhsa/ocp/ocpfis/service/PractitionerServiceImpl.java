@@ -8,15 +8,24 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
-import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
-import gov.samhsa.ocp.ocpfis.service.exception.*;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
+import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.PractitionerRoleNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.*;
+import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.PractitionerRole;
+import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -35,26 +44,21 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     private final IGenericClient fhirClient;
 
-    private final FisProperties fisProperties;
-
     private final FhirValidator fhirValidator;
 
     @Autowired
     private LookUpService lookUpService;
 
     @Autowired
-    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
+    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
-        this.fisProperties = fisProperties;
         this.fhirValidator = fhirValidator;
     }
 
     @Override
     public PageDto<PractitionerDto> getAllPractitioners(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPractitionersPerPage = size.filter(s -> s > 0 &&
-                s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
-
+        int numberOfPractitionersPerPage = ServiceUtil.getValidPageSize(size, ResourceType.Practitioner.name());
         boolean firstPage = true;
 
 
@@ -96,8 +100,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     @Override
     public PageDto<PractitionerDto> searchPractitioners(PractitionerController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPractitionersPerPage = size.filter(s -> s > 0 &&
-                s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
+        int numberOfPractitionersPerPage = ServiceUtil.getValidPageSize(size, ResourceType.Practitioner.name());
 
         IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
         boolean firstPage = true;
