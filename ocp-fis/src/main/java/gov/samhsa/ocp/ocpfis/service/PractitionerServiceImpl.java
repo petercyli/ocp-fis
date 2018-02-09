@@ -1,6 +1,5 @@
 package gov.samhsa.ocp.ocpfis.service;
 
-import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
@@ -34,7 +33,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -277,14 +275,14 @@ public class PractitionerServiceImpl implements PractitionerService {
             throw new ResourceNotFoundException("No practitioner was found for the givecn practitionerID:" + practitionerId);
         }
 
-        List<Bundle.BundleEntryComponent> retrievedPractitioners=practitionerBundle.getEntry();
+        List<Bundle.BundleEntryComponent> retrievedPractitioners = practitionerBundle.getEntry();
         Bundle.BundleEntryComponent retrievedPractitioner = practitionerBundle.getEntry().get(0);
 
         PractitionerDto practitionerDto = modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class);
         practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
 
         //Get Practitioner Role for the practitioner.
-        List<PractitionerRoleDto> practitionerRoleDtos = getPractitionerRolesForEachPractitioner(retrievedPractitioners,retrievedPractitioner.getResource().getIdElement().getIdPart());
+        List<PractitionerRoleDto> practitionerRoleDtos = getPractitionerRolesForEachPractitioner(retrievedPractitioners, retrievedPractitioner.getResource().getIdElement().getIdPart());
         practitionerDto.setPractitionerRoles(practitionerRoleDtos);
 
         return practitionerDto;
@@ -292,17 +290,17 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     private PageDto<PractitionerDto> practitionersInPage(List<Bundle.BundleEntryComponent> retrievedPractitioners, Bundle otherPagePractitionerBundle, int numberOfPractitionersPerPage, boolean firstPage, Optional<Integer> page) {
         List<PractitionerDto> practitionersList = retrievedPractitioners.stream()
-                .filter(retrievedPractitionerAndPractitionerRoles->retrievedPractitionerAndPractitionerRoles.getResource().getResourceType().equals(ResourceType.Practitioner))
+                .filter(retrievedPractitionerAndPractitionerRoles -> retrievedPractitionerAndPractitionerRoles.getResource().getResourceType().equals(ResourceType.Practitioner))
                 .map(retrievedPractitioner -> {
-            PractitionerDto practitionerDto = modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class);
-            practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
+                    PractitionerDto practitionerDto = modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class);
+                    practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
 
-            //Getting practitioner role into practitioner dto
-            List<PractitionerRoleDto> practitionerRoleDtos = getPractitionerRolesForEachPractitioner(retrievedPractitioners,retrievedPractitioner.getResource().getIdElement().getIdPart());
-            practitionerDto.setPractitionerRoles(practitionerRoleDtos);
+                    //Getting practitioner role into practitioner dto
+                    List<PractitionerRoleDto> practitionerRoleDtos = getPractitionerRolesForEachPractitioner(retrievedPractitioners, retrievedPractitioner.getResource().getIdElement().getIdPart());
+                    practitionerDto.setPractitionerRoles(practitionerRoleDtos);
 
-            return practitionerDto;
-        }).collect(toList());
+                    return practitionerDto;
+                }).collect(toList());
 
         double totalPages = Math.ceil((double) otherPagePractitionerBundle.getTotal() / numberOfPractitionersPerPage);
         int currentPage = firstPage ? 1 : page.get();
@@ -313,18 +311,18 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     private List<PractitionerRoleDto> getPractitionerRolesForEachPractitioner(List<Bundle.BundleEntryComponent> practitionersWithAllReferenceBundle, String practitionerId) {
         return practitionersWithAllReferenceBundle.stream()
-                .filter(practionerWithAllReference->practionerWithAllReference.getResource().getResourceType().equals(ResourceType.PractitionerRole))
-                .map(practitionerRoleBundle->{
-                    PractitionerRole practitionerRole= (PractitionerRole) practitionerRoleBundle.getResource();
+                .filter(practionerWithAllReference -> practionerWithAllReference.getResource().getResourceType().equals(ResourceType.PractitionerRole))
+                .map(practitionerRoleBundle -> {
+                    PractitionerRole practitionerRole = (PractitionerRole) practitionerRoleBundle.getResource();
                     return practitionerRole;
                 })
-                .filter(practitionerRole -> practitionerRole.getPractitioner().getReference().equalsIgnoreCase("Practitioner/"+practitionerId))
-                .map(practitionerRole->{
-                    PractitionerRoleDto practitionerRoleDto=new PractitionerRoleDto();
-                    practitionerRole.getCode().forEach(code->{
-                        practitionerRoleDto.setCode((!code.getCoding().isEmpty() && code.getCoding()!=null)? code.getCoding().stream().map(coding->coding.getCode()).findFirst().orElse(null) :null);
-                        practitionerRoleDto.setDisplay((!code.getCoding().isEmpty() && code.getCoding()!=null)? code.getCoding().stream().map(coding->coding.getDisplay()).findFirst().orElse(null) :null);
-                        practitionerRoleDto.setSystem((!code.getCoding().isEmpty() && code.getCoding()!=null)? code.getCoding().stream().map(coding->coding.getSystem()).findFirst().orElse(null) :null);
+                .filter(practitionerRole -> practitionerRole.getPractitioner().getReference().equalsIgnoreCase("Practitioner/" + practitionerId))
+                .map(practitionerRole -> {
+                    PractitionerRoleDto practitionerRoleDto = new PractitionerRoleDto();
+                    practitionerRole.getCode().forEach(code -> {
+                        practitionerRoleDto.setCode((!code.getCoding().isEmpty() && code.getCoding() != null) ? code.getCoding().stream().map(coding -> coding.getCode()).findFirst().orElse(null) : null);
+                        practitionerRoleDto.setDisplay((!code.getCoding().isEmpty() && code.getCoding() != null) ? code.getCoding().stream().map(coding -> coding.getDisplay()).findFirst().orElse(null) : null);
+                        practitionerRoleDto.setSystem((!code.getCoding().isEmpty() && code.getCoding() != null) ? code.getCoding().stream().map(coding -> coding.getSystem()).findFirst().orElse(null) : null);
                     });
                     return practitionerRoleDto;
                 }).collect(toList());
