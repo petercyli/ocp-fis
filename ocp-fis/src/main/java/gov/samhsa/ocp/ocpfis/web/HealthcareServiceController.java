@@ -2,7 +2,6 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.HealthcareServiceService;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.LocationHealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +48,7 @@ public class HealthcareServiceController {
     }
 
     @GetMapping("/organizations/{organizationId}/locations/{locationId}/healthcare-services")
-    public PageDto<LocationHealthcareServiceDto> getAllHealthcareServiceByLocation(@PathVariable String organizationId,
+    public PageDto<HealthcareServiceDto> getAllHealthcareServiceByLocation(@PathVariable String organizationId,
                                                                                    @PathVariable String locationId,
                                                                                    @RequestParam(value="statusList") Optional<List<String>> statusList,
                                                                                    @RequestParam(value = "searchKey") Optional<String> searchKey,
