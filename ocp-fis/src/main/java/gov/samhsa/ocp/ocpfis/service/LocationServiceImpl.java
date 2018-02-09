@@ -9,6 +9,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
+import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -48,18 +49,21 @@ public class LocationServiceImpl implements LocationService {
 
     private final LookUpService lookUpService;
 
+    private final FisProperties fisProperties;
+
     @Autowired
-    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService) {
+    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
+        this.fisProperties = fisProperties;
     }
 
     @Override
     public PageDto<LocationDto> getAllLocations(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
-        int numberOfLocationsPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.Location.name());
+        int numberOfLocationsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Location.name());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
@@ -94,7 +98,7 @@ public class LocationServiceImpl implements LocationService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
+            otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
@@ -108,7 +112,7 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfLocationsPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.Location.name());
+        int numberOfLocationsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Location.name());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
@@ -145,7 +149,7 @@ public class LocationServiceImpl implements LocationService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
+            otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();

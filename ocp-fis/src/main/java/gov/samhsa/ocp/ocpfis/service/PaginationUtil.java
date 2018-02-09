@@ -10,15 +10,8 @@ import java.util.Optional;
 
 @Slf4j
 public final class PaginationUtil {
-    private static IGenericClient fhirClient;
-    private static FisProperties fisProperties;
 
-    public PaginationUtil(IGenericClient fhirClient, FisProperties fisProperties) {
-        PaginationUtil.fhirClient = fhirClient;
-        PaginationUtil.fisProperties = fisProperties;
-    }
-
-    public static Bundle getSearchBundleAfterFirstPage(Bundle SearchBundle, int pageNumber, int pageSize) {
+    public static Bundle getSearchBundleAfterFirstPage(IGenericClient fhirClient, FisProperties fisProperties, Bundle SearchBundle, int pageNumber, int pageSize) {
         if (SearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             //Assuming page number starts with 1
             int offset = ((pageNumber >= 1 ? pageNumber : 1) - 1) * pageSize;
@@ -42,7 +35,7 @@ public final class PaginationUtil {
         }
     }
 
-    public static int getValidPageSize(Optional<Integer> pageSize, String resource) {
+    public static int getValidPageSize(FisProperties fisProperties, Optional<Integer> pageSize, String resource) {
         int numberOfResourcesPerPage = 0;
 
         switch (resource.toUpperCase()) {

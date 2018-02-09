@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
+import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
@@ -47,19 +48,22 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     private final FhirValidator fhirValidator;
 
+    private final FisProperties fisProperties;
+
     @Autowired
     private LookUpService lookUpService;
 
     @Autowired
-    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator) {
+    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
+        this.fisProperties = fisProperties;
     }
 
     @Override
     public PageDto<PractitionerDto> getAllPractitioners(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(size, ResourceType.Practitioner.name());
+        int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Practitioner.name());
         boolean firstPage = true;
 
 
@@ -90,7 +94,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         if (page.isPresent() && page.get() > 1 && otherPagePractitionerBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
             firstPage = false;
-            otherPagePractitionerBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPagePractitionerBundle, page.get(), numberOfPractitionersPerPage);
+            otherPagePractitionerBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPagePractitionerBundle, page.get(), numberOfPractitionersPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerBundle.getEntry();
@@ -102,7 +106,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     @Override
     public PageDto<PractitionerDto> searchPractitioners(PractitionerController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(size, ResourceType.Practitioner.name());
+        int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Practitioner.name());
 
         IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
         boolean firstPage = true;
@@ -136,7 +140,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
         if (page.isPresent() && page.get() > 1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
-            otherPagePractitionerSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
+            otherPagePractitionerSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerSearchBundle.getEntry();
