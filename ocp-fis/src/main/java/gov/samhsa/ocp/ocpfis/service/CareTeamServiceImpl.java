@@ -319,12 +319,22 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         final CareTeamDto careTeamDto = CareTeamToCareTeamDtoConverter.map(careTeam);
 
-        careTeamDto.setStatusDisplay((getCareTeamDisplay(careTeamDto.getStatusCode(), Optional.ofNullable(lookUpService.getCareTeamStatuses()))).orElse(null));
-        careTeamDto.setCategoryDisplay((getCareTeamDisplay(careTeamDto.getCategoryCode(), Optional.ofNullable(lookUpService.getCareTeamCategories()))).orElse(null));
-        careTeamDto.setReasonDisplay((getCareTeamDisplay(careTeamDto.getReasonCode(), Optional.ofNullable(lookUpService.getCareTeamReasons()))).orElse(null));
+        if(careTeamDto.getStatusCode() != null) {
+            careTeamDto.setStatusDisplay((getCareTeamDisplay(careTeamDto.getStatusCode(), Optional.ofNullable(lookUpService.getCareTeamStatuses()))).orElse(null));
+        }
+
+        if(careTeamDto.getCategoryCode() != null) {
+            careTeamDto.setCategoryDisplay((getCareTeamDisplay(careTeamDto.getCategoryCode(), Optional.ofNullable(lookUpService.getCareTeamCategories()))).orElse(null));
+        }
+
+        if(careTeamDto.getReasonCode() != null) {
+            careTeamDto.setReasonDisplay((getCareTeamDisplay(careTeamDto.getReasonCode(), Optional.ofNullable(lookUpService.getCareTeamReasons()))).orElse(null));
+        }
 
         for(ParticipantDto dto : careTeamDto.getParticipants()) {
-            dto.setRoleDisplay((getCareTeamDisplay(dto.getRoleCode(), Optional.ofNullable(lookUpService.getParticipantRoles()))).orElse(null));
+            if(dto.getRoleCode() != null) {
+                dto.setRoleDisplay((getCareTeamDisplay(dto.getRoleCode(), Optional.ofNullable(lookUpService.getParticipantRoles()))).orElse(null));
+            }
         }
 
         return careTeamDto;
