@@ -68,8 +68,8 @@ public class LocationServiceImpl implements LocationService {
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
         //Check for location status
-        if (statusList.isPresent() && statusList.get().size() > 0) {
-            log.info("Searching for ALL locations with the following specific status(es).");
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
+            log.info("Searching for locations with the following specific status(es).");
             statusList.get().forEach(log::info);
             locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         } else {
@@ -104,7 +104,7 @@ public class LocationServiceImpl implements LocationService {
                 .encodedJson()
                 .execute();
 
-        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
+        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().isEmpty()) {
             throw new ResourceNotFoundException("No locations were found in the FHIR server");
         }
 
@@ -136,7 +136,7 @@ public class LocationServiceImpl implements LocationService {
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
         //Check for location status
-        if (statusList.isPresent() && statusList.get().size() > 0) {
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
             log.info("Searching for location with the following specific status(es) for the given OrganizationID:" + organizationResourceId);
             statusList.get().forEach(log::info);
             locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
@@ -172,7 +172,7 @@ public class LocationServiceImpl implements LocationService {
                 .encodedJson()
                 .execute();
 
-        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().size() < 1) {
+        if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().isEmpty()) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
             return new PageDto<>(new ArrayList<>(), numberOfLocationsPerPage, 0, 0, 0, 0);
         }
@@ -205,7 +205,7 @@ public class LocationServiceImpl implements LocationService {
                 .returnBundle(Bundle.class)
                 .execute();
 
-        if (locationBundle == null || locationBundle.getEntry().size() < 1) {
+        if (locationBundle == null || locationBundle.getEntry().isEmpty()) {
             log.info("No location was found for the given LocationID:" + locationId);
             throw new ResourceNotFoundException("No location was found for the given LocationID:" + locationId);
         }
@@ -222,7 +222,7 @@ public class LocationServiceImpl implements LocationService {
         log.info("Searching Child Location for Location Id:" + locationId);
         Bundle childLocationBundle = getChildLocationBundleFromServer(locationId);
 
-        if (childLocationBundle == null || childLocationBundle.getEntry().size() < 1) {
+        if (childLocationBundle == null || childLocationBundle.getEntry().isEmpty()) {
             log.info("No child location found for the given LocationID:" + locationId);
             throw new ResourceNotFoundException("No child location found for the given LocationID:" + locationId);
         }
