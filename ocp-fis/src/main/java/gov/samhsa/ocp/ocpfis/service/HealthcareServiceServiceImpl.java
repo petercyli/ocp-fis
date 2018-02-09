@@ -9,7 +9,6 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
-import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameLogicalIdIdentifiersDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -47,13 +46,11 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
     private final FhirValidator fhirValidator;
-    private final FisProperties fisProperties;
 
     @Autowired
-    public HealthcareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
+    public HealthcareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
-        this.fisProperties = fisProperties;
         this.fhirValidator = fhirValidator;
     }
 
@@ -442,11 +439,11 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             locationNameMap.put(locLogicalId, locName);
             locIdSet.add(locLogicalId);
 
-                //Add locations list to the dto
-                NameLogicalIdIdentifiersDto tempIdName = new NameLogicalIdIdentifiersDto();
-                tempIdName.setLogicalId(locLogicalId);
-                tempIdName.setName(locName);
-                locNameList.add(tempIdName);
+            //Add locations list to the dto
+            NameLogicalIdIdentifiersDto tempIdName = new NameLogicalIdIdentifiersDto();
+            tempIdName.setLogicalId(locLogicalId);
+            tempIdName.setName(locName);
+            locNameList.add(tempIdName);
 
         }
 
@@ -506,7 +503,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         }
     }
 
-    private  IQuery addAdditionalSearchConditions(IQuery healthcareServicesSearchQuery, Optional<String> searchKey, Optional<String> searchValue){
+    private IQuery addAdditionalSearchConditions(IQuery healthcareServicesSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
         if (searchKey.isPresent() && !SearchKeyEnum.HealthcareServiceSearchKey.contains(searchKey.get())) {
             throw new BadRequestException("Unidentified search key:" + searchKey.get());
         } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
