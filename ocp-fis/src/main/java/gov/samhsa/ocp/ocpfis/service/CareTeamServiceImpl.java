@@ -313,6 +313,8 @@ public class CareTeamServiceImpl implements CareTeamService {
     public CareTeamDto getCareTeamById(String careTeamById) {
         Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
                 .where(new TokenClientParam("_id").exactly().code(careTeamById))
+                .include(CareTeam.INCLUDE_PARTICIPANT)
+                .include(CareTeam.INCLUDE_SUBJECT)
                 .returnBundle(Bundle.class)
                 .execute();
 
@@ -323,6 +325,14 @@ public class CareTeamServiceImpl implements CareTeamService {
         CareTeam careTeam = (CareTeam) careTeamBundle.getEntry().get(0).getResource();
 
         final CareTeamDto careTeamDto = CareTeamToCareTeamDtoConverter.map(careTeam);
+
+        careTeamDto.setStatusDisplay((getCareTeamDisplay(careTeamDto.getStatusCode(), Optional.ofNullable(lookUpService.getCareTeamStatuses()))).orElse(null));
+        careTeamDto.setCategoryDisplay((getCareTeamDisplay(careTeamDto.getCategoryCode(), Optional.ofNullable(lookUpService.getCareTeamCategories()))).orElse(null));
+        careTeamDto.setReasonDisplay((getCareTeamDisplay(careTeamDto.getReasonCode(), Optional.ofNullable(lookUpService.getCareTeamReasons()))).orElse(null));
+
+        for(ParticipantDto dto : careTeamDto.getParticipants()) {
+            dto.setRoleDisplay((getCareTeamDisplay(dto.getRoleCode(), Optional.ofNullable(lookUpService.getParticipantRoles()))).orElse(null));
+        }
 
         return careTeamDto;
     }
@@ -348,7 +358,6 @@ public class CareTeamServiceImpl implements CareTeamService {
             throw new FHIRFormatErrorException("FHIR CareTeam validation is not successful" + validationResult.getMessages());
         }
     }
-
 
     private Optional<String> getCareTeamDisplay(String code, Optional<List<ValueSetDto>> lookupValueSets) {
         Optional<String> lookupDisplay=null;
