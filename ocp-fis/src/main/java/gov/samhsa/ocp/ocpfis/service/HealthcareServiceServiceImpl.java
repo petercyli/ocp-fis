@@ -57,6 +57,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     @Override
     public PageDto<HealthcareServiceDto> getAllHealthcareServices(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfHealthcareServicesPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
+
         Bundle firstPageHealthcareServiceSearchBundle;
         Bundle otherPageHealthcareServiceSearchBundle;
         boolean firstPage = true;
@@ -64,13 +65,21 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
         IQuery healthcareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class);
 
-        //Check for HealthcareService status
-        if (statusList.isPresent() && statusList.get().size() > 0) {
-            log.info("Searching for ALL Healthcare Services with the following specific status(es).");
+        //Check for healthcare service status
+        if (statusList.isPresent() && statusList.get().size() == 1) {
+            log.info("Searching for healthcare service with the following specific status" + statusList.get().get(0));
             statusList.get().forEach(log::info);
-            healthcareServicesSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
+            if (statusList.get().get(0).trim().equalsIgnoreCase("active")
+                    || statusList.get().get(0).trim().equalsIgnoreCase("true")) {
+                healthcareServicesSearchQuery.where(new TokenClientParam("active").exactly().codes("true"));
+            } else if (statusList.get().get(0).trim().equalsIgnoreCase("inactive")
+                    || statusList.get().get(0).trim().equalsIgnoreCase("false")) {
+                healthcareServicesSearchQuery.where(new TokenClientParam("active").exactly().codes("false"));
+            } else {
+                log.info("Searching for healthcare services with ALL statuses");
+            }
         } else {
-            log.info("Searching for Healthcare Services with ALL statuses");
+            log.info("Searching for healthcare services with ALL statuses");
         }
 
         // Check if there are any additional search criteria
@@ -508,7 +517,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (searchKey.isPresent() && !SearchKeyEnum.HealthcareServiceSearchKey.contains(searchKey.get())) {
             throw new BadRequestException("Unidentified search key:" + searchKey.get());
         } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
-                (searchKey.isPresent() && searchValue.isPresent() && searchValue.get().trim().isEmpty())) {
+                (searchKey.isPresent() && searchValue.get().trim().isEmpty())) {
             throw new BadRequestException("No search value found for the search key" + searchKey.get());
         }
 
