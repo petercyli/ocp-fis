@@ -96,7 +96,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     @Override
     public PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfCareTeamMembersPerPage = ServiceUtil.getValidPageSize(size, ResourceType.CareTeam.name());
+        int numberOfCareTeamMembersPerPage = PaginationUtil.getValidPageSize(size, ResourceType.CareTeam.name());
         IQuery iQuery = fhirClient.search().forResource(CareTeam.class);
 
         //Check for patient
@@ -124,7 +124,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         if (page.isPresent() && page.get() > 1 && otherPageCareTeamBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
-            otherPageCareTeamBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPageCareTeamBundle, page.get(), numberOfCareTeamMembersPerPage);
+            otherPageCareTeamBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageCareTeamBundle, page.get(), numberOfCareTeamMembersPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedCareTeamMembers = otherPageCareTeamBundle.getEntry();

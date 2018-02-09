@@ -58,7 +58,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     @Override
     public PageDto<PractitionerDto> getAllPractitioners(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPractitionersPerPage = ServiceUtil.getValidPageSize(size, ResourceType.Practitioner.name());
+        int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(size, ResourceType.Practitioner.name());
         boolean firstPage = true;
 
 
@@ -88,7 +88,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         if (page.isPresent() && page.get() > 1 && otherPagePractitionerBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
             firstPage = false;
-            otherPagePractitionerBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPagePractitionerBundle, page.get(), numberOfPractitionersPerPage);
+            otherPagePractitionerBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPagePractitionerBundle, page.get(), numberOfPractitionersPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerBundle.getEntry();
@@ -100,7 +100,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     @Override
     public PageDto<PractitionerDto> searchPractitioners(PractitionerController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPractitionersPerPage = ServiceUtil.getValidPageSize(size, ResourceType.Practitioner.name());
+        int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(size, ResourceType.Practitioner.name());
 
         IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
         boolean firstPage = true;
@@ -132,7 +132,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
         if (page.isPresent() && page.get() > 1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
-            otherPagePractitionerSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
+            otherPagePractitionerSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerSearchBundle.getEntry();

@@ -80,7 +80,7 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public PageDto<PatientDto> getPatientsByValue(String value, String type, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPatientsPerPage = ServiceUtil.getValidPageSize(size, ResourceType.Patient.name());
+        int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
 
@@ -113,7 +113,7 @@ public class PatientServiceImpl implements PatientService {
         if (page.isPresent() && page.get() > 1 && firstPagePatientSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
             firstPage = false;
-            otherPagePatientSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPagePatientSearchBundle, page.get(), numberOfPatientsPerPage);
+            otherPagePatientSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPagePatientSearchBundle, page.get(), numberOfPatientsPerPage);
         }
 
         //Arrange Page related info

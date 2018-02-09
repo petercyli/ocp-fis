@@ -60,7 +60,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
     @Override
     public PageDto<HealthcareServiceDto> getAllHealthcareServices(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfHealthcareServicesPerPage = ServiceUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
+        int numberOfHealthcareServicesPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
         Bundle firstPageHealthcareServiceSearchBundle;
         Bundle otherPageHealthcareServiceSearchBundle;
         boolean firstPage = true;
@@ -114,7 +114,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageHealthcareServiceSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
 
@@ -129,7 +129,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     @Override
     public PageDto<HealthcareServiceDto> getAllHealthcareServicesByOrganization(String organizationResourceId, Optional<String> assignedToLocationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
-        int numberOfHealthcareServicesPerPage = ServiceUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
+        int numberOfHealthcareServicesPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.HealthcareService.name());
 
         Bundle firstPageHealthcareServiceSearchBundle;
         Bundle otherPageHealthcareServiceSearchBundle;
@@ -192,7 +192,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageHealthcareServiceSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
@@ -268,7 +268,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             //Load the required page
             firstPage = false;
-            otherPageHealthcareServiceSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
+            otherPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(otherPageHealthcareServiceSearchBundle, pageNumber.get(), numberOfHealthcareServicesPerPage);
         }
 
         IQuery healthcareServiceWithLocationQuery = healthcareServiceQuery.include(HealthcareService.INCLUDE_LOCATION);

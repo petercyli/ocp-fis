@@ -43,7 +43,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public PageDto<OrganizationDto> getAllOrganizations(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfOrganizationsPerPage = ServiceUtil.getValidPageSize(size, ResourceType.Organization.name());
+        int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(size, ResourceType.Organization.name());
 
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
 
@@ -72,7 +72,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (page.isPresent() && page.get() > 1 && otherPageOrganizationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
             // Load the required page
-            otherPageOrganizationSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
+            otherPageOrganizationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedOrganizations = otherPageOrganizationSearchBundle.getEntry();
@@ -91,7 +91,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfOrganizationsPerPage = ServiceUtil.getValidPageSize(size, ResourceType.Organization.name());
+        int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(size, ResourceType.Organization.name());
 
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
 
@@ -127,7 +127,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (page.isPresent() && page.get() > 1 && otherPageOrganizationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
 
-            otherPageOrganizationSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
+            otherPageOrganizationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedOrganizations = otherPageOrganizationSearchBundle.getEntry();

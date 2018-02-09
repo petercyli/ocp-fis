@@ -59,7 +59,7 @@ public class LocationServiceImpl implements LocationService {
     @Override
     public PageDto<LocationDto> getAllLocations(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
-        int numberOfLocationsPerPage = ServiceUtil.getValidPageSize(pageSize, ResourceType.Location.name());
+        int numberOfLocationsPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.Location.name());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
@@ -113,7 +113,7 @@ public class LocationServiceImpl implements LocationService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageLocationSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
+            otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
@@ -127,7 +127,7 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfLocationsPerPage = ServiceUtil.getValidPageSize(pageSize, ResourceType.Location.name());
+        int numberOfLocationsPerPage = PaginationUtil.getValidPageSize(pageSize, ResourceType.Location.name());
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
@@ -183,7 +183,7 @@ public class LocationServiceImpl implements LocationService {
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
             firstPage = false;
-            otherPageLocationSearchBundle = ServiceUtil.getSearchBundleAfterFirstPage(otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
+            otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();

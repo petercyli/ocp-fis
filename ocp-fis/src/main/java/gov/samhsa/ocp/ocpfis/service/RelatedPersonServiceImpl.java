@@ -32,7 +32,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
     @Override
     public PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberPerPage = ServiceUtil.getValidPageSize(size, ResourceType.RelatedPerson.name());
+        int numberPerPage = PaginationUtil.getValidPageSize(size, ResourceType.RelatedPerson.name());
 
         Bundle relatedPersonBundle = fhirClient.search().forResource(RelatedPerson.class)
                 .where(new StringClientParam("name").matches().value(searchValue.trim()))

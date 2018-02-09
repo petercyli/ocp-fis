@@ -9,13 +9,13 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import java.util.Optional;
 
 @Slf4j
-public final class ServiceUtil {
+public final class PaginationUtil {
     private static IGenericClient fhirClient;
     private static FisProperties fisProperties;
 
-    public ServiceUtil(IGenericClient fhirClient, FisProperties fisProperties) {
-        ServiceUtil.fhirClient = fhirClient;
-        ServiceUtil.fisProperties = fisProperties;
+    public PaginationUtil(IGenericClient fhirClient, FisProperties fisProperties) {
+        PaginationUtil.fhirClient = fhirClient;
+        PaginationUtil.fisProperties = fisProperties;
     }
 
     public static Bundle getSearchBundleAfterFirstPage(Bundle SearchBundle, int pageNumber, int pageSize) {
