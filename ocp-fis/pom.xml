@@ -25,6 +25,7 @@
         <hapi.fhir.version>3.1.0</hapi.fhir.version>
         <docker.maven.version>0.4.13</docker.maven.version>
         <modelmapper.version>1.0.0</modelmapper.version>
+        <power-mock.version>1.6.5</power-mock.version>
         <lombok.version>1.16.18</lombok.version>
         <spring-cloud.version>Edgware.SR1</spring-cloud.version>
     </properties>
@@ -68,6 +69,19 @@
             <groupId>org.modelmapper</groupId>
             <artifactId>modelmapper</artifactId>
             <version>${modelmapper.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-api-mockito</artifactId>
+            <version>${power-mock.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-module-junit4</artifactId>
+            <version>${power-mock.version}</version>
+            <scope>test</scope>
         </dependency>
         <!-- HAPI FHIR JARS -->
         <dependency>
