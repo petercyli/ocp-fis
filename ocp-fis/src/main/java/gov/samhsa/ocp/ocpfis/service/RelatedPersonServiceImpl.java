@@ -36,8 +36,8 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     @Override
-    public PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.RelatedPerson.name());
+    public PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.RelatedPerson.name());
 
         IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class)
                 .where(new StringClientParam("name").matches().value(searchValue.trim()));
@@ -48,44 +48,39 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
         firstPageBundle = (Bundle) relatedPersonIQuery.count(numberPerPage).returnBundle(Bundle.class).execute();
 
-        if (bundleNotAvailable(firstPageBundle)) {
+        if (firstPageBundle == null || firstPageBundle.getEntry().isEmpty()) {
             throw new ResourceNotFoundException("No RelatedPerson was found for the given name : " + searchValue);
         }
 
         otherPageBundle = firstPageBundle;
 
-        if (morePagesAvailable(page, otherPageBundle)) {
+        if (pageNumber.isPresent() && pageNumber.get() > 1) {
             firstPage = false;
 
-            otherPageBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageBundle, page.get(), numberPerPage);
+            otherPageBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageBundle, pageNumber.get(), numberPerPage);
         }
 
         List<Bundle.BundleEntryComponent> relatedPersons = otherPageBundle.getEntry();
 
-        List<RelatedPersonDto> relatedPersonList = relatedPersons.stream().map(relatedPersonBundleEntry -> {
-            RelatedPersonDto dto = new RelatedPersonDto();
-            RelatedPerson relatedPerson = (RelatedPerson) relatedPersonBundleEntry.getResource();
-
-            dto.setId(relatedPerson.getIdElement().getIdPart());
-            dto.setFirstName(convertToString(relatedPerson.getName().stream().findFirst().get().getGiven()));
-            dto.setLastName(checkString(relatedPerson.getName().stream().findFirst().get().getFamily()));
-            return dto;
-        }).collect(Collectors.toList());
+        List<RelatedPersonDto> relatedPersonList = relatedPersons.stream().map(this::convertToRelatedPerson).collect(Collectors.toList());
 
         double totalPages = Math.ceil((double) otherPageBundle.getTotal() / numberPerPage);
-        int currentPage = firstPage ? 1 : page.get();
+        int currentPage = firstPage ? 1 : pageNumber.get();
 
         return new PageDto<>(relatedPersonList, numberPerPage, totalPages, currentPage, relatedPersonList.size(), otherPageBundle.getTotal());
     }
 
-    private boolean morePagesAvailable(Optional<Integer> page, Bundle otherPageBundle) {
-        return page.isPresent() && page.get() > 1 && otherPageBundle.getLink(Bundle.LINK_NEXT) != null;
+    private RelatedPersonDto convertToRelatedPerson(Bundle.BundleEntryComponent bundleEntryComponent) {
+        RelatedPersonDto dto = new RelatedPersonDto();
+        RelatedPerson relatedPerson = (RelatedPerson) bundleEntryComponent.getResource();
+
+        dto.setId(relatedPerson.getIdElement().getIdPart());
+        dto.setFirstName(convertToString(relatedPerson.getName().stream().findFirst().get().getGiven()));
+        dto.setLastName(checkString(relatedPerson.getName().stream().findFirst().get().getFamily()));
+        return dto;
     }
 
-    private boolean bundleNotAvailable(Bundle firstPageBundle) {
-        return firstPageBundle == null || firstPageBundle.isEmpty() || firstPageBundle.getEntry().size() < 1;
-    }
-
+    @Override
     public RelatedPersonDto getRelatedPersonById(String relatedPersonId) {
         Bundle relatedPersonBundle = fhirClient.search().forResource(RelatedPerson.class)
                 .where(new TokenClientParam("_id").exactly().code(relatedPersonId))
@@ -100,12 +95,6 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
         relatedPersonDto.setLastName(checkString(relatedPerson.getName().stream().findFirst().get().getFamily()));
 
         return relatedPersonDto;
-    }
-
-    private String toFirstNameFromHumanName(HumanName humanName) {
-        List<StringType> fNameList = humanName.getGiven();
-
-        return checkString(fNameList.stream().findFirst().get().toString());
     }
 
     private String convertToString(List<StringType> nameList) {

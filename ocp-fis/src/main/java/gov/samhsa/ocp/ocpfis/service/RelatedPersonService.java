@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface RelatedPersonService {
 
-    PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
+    PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 
     RelatedPersonDto getRelatedPersonById(String id);
 
