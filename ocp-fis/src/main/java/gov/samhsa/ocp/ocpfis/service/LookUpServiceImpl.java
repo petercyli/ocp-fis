@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,12 +42,7 @@ public class LookUpServiceImpl implements LookUpService {
         if (isValueSetAvailableInServer(response, LookupPathUrls.US_STATE.getType())) {
 
             List<ValueSet.ConceptReferenceComponent> statesList = response.getCompose().getInclude().get(0).getConcept();
-            statesList.forEach(state -> {
-                ValueSetDto temp = new ValueSetDto();
-                temp.setCode(state.getCode());
-                temp.setDisplay(state.getDisplay());
-                stateCodes.add(temp);
-            });
+            stateCodes = statesList.stream().map(this::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + stateCodes.size() + " states codes.");
         return stateCodes;
@@ -181,7 +175,7 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public List<OrganizationStatusDto> getOrganizationStatuses() {
         List<OrganizationStatusDto> organizationStatuses = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
-        log.info("Fetching ALL Organization Active Status");
+        log.info("Found " + organizationStatuses.size() + " organization status codes.");
         return organizationStatuses;
     }
 
@@ -285,7 +279,8 @@ public class LookUpServiceImpl implements LookUpService {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             usCoreRaces = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.debug("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
         }
 
@@ -295,13 +290,12 @@ public class LookUpServiceImpl implements LookUpService {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
                 usCoreRaces = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(this::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-            } catch (ResourceNotFoundException e) {
+            }
+            catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-race-category", e);
             }
         }
-
-
         return usCoreRaces;
     }
 
@@ -315,7 +309,8 @@ public class LookUpServiceImpl implements LookUpService {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             usCoreEthnicites = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             log.debug("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
         }
 
@@ -325,26 +320,22 @@ public class LookUpServiceImpl implements LookUpService {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
                 usCoreEthnicites = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(this::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-            } catch (ResourceNotFoundException e) {
+            }
+            catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-ethnicity-category", e);
             }
         }
-
-
         return usCoreEthnicites;
 
     }
 
     @Override
     public List<ValueSetDto> getUSCoreBirthSex() {
-        List<ValueSetDto> usCoreBirthsexes = new ArrayList<>();
+        List<ValueSetDto> usCoreBirthsexes;
         ValueSet response = getValueSets(LookupPathUrls.BIRTH_SEX.getUrlPath(), LookupPathUrls.BIRTH_SEX.getType());
-
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-
         usCoreBirthsexes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-
         return usCoreBirthsexes;
 
     }
@@ -353,7 +344,7 @@ public class LookUpServiceImpl implements LookUpService {
     public List<ValueSetDto> getLanguages() {
         //Use temporary list of enums
         //list to be provided by eversolve
-        List<ValueSetDto> languageList = new ArrayList<>();
+        List<ValueSetDto> languageList;
         List<LanguageEnum> languageEnums = Arrays.asList(LanguageEnum.values());
 
         languageList = languageEnums.stream().map(object -> {
@@ -372,9 +363,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthcareServiceTypeList = response.getExpansion().getContains();
-            healthcareServiceTypeList.forEach(type -> {
-                healthcareServiceTypeCodes.add(convertExpansionComponentToValueSetDto(type));
-            });
+            healthcareServiceTypeCodes = healthcareServiceTypeList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + healthcareServiceTypeCodes.size() + " healthcare service types.");
         return healthcareServiceTypeCodes;
@@ -386,9 +375,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_CATEGORY.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthcareServiceCategoryList = response.getExpansion().getContains();
-            healthcareServiceCategoryList.forEach(type -> {
-                healthcareServiceCategoryCodes.add(convertExpansionComponentToValueSetDto(type));
-            });
+            healthcareServiceCategoryCodes = healthcareServiceCategoryList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + healthcareServiceCategoryCodes.size() + " healthcare service categories.");
         return healthcareServiceCategoryCodes;
@@ -422,9 +409,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_REFERRAL_METHOD.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_REFERRAL_METHOD.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_REFERRAL_METHOD.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> healthcareServiceCategoryList = response.getExpansion().getContains();
-            healthcareServiceCategoryList.forEach(type -> {
-                healthcareServiceReferralMethodCodes.add(convertExpansionComponentToValueSetDto(type));
-            });
+            healthcareServiceReferralMethodCodes = healthcareServiceCategoryList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         log.info("Found " + healthcareServiceReferralMethodCodes.size() + " healthcare service referral methods.");
         return healthcareServiceReferralMethodCodes;
@@ -441,13 +426,10 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getCareTeamStatuses() {
-        List<ValueSetDto> careTeamStatusList = new ArrayList<>();
+        List<ValueSetDto> careTeamStatusList;
         ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_STATUS.getUrlPath(), LookupPathUrls.CARE_TEAM_STATUS.getType());
-
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-
         careTeamStatusList = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-
         return careTeamStatusList;
     }
 
@@ -468,25 +450,20 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getParticipantRoles() {
-        List<ValueSetDto> participantRolesList = new ArrayList<>();
+        List<ValueSetDto> participantRolesList;
         ValueSet response = getValueSets(LookupPathUrls.PARTICIPANT_ROLE.getUrlPath(), LookupPathUrls.PARTICIPANT_ROLE.getType());
         List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-
-        participantRolesList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(getConceptReferenceComponentValueSetDtoFunction()).collect(Collectors.toList());
-
+        participantRolesList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(this::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
         log.info("Found " + participantRolesList.size() + " CareTeam participant roles.");
         return participantRolesList;
     }
 
     @Override
     public List<ValueSetDto> getCareTeamReasons() {
-        List<ValueSetDto> reasonCodes = new ArrayList<>();
-
+        List<ValueSetDto> reasonCodes;
         ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_REASON_CODE.getUrlPath(), LookupPathUrls.CARE_TEAM_REASON_CODE.getType());
         List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-
-        reasonCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(getConceptReferenceComponentValueSetDtoFunction()).collect(Collectors.toList());
-
+        reasonCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(this::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
         log.info("Found " + reasonCodes.size() + " CareTeam reason codes.");
         return reasonCodes;
     }
@@ -495,10 +472,10 @@ public class LookUpServiceImpl implements LookUpService {
 
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + urlPath;
-
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        }
+        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any " + type + " code", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any " + type + " code", e);
         }
@@ -540,7 +517,6 @@ public class LookUpServiceImpl implements LookUpService {
         return isAvailable;
     }
 
-
     private ValueSetDto convertConceptReferenceToValueSetDto(ValueSet.ConceptReferenceComponent conceptReferenceComponent) {
         ValueSetDto valueSetDto = new ValueSetDto();
         valueSetDto.setCode(conceptReferenceComponent.getCode());
@@ -555,14 +531,4 @@ public class LookUpServiceImpl implements LookUpService {
         valueSetDto.setDisplay(expansionComponent.getDisplay());
         return valueSetDto;
     }
-
-    private Function<ValueSet.ConceptReferenceComponent, ValueSetDto> getConceptReferenceComponentValueSetDtoFunction() {
-        return object -> {
-            ValueSetDto temp = new ValueSetDto();
-            temp.setCode(object.getCode());
-            temp.setDisplay(object.getDisplay());
-            return temp;
-        };
-    }
-
 }
