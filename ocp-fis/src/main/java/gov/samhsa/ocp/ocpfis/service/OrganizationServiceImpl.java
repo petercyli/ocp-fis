@@ -19,9 +19,8 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Organization;
-import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -35,20 +34,20 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
-    private final FisProperties ocpFisProperties;
     private final FhirValidator fhirValidator;
+    private final FisProperties fisProperties;
 
-    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FisProperties fisProperties, FhirValidator fhirValidator) {
+    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
-        this.ocpFisProperties = fisProperties;
         this.fhirValidator = fhirValidator;
+        this.fisProperties = fisProperties;
     }
 
     @Override
     public PageDto<OrganizationDto> getAllOrganizations(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfOrganizationsPerPage = size.filter(s -> s > 0 &&
-                s <= ocpFisProperties.getOrganization().getPagination().getMaxSize()).orElse(ocpFisProperties.getOrganization().getPagination().getDefaultSize());
+        int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Organization.name());
+
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
 
         if (showInactive.isPresent()) {
@@ -76,7 +75,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (page.isPresent() && page.get() > 1 && otherPageOrganizationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
             // Load the required page
-            otherPageOrganizationSearchBundle = getOrganizationSearchBundleAfterFirstPage(firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
+            otherPageOrganizationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedOrganizations = otherPageOrganizationSearchBundle.getEntry();
@@ -95,8 +94,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfOrganizationsPerPage = size.filter(s -> s > 0 &&
-                s <= ocpFisProperties.getOrganization().getPagination().getMaxSize()).orElse(ocpFisProperties.getOrganization().getPagination().getDefaultSize());
+        int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Organization.name());
 
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
 
@@ -132,7 +130,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         if (page.isPresent() && page.get() > 1 && otherPageOrganizationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
 
-            otherPageOrganizationSearchBundle = getOrganizationSearchBundleAfterFirstPage(firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
+            otherPageOrganizationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageOrganizationSearchBundle, page.get(), numberOfOrganizationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedOrganizations = otherPageOrganizationSearchBundle.getEntry();
@@ -197,11 +195,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             Bundle organizationWithUpdatedIdentifierBundle = (Bundle) organizationsWithUpdatedIdentifierQuery.returnBundle(Bundle.class).execute();
             Bundle organizationWithUpdatedIdentifierAndSameResourceIdBundle = (Bundle) organizationsWithUpdatedIdentifierQuery.where(new TokenClientParam("_id").exactly().code(organizationId)).returnBundle(Bundle.class).execute();
             if (organizationWithUpdatedIdentifierBundle.getTotal() > 0) {
-                if (organizationWithUpdatedIdentifierBundle.getTotal() == organizationWithUpdatedIdentifierAndSameResourceIdBundle.getTotal()) {
-                    return false;
-                } else {
-                    return true;
-                }
+                return organizationWithUpdatedIdentifierBundle.getTotal() != organizationWithUpdatedIdentifierAndSameResourceIdBundle.getTotal();
             }
             return false;
         });
@@ -263,29 +257,4 @@ public class OrganizationServiceImpl implements OrganizationService {
             throw new FHIRClientException("FHIR Client returned with an error while inactivating the organization:" + e.getMessage());
         }
     }
-
-
-    private Bundle getOrganizationSearchBundleAfterFirstPage(Bundle OrganizationSearchBundle, int page, int size) {
-        if (OrganizationSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
-            //Assuming page number starts with 1
-            int offset = ((page >= 1 ? page : 1) - 1) * size;
-
-            if (offset >= OrganizationSearchBundle.getTotal()) {
-                throw new OrganizationNotFoundException("No organizations were found in the FHIR server for this page number");
-            }
-
-            String pageUrl = ocpFisProperties.getFhir().getServerUrl()
-                    + "?_getpages=" + OrganizationSearchBundle.getId()
-                    + "&_getpagesoffset=" + offset
-                    + "&_count=" + size
-                    + "&_bundletype=searchset";
-
-            // Load the required page
-            return fhirClient.search().byUrl(pageUrl)
-                    .returnBundle(Bundle.class)
-                    .execute();
-        }
-        return OrganizationSearchBundle;
-    }
-
 }

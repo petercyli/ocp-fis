@@ -54,18 +54,19 @@ public class PatientServiceImpl implements PatientService {
     public static final String LANGUAGE_CODE = "language";
     public static final String ETHNICITY_CODE = "Ethnicity";
     public static final String GENDER_CODE = "Gender";
+
     private final IGenericClient fhirClient;
     private final IParser iParser;
     private final ModelMapper modelMapper;
-    private final FisProperties fisProperties;
     private final FhirValidator fhirValidator;
+    private final FisProperties fisProperties;
 
-    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FisProperties fisProperties, FhirValidator fhirValidator) {
+    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.fhirClient = fhirClient;
         this.iParser = iParser;
         this.modelMapper = modelMapper;
-        this.fisProperties = fisProperties;
         this.fhirValidator = fhirValidator;
+        this.fisProperties = fisProperties;
     }
 
     @Override
@@ -82,12 +83,11 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public PageDto<PatientDto> getPatientsByValue(String value, String type, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfPatientsPerPage = size.filter(s -> s > 0 &&
-                s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getPatient().getPagination().getDefaultSize());
+        int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
 
-        if(showInactive.isPresent()) {
+        if (showInactive.isPresent()) {
             if (!showInactive.get()) {
                 // show only active patients
                 PatientSearchQuery.where(new TokenClientParam("active").exactly().code(Boolean.TRUE.toString()));
@@ -116,7 +116,7 @@ public class PatientServiceImpl implements PatientService {
         if (page.isPresent() && page.get() > 1 && firstPagePatientSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
             firstPage = false;
-            otherPagePatientSearchBundle = getSearchBundleAfterFirstPage(firstPagePatientSearchBundle, page.get(), numberOfPatientsPerPage);
+            otherPagePatientSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPagePatientSearchBundle, page.get(), numberOfPatientsPerPage);
         }
 
         //Arrange Page related info
@@ -139,7 +139,7 @@ public class PatientServiceImpl implements PatientService {
     public void createPatient(PatientDto patientDto) {
         int existingNumberOfPatients = this.getPatientsByIdentifier(patientDto.getIdentifier().get(0).getSystem(), patientDto.getIdentifier().get(0).getValue());
 
-        if(existingNumberOfPatients == 0) {
+        if (existingNumberOfPatients == 0) {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setActive(Boolean.TRUE);
@@ -164,7 +164,7 @@ public class PatientServiceImpl implements PatientService {
     public void updatePatient(PatientDto patientDto) {
         int existingNumberOfPatients = this.getPatientsByIdentifier(patientDto.getIdentifier().get(0).getSystem(), patientDto.getIdentifier().get(0).getValue());
 
-        if(existingNumberOfPatients == 0) {
+        if (existingNumberOfPatients == 0) {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setId(new IdType(patientDto.getId()));
@@ -192,7 +192,7 @@ public class PatientServiceImpl implements PatientService {
                 .returnBundle(Bundle.class)
                 .execute();
 
-        if(patientBundle == null || patientBundle.getEntry().size() < 1) {
+        if (patientBundle == null || patientBundle.getEntry().size() < 1) {
             throw new ResourceNotFoundException("No patient was found for the given patientID : " + patientId);
         }
 
@@ -222,7 +222,7 @@ public class PatientServiceImpl implements PatientService {
                     .map(patient -> {
                         PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
                         patientDto.setId(patient.getIdElement().getIdPart());
-                        if ( patient.getGender()!=null )
+                        if (patient.getGender() != null)
                             patientDto.setGenderCode(patient.getGender().toCode());
                         mapExtensionFields(patient, patientDto);
                         return patientDto;
@@ -231,29 +231,6 @@ public class PatientServiceImpl implements PatientService {
         }
         log.info("Total Patients retrieved from Server #" + patientDtos.size());
         return patientDtos;
-    }
-
-    private Bundle getSearchBundleAfterFirstPage(Bundle resourceSearchBundle, int page, int size) {
-        if (resourceSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
-            //Assuming page number starts with 1
-            int offset = ((page >= 1 ? page : 1) - 1) * size;
-
-            if (offset >= resourceSearchBundle.getTotal()) {
-                throw new PatientNotFoundException("No Patients were found in the FHIR server for this page number");
-            }
-
-            String pageUrl = fisProperties.getFhir().getServerUrl()
-                    + "?_getpages=" + resourceSearchBundle.getId()
-                    + "&_getpagesoffset=" + offset
-                    + "&_count=" + size
-                    + "&_bundletype=searchset";
-
-            // Load the required page
-            return fhirClient.search().byUrl(pageUrl)
-                    .returnBundle(Bundle.class)
-                    .execute();
-        }
-        return resourceSearchBundle;
     }
 
     private Enumerations.AdministrativeGender getPatientGender(String codeString) {
@@ -282,7 +259,7 @@ public class PatientServiceImpl implements PatientService {
 
     private void setIdentifiers(Patient patient, PatientDto patientDto) {
         patient.setId(new IdType(patientDto.getId()));
-        patientDto.getIdentifier().stream()
+        patientDto.getIdentifier()
                 .forEach(identifier -> {
                             final Identifier id = patient.addIdentifier()
                                     .setSystem(identifier.getSystem())
@@ -346,10 +323,10 @@ public class PatientServiceImpl implements PatientService {
     private void mapExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = patient.getExtension();
 
-        extensionList.stream().map(extension -> convertExtensionToCoding(extension)).forEach(obj -> {
-            if(obj.isPresent()) {
+        extensionList.stream().map(this::convertExtensionToCoding).forEach(obj -> {
+            if (obj.isPresent()) {
                 Coding coding = obj.get();
-                if(coding.getSystem().contains(RACE_CODE)) {
+                if (coding.getSystem().contains(RACE_CODE)) {
                     patientDto.setRace(coding.getCode());
                 } else if (coding.getSystem().contains(LANGUAGE_CODE)) {
                     patientDto.setLanguage(coding.getCode());
@@ -367,7 +344,7 @@ public class PatientServiceImpl implements PatientService {
 
         Type type = extension.getValue();
         if (type != null) {
-            if(type instanceof CodeableConcept) {
+            if (type instanceof CodeableConcept) {
                 CodeableConcept codeableConcept = (CodeableConcept) type;
 
                 if (codeableConcept != null) {

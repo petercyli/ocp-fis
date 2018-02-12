@@ -26,8 +26,8 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -47,23 +47,20 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     public static final String STATUS_ACTIVE = "active";
 
-    private final ModelMapper modelMapper;
-
     private final IGenericClient fhirClient;
 
     private final FhirValidator fhirValidator;
 
-    private final FisProperties fisProperties;
-
     private final LookUpService lookUpService;
 
+    private final FisProperties fisProperties;
+
     @Autowired
-    public CareTeamServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
-        this.modelMapper = modelMapper;
+    public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
-        this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
+        this.fisProperties = fisProperties;
     }
 
     @Override
@@ -77,7 +74,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
             fhirClient.create().resource(careTeam).execute();
 
-        } catch (FHIRException | ParseException e) {
+        }
+        catch (FHIRException | ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while creating a care team:" + e.getMessage());
 
         }
@@ -93,7 +91,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
             fhirClient.update().resource(careTeam).execute();
 
-        } catch (FHIRException | ParseException e) {
+        }
+        catch (FHIRException | ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while creating a care team:" + e.getMessage());
 
         }
@@ -101,9 +100,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     @Override
     public PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size) {
-        int numberOfCareTeamMembersPerPage = size.filter(s -> s > 0 &&
-                s <= fisProperties.getCareTeam().getPagination().getMaxSize()).orElse(fisProperties.getCareTeam().getPagination().getDefaultSize());
-
+        int numberOfCareTeamMembersPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.CareTeam.name());
         IQuery iQuery = fhirClient.search().forResource(CareTeam.class);
 
         //Check for patient
@@ -119,7 +116,10 @@ public class CareTeamServiceImpl implements CareTeamService {
         Bundle otherPageCareTeamBundle;
         boolean firstPage = true;
 
+        //Bundle retrieves care team along with its participant and subject
         firstPageCareTeamBundle = (Bundle) iQuery
+                .include(CareTeam.INCLUDE_PARTICIPANT)
+                .include(CareTeam.INCLUDE_SUBJECT)
                 .count(numberOfCareTeamMembersPerPage)
                 .returnBundle(Bundle.class).execute();
 
@@ -131,26 +131,13 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         if (page.isPresent() && page.get() > 1 && otherPageCareTeamBundle.getLink(Bundle.LINK_NEXT) != null) {
             firstPage = false;
-            otherPageCareTeamBundle = getCareTeamBundleAfterFirstPage(firstPageCareTeamBundle, page.get(), numberOfCareTeamMembersPerPage);
+            otherPageCareTeamBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageCareTeamBundle, page.get(), numberOfCareTeamMembersPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedCareTeamMembers = otherPageCareTeamBundle.getEntry();
 
-        IQuery careTeamWithItsSubjectAndParticipantQuery = iQuery.include(CareTeam.INCLUDE_PARTICIPANT)
-                .include(CareTeam.INCLUDE_SUBJECT);
 
-        Bundle careTeamWithItsSubjectAndParticipantBundleForTotalEntry = (Bundle) careTeamWithItsSubjectAndParticipantQuery
-                .returnBundle(Bundle.class)
-                .execute();
-
-        int totalEntry = careTeamWithItsSubjectAndParticipantBundleForTotalEntry.getTotal();
-
-        Bundle careTeamWithItsSubjectAndParticipantBundle = (Bundle) careTeamWithItsSubjectAndParticipantQuery
-                .count(totalEntry)
-                .returnBundle(Bundle.class)
-                .execute();
-
-        List<CareTeamDto> careTeamDtos = retrievedCareTeamMembers.stream().map(retrievedCareTeamMember -> {
+        List<CareTeamDto> careTeamDtos = retrievedCareTeamMembers.stream().filter(retrivedBundle->retrivedBundle.getResource().getResourceType().equals(ResourceType.CareTeam)).map(retrievedCareTeamMember -> {
             CareTeam careTeam = (CareTeam) retrievedCareTeamMember.getResource();
             CareTeamDto careTeamDto = new CareTeamDto();
             careTeamDto.setId(careTeam.getIdElement().getIdPart());
@@ -170,8 +157,8 @@ public class CareTeamServiceImpl implements CareTeamService {
             String subjectReference = careTeam.getSubject().getReference();
             String patientId = subjectReference.substring(subjectReference.lastIndexOf("/") + 1);
 
-            Optional<Bundle.BundleEntryComponent> patientBundleEntryComponent = careTeamWithItsSubjectAndParticipantBundle.getEntry().stream().filter(careTeamWithItsSubjectAndParticipant -> {
-                        return careTeamWithItsSubjectAndParticipant.getResource().getIdElement().getIdPart().equalsIgnoreCase(patientId);
+            Optional<Bundle.BundleEntryComponent> patientBundleEntryComponent = retrievedCareTeamMembers.stream().filter(careTeamWithItsSubjectAndParticipant->careTeamWithItsSubjectAndParticipant.getResource().getResourceType().equals(ResourceType.Patient)).filter(patientSubject -> {
+                        return patientSubject.getResource().getIdElement().getIdPart().equalsIgnoreCase(patientId);
                     }
             ).findFirst();
 
@@ -188,9 +175,9 @@ public class CareTeamServiceImpl implements CareTeamService {
             });
 
             //Getting the reason codes
-            careTeam.getReasonCode().stream().findFirst().ifPresent(reasonCode->{
-                reasonCode.getCoding().stream().findFirst().ifPresent(code->{
-                    careTeamDto.setReasonCode((code.getCode() !=null && !code.getCode().isEmpty())?code.getCode():null);
+            careTeam.getReasonCode().stream().findFirst().ifPresent(reasonCode -> {
+                reasonCode.getCoding().stream().findFirst().ifPresent(code -> {
+                    careTeamDto.setReasonCode((code.getCode() != null && !code.getCode().isEmpty()) ? code.getCode() : null);
                     careTeamDto.setReasonDisplay((getCareTeamDisplay(code.getCode(), Optional.ofNullable(lookUpService.getCareTeamReasons()))).orElse(null));
                 });
             });
@@ -210,9 +197,9 @@ public class CareTeamServiceImpl implements CareTeamService {
                 }
 
                 //Getting participant start and end date
-                if(participant.getPeriod() !=null && !participant.getPeriod().isEmpty()){
-                    participantDto.setStartDate((participant.getPeriod().getStart()!=null)? convertDateToString(participant.getPeriod().getStart()) :null);
-                    participantDto.setEndDate((participant.getPeriod().getEnd()!=null)?convertDateToString(participant.getPeriod().getEnd()): null );
+                if (participant.getPeriod() != null && !participant.getPeriod().isEmpty()) {
+                    participantDto.setStartDate((participant.getPeriod().getStart() != null) ? convertDateToString(participant.getPeriod().getStart()) : null);
+                    participantDto.setEndDate((participant.getPeriod().getEnd() != null) ? convertDateToString(participant.getPeriod().getEnd()) : null);
                 }
 
                 //Getting participant member and onBehalfof
@@ -222,7 +209,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                     String participantType = participantMemberReference.split("/")[0];
 
                     //Getting the member
-                    careTeamWithItsSubjectAndParticipantBundle.getEntry().forEach(careTeamWithItsSubjectAndPartipant -> {
+                    retrievedCareTeamMembers.forEach(careTeamWithItsSubjectAndPartipant -> {
                         Resource resource = careTeamWithItsSubjectAndPartipant.getResource();
                         if (resource.getResourceType().toString().trim().replaceAll(" ", "").equalsIgnoreCase(participantType.trim().replaceAll(" ", ""))) {
 
@@ -274,7 +261,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                                         break;
 
                                     case RelatedPerson:
-                                        RelatedPerson relatedPerson= (RelatedPerson) resource;
+                                        RelatedPerson relatedPerson = (RelatedPerson) resource;
                                         relatedPerson.getName().stream().findFirst().ifPresent(name -> {
                                             name.getGiven().stream().findFirst().ifPresent(firstName -> {
                                                 participantDto.setMemberFirstName(Optional.ofNullable(firstName.toString()));
@@ -296,9 +283,9 @@ public class CareTeamServiceImpl implements CareTeamService {
             });
 
             careTeamDto.setParticipants(participantDtos);
-            if(careTeam.getPeriod()!=null &&!careTeam.getPeriod().isEmpty()) {
+            if (careTeam.getPeriod() != null && !careTeam.getPeriod().isEmpty()) {
                 careTeamDto.setStartDate((careTeam.getPeriod().getStart() != null) ? convertDateToString(careTeam.getPeriod().getStart()) : null);
-                careTeamDto.setEndDate((careTeam.getPeriod().getEnd() != null) ? convertDateToString(careTeam.getPeriod().getEnd()):null);
+                careTeamDto.setEndDate((careTeam.getPeriod().getEnd() != null) ? convertDateToString(careTeam.getPeriod().getEnd()) : null);
             }
             return careTeamDto;
         }).collect(toList());
@@ -356,7 +343,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                 .execute();
 
         log.info("Existing CareTeam size : " + careTeamBundle.getEntry().size());
-        if (careTeamBundle != null && careTeamBundle.getEntry().size() > 1) {
+        if (careTeamBundle.getEntry().size() > 1) {
             throw new DuplicateResourceFoundException("CareTeam already exists with the given subject ID and category Code in active status");
         }
     }
@@ -370,41 +357,18 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     private Optional<String> getCareTeamDisplay(String code, Optional<List<ValueSetDto>> lookupValueSets) {
-        Optional<String> lookupDisplay=null;
-        if(lookupValueSets.isPresent()){
-            lookupDisplay=lookupValueSets.get().stream()
+        Optional<String> lookupDisplay = Optional.empty();
+        if (lookupValueSets.isPresent()) {
+            lookupDisplay = lookupValueSets.get().stream()
                     .filter(lookupValue -> code.equalsIgnoreCase(lookupValue.getCode()))
-                    .map(valueSet -> valueSet.getDisplay()).findFirst();
+                    .map(ValueSetDto::getDisplay).findFirst();
 
         }
         return lookupDisplay;
     }
 
-    private Bundle getCareTeamBundleAfterFirstPage(Bundle careTeamBundle, int page, int size) {
-        if (careTeamBundle.getLink(Bundle.LINK_NEXT) != null) {
-
-            int offset = ((page >= 1 ? page : 1) - 1) * size;
-
-            if (offset >= careTeamBundle.getTotal()) {
-                throw new ResourceNotFoundException("No Care Team members were found in the FHIR server.");
-            }
-
-            String pageUrl = fisProperties.getFhir().getServerUrl()
-                    + "?_getpages=" + careTeamBundle.getId()
-                    + "&_getpagesoffset=" + offset
-                    + "&_count=" + size
-                    + "&_bundletype=searchset";
-
-            // Load the required page
-            return fhirClient.search().byUrl(pageUrl)
-                    .returnBundle(Bundle.class)
-                    .execute();
-        }
-        return careTeamBundle;
-    }
-
-    private String convertDateToString(Date date){
-        DateFormat df=new SimpleDateFormat("MM/dd/yyyy");
+    private String convertDateToString(Date date) {
+        DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
         return df.format(date);
     }
 
