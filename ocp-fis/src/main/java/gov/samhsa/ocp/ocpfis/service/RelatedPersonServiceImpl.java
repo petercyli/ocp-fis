@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
@@ -38,18 +39,30 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     public PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.RelatedPerson.name());
 
-        Bundle relatedPersonBundle = fhirClient.search().forResource(RelatedPerson.class)
-                .where(new StringClientParam("name").matches().value(searchValue.trim()))
-                .returnBundle(Bundle.class)
-                .execute();
+        IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class)
+                .where(new StringClientParam("name").matches().value(searchValue.trim()));
 
-        if (relatedPersonBundle == null || relatedPersonBundle.getEntry().size() < 1) {
-            throw new ResourceNotFoundException("No RelatedPerson was found for the given member : " + searchValue + "with name : " + searchValue);
+        Bundle firstPageBundle;
+        Bundle otherPageBundle;
+        boolean firstPage = true;
+
+        firstPageBundle = (Bundle) relatedPersonIQuery.count(numberPerPage).returnBundle(Bundle.class).execute();
+
+        if (bundleNotAvailable(firstPageBundle)) {
+            throw new ResourceNotFoundException("No RelatedPerson was found for the given name : " + searchValue);
         }
 
-        List<Bundle.BundleEntryComponent> retrievedRelatedPersonList = relatedPersonBundle.getEntry();
+        otherPageBundle = firstPageBundle;
 
-        List<RelatedPersonDto> relatedPersonList = retrievedRelatedPersonList.stream().map(relatedPersonBundleEntry -> {
+        if (morePagesAvailable(page, otherPageBundle)) {
+            firstPage = false;
+
+            otherPageBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageBundle, page.get(), numberPerPage);
+        }
+
+        List<Bundle.BundleEntryComponent> relatedPersons = otherPageBundle.getEntry();
+
+        List<RelatedPersonDto> relatedPersonList = relatedPersons.stream().map(relatedPersonBundleEntry -> {
             RelatedPersonDto dto = new RelatedPersonDto();
             RelatedPerson relatedPerson = (RelatedPerson) relatedPersonBundleEntry.getResource();
 
@@ -59,7 +72,18 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
             return dto;
         }).collect(Collectors.toList());
 
-        return new PageDto<>(relatedPersonList, numberPerPage, 1, 1, relatedPersonList.size(), relatedPersonList.size());
+        double totalPages = Math.ceil((double) otherPageBundle.getTotal() / numberPerPage);
+        int currentPage = firstPage ? 1 : page.get();
+
+        return new PageDto<>(relatedPersonList, numberPerPage, totalPages, currentPage, relatedPersonList.size(), otherPageBundle.getTotal());
+    }
+
+    private boolean morePagesAvailable(Optional<Integer> page, Bundle otherPageBundle) {
+        return page.isPresent() && page.get() > 1 && otherPageBundle.getLink(Bundle.LINK_NEXT) != null;
+    }
+
+    private boolean bundleNotAvailable(Bundle firstPageBundle) {
+        return firstPageBundle == null || firstPageBundle.isEmpty() || firstPageBundle.getEntry().size() < 1;
     }
 
     public RelatedPersonDto getRelatedPersonById(String relatedPersonId) {
