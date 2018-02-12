@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -467,60 +468,26 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getParticipantRoles() {
-        List<ValueSetDto> participantRolesList;
+        List<ValueSetDto> participantRolesList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.PARTICIPANT_ROLE.getUrlPath(), LookupPathUrls.PARTICIPANT_ROLE.getType());
+        List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
 
-        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        participantRolesList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(getConceptReferenceComponentValueSetDtoFunction()).collect(Collectors.toList());
 
-        //TODO: temp fix until data is available
-        participantRolesList = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-
-        if (participantRolesList.size() == 0) {
-            ValueSetDto dto = new ValueSetDto();
-            dto.setCode("101Y00000X");
-            dto.setDisplay("Counselor");
-
-            ValueSetDto dto2 = new ValueSetDto();
-            dto2.setCode("101YA0400X");
-            dto2.setDisplay("Addiction (Substance Use Disorder)");
-            participantRolesList.add(dto);
-            participantRolesList.add(dto2);
-        }
+        log.info("Found " + participantRolesList.size() + " CareTeam participant roles.");
         return participantRolesList;
     }
 
     @Override
     public List<ValueSetDto> getCareTeamReasons() {
         List<ValueSetDto> reasonCodes = new ArrayList<>();
-        try {
 
-            ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_REASON_CODE.getUrlPath(), LookupPathUrls.CARE_TEAM_REASON_CODE.getType());
-            if (isValueSetAvailableInServer(response, LookupPathUrls.CARE_TEAM_REASON_CODE.getType())) {
-                List<ValueSet.ValueSetExpansionContainsComponent> reasonCodeList = response.getExpansion().getContains();
-                reasonCodeList.forEach(type -> {
-                    ValueSetDto temp = new ValueSetDto();
-                    temp.setCode(type.getCode());
-                    temp.setDisplay(type.getDisplay());
-                    temp.setSystem(type.getSystem());
-                    reasonCodes.add(temp);
-                });
-            }
-            log.info("Found " + reasonCodes.size() + " CareTeam reason codes.");
-        } catch (ResourceNotFoundException ex) {
-            //TODO: remove this with the real data is available..
-            if (reasonCodes.size() == 0) {
-                ValueSetDto dto = new ValueSetDto();
-                dto.setCode("109006");
-                dto.setDisplay("Anxiety disorder of childhood OR adolescence");
+        ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_REASON_CODE.getUrlPath(), LookupPathUrls.CARE_TEAM_REASON_CODE.getType());
+        List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
 
-                ValueSetDto dto2 = new ValueSetDto();
-                dto2.setCode("122003");
-                dto2.setDisplay("Choroidal hemorrhage");
+        reasonCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(getConceptReferenceComponentValueSetDtoFunction()).collect(Collectors.toList());
 
-                reasonCodes.add(dto);
-                reasonCodes.add(dto2);
-            }
-        }
+        log.info("Found " + reasonCodes.size() + " CareTeam reason codes.");
         return reasonCodes;
     }
 
@@ -587,6 +554,15 @@ public class LookUpServiceImpl implements LookUpService {
         valueSetDto.setCode(expansionComponent.getCode());
         valueSetDto.setDisplay(expansionComponent.getDisplay());
         return valueSetDto;
+    }
+
+    private Function<ValueSet.ConceptReferenceComponent, ValueSetDto> getConceptReferenceComponentValueSetDtoFunction() {
+        return object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getDisplay());
+            return temp;
+        };
     }
 
 }
