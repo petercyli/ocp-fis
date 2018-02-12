@@ -1,16 +1,23 @@
 package gov.samhsa.ocp.ocpfis.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.CareTeamService;
+import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.validation.CareTeamCategoryCodeValidator;
+import gov.samhsa.ocp.ocpfis.service.validation.CareTeamStatusCodeValidator;
 import gov.samhsa.ocp.ocpfis.web.CareTeamController;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -20,9 +27,13 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.RequestBuilder;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import javax.validation.ConstraintValidatorContext;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -32,18 +43,37 @@ import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 
 @RunWith(SpringRunner.class)
 @WebMvcTest(value = CareTeamController.class, secure = false)
-@Ignore("Depends on config-server on bootstrap")
+//@Ignore("Depends on config-server on bootstrap")
 public class CareTeamControllerTest {
+
+    private static final MediaType APPLICATION_JSON_UTF8 = new MediaType(
+            MediaType.APPLICATION_JSON.getType(),
+            MediaType.APPLICATION_JSON.getSubtype(), Charset.forName("utf8"));
+
+    private static final String CARE_TEAM = "{\"name\":\"UR Team Thursday OneFifty\",\"statusCode\":\"active\",\"categoryCode\":\"longitudinal\",\"subjectId\":\"1913\",\"startDate\":\"01/01/2018\",\"endDate\":\"02/01/2018\",\"reasonCode\":\"109006\",\"participants\":[{\"memberId\":\"1913\",\"memberType\":\"patient\",\"roleCode\":\"101Y00000X\",\"startDate\":\"01/01/2017\",\"endDate\":\"02/01/2017\"},{\"memberId\":\"1382\",\"memberType\":\"RelatedPerson\",\"roleCode\":\"101Y00000X\",\"startDate\":\"03/01/2017\",\"endDate\":\"04/01/2017\"},{\"memberId\":\"1503\",\"memberType\":\"Organization\",\"roleCode\":\"101YA0400X\",\"startDate\":\"05/01/2017\",\"endDate\":\"06/01/2017\"},{\"memberId\":\"1522\",\"memberType\":\"Practitioner\",\"roleCode\":\"101YA0400X\",\"startDate\":\"07/01/2017\",\"endDate\":\"08/01/2017\"}]}";
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
     private CareTeamService careTeamService;
+
+    @MockBean
+    private LookUpService lookUpService;
+
+    @MockBean
+    CareTeamCategoryCodeValidator careTeamCategoryCodeValidator;
+
+    @MockBean
+    CareTeamStatusCodeValidator careTeamStatusCodeValidator;
+
 
     @Test
     public void testGetCareTeamByValue() throws Exception {
@@ -59,6 +89,8 @@ public class CareTeamControllerTest {
 
         //Assert
         mockMvc.perform(requestBuilder).andExpect((ResultMatcher) jsonPath("$.hasElements", CoreMatchers.is(true)));
+        MvcResult result = mockMvc.perform(requestBuilder).andReturn();
+        Assert.assertThat(result.getResponse().getContentAsString(), CoreMatchers.containsString("CareTeam 1"));
     }
 
     @Test
@@ -76,29 +108,31 @@ public class CareTeamControllerTest {
     }
 
     @Test
-    public void testCreateCareTeam() {
+    public void testCreateCareTeam() throws Exception {
         //Arrange
-        CareTeamDto dto = new CareTeamDto();
         doNothing().when(careTeamService).createCareTeam(isA(CareTeamDto.class));
+        setUpLookups();
 
         //Act
-        careTeamService.createCareTeam(dto);
+        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/care-teams").content(CARE_TEAM).contentType(APPLICATION_JSON_UTF8);
+        ResultActions resultAction = mockMvc.perform(requestBuilder);
 
         //Assert
-        verify(careTeamService, times(1)).createCareTeam(dto);
+        resultAction.andExpect(status().isCreated());
     }
 
     @Test
-    public void testUpdateCareTeam() {
+    public void testUpdateCareTeam() throws Exception {
         //Arrange
-        CareTeamDto dto = new CareTeamDto();
         doNothing().when(careTeamService).updateCareTeam(isA(String.class), isA(CareTeamDto.class));
+        setUpLookups();
 
         //Act
-        careTeamService.updateCareTeam("101", dto);
+        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.put("/care-teams/101").content(CARE_TEAM).contentType(MediaType.APPLICATION_JSON);
+        ResultActions resultAction = mockMvc.perform(requestBuilder);
 
         //Assert
-        verify(careTeamService, times(1)).updateCareTeam("101", dto);
+        resultAction.andExpect(status().isOk());
     }
 
     private CareTeamDto createCareTeamDto() {
@@ -122,4 +156,28 @@ public class CareTeamControllerTest {
 
         return dto;
     }
+
+    List<ValueSetDto> getCareTeamCategories() {
+        List<ValueSetDto> valueSetDtos = new ArrayList<>();
+        ValueSetDto dto = new ValueSetDto();
+        dto.setCode("longitudinal");
+        dto.setDisplay("Longitudinal");
+        valueSetDtos.add(dto);
+        return valueSetDtos;
+    }
+
+    List<ValueSetDto> getCareTeamStatuses() {
+        List<ValueSetDto> valueSetDtos = new ArrayList<>();
+        ValueSetDto dto = new ValueSetDto();
+        dto.setCode("active");
+        dto.setDisplay("Active");
+        valueSetDtos.add(dto);
+        return valueSetDtos;
+    }
+
+    public void setUpLookups() {
+        Mockito.when(lookUpService.getCareTeamCategories()).thenReturn(getCareTeamCategories());
+        Mockito.when(lookUpService.getCareTeamStatuses()).thenReturn(getCareTeamStatuses());
+    }
+
 }
