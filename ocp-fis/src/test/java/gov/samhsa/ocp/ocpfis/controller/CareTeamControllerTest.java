@@ -76,13 +76,17 @@ public class CareTeamControllerTest {
 
 
     @Test
-    public void testGetCareTeamByValue() throws Exception {
+    public void testMethod_Given_CareTeamsAvailble_When_RequestedWithTypeAndValue_Then_ReturnListOfCareTeams() throws Exception {
         //Arrange
         CareTeamDto dto = createCareTeamDto();
         List<CareTeamDto> dtos = new ArrayList<>();
         dtos.add(dto);
         PageDto pageDto = new PageDto<>(dtos, 10, 1, 1, dtos.size(), 0);
-        Mockito.when(careTeamService.getCareTeams(Mockito.any(Optional.class), Mockito.anyString(), Mockito.anyString(), Mockito.any(Optional.class), Mockito.any(Optional.class))).thenReturn(pageDto);
+        //PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size)
+        List<String> statusList = Arrays.asList("active");
+        Integer page = 1;
+        Integer size = 10;
+        Mockito.when(careTeamService.getCareTeams(Optional.of(statusList), "patientId", "1913", Optional.of(page), Optional.of(size))).thenReturn(pageDto);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/care-teams/search?searchValue=1913&searchType=patientId&pageNumber=1&pageSize=10&statusList=active");
@@ -91,10 +95,11 @@ public class CareTeamControllerTest {
         mockMvc.perform(requestBuilder).andExpect((ResultMatcher) jsonPath("$.hasElements", CoreMatchers.is(true)));
         MvcResult result = mockMvc.perform(requestBuilder).andReturn();
         Assert.assertThat(result.getResponse().getContentAsString(), CoreMatchers.containsString("CareTeam 1"));
+        Assert.assertThat(result.getResponse().getContentAsString(), CoreMatchers.containsString("101Y00000X"));
     }
 
     @Test
-    public void testGetCareTeamById() throws Exception {
+    public void testMethod_Given_CareTeamsAvailable_When_RequestedWithCareTeamId_Then_ReturnListOfCareTeams() throws Exception {
         //Arrange
         CareTeamDto dto = createCareTeamDto();
         Mockito.when(careTeamService.getCareTeamById(Mockito.anyString())).thenReturn(dto);
@@ -108,7 +113,7 @@ public class CareTeamControllerTest {
     }
 
     @Test
-    public void testCreateCareTeam() throws Exception {
+    public void testMethod_Given_ACareTeamDto_When_PostedWithValidJson_Then_CreateCareTeam() throws Exception {
         //Arrange
         doNothing().when(careTeamService).createCareTeam(isA(CareTeamDto.class));
         setUpLookups();
@@ -122,7 +127,7 @@ public class CareTeamControllerTest {
     }
 
     @Test
-    public void testUpdateCareTeam() throws Exception {
+    public void testMethod_Given_ACareTeamDtoWithId_When_PutWithValidJson_Then_UpdateCareTeam() throws Exception {
         //Arrange
         doNothing().when(careTeamService).updateCareTeam(isA(String.class), isA(CareTeamDto.class));
         setUpLookups();
