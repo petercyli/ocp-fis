@@ -101,7 +101,7 @@ public class CareTeamControllerTest {
     public void testMethod_Given_CareTeamsAvailable_When_RequestedWithCareTeamId_Then_ReturnListOfCareTeams() throws Exception {
         //Arrange
         CareTeamDto dto = createCareTeamDto();
-        Mockito.when(careTeamService.getCareTeamById(Mockito.anyString())).thenReturn(dto);
+        Mockito.when(careTeamService.getCareTeamById("101")).thenReturn(dto);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/care-teams/101").accept(MediaType.APPLICATION_JSON);
