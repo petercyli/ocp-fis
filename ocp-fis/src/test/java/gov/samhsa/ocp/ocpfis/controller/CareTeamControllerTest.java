@@ -76,13 +76,12 @@ public class CareTeamControllerTest {
 
 
     @Test
-    public void testMethod_Given_CareTeamsAvailble_When_RequestedWithTypeAndValue_Then_ReturnListOfCareTeams() throws Exception {
+    public void testMethod_Given_CareTeamsAvailable_When_RequestedWithTypeAndValue_Then_ReturnListOfCareTeams() throws Exception {
         //Arrange
         CareTeamDto dto = createCareTeamDto();
         List<CareTeamDto> dtos = new ArrayList<>();
         dtos.add(dto);
         PageDto pageDto = new PageDto<>(dtos, 10, 1, 1, dtos.size(), 0);
-        //PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size)
         List<String> statusList = Arrays.asList("active");
         Integer page = 1;
         Integer size = 10;
