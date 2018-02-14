@@ -12,22 +12,16 @@ public interface HealthcareServiceService {
     PageDto<HealthcareServiceDto> getAllHealthcareServicesByOrganization(String organizationResourceId, Optional<String> assignedToLocationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
 
     PageDto<HealthcareServiceDto> getAllHealthcareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
+
     HealthcareServiceDto getHealthcareService(String healthcareServiceId);
 
-
-    /**
-     * @param organizationId
-     * @param healthcareServiceDto
-     */
     void createHealthcareService(String organizationId, HealthcareServiceDto healthcareServiceDto);
 
-    /**
-     * Adds a given location(s) to a HealthcareService
-     *
-     * @param healthcareServiceId
-     * @param organizationResourceId
-     * @param locationIdList
-     * @return
-     */
-    void assignLocationToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList);
+    void updateHealthcareService(String organizationId, String healthcareServiceId, HealthcareServiceDto healthcareServiceDto);
+
+    void inactivateHealthcareService(String healthcareServiceId);
+
+    void assignLocationsToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList);
+
+    void unassignLocationsFromHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList);
 }

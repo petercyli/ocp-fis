@@ -345,7 +345,7 @@ public class LocationServiceImpl implements LocationService {
 
     private void checkForDuplicateLocationBasedOnIdentifiersDuringCreate(LocationDto locationDto) {
         List<IdentifierDto> identifiersList = locationDto.getIdentifiers();
-        log.info("Current locationDto has " + identifiersList.size() + " identifiers.");
+        log.info("Create Location: Current locationDto has " + identifiersList.size() + " identifiers.");
 
         for (IdentifierDto tempIdentifierDto : identifiersList) {
             String identifierSystem = tempIdentifierDto.getSystem();
@@ -365,7 +365,7 @@ public class LocationServiceImpl implements LocationService {
 
     private void checkForDuplicateLocationBasedOnIdentifiersDuringUpdate(String locationId, LocationDto locationDto) {
         List<IdentifierDto> identifiersList = locationDto.getIdentifiers();
-        log.info("Current locationDto has " + identifiersList.size() + " identifiers.");
+        log.info("Update Location: Current locationDto has " + identifiersList.size() + " identifiers.");
 
         for (IdentifierDto tempIdentifierDto : identifiersList) {
             String identifierSystem = tempIdentifierDto.getSystem();
@@ -381,8 +381,8 @@ public class LocationServiceImpl implements LocationService {
         if (bundle != null && bundle.getEntry().size() > 1) {
             throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
         } else if (bundle != null && bundle.getEntry().size() == 1) {
-            LocationDto temp = convertLocationBundleEntryToLocationDto(bundle.getEntry().get(0));
-            if (!temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
+            String logicalId = bundle.getEntry().get(0).getResource().getIdElement().getIdPart();
+            if (!logicalId.trim().equalsIgnoreCase(locationId.trim())) {
                 throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
             }
         }
