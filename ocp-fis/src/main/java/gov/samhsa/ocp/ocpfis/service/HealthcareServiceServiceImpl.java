@@ -397,6 +397,17 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         }
     }
 
+    @Override
+    public void unassignLocationToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList) {
+        HealthcareService existingHealthcareService = readHealthcareServiceFromServer(healthcareServiceId);
+        List<Reference> assignedLocations = existingHealthcareService.getLocation();
+        assignedLocations.removeIf(locRef -> locationIdList.contains(locRef.getReference().substring(9).trim()));
+        // Validate the resource
+        validateHealthcareServiceResource(existingHealthcareService, Optional.of(healthcareServiceId), "Unassign location to a Healthcare Service: ");
+        //Update
+        updateHealthcareServiceResource(existingHealthcareService, "Unassign location to a Healthcare Service ");
+    }
+
     private HealthcareService readHealthcareServiceFromServer(String healthcareServiceId) {
         HealthcareService existingHealthcareService;
 
