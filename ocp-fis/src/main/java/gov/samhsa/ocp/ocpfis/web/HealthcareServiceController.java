@@ -83,18 +83,18 @@ public class HealthcareServiceController {
 
     @PutMapping("/healthcare-services/{healthcareServiceId}/assign")
     @ResponseStatus(HttpStatus.OK)
-    public void assignLocationToHealthcareService(@PathVariable String healthcareServiceId,
+    public void assignLocationsToHealthcareService(@PathVariable String healthcareServiceId,
                                                   @RequestParam(value = "organizationId") String organizationId,
                                                   @RequestParam(value = "locationIdList") List<String> locationIdList) {
-        healthcareServiceService.assignLocationToHealthcareService(healthcareServiceId, organizationId, locationIdList);
+        healthcareServiceService.assignLocationsToHealthcareService(healthcareServiceId, organizationId, locationIdList);
     }
 
     @PutMapping("/healthcare-services/{healthcareServiceId}/unassign")
     @ResponseStatus(HttpStatus.OK)
-    public void unassignLocationToHealthcareService(@PathVariable String healthcareServiceId,
+    public void unassignsLocationFromHealthcareService(@PathVariable String healthcareServiceId,
                                                     @RequestParam(value = "organizationId") String organizationId,
                                                     @RequestParam(value = "locationIdList") List<String> locationIdList) {
-        healthcareServiceService.unassignLocationToHealthcareService(healthcareServiceId, organizationId, locationIdList);
+        healthcareServiceService.unassignLocationsFromHealthcareService(healthcareServiceId, organizationId, locationIdList);
     }
 
     @PutMapping("/healthcare-services/{healthcareServiceId}/inactive")

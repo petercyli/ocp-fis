@@ -364,7 +364,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     }
 
     @Override
-    public void assignLocationToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList) {
+    public void assignLocationsToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList) {
         boolean allChecksPassed = false;
 
         //First, validate if the given location(s) belong to the given organization Id
@@ -409,7 +409,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     }
 
     @Override
-    public void unassignLocationToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList) {
+    public void unassignLocationsFromHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList) {
         HealthcareService existingHealthcareService = readHealthcareServiceFromServer(healthcareServiceId);
         List<Reference> assignedLocations = existingHealthcareService.getLocation();
         assignedLocations.removeIf(locRef -> locationIdList.contains(locRef.getReference().substring(9).trim()));
