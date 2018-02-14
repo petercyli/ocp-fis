@@ -89,5 +89,13 @@ public class HealthcareServiceController {
         healthcareServiceService.assignLocationToHealthcareService(healthcareServiceId, organizationId, locationIdList);
     }
 
+    @PutMapping("/healthcare-services/{healthcareServiceId}/unassign")
+    @ResponseStatus(HttpStatus.OK)
+    public void unassignLocationToHealthcareService(@PathVariable String healthcareServiceId,
+                                                  @RequestParam(value = "organizationId") String organizationId,
+                                                  @RequestParam(value = "locationIdList") List<String> locationIdList) {
+        healthcareServiceService.unassignLocationToHealthcareService(healthcareServiceId, organizationId, locationIdList);
+    }
+
 
 }
