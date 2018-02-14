@@ -72,6 +72,15 @@ public class HealthcareServiceController {
 
     }
 
+    @PutMapping("/organization/{organizationId}/healthcare-service/{healthcareServiceId}")
+    @ResponseStatus(HttpStatus.OK)
+    public void updateHealthcareService(@PathVariable String organizationId,
+                                        @PathVariable String healthcareServiceId,
+                                        @Valid @RequestBody HealthcareServiceDto healthcareServiceDto) {
+        healthcareServiceService.updateHealthcareService(organizationId, healthcareServiceId, healthcareServiceDto);
+
+    }
+
     @PutMapping("/healthcare-services/{healthcareServiceId}/assign")
     @ResponseStatus(HttpStatus.OK)
     public void assignLocationToHealthcareService(@PathVariable String healthcareServiceId,

@@ -14,12 +14,9 @@ public interface HealthcareServiceService {
     PageDto<HealthcareServiceDto> getAllHealthcareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
     HealthcareServiceDto getHealthcareService(String healthcareServiceId);
 
-
-    /**
-     * @param organizationId
-     * @param healthcareServiceDto
-     */
     void createHealthcareService(String organizationId, HealthcareServiceDto healthcareServiceDto);
+
+    void updateHealthcareService(String organizationId, String healthcareServiceId, HealthcareServiceDto healthcareServiceDto);
 
     /**
      * Adds a given location(s) to a HealthcareService
