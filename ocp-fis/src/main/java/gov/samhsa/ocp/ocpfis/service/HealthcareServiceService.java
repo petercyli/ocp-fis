@@ -21,7 +21,7 @@ public interface HealthcareServiceService {
 
     void inactivateHealthcareService(String healthcareServiceId);
 
-    void assignLocationToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList);
+    void assignLocationsToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList);
 
-    void unassignLocationToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList);
+    void unassignLocationsFromHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList);
 }
