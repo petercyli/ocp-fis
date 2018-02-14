@@ -49,12 +49,12 @@ public class HealthcareServiceController {
 
     @GetMapping("/organizations/{organizationId}/locations/{locationId}/healthcare-services")
     public PageDto<HealthcareServiceDto> getAllHealthcareServiceByLocation(@PathVariable String organizationId,
-                                                                                   @PathVariable String locationId,
-                                                                                   @RequestParam(value="statusList") Optional<List<String>> statusList,
-                                                                                   @RequestParam(value = "searchKey") Optional<String> searchKey,
-                                                                                   @RequestParam(value = "searchValue") Optional<String> searchValue,
-                                                                                   @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
-                                                                                   @RequestParam(value = "pageSize") Optional<Integer> pageSize){
+                                                                           @PathVariable String locationId,
+                                                                           @RequestParam(value = "statusList") Optional<List<String>> statusList,
+                                                                           @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                                           @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                                           @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                                           @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
         return healthcareServiceService.getAllHealthcareServicesByLocation(organizationId, locationId, statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
@@ -92,10 +92,14 @@ public class HealthcareServiceController {
     @PutMapping("/healthcare-services/{healthcareServiceId}/unassign")
     @ResponseStatus(HttpStatus.OK)
     public void unassignLocationToHealthcareService(@PathVariable String healthcareServiceId,
-                                                  @RequestParam(value = "organizationId") String organizationId,
-                                                  @RequestParam(value = "locationIdList") List<String> locationIdList) {
+                                                    @RequestParam(value = "organizationId") String organizationId,
+                                                    @RequestParam(value = "locationIdList") List<String> locationIdList) {
         healthcareServiceService.unassignLocationToHealthcareService(healthcareServiceId, organizationId, locationIdList);
     }
 
-
+    @PutMapping("/healthcare-services/{healthcareServiceId}/inactive")
+    @ResponseStatus(HttpStatus.OK)
+    public void inactivateHealthcareService(@PathVariable String healthcareServiceId) {
+        healthcareServiceService.inactivateHealthcareService(healthcareServiceId);
+    }
 }

@@ -326,7 +326,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
     @Override
     public void updateHealthcareService(String organizationId, String healthcareServiceId, HealthcareServiceDto healthcareServiceDto) {
-        log.info("Updating healthcareServiceId Id: " + healthcareServiceId + " for Organization Id:" + organizationId);
+        log.info("Updating healthcareService Id: " + healthcareServiceId + " for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate healthcareService(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateHealthcareServiceBasedOnTypesDuringUpdate(healthcareServiceDto, healthcareServiceId, organizationId);
 
@@ -350,6 +350,17 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
         //Update the resource
         updateHealthcareServiceResource(existingHealthcareService, "Update healthcareService");
+    }
+
+    @Override
+    public void inactivateHealthcareService(String healthcareServiceId) {
+        log.info("Inactivating the healthcareServiceId Id: " + healthcareServiceId);
+        HealthcareService existingHealthcareService = readHealthcareServiceFromServer(healthcareServiceId);
+        existingHealthcareService.setActive(false);
+        //Also, remove all locations
+        existingHealthcareService.setLocation(null);
+        //Update the resource
+        updateHealthcareServiceResource(existingHealthcareService, "Inactivate healthcareService");
     }
 
     @Override
