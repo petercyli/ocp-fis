@@ -194,7 +194,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
             memberDto.setFirstName(Optional.of(dto.getFirstName()));
             memberDto.setLastName(Optional.of(dto.getLastName()));
-            memberDto.setId(dto.getId());
+            memberDto.setId(dto.getRelatedPersonId());
             memberDto.setType(participantType.getCode());
 
             participantSearchDto.setMember(memberDto);
