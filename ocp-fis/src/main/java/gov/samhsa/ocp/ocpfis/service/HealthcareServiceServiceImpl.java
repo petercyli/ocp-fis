@@ -27,6 +27,7 @@ import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -235,44 +236,44 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
         //Arrange Page related info
         List<HealthcareServiceDto> healthcareServicesList = retrivedHealthcareServices.stream()
-                .filter(retrivedHealthcareService->retrivedHealthcareService.getResource().getResourceType().equals(ResourceType.HealthcareService)).map(hcs -> {
-            HealthcareService healthcareServiceResource = (HealthcareService) hcs.getResource();
-            HealthcareServiceDto healthcareServiceDto = modelMapper.map(healthcareServiceResource, HealthcareServiceDto.class);
-            healthcareServiceDto.setLogicalId(hcs.getResource().getIdElement().getIdPart());
-            healthcareServiceDto.setOrganizationId(organizationResourceId);
+                .filter(retrivedHealthcareService -> retrivedHealthcareService.getResource().getResourceType().equals(ResourceType.HealthcareService)).map(hcs -> {
+                    HealthcareService healthcareServiceResource = (HealthcareService) hcs.getResource();
+                    HealthcareServiceDto healthcareServiceDto = modelMapper.map(healthcareServiceResource, HealthcareServiceDto.class);
+                    healthcareServiceDto.setLogicalId(hcs.getResource().getIdElement().getIdPart());
+                    healthcareServiceDto.setOrganizationId(organizationResourceId);
 
-            //Getting location
-            List<NameLogicalIdIdentifiersDto> locationsForHealthService = new ArrayList<>();
-            healthcareServiceResource.getLocation().forEach(location -> {
+                    //Getting location
+                    List<NameLogicalIdIdentifiersDto> locationsForHealthService = new ArrayList<>();
+                    healthcareServiceResource.getLocation().forEach(location -> {
 
-                        if (location.getReference() != null && !location.getReference().isEmpty()) {
-                            String locationReference = location.getReference();
-                            String locationResourceId = locationReference.split("/")[1];
-                            String locationType = locationReference.split("/")[0];
+                                if (location.getReference() != null && !location.getReference().isEmpty()) {
+                                    String locationReference = location.getReference();
+                                    String locationResourceId = locationReference.split("/")[1];
+                                    String locationType = locationReference.split("/")[0];
 
-                            retrivedHealthcareServices.forEach(healthcareServiceWithLocation -> {
-                                Resource resource = healthcareServiceWithLocation.getResource();
-                                if (resource.getResourceType().toString().trim().replaceAll(" ", "").equalsIgnoreCase(locationType.trim().replaceAll(" ", ""))) {
-                                    if (resource.getIdElement().getIdPart().equalsIgnoreCase(locationResourceId)) {
-                                        Location locationPresent = (Location) resource;
-                                        NameLogicalIdIdentifiersDto locationForHealthServiceDto = modelMapper.map(locationPresent, NameLogicalIdIdentifiersDto.class);
-                                        locationForHealthServiceDto.setLogicalId(resource.getIdElement().getIdPart());
-                                        locationsForHealthService.add(locationForHealthServiceDto);
+                                    retrivedHealthcareServices.forEach(healthcareServiceWithLocation -> {
+                                        Resource resource = healthcareServiceWithLocation.getResource();
+                                        if (resource.getResourceType().toString().trim().replaceAll(" ", "").equalsIgnoreCase(locationType.trim().replaceAll(" ", ""))) {
+                                            if (resource.getIdElement().getIdPart().equalsIgnoreCase(locationResourceId)) {
+                                                Location locationPresent = (Location) resource;
+                                                NameLogicalIdIdentifiersDto locationForHealthServiceDto = modelMapper.map(locationPresent, NameLogicalIdIdentifiersDto.class);
+                                                locationForHealthServiceDto.setLogicalId(resource.getIdElement().getIdPart());
+                                                locationsForHealthService.add(locationForHealthServiceDto);
 
-                                        if (locationResourceId.equalsIgnoreCase(locationId)) {
-                                            healthcareServiceDto.setLocationId(locationId);
-                                            healthcareServiceDto.setLocationName(locationPresent.getName());
+                                                if (locationResourceId.equalsIgnoreCase(locationId)) {
+                                                    healthcareServiceDto.setLocationId(locationId);
+                                                    healthcareServiceDto.setLocationName(locationPresent.getName());
+                                                }
+                                            }
                                         }
-                                    }
+                                    });
                                 }
-                            });
-                        }
-                        healthcareServiceDto.setLocation(locationsForHealthService);
-                    }
-            );
+                                healthcareServiceDto.setLocation(locationsForHealthService);
+                            }
+                    );
 
-            return healthcareServiceDto;
-        }).collect(Collectors.toList());
+                    return healthcareServiceDto;
+                }).collect(Collectors.toList());
 
         double totalPages = Math.ceil((double) otherPageHealthcareServiceSearchBundle.getTotal() / numberOfHealthcareServicesPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
@@ -324,7 +325,46 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     }
 
     @Override
-    public void assignLocationToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList) {
+    public void updateHealthcareService(String organizationId, String healthcareServiceId, HealthcareServiceDto healthcareServiceDto) {
+        log.info("Updating healthcareService Id: " + healthcareServiceId + " for Organization Id:" + organizationId);
+        log.info("But first, checking if a duplicate healthcareService(active/inactive/suspended) exists based on the Identifiers provided.");
+        checkForDuplicateHealthcareServiceBasedOnTypesDuringUpdate(healthcareServiceDto, healthcareServiceId, organizationId);
+
+        //First, get the existing resource from the server
+        HealthcareService existingHealthcareService = readHealthcareServiceFromServer(healthcareServiceId);
+
+        HealthcareService updatedHealthcareService = modelMapper.map(healthcareServiceDto, HealthcareService.class);
+
+        //Overwrite values from the dto
+        existingHealthcareService.setName(updatedHealthcareService.getName());
+        existingHealthcareService.setProgramName(updatedHealthcareService.getProgramName());
+        existingHealthcareService.setCategory(updatedHealthcareService.getCategory());
+        existingHealthcareService.setType(updatedHealthcareService.getType());
+        existingHealthcareService.setSpecialty(updatedHealthcareService.getSpecialty());
+        existingHealthcareService.setReferralMethod(updatedHealthcareService.getReferralMethod());
+        existingHealthcareService.setTelecom(updatedHealthcareService.getTelecom());
+        existingHealthcareService.setActive(updatedHealthcareService.getActive());
+
+        // Validate the resource
+        validateHealthcareServiceResource(existingHealthcareService, Optional.of(healthcareServiceId), "Update healthcareService: ");
+
+        //Update the resource
+        updateHealthcareServiceResource(existingHealthcareService, "Update healthcareService");
+    }
+
+    @Override
+    public void inactivateHealthcareService(String healthcareServiceId) {
+        log.info("Inactivating the healthcareServiceId Id: " + healthcareServiceId);
+        HealthcareService existingHealthcareService = readHealthcareServiceFromServer(healthcareServiceId);
+        existingHealthcareService.setActive(false);
+        //Also, remove all locations
+        existingHealthcareService.setLocation(null);
+        //Update the resource
+        updateHealthcareServiceResource(existingHealthcareService, "Inactivate healthcareService");
+    }
+
+    @Override
+    public void assignLocationsToHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList) {
         boolean allChecksPassed = false;
 
         //First, validate if the given location(s) belong to the given organization Id
@@ -361,18 +401,22 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 validateHealthcareServiceResource(existingHealthcareService, Optional.of(healthcareServiceId), "Assign location to a Healthcare Service: ");
 
                 //Update
-                try {
-                    MethodOutcome serverResponse = fhirClient.update().resource(existingHealthcareService).execute();
-                    log.info("Successfully assigned location(s) to Healthcare Service ID :" + serverResponse.getId().getIdPart());
-                }
-                catch (BaseServerResponseException e) {
-                    log.error("Assign location to a Healthcare Service: Could NOT update location for Healthcare Service ID:" + healthcareServiceId);
-                    throw new FHIRClientException("FHIR Client returned with an error while updating the location:" + e.getMessage());
-                }
+                updateHealthcareServiceResource(existingHealthcareService, "Assign location to a Healthcare Service ");
             }
         } else {
             throw new BadRequestException("Cannot assign the given location(s) to Healthcare Service, because not all location(s) from the query params belonged to the organization ID: " + organizationResourceId);
         }
+    }
+
+    @Override
+    public void unassignLocationsFromHealthcareService(String healthcareServiceId, String organizationResourceId, List<String> locationIdList) {
+        HealthcareService existingHealthcareService = readHealthcareServiceFromServer(healthcareServiceId);
+        List<Reference> assignedLocations = existingHealthcareService.getLocation();
+        assignedLocations.removeIf(locRef -> locationIdList.contains(locRef.getReference().substring(9).trim()));
+        // Validate the resource
+        validateHealthcareServiceResource(existingHealthcareService, Optional.of(healthcareServiceId), "Unassign location to a Healthcare Service: ");
+        //Update
+        updateHealthcareServiceResource(existingHealthcareService, "Unassign location to a Healthcare Service ");
     }
 
     private HealthcareService readHealthcareServiceFromServer(String healthcareServiceId) {
@@ -483,32 +527,71 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     }
 
     private void checkDuplicateHealthcareServiceExistsDuringCreate(String organizationId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
-        Bundle bundle;
-        if (typeSystem != null && !typeSystem.trim().isEmpty()
-                && typeCode != null && !typeCode.trim().isEmpty()) {
-            bundle = fhirClient.search().forResource(HealthcareService.class)
-                    .where(new ReferenceClientParam("organization").hasId(organizationId))
-                    .and(new TokenClientParam("active").exactly().code("true"))
-                    .and(new TokenClientParam("type").exactly().systemAndCode(typeSystem.trim(), typeCode.trim()))
-                    .and(new TokenClientParam("category").exactly().systemAndCode(categorySystem.trim(), categoryCode.trim()))
-                    .returnBundle(Bundle.class)
-                    .execute();
-        } else if (typeCode != null && !typeCode.trim().isEmpty()) {
-            bundle = fhirClient.search().forResource(HealthcareService.class)
-                    .where(new ReferenceClientParam("organization").hasId(organizationId))
-                    .and(new TokenClientParam("active").exactly().code("true"))
-                    .and(new TokenClientParam("type").exactly().code(typeCode.trim()))
-                    .and(new TokenClientParam("category").exactly().systemAndCode(categorySystem.trim(), categoryCode.trim()))
-                    .returnBundle(Bundle.class)
-                    .execute();
-        } else {
-            throw new BadRequestException("Found no valid System and/or Code");
-        }
+        Bundle bundle = getHealthCareServiceBundleBasedOnCategoryAndType(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
 
         if (bundle != null && !bundle.getEntry().isEmpty()) {
-            throw new DuplicateResourceFoundException("The current organization " + organizationId + " already have the active Healthcare Service with the Category System " + categorySystem + " and Category Code " + categoryCode + " with Type system " + typeSystem + " and Type Code: " + typeCode);
+            throw new DuplicateResourceFoundException("The current organization: " + organizationId + " already has active Healthcare Service(s) with the Category System " + categorySystem + " and Category Code " + categoryCode + " with Type system " + typeSystem + " and Type Code: " + typeCode);
         }
     }
+
+    private void checkForDuplicateHealthcareServiceBasedOnTypesDuringUpdate(HealthcareServiceDto healthcareServiceDto, String healthcareServiceId, String organizationId) {
+        List<ValueSetDto> typeList = healthcareServiceDto.getType();
+        log.info("Update Healthcare Service: Current HealthcareServiceDto has " + typeList.size() + " service type(s).");
+
+        ValueSetDto serviceCategory = healthcareServiceDto.getCategory();
+        String categorySystem = serviceCategory.getSystem();
+        String categoryCode = serviceCategory.getCode();
+
+        for (ValueSetDto tempType : typeList) {
+            String typeSystem = tempType.getSystem();
+            String typeCode = tempType.getCode();
+            checkDuplicateHealthcareServiceExistsDuringUpdate(organizationId, healthcareServiceId, categorySystem, categoryCode, typeSystem, typeCode);
+        }
+        log.info("Update Healthcare Service: Found no duplicate Healthcare service");
+
+    }
+
+    private void checkDuplicateHealthcareServiceExistsDuringUpdate(String organizationId, String healthcareServiceId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
+        Bundle bundle = getHealthCareServiceBundleBasedOnCategoryAndType(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
+
+        if (bundle != null && bundle.getEntry().size() > 1) {
+            throw new DuplicateResourceFoundException("A Healthcare Service already exists");
+        } else if (bundle != null && bundle.getEntry().size() == 1) {
+            String logicalId = bundle.getEntry().get(0).getResource().getIdElement().getIdPart();
+            if (!healthcareServiceId.trim().equalsIgnoreCase(logicalId.trim())) {
+                throw new DuplicateResourceFoundException("A Healthcare Service already exists");
+            }
+        }
+    }
+
+    private Bundle getHealthCareServiceBundleBasedOnCategoryAndType(String organizationId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
+        Bundle bundle;
+        IQuery<IBaseBundle> healthcareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class)
+                .where(new ReferenceClientParam("organization").hasId(organizationId))
+                .and(new TokenClientParam("active").exactly().code("true"));
+
+        if (categorySystem != null && !categorySystem.trim().isEmpty()
+                && categoryCode != null && !categoryCode.trim().isEmpty()) {
+            healthcareServicesSearchQuery.and(new TokenClientParam("category").exactly().systemAndCode(categorySystem.trim(), categoryCode.trim()));
+        } else if (categoryCode != null && !categoryCode.trim().isEmpty()) {
+            healthcareServicesSearchQuery.and(new TokenClientParam("category").exactly().code(categoryCode.trim()));
+        } else {
+            throw new BadRequestException("Found no valid Category System and/or Code");
+        }
+
+        if (typeSystem != null && !typeSystem.trim().isEmpty()
+                && typeCode != null && !typeCode.trim().isEmpty()) {
+            healthcareServicesSearchQuery.and(new TokenClientParam("type").exactly().systemAndCode(typeSystem.trim(), typeCode.trim()));
+        } else if (typeCode != null && !typeCode.trim().isEmpty()) {
+            healthcareServicesSearchQuery.and(new TokenClientParam("type").exactly().code(typeCode.trim()));
+        } else {
+            throw new BadRequestException("Found no valid Type System and/or Code");
+        }
+
+        bundle = healthcareServicesSearchQuery.returnBundle(Bundle.class).execute();
+        return bundle;
+    }
+
 
     private IQuery addAdditionalSearchConditions(IQuery healthcareServicesSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
         if (searchKey.isPresent() && !SearchKeyEnum.HealthcareServiceSearchKey.contains(searchKey.get())) {
@@ -533,4 +616,16 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         }
         return healthcareServicesSearchQuery;
     }
+
+    private void updateHealthcareServiceResource(HealthcareService fhirHealthcareService, String logMessage) {
+        try {
+            MethodOutcome serverResponse = fhirClient.update().resource(fhirHealthcareService).execute();
+            log.info(logMessage + " was successful for HealthcareService Id: " + serverResponse.getId().getIdPart());
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT " + logMessage + " for HealthcareService Id: " + fhirHealthcareService.getIdElement().getIdPart());
+            throw new FHIRClientException("FHIR Client returned with an error during" + logMessage + " : " + e.getMessage());
+        }
+    }
+
 }
