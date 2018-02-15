@@ -62,4 +62,9 @@ public interface LookUpService {
 
     List<ValueSetDto> getCareTeamReasons();
 
+    List<ValueSetDto> getPublicationStatuses();
+
+    List<ValueSetDto> getDefinitionTopics();
+
+    List<ValueSetDto> getResourceTypes();
 }

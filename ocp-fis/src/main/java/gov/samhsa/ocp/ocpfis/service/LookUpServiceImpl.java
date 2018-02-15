@@ -468,6 +468,44 @@ public class LookUpServiceImpl implements LookUpService {
         return reasonCodes;
     }
 
+
+    @Override
+    public List<ValueSetDto> getPublicationStatuses() {
+        List<ValueSetDto> publicationStatuses = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.PUBLICATION_STATUS.getUrlPath(), LookupPathUrls.PUBLICATION_STATUS.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.PUBLICATION_STATUS.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            publicationStatuses = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + publicationStatuses.size() + " telecom use codes.");
+        return publicationStatuses;
+    }
+
+    @Override
+    public List<ValueSetDto> getDefinitionTopics() {
+        List<ValueSetDto> definitionTopics=new ArrayList<>();
+        ValueSet response=getValueSets(LookupPathUrls.DEFINITION_TOPICS.getUrlPath(),LookupPathUrls.DEFINITION_TOPICS.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.DEFINITION_TOPICS.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            definitionTopics = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + definitionTopics.size() + " telecom use codes.");
+        return definitionTopics;
+    }
+
+    @Override
+    public List<ValueSetDto> getResourceTypes() {
+        List<ValueSetDto> resourceTypes=new ArrayList<>();
+        ValueSet response=getValueSets(LookupPathUrls.RESOURCE_TYPES.getUrlPath(),LookupPathUrls.RESOURCE_TYPES.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.RESOURCE_TYPES.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + resourceTypes.size() + " telecom use codes.");
+        return resourceTypes;
+    }
+
+
     private ValueSet getValueSets(String urlPath, String type) {
 
         ValueSet response;
