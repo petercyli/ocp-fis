@@ -12,6 +12,6 @@ import java.time.Duration;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TimingDto {
-    private int durationMax;
+    private float durationMax;
     private int frequency;
 }
