@@ -468,6 +468,15 @@ public class LookUpServiceImpl implements LookUpService {
         return reasonCodes;
     }
 
+    @Override
+    public List<ValueSetDto> getRelatedPersonPatientRelationshipTypes() {
+        List<ValueSetDto> relationshipTypes;
+        ValueSet response = getValueSets(LookupPathUrls.RELATED_PERSON_PATIENT_RELATIONSHIPTYPES.getUrlPath(), LookupPathUrls.RELATED_PERSON_PATIENT_RELATIONSHIPTYPES.getType());
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        relationshipTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        return relationshipTypes;
+    }
+
     private ValueSet getValueSets(String urlPath, String type) {
 
         ValueSet response;
