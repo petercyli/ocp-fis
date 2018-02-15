@@ -8,6 +8,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.RelatedPersonEnum;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -46,7 +47,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     @Override
-    public PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<RelatedPersonDto> searchRelatedPersons(SearchKeyEnum.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.RelatedPerson.name());
 
         IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class)
