@@ -9,10 +9,10 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
-import gov.samhsa.ocp.ocpfis.service.dto.SearchType;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
@@ -24,7 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
@@ -96,9 +95,9 @@ public class PatientServiceImpl implements PatientService {
             }
         }
 
-        if (type.equalsIgnoreCase(SearchType.NAME.name())) {
+        if (type.equalsIgnoreCase(SearchKeyEnum.SearchType.NAME.name())) {
             PatientSearchQuery.where(new StringClientParam("name").matches().value(value.trim()));
-        } else if (type.equalsIgnoreCase(SearchType.IDENTIFIER.name())) {
+        } else if (type.equalsIgnoreCase(SearchKeyEnum.SearchType.IDENTIFIER.name())) {
             PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(value.trim()));
         } else {
             throw new BadRequestException("Invalid Type Values");
