@@ -48,8 +48,13 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     public PageDto<RelatedPersonDto> searchRelatedPersons(String searchKey, String searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.RelatedPerson.name());
 
-        IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class)
-                .where(new StringClientParam(searchKey).matches().value(searchValue.trim()));
+        IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class);
+
+        if(searchKey.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
+            relatedPersonIQuery.where(new StringClientParam(searchKey).matches().value(searchValue.trim()));
+        } else if (searchKey.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
+            relatedPersonIQuery.where((new TokenClientParam(searchKey).exactly().code(searchValue.trim())));
+        }
 
         Bundle firstPageBundle;
         Bundle otherPageBundle;
