@@ -95,9 +95,9 @@ public class PatientServiceImpl implements PatientService {
             }
         }
 
-        if (type.equalsIgnoreCase(SearchKeyEnum.SearchType.NAME.name())) {
+        if (type.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
             PatientSearchQuery.where(new StringClientParam("name").matches().value(value.trim()));
-        } else if (type.equalsIgnoreCase(SearchKeyEnum.SearchType.IDENTIFIER.name())) {
+        } else if (type.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
             PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(value.trim()));
         } else {
             throw new BadRequestException("Invalid Type Values");

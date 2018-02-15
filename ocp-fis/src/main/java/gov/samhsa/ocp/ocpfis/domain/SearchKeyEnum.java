@@ -2,7 +2,7 @@ package gov.samhsa.ocp.ocpfis.domain;
 
 public class SearchKeyEnum {
 
-    public enum SearchType {
+    public enum CommonSearchKey {
         NAME, IDENTIFIER;
     }
 
