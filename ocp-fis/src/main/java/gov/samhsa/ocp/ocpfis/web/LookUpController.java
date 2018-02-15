@@ -224,4 +224,19 @@ public class LookUpController {
         return lookUpService.getParticipantRoles();
     }
 
+    @GetMapping("/publication-statuses")
+    public List<ValueSetDto> getPublicationStatus(){
+        return lookUpService.getPublicationStatuses();
+    }
+
+    @GetMapping("/definition-topics")
+    public List<ValueSetDto> getDefinitionTopic(){
+        return lookUpService.getDefinitionTopics();
+    }
+
+    @GetMapping("/resource-types")
+    public List<ValueSetDto> getResourceTypes(){
+        return lookUpService.getResourceTypes();
+    }
+
 }
