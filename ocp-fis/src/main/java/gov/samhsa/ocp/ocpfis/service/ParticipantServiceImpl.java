@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -56,7 +57,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             participantsDto = convertPatientsToParticipantsDto(pageDto, participantType);
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
-            PageDto<RelatedPersonDto> pageDto = relatedPersonService.searchRelatedPersons(RelatedPersonController.SearchType.name, value, showInActive, page, size);
+            PageDto<RelatedPersonDto> pageDto = relatedPersonService.searchRelatedPersons(SearchKeyEnum.SearchType.NAME, value, showInActive, page, size);
             participantsDto = convertRelatedPersonsToParticipantsDto(pageDto, participantType);
         }
 
