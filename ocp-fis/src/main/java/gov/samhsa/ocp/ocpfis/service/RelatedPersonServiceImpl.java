@@ -7,13 +7,16 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.RelatedPersonEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.RelatedPersonToRelatedPersonDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.RelatedPersonDtoToRelatedPersonConverter;
+import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.web.RelatedPersonController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -129,6 +132,15 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     private void checkForDuplicates(RelatedPersonDto relatedPersonDto) {
+        Bundle relatedPersonBundle = fhirClient.search().forResource(RelatedPerson.class)
+                .where(RelatedPerson.IDENTIFIER.exactly().systemAndIdentifier(relatedPersonDto.getIdentifierType(), relatedPersonDto.getIdentifierValue()))
+                .returnBundle(Bundle.class)
+                .execute();
+        log.info("Existing RelatedPersons size : " + relatedPersonBundle.getEntry().size());
+
+        if(!relatedPersonBundle.getEntry().isEmpty()) {
+            throw new DuplicateResourceFoundException("RelatedPerson already exists with the given Identifier Type and Identifier Value");
+        }
 
     }
 

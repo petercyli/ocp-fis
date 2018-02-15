@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.service;
+package gov.samhsa.ocp.ocpfis.util;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;

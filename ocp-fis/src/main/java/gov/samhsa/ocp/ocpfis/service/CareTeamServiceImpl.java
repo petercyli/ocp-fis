@@ -18,6 +18,8 @@ import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.CareTeamToCareTeamDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CareTeamDtoToCareTeamConverter;
+import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
@@ -198,8 +200,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
                 //Getting participant start and end date
                 if (participant.getPeriod() != null && !participant.getPeriod().isEmpty()) {
-                    participantDto.setStartDate((participant.getPeriod().getStart() != null) ? convertDateToString(participant.getPeriod().getStart()) : null);
-                    participantDto.setEndDate((participant.getPeriod().getEnd() != null) ? convertDateToString(participant.getPeriod().getEnd()) : null);
+                    participantDto.setStartDate((participant.getPeriod().getStart() != null) ? FhirUtils.convertToString(participant.getPeriod().getStart()) : null);
+                    participantDto.setEndDate((participant.getPeriod().getEnd() != null) ? FhirUtils.convertToString(participant.getPeriod().getEnd()) : null);
                 }
 
                 //Getting participant member and onBehalfof
@@ -284,8 +286,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
             careTeamDto.setParticipants(participantDtos);
             if (careTeam.getPeriod() != null && !careTeam.getPeriod().isEmpty()) {
-                careTeamDto.setStartDate((careTeam.getPeriod().getStart() != null) ? convertDateToString(careTeam.getPeriod().getStart()) : null);
-                careTeamDto.setEndDate((careTeam.getPeriod().getEnd() != null) ? convertDateToString(careTeam.getPeriod().getEnd()) : null);
+                careTeamDto.setStartDate((careTeam.getPeriod().getStart() != null) ? FhirUtils.convertToString(careTeam.getPeriod().getStart()) : null);
+                careTeamDto.setEndDate((careTeam.getPeriod().getEnd() != null) ? FhirUtils.convertToString(careTeam.getPeriod().getEnd()) : null);
             }
             return careTeamDto;
         }).collect(toList());
@@ -367,10 +369,6 @@ public class CareTeamServiceImpl implements CareTeamService {
         return lookupDisplay;
     }
 
-    private String convertDateToString(Date date) {
-        DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
-        return df.format(date);
-    }
 
 
 }

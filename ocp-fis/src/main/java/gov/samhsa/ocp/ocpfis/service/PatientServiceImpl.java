@@ -18,6 +18,8 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -143,7 +145,7 @@ public class PatientServiceImpl implements PatientService {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setActive(Boolean.TRUE);
-            patient.setGender(getPatientGender(patientDto.getGenderCode()));
+            patient.setGender(FhirUtils.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
@@ -168,7 +170,7 @@ public class PatientServiceImpl implements PatientService {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setId(new IdType(patientDto.getId()));
-            patient.setGender(getPatientGender(patientDto.getGenderCode()));
+            patient.setGender(FhirUtils.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
@@ -231,30 +233,6 @@ public class PatientServiceImpl implements PatientService {
         }
         log.info("Total Patients retrieved from Server #" + patientDtos.size());
         return patientDtos;
-    }
-
-    private Enumerations.AdministrativeGender getPatientGender(String codeString) {
-        switch (codeString.toUpperCase()) {
-            case "MALE":
-                return Enumerations.AdministrativeGender.MALE;
-            case "M":
-                return Enumerations.AdministrativeGender.MALE;
-            case "FEMALE":
-                return Enumerations.AdministrativeGender.FEMALE;
-            case "F":
-                return Enumerations.AdministrativeGender.FEMALE;
-            case "OTHER":
-                return Enumerations.AdministrativeGender.OTHER;
-            case "O":
-                return Enumerations.AdministrativeGender.OTHER;
-            case "UNKNOWN":
-                return Enumerations.AdministrativeGender.UNKNOWN;
-            case "UN":
-                return Enumerations.AdministrativeGender.UNKNOWN;
-            default:
-                return Enumerations.AdministrativeGender.UNKNOWN;
-
-        }
     }
 
     private void setIdentifiers(Patient patient, PatientDto patientDto) {

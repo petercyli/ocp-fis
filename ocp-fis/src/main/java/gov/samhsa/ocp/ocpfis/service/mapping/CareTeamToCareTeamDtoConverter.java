@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service.mapping;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.util.FhirUtils;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -74,11 +75,11 @@ public class CareTeamToCareTeamDtoConverter {
         //start and end date
         Period period = careTeam.getPeriod();
         if(period.getStart() != null) {
-            careTeamDto.setStartDate(convertToString(period.getStart()));
+            careTeamDto.setStartDate(FhirUtils.convertToString(period.getStart()));
         }
 
         if(period.getEnd() != null) {
-            careTeamDto.setEndDate(convertToString(period.getEnd()));
+            careTeamDto.setEndDate(FhirUtils.convertToString(period.getEnd()));
         }
 
         for (CareTeam.CareTeamParticipantComponent careTeamParticipantComponent : careTeamParticipantComponentList) {
@@ -132,8 +133,8 @@ public class CareTeamToCareTeamDtoConverter {
                 participantDto.setRoleCode(codingRoleCode.getCode());
             }
 
-            participantDto.setStartDate(convertToString(careTeamParticipantComponent.getPeriod().getStart()));
-            participantDto.setEndDate(convertToString(careTeamParticipantComponent.getPeriod().getEnd()));
+            participantDto.setStartDate(FhirUtils.convertToString(careTeamParticipantComponent.getPeriod().getStart()));
+            participantDto.setEndDate(FhirUtils.convertToString(careTeamParticipantComponent.getPeriod().getEnd()));
 
 
             participantDtos.add(participantDto);
@@ -144,15 +145,7 @@ public class CareTeamToCareTeamDtoConverter {
         return careTeamDto;
     }
 
-    private static String convertToString(Date date) {
-        DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
 
-        if(date != null) {
-            return df.format(date);
-        }
-
-        return "";
-    }
 
 
 }
