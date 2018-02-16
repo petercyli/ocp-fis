@@ -47,12 +47,13 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService{
 
 
     @Override
-    public void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto) {
+    public void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto,String organizationId) {
+
        ActivityDefinition activityDefinition=modelMapper.map(activityDefinitionDto,ActivityDefinition.class);
        activityDefinition.setStatus(Enumerations.PublicationStatus.valueOf(activityDefinitionDto.getStatus().getCode().toUpperCase()));
        activityDefinition.setDate(java.sql.Date.valueOf(activityDefinitionDto.getDate()));
        activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.valueOf(activityDefinitionDto.getKind().getCode().toUpperCase()));
-
+        activityDefinition.setPublisher("Organization/"+organizationId);
        //Relative Artifact
         List<RelatedArtifact> relatedArtifacts=new ArrayList<>();
         if (activityDefinitionDto.getRelatedArtifact()!=null && !activityDefinitionDto.getRelatedArtifact().isEmpty()){
@@ -98,8 +99,8 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService{
         timing.getRepeat().setFrequency(activityDefinitionDto.getTiming().getFrequency());
         activityDefinition.setTiming(timing);
 
-        activityDefinition.setPublisher(activityDefinitionDto.getPublisherReference());
-
         fhirClient.create().resource(activityDefinition).execute();
     }
+
+
 }
