@@ -80,8 +80,11 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService{
 
         //Period
         if(activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("active")){
+            if(activityDefinitionDto.getEffectivePeriod().getStart()!=null){
+                activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getStart()));
+            }else{
             activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-        }
+        }}
 
         if(activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("expired")){
             activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
