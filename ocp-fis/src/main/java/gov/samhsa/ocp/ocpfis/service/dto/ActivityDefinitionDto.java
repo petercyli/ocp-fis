@@ -31,5 +31,5 @@ public class ActivityDefinitionDto {
     private ValueSetDto kind;
 
     private TimingDto timing;
-    private ParticipantDto participant;
+    private ActionParticipantDto participant;
 }
