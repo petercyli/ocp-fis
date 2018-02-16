@@ -470,38 +470,70 @@ public class LookUpServiceImpl implements LookUpService {
 
 
     @Override
-    public List<ValueSetDto> getPublicationStatuses() {
+    public List<ValueSetDto> getPublicationStatus() {
         List<ValueSetDto> publicationStatuses = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.PUBLICATION_STATUS.getUrlPath(), LookupPathUrls.PUBLICATION_STATUS.getType());
         if (isValueSetAvailableInServer(response, LookupPathUrls.PUBLICATION_STATUS.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             publicationStatuses = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
-        log.info("Found " + publicationStatuses.size() + " telecom use codes.");
+        log.info("Found " + publicationStatuses.size() + " publication Status.");
         return publicationStatuses;
     }
 
     @Override
-    public List<ValueSetDto> getDefinitionTopics() {
+    public List<ValueSetDto> getDefinitionTopic() {
         List<ValueSetDto> definitionTopics=new ArrayList<>();
-        ValueSet response=getValueSets(LookupPathUrls.DEFINITION_TOPICS.getUrlPath(),LookupPathUrls.DEFINITION_TOPICS.getType());
-        if (isValueSetAvailableInServer(response, LookupPathUrls.DEFINITION_TOPICS.getType())) {
+        ValueSet response=getValueSets(LookupPathUrls.DEFINITION_TOPIC.getUrlPath(),LookupPathUrls.DEFINITION_TOPIC.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.DEFINITION_TOPIC.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             definitionTopics = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
-        log.info("Found " + definitionTopics.size() + " telecom use codes.");
+        log.info("Found " + definitionTopics.size() + " definition topics.");
         return definitionTopics;
     }
 
     @Override
-    public List<ValueSetDto> getResourceTypes() {
+    public List<ValueSetDto> getResourceType() {
         List<ValueSetDto> resourceTypes=new ArrayList<>();
-        ValueSet response=getValueSets(LookupPathUrls.RESOURCE_TYPES.getUrlPath(),LookupPathUrls.RESOURCE_TYPES.getType());
-        if (isValueSetAvailableInServer(response, LookupPathUrls.RESOURCE_TYPES.getType())) {
+        ValueSet response=getValueSets(LookupPathUrls.RESOURCE_TYPE.getUrlPath(),LookupPathUrls.RESOURCE_TYPE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.RESOURCE_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
-        log.info("Found " + resourceTypes.size() + " telecom use codes.");
+        log.info("Found " + resourceTypes.size() + " resource types.");
+        return resourceTypes;
+    }
+
+    @Override
+    public List<ValueSetDto> getActionParticipantRole() {
+        List<ValueSetDto> resourceTypes=new ArrayList<>();
+        ValueSet practitionerRoleResponse = getValueSets(LookupPathUrls.PRACTITIONER_ROLE.getUrlPath(), LookupPathUrls.PRACTITIONER_ROLE.getType());
+        if (isValueSetAvailableInServer(practitionerRoleResponse, LookupPathUrls.PRACTITIONER_ROLE.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = practitionerRoleResponse.getExpansion().getContains();
+            resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+
+        List<ValueSetDto> relatedPersonRelatedTypes=new ArrayList<>();
+        ValueSet relatedPersonRelationshipTypeResponse=getValueSets(LookupPathUrls.RELATEDPERSON_RELATIONSHIPTYPE.getUrlPath(),LookupPathUrls.RELATEDPERSON_RELATIONSHIPTYPE.getType());
+        if (isValueSetAvailableInServer(relatedPersonRelationshipTypeResponse, LookupPathUrls.RELATEDPERSON_RELATIONSHIPTYPE.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = relatedPersonRelationshipTypeResponse.getExpansion().getContains();
+            relatedPersonRelatedTypes= valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        resourceTypes.addAll(relatedPersonRelatedTypes);
+        log.info("Found " + resourceTypes.size() + " action participation roles.");
+        return resourceTypes;
+    }
+
+    @Override
+    public List<ValueSetDto> getActionParticipantType() {
+        List<ValueSetDto> resourceTypes=new ArrayList<>();
+        ValueSet response=getValueSets(LookupPathUrls.ACTION_PARTICIPATION_TYPE.getUrlPath(),LookupPathUrls.ACTION_PARTICIPATION_TYPE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.ACTION_PARTICIPATION_TYPE.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + resourceTypes.size() + " action participation types.");
         return resourceTypes;
     }
 

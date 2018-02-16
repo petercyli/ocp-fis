@@ -224,19 +224,28 @@ public class LookUpController {
         return lookUpService.getParticipantRoles();
     }
 
-    @GetMapping("/publication-statuses")
+    @GetMapping("/publication-status")
     public List<ValueSetDto> getPublicationStatus(){
-        return lookUpService.getPublicationStatuses();
+        return lookUpService.getPublicationStatus();
     }
 
-    @GetMapping("/definition-topics")
+    @GetMapping("/definition-topic")
     public List<ValueSetDto> getDefinitionTopic(){
-        return lookUpService.getDefinitionTopics();
+        return lookUpService.getDefinitionTopic();
     }
 
-    @GetMapping("/resource-types")
-    public List<ValueSetDto> getResourceTypes(){
-        return lookUpService.getResourceTypes();
+    @GetMapping("/resource-type")
+    public List<ValueSetDto> getResourceType(){
+        return lookUpService.getResourceType();
     }
 
+    @GetMapping("/action-participant-role")
+    public List<ValueSetDto> getActionParticipantRole(){
+        return lookUpService.getActionParticipantRole();
+    }
+
+    @GetMapping("/action-participant-type")
+    public List<ValueSetDto> getActionParticipantType(){
+        return lookUpService.getActionParticipantType();
+    }
 }
