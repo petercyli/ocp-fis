@@ -259,26 +259,32 @@ public class PatientServiceImpl implements PatientService {
         List<Extension> extensionList = new ArrayList<>();
 
         //language
-        //TODO: Check the codeSystem value
-        Coding langCoding = createCoding(CODING_SYSTEM_LANGUAGE, patientDto.getLanguage());
-        Extension langExtension = createExtension(EXTENSION_URL_LANGUAGE, new CodeableConcept().addCoding(langCoding));
-        extensionList.add(langExtension);
+        if(patientDto.getLanguage() != null && !patientDto.getLanguage().isEmpty()) {
+            Coding langCoding = createCoding(CODING_SYSTEM_LANGUAGE, patientDto.getLanguage());
+            Extension langExtension = createExtension(EXTENSION_URL_LANGUAGE, new CodeableConcept().addCoding(langCoding));
+            extensionList.add(langExtension);
+        }
 
         //race
-        Coding raceCoding = createCoding(CODING_SYSTEM_RACE, patientDto.getRace());
-        Extension raceExtension = createExtension(EXTENSION_URL_RACE, new CodeableConcept().addCoding(raceCoding));
-        extensionList.add(raceExtension);
-        //add other extensions to the list
+        if(patientDto.getRace() != null && !patientDto.getRace().isEmpty()) {
+            Coding raceCoding = createCoding(CODING_SYSTEM_RACE, patientDto.getRace());
+            Extension raceExtension = createExtension(EXTENSION_URL_RACE, new CodeableConcept().addCoding(raceCoding));
+            extensionList.add(raceExtension);
+        }
 
         //ethnicity
-        Coding ethnicityCoding = createCoding(CODING_SYSTEM_ETHNICITY, patientDto.getEthnicity());
-        Extension ethnicityExtension = createExtension(EXTENSION_URL_ETHNICITY, new CodeableConcept().addCoding(ethnicityCoding));
-        extensionList.add(ethnicityExtension);
+        if(patientDto.getEthnicity() != null && !patientDto.getEthnicity().isEmpty()) {
+            Coding ethnicityCoding = createCoding(CODING_SYSTEM_ETHNICITY, patientDto.getEthnicity());
+            Extension ethnicityExtension = createExtension(EXTENSION_URL_ETHNICITY, new CodeableConcept().addCoding(ethnicityCoding));
+            extensionList.add(ethnicityExtension);
+        }
 
         //us-core-birthsex
-        Coding birthSexCoding = createCoding(CODING_SYSTEM_BIRTHSEX, patientDto.getBirthSex());
-        Extension birthSexExtension = createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthSexCoding));
-        extensionList.add(birthSexExtension);
+        if(patientDto.getBirthSex() != null && !patientDto.getBirthSex().isEmpty()) {
+            Coding birthSexCoding = createCoding(CODING_SYSTEM_BIRTHSEX, patientDto.getBirthSex());
+            Extension birthSexExtension = createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthSexCoding));
+            extensionList.add(birthSexExtension);
+        }
 
         patient.setExtension(extensionList);
     }
