@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
@@ -50,8 +51,8 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
         IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class);
 
-        if(searchKey.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
-            relatedPersonIQuery.where(new StringClientParam(searchKey).matches().value(searchValue.trim()));
+        if(searchKey.equalsIgnoreCase(SearchKeyEnum.RelatedPersonSearchKey.PATIENTID.name())) {
+            relatedPersonIQuery.where(new ReferenceClientParam("patient").hasId("Patient/" + searchValue));
         } else if (searchKey.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
             relatedPersonIQuery.where((new TokenClientParam(searchKey).exactly().code(searchValue.trim())));
         }
