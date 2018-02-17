@@ -515,8 +515,8 @@ public class LookUpServiceImpl implements LookUpService {
         }
 
         List<ValueSetDto> relatedPersonRelatedTypes=new ArrayList<>();
-        ValueSet relatedPersonRelationshipTypeResponse=getValueSets(LookupPathUrls.RELATEDPERSON_RELATIONSHIPTYPE.getUrlPath(),LookupPathUrls.RELATEDPERSON_RELATIONSHIPTYPE.getType());
-        if (isValueSetAvailableInServer(relatedPersonRelationshipTypeResponse, LookupPathUrls.RELATEDPERSON_RELATIONSHIPTYPE.getType())) {
+        ValueSet relatedPersonRelationshipTypeResponse=getValueSets(LookupPathUrls.RELATEDPERSON_RELATIONSHIP_TYPE.getUrlPath(),LookupPathUrls.RELATEDPERSON_RELATIONSHIP_TYPE.getType());
+        if (isValueSetAvailableInServer(relatedPersonRelationshipTypeResponse, LookupPathUrls.RELATEDPERSON_RELATIONSHIP_TYPE.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = relatedPersonRelationshipTypeResponse.getExpansion().getContains();
             relatedPersonRelatedTypes= valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
