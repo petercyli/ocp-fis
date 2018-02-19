@@ -28,6 +28,8 @@ public enum LookupPathUrls {
     RESOURCE_TYPE("resource type",Constants.RESOURCE_TYPE_PATH),
     RELATEDPERSON_RELATIONSHIP_TYPE("related person relationship type",Constants.RELATEDPERSON_RELATIONSHIPTYPE_PATH),
     ACTION_PARTICIPATION_TYPE("action participation type",Constants.ACTION_PARTICIPATION_TYPE_PATH);
+    PARTICIPANT_ROLE("participant role", Constants.PARTICIPANT_ROLE_PATH),
+    RELATED_PERSON_PATIENT_RELATIONSHIPTYPES("related person patient relationship type", Constants.RELATED_PERSON_PATIENT_RELATIONSHIP_PATH);
 
     private final String type;
     private final String urlPath;
@@ -72,6 +74,7 @@ public enum LookupPathUrls {
         static final String RESOURCE_TYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/resource-types";
         static final String RELATEDPERSON_RELATIONSHIPTYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/relatedperson-relationshiptype";
         static final String ACTION_PARTICIPATION_TYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/action-participant-type";
+        static final String RELATED_PERSON_PATIENT_RELATIONSHIP_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/relatedperson-relationshiptype";
     }
 
 }

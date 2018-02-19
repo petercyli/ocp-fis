@@ -72,4 +72,6 @@ public interface LookUpService {
 
     List<ValueSetDto> getActionParticipantType();
 
+    List<ValueSetDto> getRelatedPersonPatientRelationshipTypes();
+
 }

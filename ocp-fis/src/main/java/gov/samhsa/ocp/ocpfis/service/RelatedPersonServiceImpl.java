@@ -7,7 +7,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
-import gov.samhsa.ocp.ocpfis.domain.RelatedPersonEnum;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -17,7 +17,6 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.RelatedPersonToRelatedPersonDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.RelatedPersonDtoToRelatedPersonConverter;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
-import gov.samhsa.ocp.ocpfis.web.RelatedPersonController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
@@ -46,11 +45,16 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     @Override
-    public PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<RelatedPersonDto> searchRelatedPersons(String searchKey, String searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.RelatedPerson.name());
 
-        IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class)
-                .where(new StringClientParam("name").matches().value(searchValue.trim()));
+        IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class);
+
+        if(searchKey.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
+            relatedPersonIQuery.where(new StringClientParam(searchKey).matches().value(searchValue.trim()));
+        } else if (searchKey.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
+            relatedPersonIQuery.where((new TokenClientParam(searchKey).exactly().code(searchValue.trim())));
+        }
 
         Bundle firstPageBundle;
         Bundle otherPageBundle;
