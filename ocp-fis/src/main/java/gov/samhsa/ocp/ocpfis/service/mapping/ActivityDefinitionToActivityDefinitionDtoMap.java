@@ -26,7 +26,7 @@ public class ActivityDefinitionToActivityDefinitionDtoMap extends PropertyMap<Ac
         map().setDescription(source.getDescription());
         map().setTitle(source.getTitle());
         map().setVersion(source.getVersion());
-        map().setPublisherReference(source.getPublisher());
+        map().setPublisher(source.getPublisher());
         using(codeableConceptListToValueSetDtoConverter).map(source.getTopic()).setTopic(null);
         using(relatedArtifactListToValueSetDtoListConverter).map(source.getRelatedArtifact()).setRelatedArtifact(null);
     }

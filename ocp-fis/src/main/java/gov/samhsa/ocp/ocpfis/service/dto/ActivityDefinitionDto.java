@@ -26,7 +26,7 @@ public class ActivityDefinitionDto {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private String date;
-    private String publisherReference;
+    private String publisher;
     private String description;
 
     private PeriodDto effectivePeriod;
