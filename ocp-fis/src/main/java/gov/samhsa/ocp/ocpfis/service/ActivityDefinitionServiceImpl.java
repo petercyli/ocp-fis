@@ -4,31 +4,25 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
-import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
-import ca.uhn.fhir.rest.gclient.StringClientParam;
-import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
-import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
-import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
-import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
-import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.Reference;
-import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.RelatedArtifact;
 import org.hl7.fhir.dstu3.model.RelatedArtifact.RelatedArtifactType;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Timing;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -39,14 +33,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import java.util.ArrayList;
-import java.util.List;
 
 import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
 public class ActivityDefinitionServiceImpl implements ActivityDefinitionService {
+
     private final ModelMapper modelMapper;
 
     private final IGenericClient fhirClient;
@@ -65,15 +58,16 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
     }
+
     @Override
-    public PageDto<ActivityDefinitionDto> getAllActivityDefinitionsByOrganization(String organizationResourceId, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize){
+    public PageDto<ActivityDefinitionDto> getAllActivityDefinitionsByOrganization(String organizationResourceId, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfActivityDefinitionsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.ActivityDefinition.name());
 
         Bundle firstPageActivityDefinitionSearchBundle;
         Bundle otherPageActivityDefinitionSearchBundle;
         boolean firstPage = true;
 
-        IQuery activityDefinitionsSearchQuery = fhirClient.search().forResource(ActivityDefinition.class).where(new StringClientParam("publisher").matches().value("Organization/"+organizationResourceId));
+        IQuery activityDefinitionsSearchQuery = fhirClient.search().forResource(ActivityDefinition.class).where(new StringClientParam("publisher").matches().value("Organization/" + organizationResourceId));
 
         // Check if there are any additional search criteria
         activityDefinitionsSearchQuery = addAdditionalSearchConditions(activityDefinitionsSearchQuery, searchKey, searchValue);
@@ -101,7 +95,8 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         List<Bundle.BundleEntryComponent> retrievedActivityDefinitions = otherPageActivityDefinitionSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<ActivityDefinitionDto> activityDefinitionsList = retrievedActivityDefinitions.stream().map(aa -> convertActivityDefinitionBundleEntryToActivityDefinitionDto(aa)).collect(Collectors.toList());
+        List<ActivityDefinitionDto> activityDefinitionsList = retrievedActivityDefinitions.stream().map(aa -> convertActivityDefinitionBundleEntryToActivityDefinitionDto(aa)).collect(toList());
+
         double totalPages = Math.ceil((double) otherPageActivityDefinitionSearchBundle.getTotal() / numberOfActivityDefinitionsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
@@ -122,7 +117,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             try {
                 activityDefinition.setDate(FhirUtils.convertToDate(activityDefinitionDto.getDate()));
             } catch (ParseException e) {
-              throw new BadRequestException("Invalid date was given.");
+                throw new BadRequestException("Invalid date was given.");
             }
             activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.valueOf(activityDefinitionDto.getKind().getCode().toUpperCase()));
             activityDefinition.setPublisher("Organization/" + organizationId);
@@ -173,7 +168,10 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             timing.getRepeat().setFrequency(activityDefinitionDto.getTiming().getFrequency());
             activityDefinition.setTiming(timing);
 
-        fhirClient.create().resource(activityDefinition).execute();
+            fhirClient.create().resource(activityDefinition).execute();
+        } else {
+            throw new DuplicateResourceFoundException("Duplicate Activity Definition is already present.");
+        }
     }
 
     private IQuery addAdditionalSearchConditions(IQuery activityDefinitionsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
@@ -203,16 +201,21 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     private ActivityDefinitionDto convertActivityDefinitionBundleEntryToActivityDefinitionDto(Bundle.BundleEntryComponent fhirActivityDefinitionModel) {
         ActivityDefinitionDto tempActivityDefinitionDto = modelMapper.map(fhirActivityDefinitionModel.getResource(), ActivityDefinitionDto.class);
         tempActivityDefinitionDto.setLogicalId(fhirActivityDefinitionModel.getResource().getIdElement().getIdPart());
-
-        return tempActivityDefinitionDto;
-    }
-
-
-
-            fhirClient.create().resource(activityDefinition).execute();
-        } else {
-            throw new DuplicateResourceFoundException("Duplicate Activity Definition is already present.");
+        ActivityDefinition activityDefinition= (ActivityDefinition) fhirActivityDefinitionModel.getResource();
+        tempActivityDefinitionDto.getStatus().setCode(activityDefinition.getStatus().toCode());
+        tempActivityDefinitionDto.getKind().setCode(activityDefinition.getKind().toCode());
+        try {
+            if((activityDefinition.getTimingTiming()!=null)|| !activityDefinition.getTimingTiming().isEmpty()) {
+                if((activityDefinition.getTimingTiming().getRepeat() !=null ||!(activityDefinition.getTimingTiming().getRepeat().isEmpty())))
+                {
+                    tempActivityDefinitionDto.getTiming().setDurationMax((activityDefinition.getTimingTiming().getRepeat().getDurationMax()).floatValue());
+                    tempActivityDefinitionDto.getTiming().setFrequency(activityDefinition.getTimingTiming().getRepeat().getFrequency());
+                }
+            }
+        } catch (FHIRException e) {
+            throw new BadRequestException("Invalid duration max.");
         }
+        return tempActivityDefinitionDto;
     }
 
     private boolean isDuplicate(ActivityDefinitionDto activityDefinitionDto, String organizationid) {
@@ -227,6 +230,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         }
         return false;
     }
+
 
     private boolean isDuplicateWithNamePublisherKindAndStatus(ActivityDefinitionDto activityDefinitionDto, String organizationid) {
         Bundle duplicateCheckWithNamePublisherAndStatusBundle = (Bundle) fhirClient.search().forResource(ActivityDefinition.class)

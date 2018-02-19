@@ -9,15 +9,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class ActivityDefinitionToActivityDefinitionDtoMap extends PropertyMap<ActivityDefinition, ActivityDefinitionDto>{
 
-    private final CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter;
-    private final CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter;
+    private final RelatedArtifactListToValueSetListDtoConverter relatedArtifactListToValueSetListDtoConverter;
+    private final CodeableConceptListToValueSetDtoConverter codeableConceptListToValueSetDtoConverter;
 
 
     @Autowired
-    public ActivityDefinitionToActivityDefinitionDtoMap(CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter, CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter) {
+    public ActivityDefinitionToActivityDefinitionDtoMap(CodeableConceptListToValueSetDtoConverter codeableConceptListToValueSetDtoConverter, RelatedArtifactListToValueSetListDtoConverter relatedArtifactListToValueSetListDtoConverter) {
 
-        this.codeableConceptToValueSetDtoConverter = codeableConceptToValueSetDtoConverter;
-        this.codeableConceptListToValueSetDtoListConverter = codeableConceptListToValueSetDtoListConverter;
+        this.relatedArtifactListToValueSetListDtoConverter = relatedArtifactListToValueSetListDtoConverter;
+        this.codeableConceptListToValueSetDtoConverter = codeableConceptListToValueSetDtoConverter;
     }
 
     @Override
@@ -26,9 +26,8 @@ public class ActivityDefinitionToActivityDefinitionDtoMap extends PropertyMap<Ac
         map().setDescription(source.getDescription());
         map().setTitle(source.getTitle());
         map().setVersion(source.getVersion());
-        //using(codeableConceptToValueSetDtoConverter).map(source.getStatus()).setStatus(null);
-        //using(codeableConceptToValueSetDtoConverter).map(source.getTopic()).setTopic(null);
-        //using(codeableConceptToValueSetDtoConverter).map(source.getKind()).setKind(null);
-        //using(codeableConceptListToValueSetDtoListConverter).map(source.getRelatedArtifact()).setRelatedArtifact(null);
+        map().setPublisherReference(source.getPublisher());
+        using(codeableConceptListToValueSetDtoConverter).map(source.getTopic()).setTopic(null);
+        using(relatedArtifactListToValueSetListDtoConverter).map(source.getRelatedArtifact()).setRelatedArtifact(null);
     }
 }

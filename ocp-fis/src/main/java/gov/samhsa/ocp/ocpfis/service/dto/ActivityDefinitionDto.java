@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
@@ -33,6 +34,7 @@ public class ActivityDefinitionDto {
     private List<ValueSetDto> relatedArtifact;
     private ValueSetDto kind;
 
+    @NotNull
     private TimingDto timing;
     private ActionParticipantDto participant;
 }
