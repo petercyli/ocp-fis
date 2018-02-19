@@ -26,7 +26,7 @@ public class ActivityDefinitionController {
     }
 
     @GetMapping("/organizations/{organizationId}/activity-definitions")
-    public PageDto<ActivityDefinitionDto> getAllHealthcareServicesByOrganization(@PathVariable String organizationId,
+    public PageDto<ActivityDefinitionDto> getAllActivityDefinitionsByOrganization(@PathVariable String organizationId,
                                                                                  @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                                                  @RequestParam(value = "searchValue") Optional<String> searchValue,
                                                                                  @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
