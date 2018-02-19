@@ -10,7 +10,7 @@ import java.util.List;
 
 
 @Component
-public class RelatedArtifactListToValueSetListDtoConverter extends AbstractConverter<List<RelatedArtifact>, List<ValueSetDto>> {
+public class RelatedArtifactListToValueSetDtoListConverter extends AbstractConverter<List<RelatedArtifact>, List<ValueSetDto>> {
 
     @Override
     protected List<ValueSetDto> convert(List<RelatedArtifact> source) {

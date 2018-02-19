@@ -9,14 +9,14 @@ import org.springframework.stereotype.Component;
 @Component
 public class ActivityDefinitionToActivityDefinitionDtoMap extends PropertyMap<ActivityDefinition, ActivityDefinitionDto>{
 
-    private final RelatedArtifactListToValueSetListDtoConverter relatedArtifactListToValueSetListDtoConverter;
+    private final RelatedArtifactListToValueSetDtoListConverter relatedArtifactListToValueSetDtoListConverter;
     private final CodeableConceptListToValueSetDtoConverter codeableConceptListToValueSetDtoConverter;
 
 
     @Autowired
-    public ActivityDefinitionToActivityDefinitionDtoMap(CodeableConceptListToValueSetDtoConverter codeableConceptListToValueSetDtoConverter, RelatedArtifactListToValueSetListDtoConverter relatedArtifactListToValueSetListDtoConverter) {
+    public ActivityDefinitionToActivityDefinitionDtoMap(CodeableConceptListToValueSetDtoConverter codeableConceptListToValueSetDtoConverter, RelatedArtifactListToValueSetDtoListConverter relatedArtifactListToValueSetDtoListConverter) {
 
-        this.relatedArtifactListToValueSetListDtoConverter = relatedArtifactListToValueSetListDtoConverter;
+        this.relatedArtifactListToValueSetDtoListConverter = relatedArtifactListToValueSetDtoListConverter;
         this.codeableConceptListToValueSetDtoConverter = codeableConceptListToValueSetDtoConverter;
     }
 
@@ -28,6 +28,6 @@ public class ActivityDefinitionToActivityDefinitionDtoMap extends PropertyMap<Ac
         map().setVersion(source.getVersion());
         map().setPublisherReference(source.getPublisher());
         using(codeableConceptListToValueSetDtoConverter).map(source.getTopic()).setTopic(null);
-        using(relatedArtifactListToValueSetListDtoConverter).map(source.getRelatedArtifact()).setRelatedArtifact(null);
+        using(relatedArtifactListToValueSetDtoListConverter).map(source.getRelatedArtifact()).setRelatedArtifact(null);
     }
 }
