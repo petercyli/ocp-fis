@@ -42,12 +42,14 @@ public class RelatedPersonController {
     }
 
     @GetMapping("/search")
-    public PageDto<RelatedPersonDto> getRelatedPersons(@RequestParam String searchKey,
-                                                       @RequestParam String searchValue,
+    public PageDto<RelatedPersonDto> getRelatedPersons(
+                                                       @RequestParam String patientId,
+                                                       @RequestParam Optional<String> searchKey,
+                                                       @RequestParam Optional<String> searchValue,
                                                        @RequestParam Optional<Boolean> showInActive,
                                                        @RequestParam Optional<Integer> pageNumber,
                                                        @RequestParam Optional<Integer> pageSize) {
-        return relatedPersonService.searchRelatedPersons(searchKey, searchValue, showInActive, pageNumber, pageSize);
+        return relatedPersonService.searchRelatedPersons(patientId, searchKey, searchValue, showInActive, pageNumber, pageSize);
     }
 
     @GetMapping("/{relatedPersonId}")
