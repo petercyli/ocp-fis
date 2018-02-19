@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +15,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ActivityDefinitionDto {
     private String logicalId;
     private String version;
@@ -21,7 +23,8 @@ public class ActivityDefinitionDto {
     private String title;
     private ValueSetDto status;
 
-    private LocalDate date;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
+    private String date;
     private String publisherReference;
     private String description;
 
@@ -31,5 +34,5 @@ public class ActivityDefinitionDto {
     private ValueSetDto kind;
 
     private TimingDto timing;
-    private ParticipantDto participant;
+    private ActionParticipantDto participant;
 }

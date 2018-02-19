@@ -23,6 +23,10 @@ public enum LookupPathUrls {
     CARE_TEAM_REASON_CODE("care team reason", Constants.CARE_TEAM_REASON_CODE),
     CARE_TEAM_STATUS("care team status", Constants.CARE_TEAM_STATUS_PATH),
     PARTICIPANT_ROLE("participant role", Constants.PARTICIPANT_ROLE_PATH),
+    PUBLICATION_STATUS("publication status",Constants.PUBLICATION_STATUS_PATH),
+    DEFINITION_TOPIC("definition topic",Constants.DEFINITION_TOPIC_PATH),
+    RESOURCE_TYPE("resource type",Constants.RESOURCE_TYPE_PATH),
+    ACTION_PARTICIPATION_TYPE("action participation type",Constants.ACTION_PARTICIPATION_TYPE_PATH),
     RELATED_PERSON_PATIENT_RELATIONSHIPTYPES("related person patient relationship type", Constants.RELATED_PERSON_PATIENT_RELATIONSHIP_PATH);
 
     private final String type;
@@ -63,6 +67,10 @@ public enum LookupPathUrls {
         static final String CARE_TEAM_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-status";
         static final String CARE_TEAM_REASON_CODE = "/ValueSet/clinical-findings";
         static final String PARTICIPANT_ROLE_PATH = "/ValueSet/us-core-careteam-provider-roles";
+        static final String PUBLICATION_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/publication-status";
+        static final String DEFINITION_TOPIC_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/definition-topic";
+        static final String RESOURCE_TYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/resource-types";
+        static final String ACTION_PARTICIPATION_TYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/action-participant-type";
         static final String RELATED_PERSON_PATIENT_RELATIONSHIP_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/relatedperson-relationshiptype";
     }
 
