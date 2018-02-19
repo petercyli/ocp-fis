@@ -36,6 +36,8 @@ ocp-fis:
   careTeam:
     pagination:
       default-size: 20
+  activityDefinition:
+    version: 1
 ---
 # updates configuration for docker environment
 spring.profiles: docker

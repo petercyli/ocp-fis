@@ -9,6 +9,5 @@ public interface ActivityDefinitionService {
 
     PageDto<ActivityDefinitionDto> getAllActivityDefinitionsByOrganization(String organizationResourceId, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
 
-
-    void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto);
+    void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto,String organizationId);
 }
