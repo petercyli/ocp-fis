@@ -6,7 +6,9 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
+import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -19,6 +21,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,12 +53,19 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
     @Override
     public void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId) {
-
         if (!isDuplicate(activityDefinitionDto, organizationId)) {
-            ActivityDefinition activityDefinition = modelMapper.map(activityDefinitionDto, ActivityDefinition.class);
+            ActivityDefinition activityDefinition = new ActivityDefinition();
+            activityDefinition.setName(activityDefinitionDto.getName());
+            activityDefinition.setTitle(activityDefinitionDto.getTitle());
+            activityDefinition.setDescription(activityDefinitionDto.getDescription());
+
             activityDefinition.setVersion(fisProperties.getActivityDefinition().getVersion());
             activityDefinition.setStatus(Enumerations.PublicationStatus.valueOf(activityDefinitionDto.getStatus().getCode().toUpperCase()));
-            activityDefinition.setDate(java.sql.Date.valueOf(activityDefinitionDto.getDate()));
+            try {
+                activityDefinition.setDate(FhirUtils.convertToDate(activityDefinitionDto.getDate()));
+            } catch (ParseException e) {
+              throw new BadRequestException("Invalid date was given.");
+            }
             activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.valueOf(activityDefinitionDto.getKind().getCode().toUpperCase()));
             activityDefinition.setPublisher("Organization/" + organizationId);
 
