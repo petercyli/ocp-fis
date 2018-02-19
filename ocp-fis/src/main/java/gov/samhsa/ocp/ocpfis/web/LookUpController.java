@@ -258,4 +258,9 @@ public class LookUpController {
     public List<ValueSetDto> getTaskStatus(){
         return lookUpService.getTaskStatus();
     }
+
+    @GetMapping("/request-priority")
+    public List<ValueSetDto> getRequestPriority(){
+        return lookUpService.getRequestPriority();
+    }
 }

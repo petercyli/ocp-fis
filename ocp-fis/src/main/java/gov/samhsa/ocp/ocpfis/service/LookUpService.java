@@ -76,4 +76,6 @@ public interface LookUpService {
 
     List<ValueSetDto> getTaskStatus();
 
+    List<ValueSetDto> getRequestPriority();
+
 }

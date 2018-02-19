@@ -483,8 +483,18 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response=getValueSets(LookupPathUrls.TASK_STATUS.getUrlPath(), LookupPathUrls.TASK_STATUS.getType());
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
         taskStatus=valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + taskStatus.size() + " CareTeam reason codes.");
+        log.info("Found " + taskStatus.size() + " task statuses.");
         return taskStatus;
+    }
+
+    @Override
+    public List<ValueSetDto> getRequestPriority() {
+        List<ValueSetDto> requestPriority;
+        ValueSet response=getValueSets(LookupPathUrls.REQUEST_PRIORITY.getUrlPath(), LookupPathUrls.REQUEST_PRIORITY.getType());
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        requestPriority=valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + requestPriority.size() + " task statuses.");
+        return requestPriority;
     }
 
 
