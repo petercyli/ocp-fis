@@ -24,7 +24,6 @@ public class FisProperties {
     @Valid
     private Fhir fhir;
 
-
     @NotNull
     @Valid
     private ActivityDefinition activityDefinition;
@@ -57,10 +56,6 @@ public class FisProperties {
     @Valid
     private CareTeam careTeam;
 
-    @NotNull
-    @Valid
-    private ActivityDefinition activityDefinition;
-
     @Data
     public static class Fhir {
 
@@ -78,6 +73,10 @@ public class FisProperties {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ActivityDefinition {
+
+        @NotNull
+        private String version;
+
         @Valid
         private Pagination pagination = new Pagination();
 
@@ -226,17 +225,5 @@ public class FisProperties {
             private int maxSize = 50;
         }
     }
-
-    @Data
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class ActivityDefinition {
-
-        @NotNull
-        private String version;
-
-    }
-
 }
 
