@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.web;
 
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.RelatedPersonService;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
@@ -41,12 +42,12 @@ public class RelatedPersonController {
     }
 
     @GetMapping("/search")
-    public PageDto<RelatedPersonDto> getRelatedPersons(@RequestParam RelatedPersonController.SearchType searchType,
+    public PageDto<RelatedPersonDto> getRelatedPersons(@RequestParam String searchKey,
                                                        @RequestParam String searchValue,
                                                        @RequestParam Optional<Boolean> showInActive,
                                                        @RequestParam Optional<Integer> pageNumber,
                                                        @RequestParam Optional<Integer> pageSize) {
-        return relatedPersonService.searchRelatedPersons(searchType, searchValue, showInActive, pageNumber, pageSize);
+        return relatedPersonService.searchRelatedPersons(searchKey, searchValue, showInActive, pageNumber, pageSize);
     }
 
     @GetMapping("/{relatedPersonId}")

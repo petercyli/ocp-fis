@@ -224,4 +224,9 @@ public class LookUpController {
         return lookUpService.getParticipantRoles();
     }
 
+    @GetMapping("/related-person-patient-relationship-types")
+    public List<ValueSetDto> getRelatedPersonPatientRelationshipTypes() {
+        return lookUpService.getRelatedPersonPatientRelationshipTypes();
+    }
+
 }
