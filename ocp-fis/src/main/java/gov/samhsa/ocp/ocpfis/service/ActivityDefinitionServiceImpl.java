@@ -7,8 +7,11 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
+import gov.samhsa.ocp.ocpfis.service.dto.ActionParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.TimingDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirUtils;
@@ -202,13 +205,39 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         ActivityDefinitionDto tempActivityDefinitionDto = modelMapper.map(fhirActivityDefinitionModel.getResource(), ActivityDefinitionDto.class);
         tempActivityDefinitionDto.setLogicalId(fhirActivityDefinitionModel.getResource().getIdElement().getIdPart());
         ActivityDefinition activityDefinition= (ActivityDefinition) fhirActivityDefinitionModel.getResource();
+
+        ValueSetDto valueSetDto = new ValueSetDto();
+        tempActivityDefinitionDto.setKind(valueSetDto);
+        tempActivityDefinitionDto.setStatus(valueSetDto);
+
         tempActivityDefinitionDto.getStatus().setCode(activityDefinition.getStatus().toCode());
+
         tempActivityDefinitionDto.getKind().setCode(activityDefinition.getKind().toCode());
+
+        tempActivityDefinitionDto.getEffectivePeriod().setStart(FhirUtils.convertToString(activityDefinition.getEffectivePeriod().getStart()));
+        tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToString(activityDefinition.getEffectivePeriod().getEnd()));
+
+        if(!activityDefinition.getParticipant().isEmpty()) {
+            ActionParticipantDto actionParticipantDto = new ActionParticipantDto();
+            tempActivityDefinitionDto.setParticipant(actionParticipantDto);
+
+            ActivityDefinition.ActivityDefinitionParticipantComponent participantComponent = activityDefinition.getParticipant().stream().findAny().get();
+
+            tempActivityDefinitionDto.getParticipant().setActionTypeCode(participantComponent.getType().toCode());
+            tempActivityDefinitionDto.getParticipant().setActionTypeDisplay(participantComponent.getType().getDisplay());
+
+            tempActivityDefinitionDto.getParticipant().setActionRoleCode(participantComponent.getRole().getCoding().stream().findAny().get().getCode());
+            tempActivityDefinitionDto.getParticipant().setActionRoleDisplay(participantComponent.getRole().getCoding().stream().findAny().get().getDisplay());
+        }
+
+
+        TimingDto timingDto = new TimingDto();
+        tempActivityDefinitionDto.setTiming(timingDto);
         try {
             if((activityDefinition.getTimingTiming()!=null)|| !activityDefinition.getTimingTiming().isEmpty()) {
                 if((activityDefinition.getTimingTiming().getRepeat() !=null ||!(activityDefinition.getTimingTiming().getRepeat().isEmpty())))
                 {
-                    tempActivityDefinitionDto.getTiming().setDurationMax((activityDefinition.getTimingTiming().getRepeat().getDurationMax()).floatValue());
+                    tempActivityDefinitionDto.getTiming().setDurationMax((activityDefinition.getTimingTiming().getRepeat().getDurationMax().floatValue()));
                     tempActivityDefinitionDto.getTiming().setFrequency(activityDefinition.getTimingTiming().getRepeat().getFrequency());
                 }
             }
