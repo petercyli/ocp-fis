@@ -6,6 +6,10 @@ public class SearchKeyEnum {
         NAME, IDENTIFIER;
     }
 
+    public enum RelatedPersonSearchKey {
+        PATIENTID
+    }
+
     public enum LocationSearchKey {
         /**
          * Locations can be searched based on the following keys
