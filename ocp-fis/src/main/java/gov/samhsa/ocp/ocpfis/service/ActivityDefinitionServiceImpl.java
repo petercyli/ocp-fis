@@ -22,8 +22,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
-import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 import static java.util.stream.Collectors.toList;
@@ -64,7 +64,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             try {
                 activityDefinition.setDate(FhirUtils.convertToDate(activityDefinitionDto.getDate()));
             } catch (ParseException e) {
-              throw new BadRequestException("Invalid date was given.");
+                throw new BadRequestException("Invalid date was given.");
             }
             activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.valueOf(activityDefinitionDto.getKind().getCode().toUpperCase()));
             activityDefinition.setPublisher("Organization/" + organizationId);
@@ -96,17 +96,27 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
             //Period
             if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("active")) {
-                if (activityDefinitionDto.getEffectivePeriod().getStart() != null) {
-                    activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getStart()));
-                } else {
-                    activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
+
+                try {
+                    if (activityDefinitionDto.getEffectivePeriod().getStart() != null) {
+                        activityDefinition.getEffectivePeriod().setStart((FhirUtils.convertToDate(activityDefinitionDto.getEffectivePeriod().getStart())));
+                    } else {
+                        activityDefinition.getEffectivePeriod().setStart(FhirUtils.convertToDate(Calendar.getInstance().toString()));
+                    }
+                } catch (ParseException e) {
+                    new BadRequestException("The given date syntax is wrong.");
                 }
+
             }
 
-            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("expired")) {
-                activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
-            } else {
-                activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getEnd()));
+            try {
+                if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("expired")) {
+                    activityDefinition.getEffectivePeriod().setEnd(FhirUtils.convertToDate(Calendar.getInstance().toString()));
+                } else {
+                    activityDefinition.getEffectivePeriod().setEnd(FhirUtils.convertToDate(activityDefinitionDto.getEffectivePeriod().getEnd()));
+                }
+            } catch (ParseException e) {
+                new BadRequestException("The given date syntax is wrong.");
             }
 
             //Timing
