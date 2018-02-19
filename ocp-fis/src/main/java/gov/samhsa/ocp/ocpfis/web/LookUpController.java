@@ -253,4 +253,9 @@ public class LookUpController {
     public List<ValueSetDto> getActionParticipantType(){
         return lookUpService.getActionParticipantType();
     }
+
+    @GetMapping("/task-status")
+    public List<ValueSetDto> getTaskStatus(){
+        return lookUpService.getTaskStatus();
+    }
 }

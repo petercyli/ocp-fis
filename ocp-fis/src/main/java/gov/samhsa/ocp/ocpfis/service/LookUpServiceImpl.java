@@ -477,6 +477,16 @@ public class LookUpServiceImpl implements LookUpService {
         return relationshipTypes;
     }
 
+    @Override
+    public List<ValueSetDto> getTaskStatus() {
+        List<ValueSetDto> taskStatus;
+        ValueSet response=getValueSets(LookupPathUrls.TASK_STATUS.getUrlPath(), LookupPathUrls.TASK_STATUS.getType());
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        taskStatus=valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + taskStatus.size() + " CareTeam reason codes.");
+        return taskStatus;
+    }
+
 
     @Override
     public List<ValueSetDto> getPublicationStatus() {
