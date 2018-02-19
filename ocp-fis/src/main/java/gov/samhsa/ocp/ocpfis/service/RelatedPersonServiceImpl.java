@@ -46,15 +46,19 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     @Override
-    public PageDto<RelatedPersonDto> searchRelatedPersons(String searchKey, String searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<RelatedPersonDto> searchRelatedPersons(String patientId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.RelatedPerson.name());
 
-        IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class);
+        IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class).where(new ReferenceClientParam("patient").hasId("Patient/" + patientId));
 
-        if(searchKey.equalsIgnoreCase(SearchKeyEnum.RelatedPersonSearchKey.PATIENTID.name())) {
-            relatedPersonIQuery.where(new ReferenceClientParam("patient").hasId("Patient/" + searchValue));
-        } else if (searchKey.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
-            relatedPersonIQuery.where((new TokenClientParam(searchKey).exactly().code(searchValue.trim())));
+        if(searchKey.isPresent()) {
+            if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.RelatedPersonSearchKey.NAME.name())) {
+                relatedPersonIQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+
+            } else if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
+                relatedPersonIQuery.where((new TokenClientParam(searchKey.get()).exactly().code(searchValue.get().trim())));
+
+            }
         }
 
         Bundle firstPageBundle;
