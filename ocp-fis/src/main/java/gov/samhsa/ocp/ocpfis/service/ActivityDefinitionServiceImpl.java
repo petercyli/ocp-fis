@@ -206,10 +206,6 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         tempActivityDefinitionDto.setLogicalId(fhirActivityDefinitionModel.getResource().getIdElement().getIdPart());
         ActivityDefinition activityDefinition= (ActivityDefinition) fhirActivityDefinitionModel.getResource();
 
-        ValueSetDto valueSetDto = new ValueSetDto();
-        tempActivityDefinitionDto.setKind(valueSetDto);
-        tempActivityDefinitionDto.setStatus(valueSetDto);
-
         tempActivityDefinitionDto.getStatus().setCode(activityDefinition.getStatus().toCode());
 
         tempActivityDefinitionDto.getKind().setCode(activityDefinition.getKind().toCode());
