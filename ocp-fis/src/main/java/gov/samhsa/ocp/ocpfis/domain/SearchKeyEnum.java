@@ -7,7 +7,7 @@ public class SearchKeyEnum {
     }
 
     public enum RelatedPersonSearchKey {
-        PATIENTID
+        NAME, PATIENTID
     }
 
     public enum LocationSearchKey {
