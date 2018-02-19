@@ -80,4 +80,6 @@ public interface LookUpService {
 
     List<ValueSetDto> getTaskPerformerType();
 
+    List<ValueSetDto> getRequestIntent();
+
 }

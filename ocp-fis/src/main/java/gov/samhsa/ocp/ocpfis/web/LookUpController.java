@@ -268,4 +268,9 @@ public class LookUpController {
     public List<ValueSetDto> getTaskPerformerType(){
         return lookUpService.getTaskPerformerType();
     }
+
+    @GetMapping("/request-intent")
+    public List<ValueSetDto> getRequestIntent(){
+        return lookUpService.getRequestIntent();
+    }
 }

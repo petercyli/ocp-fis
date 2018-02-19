@@ -507,6 +507,16 @@ public class LookUpServiceImpl implements LookUpService {
         return taskPerformerType;
     }
 
+    @Override
+    public List<ValueSetDto> getRequestIntent() {
+        List<ValueSetDto> requestIntent;
+        ValueSet response=getValueSets(LookupPathUrls.REQUEST_INTENT.getUrlPath(), LookupPathUrls.REQUEST_INTENT.getType());
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        requestIntent=valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + requestIntent.size() + " request intents.");
+        return requestIntent;
+    }
+
 
     @Override
     public List<ValueSetDto> getPublicationStatus() {
