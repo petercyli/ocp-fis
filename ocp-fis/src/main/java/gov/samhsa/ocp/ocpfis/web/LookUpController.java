@@ -263,4 +263,9 @@ public class LookUpController {
     public List<ValueSetDto> getRequestPriority(){
         return lookUpService.getRequestPriority();
     }
+
+    @GetMapping("/task-performer-type")
+    public List<ValueSetDto> getTaskPerformerType(){
+        return lookUpService.getTaskPerformerType();
+    }
 }

@@ -78,4 +78,6 @@ public interface LookUpService {
 
     List<ValueSetDto> getRequestPriority();
 
+    List<ValueSetDto> getTaskPerformerType();
+
 }

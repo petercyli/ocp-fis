@@ -493,8 +493,18 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response=getValueSets(LookupPathUrls.REQUEST_PRIORITY.getUrlPath(), LookupPathUrls.REQUEST_PRIORITY.getType());
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
         requestPriority=valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + requestPriority.size() + " task statuses.");
+        log.info("Found " + requestPriority.size() + " request priorities.");
         return requestPriority;
+    }
+
+    @Override
+    public List<ValueSetDto> getTaskPerformerType() {
+        List<ValueSetDto> taskPerformerType;
+        ValueSet response=getValueSets(LookupPathUrls.TASK_PERFORMER_TYPE.getUrlPath(), LookupPathUrls.TASK_PERFORMER_TYPE.getType());
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        taskPerformerType=valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + taskPerformerType.size() + " task performer types.");
+        return taskPerformerType;
     }
 
 
