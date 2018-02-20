@@ -113,6 +113,11 @@ public class PatientServiceImpl implements PatientService {
                 .execute();
         log.debug("Patients Search Query to FHIR Server: END");
 
+        if(firstPagePatientSearchBundle == null || firstPagePatientSearchBundle.getEntry().isEmpty()) {
+            log.info("No patients were found for the given criteria.");
+            return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
+        }
+
         otherPagePatientSearchBundle = firstPagePatientSearchBundle;
         if (page.isPresent() && page.get() > 1 && firstPagePatientSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
             // Load the required page
