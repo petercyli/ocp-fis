@@ -211,7 +211,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
         tempActivityDefinitionDto.getKind().setCode(activityDefinition.getKind().toCode());
 
-        if(!activityDefinition.getEffectivePeriod().isEmpty()) {
+        if(activityDefinition.getEffectivePeriod()!=null && !activityDefinition.getEffectivePeriod().isEmpty()) {
             PeriodDto periodDto = new PeriodDto();
             tempActivityDefinitionDto.setEffectivePeriod(periodDto);
 
@@ -219,7 +219,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
         }
 
-        if(!activityDefinition.getParticipant().isEmpty()) {
+        if(activityDefinition.getParticipant()!=null && !activityDefinition.getParticipant().isEmpty()) {
             ActionParticipantDto actionParticipantDto = new ActionParticipantDto();
             tempActivityDefinitionDto.setParticipant(actionParticipantDto);
 
