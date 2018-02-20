@@ -32,6 +32,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
@@ -154,26 +155,18 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             //Period
             if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("active")) {
 
-                try {
                     if (activityDefinitionDto.getEffectivePeriod().getStart() != null) {
-                        activityDefinition.getEffectivePeriod().setStart((FhirUtils.convertToDate(activityDefinitionDto.getEffectivePeriod().getStart())));
+                        activityDefinition.getEffectivePeriod().setStart((java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getStart())));
                     } else {
-                        activityDefinition.getEffectivePeriod().setStart(FhirUtils.convertToDate(Calendar.getInstance().toString()));
+                        activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(Calendar.getInstance().toString()));
                     }
-                } catch (ParseException e) {
-                    new BadRequestException("The given date syntax is wrong.");
-                }
 
             }
 
-            try {
-                if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("expired")) {
-                    activityDefinition.getEffectivePeriod().setEnd(FhirUtils.convertToDate(Calendar.getInstance().toString()));
-                } else {
-                    activityDefinition.getEffectivePeriod().setEnd(FhirUtils.convertToDate(activityDefinitionDto.getEffectivePeriod().getEnd()));
-                }
-            } catch (ParseException e) {
-                new BadRequestException("The given date syntax is wrong.");
+            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("expired")) {
+                activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
+            } else {
+                activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getEnd()));
             }
 
             //Timing
