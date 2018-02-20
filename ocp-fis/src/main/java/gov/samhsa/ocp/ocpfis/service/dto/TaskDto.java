@@ -14,11 +14,9 @@ import java.time.LocalDate;
 public class TaskDto {
     private String logicalId;
 
-    private String definitionReference;
+    private ReferenceDto definition;
 
-    private String definitionName;
-
-    private String partOf;
+    private ReferenceDto partOf;
 
     private ValueSetDto status;
 
@@ -28,7 +26,7 @@ public class TaskDto {
 
     private String description;
 
-    private String beneficiaryReference;
+    private ReferenceDto beneficiaryReference;
 
     private ContextDto context;
 
@@ -38,11 +36,13 @@ public class TaskDto {
 
     private LocalDate lastModified;
 
-    private String agent;
+    private ReferenceDto agent;
+
+    private ReferenceDto onBehalfOf;
 
     private ValueSetDto performerType;
 
-    private String owner;
+    private ReferenceDto owner;
 
     private String note;
 }
