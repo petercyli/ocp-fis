@@ -64,7 +64,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             try {
                 activityDefinition.setDate(FhirUtils.convertToDate(activityDefinitionDto.getDate()));
             } catch (ParseException e) {
-              throw new BadRequestException("Invalid date was given.");
+                throw new BadRequestException("Invalid date was given.");
             }
             activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.valueOf(activityDefinitionDto.getKind().getCode().toUpperCase()));
             activityDefinition.setPublisher("Organization/" + organizationId);
@@ -82,11 +82,11 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
             //Participant
             CodeableConcept actionParticipantRole = new CodeableConcept();
-            actionParticipantRole.addCoding().setCode(activityDefinitionDto.getParticipant().getActionRoleCode())
-                    .setDisplay(activityDefinitionDto.getParticipant().getActionRoleDisplay())
-                    .setSystem(activityDefinitionDto.getParticipant().getActionRoleSystem());
+            actionParticipantRole.addCoding().setCode(activityDefinitionDto.getActionParticipantRole().getCode())
+                    .setDisplay(activityDefinitionDto.getActionParticipantRole().getDisplay())
+                    .setSystem(activityDefinitionDto.getActionParticipantRole().getSystem());
 
-            activityDefinition.addParticipant().setRole(actionParticipantRole).setType(ActivityDefinition.ActivityParticipantType.valueOf(activityDefinitionDto.getParticipant().getActionTypeCode().toUpperCase()));
+            activityDefinition.addParticipant().setRole(actionParticipantRole).setType(ActivityDefinition.ActivityParticipantType.valueOf(activityDefinitionDto.getActionParticipantType().getCode().toUpperCase()));
 
             //Topic
             CodeableConcept topic = new CodeableConcept();
@@ -103,7 +103,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
                 }
             }
 
-            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("expired")) {
+            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("retired")) {
                 activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
             } else {
                 activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getEnd()));
