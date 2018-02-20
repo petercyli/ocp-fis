@@ -34,6 +34,7 @@ import org.springframework.stereotype.Service;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -153,11 +154,13 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
             //Period
             if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("active")) {
-                if (activityDefinitionDto.getEffectivePeriod().getStart() != null) {
-                    activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getStart()));
-                } else {
-                    activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-                }
+
+                    if (activityDefinitionDto.getEffectivePeriod().getStart() != null) {
+                        activityDefinition.getEffectivePeriod().setStart((java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getStart())));
+                    } else {
+                        activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(Calendar.getInstance().toString()));
+                    }
+
             }
 
             if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("expired")) {

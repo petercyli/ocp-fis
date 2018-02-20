@@ -74,4 +74,12 @@ public interface LookUpService {
 
     List<ValueSetDto> getRelatedPersonPatientRelationshipTypes();
 
+    List<ValueSetDto> getTaskStatus();
+
+    List<ValueSetDto> getRequestPriority();
+
+    List<ValueSetDto> getTaskPerformerType();
+
+    List<ValueSetDto> getRequestIntent();
+
 }

@@ -27,7 +27,11 @@ public enum LookupPathUrls {
     DEFINITION_TOPIC("definition topic",Constants.DEFINITION_TOPIC_PATH),
     RESOURCE_TYPE("resource type",Constants.RESOURCE_TYPE_PATH),
     ACTION_PARTICIPATION_TYPE("action participation type",Constants.ACTION_PARTICIPATION_TYPE_PATH),
-    RELATED_PERSON_PATIENT_RELATIONSHIPTYPES("related person patient relationship type", Constants.RELATED_PERSON_PATIENT_RELATIONSHIP_PATH);
+    RELATED_PERSON_PATIENT_RELATIONSHIPTYPES("related person patient relationship type", Constants.RELATED_PERSON_PATIENT_RELATIONSHIP_PATH),
+    TASK_STATUS("task status",Constants.TASK_STATUS_PATH),
+    REQUEST_PRIORITY("request priority",Constants.REQUEST_PRIORITY_PATH),
+    TASK_PERFORMER_TYPE("task performer type",Constants.TASK_PERFORMER_TYPE_PATH),
+    REQUEST_INTENT("request intent", Constants.REQUEST_INTENT_PATH);
 
     private final String type;
     private final String urlPath;
@@ -72,6 +76,10 @@ public enum LookupPathUrls {
         static final String RESOURCE_TYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/resource-types";
         static final String ACTION_PARTICIPATION_TYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/action-participant-type";
         static final String RELATED_PERSON_PATIENT_RELATIONSHIP_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/relatedperson-relationshiptype";
+        static final String TASK_STATUS_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/task-status";
+        static final String REQUEST_PRIORITY_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/request-priority";
+        static final String TASK_PERFORMER_TYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/task-performer-type";
+        static final String REQUEST_INTENT_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/request-intent";
     }
 
 }

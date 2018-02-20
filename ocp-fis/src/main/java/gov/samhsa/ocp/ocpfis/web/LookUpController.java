@@ -253,4 +253,24 @@ public class LookUpController {
     public List<ValueSetDto> getActionParticipantType(){
         return lookUpService.getActionParticipantType();
     }
+
+    @GetMapping("/task-status")
+    public List<ValueSetDto> getTaskStatus(){
+        return lookUpService.getTaskStatus();
+    }
+
+    @GetMapping("/request-priority")
+    public List<ValueSetDto> getRequestPriority(){
+        return lookUpService.getRequestPriority();
+    }
+
+    @GetMapping("/task-performer-type")
+    public List<ValueSetDto> getTaskPerformerType(){
+        return lookUpService.getTaskPerformerType();
+    }
+
+    @GetMapping("/request-intent")
+    public List<ValueSetDto> getRequestIntent(){
+        return lookUpService.getRequestIntent();
+    }
 }
