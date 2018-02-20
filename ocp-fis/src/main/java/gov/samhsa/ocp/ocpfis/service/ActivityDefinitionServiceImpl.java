@@ -10,6 +10,7 @@ import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActionParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TimingDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
@@ -210,8 +211,13 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
         tempActivityDefinitionDto.getKind().setCode(activityDefinition.getKind().toCode());
 
-        tempActivityDefinitionDto.getEffectivePeriod().setStart(FhirUtils.convertToString(activityDefinition.getEffectivePeriod().getStart()));
-        tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToString(activityDefinition.getEffectivePeriod().getEnd()));
+        if(!activityDefinition.getEffectivePeriod().isEmpty()) {
+            PeriodDto periodDto = new PeriodDto();
+            tempActivityDefinitionDto.setEffectivePeriod(periodDto);
+
+            tempActivityDefinitionDto.getEffectivePeriod().setStart(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getStart()));
+            tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
+        }
 
         if(!activityDefinition.getParticipant().isEmpty()) {
             ActionParticipantDto actionParticipantDto = new ActionParticipantDto();
@@ -230,7 +236,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         TimingDto timingDto = new TimingDto();
         tempActivityDefinitionDto.setTiming(timingDto);
         try {
-            if((activityDefinition.getTimingTiming()!=null)|| !activityDefinition.getTimingTiming().isEmpty()) {
+            if((activityDefinition.getTimingTiming()!=null) && !activityDefinition.getTimingTiming().isEmpty()) {
                 if((activityDefinition.getTimingTiming().getRepeat() !=null ||!(activityDefinition.getTimingTiming().getRepeat().isEmpty())))
                 {
                     tempActivityDefinitionDto.getTiming().setDurationMax((activityDefinition.getTimingTiming().getRepeat().getDurationMax().floatValue()));
@@ -238,7 +244,6 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
                 }
             }
         } catch (FHIRException e) {
-            throw new BadRequestException("Invalid duration max.");
         }
         return tempActivityDefinitionDto;
     }

@@ -17,9 +17,9 @@ public class RelatedArtifactListToValueSetDtoListConverter extends AbstractConve
         ValueSetDto valueSetDto = new ValueSetDto();
         List<ValueSetDto> valueSetDtos = new ArrayList<>();
 
-        if (source != null && source.size() > 0) {
-            int numberOfCategories = source.size();
-            if (numberOfCategories > 0) {
+        if (!source.isEmpty()) {
+            int sourceSize = source.size();
+            if (sourceSize > 0) {
                 source.forEach(coding -> {
                     valueSetDto.setCode(coding.getType().toCode());
                     valueSetDtos.add(valueSetDto);
