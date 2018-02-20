@@ -5,13 +5,15 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class TaskDto {
+    private String logicalId;
+
     private String definitionReference;
 
     private String definitionName;
@@ -26,20 +28,16 @@ public class TaskDto {
 
     private String description;
 
-    private String forReference;
+    private String beneficiaryReference;
 
     private String context;
 
     private PeriodDto executionPeriod;
 
-    private LocalDateTime authoredOn;
+    private LocalDate authoredOn;
 
-    private LocalDateTime lastModified;
+    private LocalDate lastModified;
 
-    //confused
-    private String requester;
-
-    //confused
     private String agent;
 
     private ValueSetDto performerType;
