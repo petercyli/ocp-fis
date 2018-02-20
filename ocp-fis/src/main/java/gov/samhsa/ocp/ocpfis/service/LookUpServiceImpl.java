@@ -546,6 +546,17 @@ public class LookUpServiceImpl implements LookUpService {
         return resourceTypes;
     }
 
+    @Override
+    public List<ValueSetDto> getActivityDefinitionRelatedArtifactTypes() {
+        List<ValueSetDto> resourceTypes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPES.getUrlPath(), LookupPathUrls.ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPES.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPES.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + resourceTypes.size() + " ActivityDefinition related-artifact-types.");
+        return resourceTypes;
+    }
 
     private ValueSet getValueSets(String urlPath, String type) {
 

@@ -74,4 +74,6 @@ public interface LookUpService {
 
     List<ValueSetDto> getRelatedPersonPatientRelationshipTypes();
 
+    List<ValueSetDto> getActivityDefinitionRelatedArtifactTypes();
+
 }

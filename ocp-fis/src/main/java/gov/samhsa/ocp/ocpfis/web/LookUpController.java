@@ -253,4 +253,9 @@ public class LookUpController {
     public List<ValueSetDto> getActionParticipantType(){
         return lookUpService.getActionParticipantType();
     }
+
+    @GetMapping("/activity-definition-related-artifact-types")
+    public List<ValueSetDto> getActivityDefinitionRelatedArtifactTypes() {
+        return lookUpService.getActivityDefinitionRelatedArtifactTypes();
+    }
 }
