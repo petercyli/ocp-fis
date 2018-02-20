@@ -37,7 +37,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         this.relatedPersonService = relatedPersonService;
     }
 
-    public PageDto<ParticipantSearchDto> getAllParticipants(ParticipantTypeEnum participantType, String value, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<ParticipantSearchDto> getAllParticipants(String patientId, ParticipantTypeEnum participantType, String value, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size) {
         final String typeCode = participantType.getCode();
 
         PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
@@ -56,7 +56,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             participantsDto = convertPatientsToParticipantsDto(pageDto, participantType);
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
-            PageDto<RelatedPersonDto> pageDto = relatedPersonService.searchRelatedPersons("name", value, showInActive, page, size);
+            PageDto<RelatedPersonDto> pageDto = relatedPersonService.searchRelatedPersons(patientId, Optional.of("name"), Optional.of(value), showInActive, page, size);
             participantsDto = convertRelatedPersonsToParticipantsDto(pageDto, participantType);
         }
 
