@@ -74,7 +74,10 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             if (activityDefinitionDto.getRelatedArtifact() != null && !activityDefinitionDto.getRelatedArtifact().isEmpty()) {
                 activityDefinitionDto.getRelatedArtifact().forEach(relatedArtifactDto -> {
                     RelatedArtifact relatedArtifact = new RelatedArtifact();
-                    relatedArtifact.setType(RelatedArtifactType.valueOf(relatedArtifactDto.getCode().toUpperCase()));
+                    relatedArtifact.setType(RelatedArtifactType.valueOf(relatedArtifactDto.getType()));
+                    relatedArtifact.setDisplay(relatedArtifactDto.getDisplay());
+                    relatedArtifact.setCitation(relatedArtifactDto.getCitation());
+                    relatedArtifact.setUrl(relatedArtifactDto.getUrl());
                     relatedArtifacts.add(relatedArtifact);
                 });
                 activityDefinition.setRelatedArtifact(relatedArtifacts);

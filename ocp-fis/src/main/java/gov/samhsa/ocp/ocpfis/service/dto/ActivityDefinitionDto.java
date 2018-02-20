@@ -7,8 +7,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
-import java.time.Period;
 import java.util.List;
 
 @Data
@@ -30,7 +28,7 @@ public class ActivityDefinitionDto {
 
     private PeriodDto effectivePeriod;
     private ValueSetDto topic;
-    private List<ValueSetDto> relatedArtifact;
+    private List<RelatedArtifactDto> relatedArtifact;
     private ValueSetDto kind;
 
     private TimingDto timing;
