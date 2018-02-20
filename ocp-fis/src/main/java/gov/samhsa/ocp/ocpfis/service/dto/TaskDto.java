@@ -30,7 +30,7 @@ public class TaskDto {
 
     private String beneficiaryReference;
 
-    private String context;
+    private ContextDto context;
 
     private PeriodDto executionPeriod;
 
