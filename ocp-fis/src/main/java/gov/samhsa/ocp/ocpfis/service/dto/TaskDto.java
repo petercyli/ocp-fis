@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,35 +15,60 @@ import java.time.LocalDate;
 public class TaskDto {
     private String logicalId;
 
-    private String definitionReference;
+    //Reference to activity definition
+    private ReferenceDto definition;
 
-    private String definitionName;
+    //Parent task
+    private ReferenceDto partOf;
 
-    private String partOf;
-
+    /*Task Status.
+    *Eg:draft, requested, received, accepted*/
     private ValueSetDto status;
 
+    /*Proposal intent.
+    * Eg:proposal,plan,order */
     private ValueSetDto intent;
 
+    /*Request Priority.
+      *Eg: normal, urgent, asap, stat */
     private ValueSetDto priority;
 
     private String description;
 
-    private String beneficiaryReference;
+    //Patient who benefits from the task
+    private ReferenceDto beneficiary;
 
+    /*Health care event during the task creation.
+      *Assign episodeOf care when ActivityDefinition name="enrollment" */
     private ContextDto context;
 
+    /*Start and end time of execution.
+     * Start date when status is changed to "in-progress"
+     * End date when status is changed to "Completed"*/
     private PeriodDto executionPeriod;
 
+    //Task Creation Date
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private LocalDate authoredOn;
 
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private LocalDate lastModified;
 
-    private String agent;
+    //Creator Practitioner of the task
+    private ReferenceDto agent;
 
+    //Organization the agent is acting for
+    private ReferenceDto onBehalfOf;
+
+    /*TaskPerformerType.
+    Eg:requester | dispatcher | scheduler | performer | monitor | manager | acquirer | reviewer */
     private ValueSetDto performerType;
 
-    private String owner;
+    //Practitioner who perform the task
+    private ReferenceDto owner;
 
+    /*
+    Comments about task. Generally entered by the owner who is assigned to complete the task
+     */
     private String note;
 }
