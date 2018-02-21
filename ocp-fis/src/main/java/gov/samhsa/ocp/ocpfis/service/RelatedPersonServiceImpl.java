@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -68,7 +69,8 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
         firstPageBundle = (Bundle) relatedPersonIQuery.count(numberPerPage).returnBundle(Bundle.class).execute();
 
         if (firstPageBundle == null || firstPageBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No RelatedPerson was found for the given name : " + searchValue);
+            log.info("No RelatedPerson was found for the given criteria");
+            return new PageDto<>(new ArrayList<>(), numberPerPage, 0, 0, 0, 0);
         }
 
         otherPageBundle = firstPageBundle;
