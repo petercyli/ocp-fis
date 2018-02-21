@@ -5,8 +5,6 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
-import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
-import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ContextDto;
@@ -15,26 +13,18 @@ import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirUtils;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
-import gov.samhsa.ocp.ocpfis.service.dto.ContextDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
-import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.Task;
-import org.hl7.fhir.exceptions.FHIRException;
 import org.hl7.fhir.dstu3.model.Annotation;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
-import org.hl7.fhir.dstu3.model.Type;
 import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.dstu3.model.codesystems.TaskStatus;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -42,15 +32,13 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
-
-import static java.util.stream.Collectors.toList;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -125,7 +113,7 @@ public class TaskServiceImpl implements TaskService {
             Task task = (Task) retrievedTask.getResource();
 
             TaskDto taskDto = new TaskDto();
-            ValueSetDto performerTypeDto =  new ValueSetDto();
+            ValueSetDto performerTypeDto = new ValueSetDto();
 
             taskDto.setLogicalId(task.getIdElement().getIdPart());
             taskDto.setDescription(task.getDescription());
@@ -174,39 +162,39 @@ public class TaskServiceImpl implements TaskService {
 
             if (task.hasFor()) {
                 taskDto.setBeneficiary(ReferenceDto.builder()
-                        .reference((task.getFor().getReference() != null && !task.getFor().getReference().isEmpty()) ? task.getFor().getReference(): null)
-                        .display((task.getFor().getDisplay() != null && !task.getFor().getDisplay().isEmpty()) ? task.getFor().getDisplay(): null)
+                        .reference((task.getFor().getReference() != null && !task.getFor().getReference().isEmpty()) ? task.getFor().getReference() : null)
+                        .display((task.getFor().getDisplay() != null && !task.getFor().getDisplay().isEmpty()) ? task.getFor().getDisplay() : null)
                         .build());
             }
 
             if (task.hasRequester()) {
-                if(task.getRequester().hasOnBehalfOf())
-                taskDto.setOnBehalfOf(ReferenceDto.builder()
-                        .reference((task.getRequester().getOnBehalfOf().getReference() != null && !task.getRequester().getOnBehalfOf().getReference().isEmpty()) ? task.getRequester().getOnBehalfOf().getReference(): null)
-                        .display((task.getRequester().getOnBehalfOf().getDisplay() != null && !task.getRequester().getOnBehalfOf().getDisplay().isEmpty()) ? task.getRequester().getOnBehalfOf().getDisplay(): null)
-                        .build());
+                if (task.getRequester().hasOnBehalfOf())
+                    taskDto.setOnBehalfOf(ReferenceDto.builder()
+                            .reference((task.getRequester().getOnBehalfOf().getReference() != null && !task.getRequester().getOnBehalfOf().getReference().isEmpty()) ? task.getRequester().getOnBehalfOf().getReference() : null)
+                            .display((task.getRequester().getOnBehalfOf().getDisplay() != null && !task.getRequester().getOnBehalfOf().getDisplay().isEmpty()) ? task.getRequester().getOnBehalfOf().getDisplay() : null)
+                            .build());
             }
 
             if (task.hasRequester()) {
-                if(task.getRequester().hasAgent())
+                if (task.getRequester().hasAgent())
                     taskDto.setAgent(ReferenceDto.builder()
-                            .reference((task.getRequester().getAgent().getReference() != null && !task.getRequester().getAgent().getReference().isEmpty()) ? task.getRequester().getOnBehalfOf().getReference(): null)
-                            .display((task.getRequester().getAgent().getDisplay() != null && !task.getRequester().getAgent().getDisplay().isEmpty()) ? task.getRequester().getOnBehalfOf().getDisplay(): null)
+                            .reference((task.getRequester().getAgent().getReference() != null && !task.getRequester().getAgent().getReference().isEmpty()) ? task.getRequester().getOnBehalfOf().getReference() : null)
+                            .display((task.getRequester().getAgent().getDisplay() != null && !task.getRequester().getAgent().getDisplay().isEmpty()) ? task.getRequester().getOnBehalfOf().getDisplay() : null)
                             .build());
             }
 
             if (task.hasOwner()) {
-                    taskDto.setOwner(ReferenceDto.builder()
-                            .reference((task.getOwner().getReference() != null && !task.getOwner().getReference().isEmpty()) ? task.getOwner().getReference(): null)
-                            .display((task.getOwner().getDisplay() != null && !task.getOwner().getDisplay().isEmpty()) ? task.getOwner().getDisplay(): null)
-                            .build());
+                taskDto.setOwner(ReferenceDto.builder()
+                        .reference((task.getOwner().getReference() != null && !task.getOwner().getReference().isEmpty()) ? task.getOwner().getReference() : null)
+                        .display((task.getOwner().getDisplay() != null && !task.getOwner().getDisplay().isEmpty()) ? task.getOwner().getDisplay() : null)
+                        .build());
             }
 
             if (task.hasDefinition()) {
                 try {
                     taskDto.setDefinition(ReferenceDto.builder()
-                            .reference((task.hasDefinitionReference()) ? task.getDefinitionReference().getReference(): null)
-                            .display((task.hasDefinitionReference()) ? task.getDefinitionReference().getDisplay(): null)
+                            .reference((task.hasDefinitionReference()) ? task.getDefinitionReference().getReference() : null)
+                            .display((task.hasDefinitionReference()) ? task.getDefinitionReference().getDisplay() : null)
                             .build());
                 } catch (FHIRException e) {
                 }
@@ -218,19 +206,19 @@ public class TaskServiceImpl implements TaskService {
                         .build());
             }
 
-            if(task.hasLastModified() ) {
+            if (task.hasLastModified()) {
                 taskDto.setLastModified(FhirUtils.convertToLocalDate(task.getLastModified()));
             }
 
-            if(task.hasAuthoredOn()) {
+            if (task.hasAuthoredOn()) {
                 taskDto.setAuthoredOn(FhirUtils.convertToLocalDate(task.getAuthoredOn()));
             }
 
-            if(task.getExecutionPeriod()!=null && !task.getExecutionPeriod().isEmpty()) {
+            if (task.getExecutionPeriod() != null && !task.getExecutionPeriod().isEmpty()) {
                 PeriodDto periodDto = new PeriodDto();
                 taskDto.setExecutionPeriod(periodDto);
-                taskDto.getExecutionPeriod().setStart((task.getExecutionPeriod().hasStart()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getStart()): null);
-                taskDto.getExecutionPeriod().setEnd((task.getExecutionPeriod().hasEnd()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getEnd()): null);
+                taskDto.getExecutionPeriod().setStart((task.getExecutionPeriod().hasStart()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
+                taskDto.getExecutionPeriod().setEnd((task.getExecutionPeriod().hasEnd()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getEnd()) : null);
             }
 
             return taskDto;
@@ -246,12 +234,12 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public void createTask(TaskDto taskDto) {
-        if(!isDuplicate(taskDto)) {
+        if (!isDuplicate(taskDto)) {
             Task task = setTaskDtoToTask(taskDto);
 
             //Checking activity definition for enrollment and creating context with Episode of care
             if (taskDto.getDefinition().getDisplay().equalsIgnoreCase("Enrollment")) {
-                EpisodeOfCare episodeOfCare=createEpisodeOfCare(taskDto);
+                EpisodeOfCare episodeOfCare = createEpisodeOfCare(taskDto);
                 MethodOutcome methodOutcome = fhirClient.create().resource(episodeOfCare).execute();
                 Reference contextReference = new Reference();
                 task.setContext(contextReference.setReference("EpisodeOfCare/" + methodOutcome.getId().getIdPart()));
@@ -261,14 +249,14 @@ public class TaskServiceImpl implements TaskService {
             task.setAuthoredOn(java.sql.Date.valueOf(LocalDate.now()));
 
             fhirClient.create().resource(task).execute();
-        }else{
+        } else {
             throw new DuplicateResourceFoundException("Duplicate task is already present.");
         }
     }
 
     @Override
     public void updateTask(String taskId, TaskDto taskDto) {
-        Task task=setTaskDtoToTask(taskDto);
+        Task task = setTaskDtoToTask(taskDto);
         task.setId(taskId);
 
         if (taskDto.getDefinition().getDisplay().equalsIgnoreCase("Enrollment")) {
@@ -278,16 +266,15 @@ public class TaskServiceImpl implements TaskService {
                     .execute();
 
             Task existingTask = (Task) taskBundle.getEntry().get(0).getResource();
-            if(!existingTask.hasContext()){
-                EpisodeOfCare episodeOfCare=createEpisodeOfCare(taskDto);
+            if (!existingTask.hasContext()) {
+                EpisodeOfCare episodeOfCare = createEpisodeOfCare(taskDto);
                 MethodOutcome methodOutcome = fhirClient.create().resource(episodeOfCare).execute();
                 Reference contextReference = new Reference();
                 task.setContext(contextReference.setReference("EpisodeOfCare/" + methodOutcome.getId().getIdPart()));
-            }
-            else {
+            } else {
                 EpisodeOfCare episodeOfCare = createEpisodeOfCare(taskDto);
                 episodeOfCare.setId(existingTask.getContext().getReference().split("/")[1]);
-                MethodOutcome methodOutcome=fhirClient.update().resource(episodeOfCare).execute();
+                MethodOutcome methodOutcome = fhirClient.update().resource(episodeOfCare).execute();
                 Reference contextReference = new Reference();
                 task.setContext(contextReference.setReference("EpisodeOfCare/" + methodOutcome.getId().getIdPart()));
             }
@@ -307,23 +294,23 @@ public class TaskServiceImpl implements TaskService {
         return lookupDisplay;
     }
 
-    private Reference getReferenceValue(ReferenceDto referenceDto){
-        Reference reference=new Reference();
+    private Reference getReferenceValue(ReferenceDto referenceDto) {
+        Reference reference = new Reference();
         reference.setDisplay(referenceDto.getDisplay());
         reference.setReference(referenceDto.getReference());
         return reference;
     }
 
-    private boolean isDuplicate(TaskDto taskDto){
-        Bundle taskForPatientbundle= (Bundle) fhirClient.search().forResource(Task.class)
+    private boolean isDuplicate(TaskDto taskDto) {
+        Bundle taskForPatientbundle = (Bundle) fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(taskDto.getBeneficiary().getReference()))
                 .returnBundle(Bundle.class)
                 .execute();
 
-        List<Bundle.BundleEntryComponent> duplicateCheckList=new ArrayList<>();
-        if(!taskForPatientbundle.isEmpty()){
-            duplicateCheckList= taskForPatientbundle.getEntry().stream().filter(taskResource->{
-                Task task= (Task) taskResource.getResource();
+        List<Bundle.BundleEntryComponent> duplicateCheckList = new ArrayList<>();
+        if (!taskForPatientbundle.isEmpty()) {
+            duplicateCheckList = taskForPatientbundle.getEntry().stream().filter(taskResource -> {
+                Task task = (Task) taskResource.getResource();
                 try {
                     return task.getDefinitionReference().getReference().equalsIgnoreCase(taskDto.getDefinition().getReference());
 
@@ -332,26 +319,31 @@ public class TaskServiceImpl implements TaskService {
                 }
             }).collect(Collectors.toList());
         }
-        if(duplicateCheckList.isEmpty()){
+        if (duplicateCheckList.isEmpty()) {
             return false;
-        }else{
+        } else {
             return true;
         }
     }
 
 
-    private Task setTaskDtoToTask(TaskDto taskDto){
-        Task task=new Task();
+    private Task setTaskDtoToTask(TaskDto taskDto) {
+        Task task = new Task();
         task.setDefinition(getReferenceValue(taskDto.getDefinition()));
-        List<Reference> partOfReferences = new ArrayList<>();
-        partOfReferences.add(getReferenceValue(taskDto.getPartOf()));
-        task.setPartOf(partOfReferences);
+
+        if(taskDto.getPartOf()!=null) {
+            List<Reference> partOfReferences = new ArrayList<>();
+            partOfReferences.add(getReferenceValue(taskDto.getPartOf()));
+            task.setPartOf(partOfReferences);
+        }
 
         task.setStatus(Task.TaskStatus.valueOf(taskDto.getStatus().getCode().toUpperCase()));
         task.setIntent(Task.TaskIntent.valueOf(taskDto.getIntent().getCode().toUpperCase()));
         task.setPriority(Task.TaskPriority.valueOf(taskDto.getPriority().getCode().toUpperCase()));
 
-        task.setDescription(taskDto.getDescription());
+        if(taskDto.getDescription()!=null && !taskDto.getDescription().isEmpty()){
+            task.setDescription(taskDto.getDescription());
+        }
 
         task.setFor(getReferenceValue(taskDto.getBeneficiary()));
 
@@ -365,6 +357,11 @@ public class TaskServiceImpl implements TaskService {
 
         //Set agent
         task.getRequester().setAgent(getReferenceValue(taskDto.getAgent()));
+
+        //Set on Behalf of
+        if(taskDto.getOnBehalfOf()!=null){
+            task.getRequester().setOnBehalfOf(getReferenceValue(taskDto.getOnBehalfOf()));
+        }
 
         //Set PerformerType
         if (taskDto.getPerformerType() != null) {
@@ -391,7 +388,7 @@ public class TaskServiceImpl implements TaskService {
         return task;
     }
 
-    private EpisodeOfCare createEpisodeOfCare(TaskDto taskDto){
+    private EpisodeOfCare createEpisodeOfCare(TaskDto taskDto) {
         EpisodeOfCare episodeOfCare = new EpisodeOfCare();
         episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
 

@@ -25,9 +25,6 @@ import javax.validation.Valid;
 @RestController
 public class TaskController {
 
-    @Autowired
-    private TaskService taskService;
-
     @GetMapping("/tasks/search")
     public PageDto<TaskDto> getTasks(@RequestParam Optional<List<String>> statusList,
                                      @RequestParam(value = "searchKey") String searchKey,
@@ -50,4 +47,6 @@ public class TaskController {
     public void updateTask(@PathVariable String taskId, @Valid @RequestBody TaskDto taskDto){
         taskService.updateTask(taskId,taskDto);
     }
+
+
 }
