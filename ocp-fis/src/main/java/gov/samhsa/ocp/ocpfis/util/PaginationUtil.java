@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.service;
+package gov.samhsa.ocp.ocpfis.util;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
@@ -39,6 +39,10 @@ public final class PaginationUtil {
         int numberOfResourcesPerPage = 0;
 
         switch (resource.toUpperCase()) {
+            case "ACTIVITYDEFINITION":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getActivityDefinition().getPagination().getMaxSize()).orElse(fisProperties.getActivityDefinition().getPagination().getDefaultSize());
+                break;
             case "LOCATION":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());

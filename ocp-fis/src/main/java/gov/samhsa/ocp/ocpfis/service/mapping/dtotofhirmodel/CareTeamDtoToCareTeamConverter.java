@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.util.FhirUtils;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -43,8 +44,8 @@ public class CareTeamDtoToCareTeamConverter {
 
         //start and end date
         Period period = new Period();
-        period.setStart(convertToDate(careTeamDto.getStartDate()));
-        period.setEnd(convertToDate(careTeamDto.getEndDate()));
+        period.setStart(FhirUtils.convertToDate(careTeamDto.getStartDate()));
+        period.setEnd(FhirUtils.convertToDate(careTeamDto.getEndDate()));
         careTeam.setPeriod(period);
 
         //ReasonCode
@@ -82,8 +83,8 @@ public class CareTeamDtoToCareTeamConverter {
             careTeamParticipant.setRole(codeableConceptRoleCode);
 
             Period participantPeriod = new Period();
-            participantPeriod.setStart(convertToDate(participantDto.getStartDate()));
-            participantPeriod.setEnd(convertToDate(participantDto.getEndDate()));
+            participantPeriod.setStart(FhirUtils.convertToDate(participantDto.getStartDate()));
+            participantPeriod.setEnd(FhirUtils.convertToDate(participantDto.getEndDate()));
             careTeamParticipant.setPeriod(participantPeriod);
 
             participantsList.add(careTeamParticipant);
@@ -95,15 +96,7 @@ public class CareTeamDtoToCareTeamConverter {
         return careTeam;
     }
 
-    private static Date convertToDate(String dateString) throws ParseException {
-        DateFormat format = new SimpleDateFormat("MM/dd/yyyy", Locale.US);
-        if(dateString != null) {
-            Date date = format.parse(dateString);
-            return date;
-        }
 
-        return null;
-    }
 
 
 }

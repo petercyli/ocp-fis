@@ -9,20 +9,21 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
-import gov.samhsa.ocp.ocpfis.service.dto.SearchType;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
@@ -94,9 +95,9 @@ public class PatientServiceImpl implements PatientService {
             }
         }
 
-        if (type.equalsIgnoreCase(SearchType.NAME.name())) {
+        if (type.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
             PatientSearchQuery.where(new StringClientParam("name").matches().value(value.trim()));
-        } else if (type.equalsIgnoreCase(SearchType.IDENTIFIER.name())) {
+        } else if (type.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
             PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(value.trim()));
         } else {
             throw new BadRequestException("Invalid Type Values");
@@ -143,7 +144,7 @@ public class PatientServiceImpl implements PatientService {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setActive(Boolean.TRUE);
-            patient.setGender(getPatientGender(patientDto.getGenderCode()));
+            patient.setGender(FhirUtils.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
@@ -168,7 +169,7 @@ public class PatientServiceImpl implements PatientService {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setId(new IdType(patientDto.getId()));
-            patient.setGender(getPatientGender(patientDto.getGenderCode()));
+            patient.setGender(FhirUtils.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
@@ -233,30 +234,6 @@ public class PatientServiceImpl implements PatientService {
         return patientDtos;
     }
 
-    private Enumerations.AdministrativeGender getPatientGender(String codeString) {
-        switch (codeString.toUpperCase()) {
-            case "MALE":
-                return Enumerations.AdministrativeGender.MALE;
-            case "M":
-                return Enumerations.AdministrativeGender.MALE;
-            case "FEMALE":
-                return Enumerations.AdministrativeGender.FEMALE;
-            case "F":
-                return Enumerations.AdministrativeGender.FEMALE;
-            case "OTHER":
-                return Enumerations.AdministrativeGender.OTHER;
-            case "O":
-                return Enumerations.AdministrativeGender.OTHER;
-            case "UNKNOWN":
-                return Enumerations.AdministrativeGender.UNKNOWN;
-            case "UN":
-                return Enumerations.AdministrativeGender.UNKNOWN;
-            default:
-                return Enumerations.AdministrativeGender.UNKNOWN;
-
-        }
-    }
-
     private void setIdentifiers(Patient patient, PatientDto patientDto) {
         patient.setId(new IdType(patientDto.getId()));
         patientDto.getIdentifier()
@@ -282,26 +259,32 @@ public class PatientServiceImpl implements PatientService {
         List<Extension> extensionList = new ArrayList<>();
 
         //language
-        //TODO: Check the codeSystem value
-        Coding langCoding = createCoding(CODING_SYSTEM_LANGUAGE, patientDto.getLanguage());
-        Extension langExtension = createExtension(EXTENSION_URL_LANGUAGE, new CodeableConcept().addCoding(langCoding));
-        extensionList.add(langExtension);
+        if(patientDto.getLanguage() != null && !patientDto.getLanguage().isEmpty()) {
+            Coding langCoding = createCoding(CODING_SYSTEM_LANGUAGE, patientDto.getLanguage());
+            Extension langExtension = createExtension(EXTENSION_URL_LANGUAGE, new CodeableConcept().addCoding(langCoding));
+            extensionList.add(langExtension);
+        }
 
         //race
-        Coding raceCoding = createCoding(CODING_SYSTEM_RACE, patientDto.getRace());
-        Extension raceExtension = createExtension(EXTENSION_URL_RACE, new CodeableConcept().addCoding(raceCoding));
-        extensionList.add(raceExtension);
-        //add other extensions to the list
+        if(patientDto.getRace() != null && !patientDto.getRace().isEmpty()) {
+            Coding raceCoding = createCoding(CODING_SYSTEM_RACE, patientDto.getRace());
+            Extension raceExtension = createExtension(EXTENSION_URL_RACE, new CodeableConcept().addCoding(raceCoding));
+            extensionList.add(raceExtension);
+        }
 
         //ethnicity
-        Coding ethnicityCoding = createCoding(CODING_SYSTEM_ETHNICITY, patientDto.getEthnicity());
-        Extension ethnicityExtension = createExtension(EXTENSION_URL_ETHNICITY, new CodeableConcept().addCoding(ethnicityCoding));
-        extensionList.add(ethnicityExtension);
+        if(patientDto.getEthnicity() != null && !patientDto.getEthnicity().isEmpty()) {
+            Coding ethnicityCoding = createCoding(CODING_SYSTEM_ETHNICITY, patientDto.getEthnicity());
+            Extension ethnicityExtension = createExtension(EXTENSION_URL_ETHNICITY, new CodeableConcept().addCoding(ethnicityCoding));
+            extensionList.add(ethnicityExtension);
+        }
 
         //us-core-birthsex
-        Coding birthSexCoding = createCoding(CODING_SYSTEM_BIRTHSEX, patientDto.getBirthSex());
-        Extension birthSexExtension = createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthSexCoding));
-        extensionList.add(birthSexExtension);
+        if(patientDto.getBirthSex() != null && !patientDto.getBirthSex().isEmpty()) {
+            Coding birthSexCoding = createCoding(CODING_SYSTEM_BIRTHSEX, patientDto.getBirthSex());
+            Extension birthSexExtension = createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthSexCoding));
+            extensionList.add(birthSexExtension);
+        }
 
         patient.setExtension(extensionList);
     }

@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -13,7 +14,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
-import gov.samhsa.ocp.ocpfis.web.RelatedPersonController;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +37,7 @@ public class ParticipantServiceImpl implements ParticipantService {
         this.relatedPersonService = relatedPersonService;
     }
 
-    public PageDto<ParticipantSearchDto> getAllParticipants(ParticipantTypeEnum participantType, String value, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<ParticipantSearchDto> getAllParticipants(String patientId, ParticipantTypeEnum participantType, String value, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size) {
         final String typeCode = participantType.getCode();
 
         PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
@@ -56,7 +56,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             participantsDto = convertPatientsToParticipantsDto(pageDto, participantType);
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
-            PageDto<RelatedPersonDto> pageDto = relatedPersonService.searchRelatedPersons(RelatedPersonController.SearchType.name, value, showInActive, page, size);
+            PageDto<RelatedPersonDto> pageDto = relatedPersonService.searchRelatedPersons(patientId, Optional.of("name"), Optional.of(value), showInActive, page, size);
             participantsDto = convertRelatedPersonsToParticipantsDto(pageDto, participantType);
         }
 
@@ -194,7 +194,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
             memberDto.setFirstName(Optional.of(dto.getFirstName()));
             memberDto.setLastName(Optional.of(dto.getLastName()));
-            memberDto.setId(dto.getId());
+            memberDto.setId(dto.getRelatedPersonId());
             memberDto.setType(participantType.getCode());
 
             participantSearchDto.setMember(memberDto);

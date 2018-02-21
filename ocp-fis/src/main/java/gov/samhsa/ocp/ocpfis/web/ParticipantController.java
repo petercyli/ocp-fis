@@ -23,12 +23,13 @@ public class ParticipantController {
     }
 
     @GetMapping("/search")
-    public PageDto<ParticipantSearchDto> getAllParticipants(@RequestParam(value = "member") ParticipantTypeEnum member,
+    public PageDto<ParticipantSearchDto> getAllParticipants(@RequestParam(value = "patientId") String patientId,
+                                                            @RequestParam(value = "member") ParticipantTypeEnum member,
                                                             @RequestParam(value = "value") String value,
                                                             @RequestParam(value = "showInActive", defaultValue = "false") Optional<Boolean> showInActive,
                                                             @RequestParam(value = "page", required = false) Optional<Integer> page,
                                                             @RequestParam(value = "size", required = false) Optional<Integer> size) {
-        return participantService.getAllParticipants(member, value, showInActive, page, size);
+        return participantService.getAllParticipants(patientId, member, value, showInActive, page, size);
     }
 
 }

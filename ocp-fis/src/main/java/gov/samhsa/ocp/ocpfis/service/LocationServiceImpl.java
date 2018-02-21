@@ -13,13 +13,14 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
-import gov.samhsa.ocp.ocpfis.service.dto.SearchKeyEnum;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -345,7 +346,7 @@ public class LocationServiceImpl implements LocationService {
 
     private void checkForDuplicateLocationBasedOnIdentifiersDuringCreate(LocationDto locationDto) {
         List<IdentifierDto> identifiersList = locationDto.getIdentifiers();
-        log.info("Current locationDto has " + identifiersList.size() + " identifiers.");
+        log.info("Create Location: Current locationDto has " + identifiersList.size() + " identifiers.");
 
         for (IdentifierDto tempIdentifierDto : identifiersList) {
             String identifierSystem = tempIdentifierDto.getSystem();
@@ -365,7 +366,7 @@ public class LocationServiceImpl implements LocationService {
 
     private void checkForDuplicateLocationBasedOnIdentifiersDuringUpdate(String locationId, LocationDto locationDto) {
         List<IdentifierDto> identifiersList = locationDto.getIdentifiers();
-        log.info("Current locationDto has " + identifiersList.size() + " identifiers.");
+        log.info("Update Location: Current locationDto has " + identifiersList.size() + " identifiers.");
 
         for (IdentifierDto tempIdentifierDto : identifiersList) {
             String identifierSystem = tempIdentifierDto.getSystem();
@@ -381,8 +382,8 @@ public class LocationServiceImpl implements LocationService {
         if (bundle != null && bundle.getEntry().size() > 1) {
             throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
         } else if (bundle != null && bundle.getEntry().size() == 1) {
-            LocationDto temp = convertLocationBundleEntryToLocationDto(bundle.getEntry().get(0));
-            if (!temp.getLogicalId().trim().equalsIgnoreCase(locationId.trim())) {
+            String logicalId = bundle.getEntry().get(0).getResource().getIdElement().getIdPart();
+            if (!logicalId.trim().equalsIgnoreCase(locationId.trim())) {
                 throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
             }
         }

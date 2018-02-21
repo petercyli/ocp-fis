@@ -2,22 +2,30 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
-import gov.samhsa.ocp.ocpfis.web.RelatedPersonController;
+import gov.samhsa.ocp.ocpfis.service.mapping.RelatedPersonToRelatedPersonDtoConverter;
+import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.RelatedPersonDtoToRelatedPersonConverter;
+import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.StringType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -27,20 +35,31 @@ import java.util.stream.Collectors;
 public class RelatedPersonServiceImpl implements RelatedPersonService {
 
     private final IGenericClient fhirClient;
+    private final FhirValidator fhirValidator;
     private final FisProperties fisProperties;
 
     @Autowired
-    public RelatedPersonServiceImpl(IGenericClient fhirClient, FisProperties fisProperties) {
+    public RelatedPersonServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.fhirClient = fhirClient;
+        this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
     }
 
     @Override
-    public PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<RelatedPersonDto> searchRelatedPersons(String patientId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.RelatedPerson.name());
 
-        IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class)
-                .where(new StringClientParam("name").matches().value(searchValue.trim()));
+        IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class).where(new ReferenceClientParam("patient").hasId("Patient/" + patientId));
+
+        if(searchKey.isPresent()) {
+            if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.RelatedPersonSearchKey.NAME.name())) {
+                relatedPersonIQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+
+            } else if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
+                relatedPersonIQuery.where((new TokenClientParam(searchKey.get()).exactly().code(searchValue.get().trim())));
+
+            }
+        }
 
         Bundle firstPageBundle;
         Bundle otherPageBundle;
@@ -70,16 +89,6 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
         return new PageDto<>(relatedPersonList, numberPerPage, totalPages, currentPage, relatedPersonList.size(), otherPageBundle.getTotal());
     }
 
-    private RelatedPersonDto convertToRelatedPerson(Bundle.BundleEntryComponent bundleEntryComponent) {
-        RelatedPersonDto dto = new RelatedPersonDto();
-        RelatedPerson relatedPerson = (RelatedPerson) bundleEntryComponent.getResource();
-
-        dto.setId(relatedPerson.getIdElement().getIdPart());
-        dto.setFirstName(convertToString(relatedPerson.getName().stream().findFirst().get().getGiven()));
-        dto.setLastName(checkString(relatedPerson.getName().stream().findFirst().get().getFamily()));
-        return dto;
-    }
-
     @Override
     public RelatedPersonDto getRelatedPersonById(String relatedPersonId) {
         Bundle relatedPersonBundle = fhirClient.search().forResource(RelatedPerson.class)
@@ -87,21 +96,73 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
                 .returnBundle(Bundle.class)
                 .execute();
 
+        if (relatedPersonBundle == null || relatedPersonBundle.getEntry().isEmpty()) {
+            throw new ResourceNotFoundException("No RelatedPerson was found for the given RelatedPersonID : " + relatedPersonId);
+        }
+
         Bundle.BundleEntryComponent relatedPersonBundleEntry = relatedPersonBundle.getEntry().get(0);
         RelatedPerson relatedPerson = (RelatedPerson) relatedPersonBundleEntry.getResource();
-        RelatedPersonDto relatedPersonDto = new RelatedPersonDto();
-        relatedPersonDto.setId(relatedPerson.getIdElement().getIdPart());
-        relatedPersonDto.setFirstName(convertToString(relatedPerson.getName().stream().findFirst().get().getGiven()));
-        relatedPersonDto.setLastName(checkString(relatedPerson.getName().stream().findFirst().get().getFamily()));
 
-        return relatedPersonDto;
+        return RelatedPersonToRelatedPersonDtoConverter.map(relatedPerson);
     }
 
-    private String convertToString(List<StringType> nameList) {
-        return checkString(nameList.stream().findFirst().get().toString());
+    @Override
+    public void createRelatedPerson(RelatedPersonDto relatedPersonDto) {
+        checkForDuplicates(relatedPersonDto);
+        try {
+            final RelatedPerson relatedPerson = RelatedPersonDtoToRelatedPersonConverter.map(relatedPersonDto);
+
+            validate(relatedPerson);
+
+            fhirClient.create().resource(relatedPerson).execute();
+
+        } catch (ParseException e) {
+
+            throw new FHIRClientException("FHIR Client returned with an error while creating a RelatedPerson : " + e.getMessage());
+
+        }
     }
 
-    private String checkString(String string) {
-        return string == null ? "" : string;
+    @Override
+    public void updateRelatedPerson(String relatedPersonId, RelatedPersonDto relatedPersonDto) {
+        relatedPersonDto.setRelatedPersonId(relatedPersonId);
+        try {
+            final RelatedPerson relatedPerson = RelatedPersonDtoToRelatedPersonConverter.map(relatedPersonDto);
+
+            validate(relatedPerson);
+
+            fhirClient.update().resource(relatedPerson).execute();
+
+        } catch (ParseException e) {
+
+            throw new FHIRClientException("FHIR Client returned with an error while creating a RelatedPerson : " + e.getMessage());
+
+        }
     }
+
+    private void checkForDuplicates(RelatedPersonDto relatedPersonDto) {
+        Bundle relatedPersonBundle = fhirClient.search().forResource(RelatedPerson.class)
+                .where(RelatedPerson.IDENTIFIER.exactly().systemAndIdentifier(relatedPersonDto.getIdentifierType(), relatedPersonDto.getIdentifierValue()))
+                .returnBundle(Bundle.class)
+                .execute();
+        log.info("Existing RelatedPersons size : " + relatedPersonBundle.getEntry().size());
+
+        if(!relatedPersonBundle.getEntry().isEmpty()) {
+            throw new DuplicateResourceFoundException("RelatedPerson already exists with the given Identifier Type and Identifier Value");
+        }
+
+    }
+
+    private void validate(RelatedPerson relatedPerson) {
+        final ValidationResult validationResult = fhirValidator.validateWithResult(relatedPerson);
+
+        if (!validationResult.isSuccessful()) {
+            throw new FHIRFormatErrorException("FHIR RelatedPerson validation is not successful" + validationResult.getMessages());
+        }
+    }
+
+    private RelatedPersonDto convertToRelatedPerson(Bundle.BundleEntryComponent bundleEntryComponent) {
+        return RelatedPersonToRelatedPersonDtoConverter.map((RelatedPerson) bundleEntryComponent.getResource());
+    }
+
 }
