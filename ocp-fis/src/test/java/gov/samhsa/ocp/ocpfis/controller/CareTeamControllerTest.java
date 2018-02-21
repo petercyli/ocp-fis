@@ -50,7 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @RunWith(SpringRunner.class)
 @WebMvcTest(value = CareTeamController.class, secure = false)
-//@Ignore("Depends on config-server on bootstrap")
+@Ignore("Depends on config-server on bootstrap")
 public class CareTeamControllerTest {
 
     private static final MediaType APPLICATION_JSON_UTF8 = new MediaType(
