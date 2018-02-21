@@ -97,7 +97,8 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 .execute();
 
         if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Healthcare Services were found in the FHIR server");
+            log.info("No Healthcare Services were found for the given criteria.");
+            return new PageDto<>(new ArrayList<>(), numberOfHealthcareServicesPerPage, 0, 0, 0, 0);
         }
 
         log.info("FHIR Healthcare Service(s) bundle retrieved " + firstPageHealthcareServiceSearchBundle.getTotal() + " Healthcare Service(s) from FHIR server successfully");
