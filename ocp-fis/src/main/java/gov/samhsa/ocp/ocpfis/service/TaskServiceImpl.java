@@ -57,19 +57,19 @@ public class TaskServiceImpl implements TaskService {
         int numberOfTasksPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Task.name());
         IQuery iQuery = fhirClient.search().forResource(Task.class);
 
-        //Check for patient
+        //Check for Patient
         if (searchKey.equalsIgnoreCase("patientId"))
             iQuery.where(new ReferenceClientParam("patient").hasId("Patient/" + searchValue));
 
-        //Check for organization
+        //Check for Organization
         if (searchKey.equalsIgnoreCase("organizationId"))
             iQuery.where(new ReferenceClientParam("organization").hasId("Organization/" + searchValue));
 
-        //Check for task
+        //Check for Task
         if (searchKey.equalsIgnoreCase("taskId"))
             iQuery.where(new TokenClientParam("_id").exactly().code(searchValue));
 
-        //Check for status
+        //Check for Status
         if (statusList.isPresent() && !statusList.get().isEmpty()) {
             iQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         }
@@ -78,7 +78,6 @@ public class TaskServiceImpl implements TaskService {
         Bundle otherPageTaskBundle;
         boolean firstPage = true;
 
-        //Bundle retrieves care team along with its participant and subject
         firstPageTaskBundle = (Bundle) iQuery
                 .count(numberOfTasksPerPage)
                 .returnBundle(Bundle.class)
@@ -103,9 +102,7 @@ public class TaskServiceImpl implements TaskService {
             Task task = (Task) retrievedTask.getResource();
 
             TaskDto taskDto = new TaskDto();
-
             ValueSetDto performerTypeDto =  new ValueSetDto();
-            ReferenceDto partof = new ReferenceDto();
 
             taskDto.setLogicalId(task.getIdElement().getIdPart());
             taskDto.setDescription(task.getDescription());
@@ -166,7 +163,6 @@ public class TaskServiceImpl implements TaskService {
                         .display((task.getRequester().getOnBehalfOf().getDisplay() != null && !task.getRequester().getOnBehalfOf().getDisplay().isEmpty()) ? task.getRequester().getOnBehalfOf().getDisplay(): null)
                         .build());
             }
-
 
             if (task.hasRequester()) {
                 if(task.getRequester().hasAgent())
@@ -234,5 +230,4 @@ public class TaskServiceImpl implements TaskService {
         }
         return lookupDisplay;
     }
-
 }
