@@ -16,6 +16,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -24,6 +25,7 @@ import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -67,7 +69,8 @@ public class OrganizationServiceImpl implements OrganizationService {
                 .execute();
 
         if (firstPageOrganizationSearchBundle == null || firstPageOrganizationSearchBundle.getEntry().size() < 1) {
-            throw new OrganizationNotFoundException("No organizations were found in the FHIR server");
+            log.info("No organizations were found for the given criteria.");
+            return new PageDto<>(new ArrayList<>(), numberOfOrganizationsPerPage, 0, 0, 0, 0);
         }
 
         otherPageOrganizationSearchBundle = firstPageOrganizationSearchBundle;

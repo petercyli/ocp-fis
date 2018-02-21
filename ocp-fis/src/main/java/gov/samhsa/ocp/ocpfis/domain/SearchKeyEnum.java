@@ -1,6 +1,15 @@
-package gov.samhsa.ocp.ocpfis.service.dto;
+package gov.samhsa.ocp.ocpfis.domain;
 
 public class SearchKeyEnum {
+
+    public enum CommonSearchKey {
+        NAME, IDENTIFIER;
+    }
+
+    public enum RelatedPersonSearchKey {
+        NAME, PATIENTID
+    }
+
     public enum LocationSearchKey {
         /**
          * Locations can be searched based on the following keys

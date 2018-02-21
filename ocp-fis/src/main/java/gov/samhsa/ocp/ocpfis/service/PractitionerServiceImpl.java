@@ -18,6 +18,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerRoleNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -86,7 +87,8 @@ public class PractitionerServiceImpl implements PractitionerService {
                 .execute();
 
         if (firstPagePractitionerBundle == null || firstPagePractitionerBundle.getEntry().size() < 1) {
-            throw new PractitionerNotFoundException("No practitioners were found in the FHIR server");
+            log.info("No practitioners were found for the given criteria.");
+            return new PageDto<>(new ArrayList<>(), numberOfPractitionersPerPage, 0, 0, 0, 0);
         }
 
         otherPagePractitionerBundle = firstPagePractitionerBundle;

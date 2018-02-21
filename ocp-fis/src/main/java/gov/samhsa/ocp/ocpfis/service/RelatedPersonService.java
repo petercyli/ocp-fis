@@ -1,15 +1,14 @@
 package gov.samhsa.ocp.ocpfis.service;
 
-import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
-import gov.samhsa.ocp.ocpfis.web.RelatedPersonController;
 
 import java.util.Optional;
 
 public interface RelatedPersonService {
 
-    PageDto<RelatedPersonDto> searchRelatedPersons(RelatedPersonController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize);
+    PageDto<RelatedPersonDto> searchRelatedPersons(String patientId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 
     RelatedPersonDto getRelatedPersonById(String id);
 

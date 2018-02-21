@@ -224,4 +224,53 @@ public class LookUpController {
         return lookUpService.getParticipantRoles();
     }
 
+    @GetMapping("/related-person-patient-relationship-types")
+    public List<ValueSetDto> getRelatedPersonPatientRelationshipTypes() {
+        return lookUpService.getRelatedPersonPatientRelationshipTypes();
+    }
+
+    @GetMapping("/publication-status")
+    public List<ValueSetDto> getPublicationStatus(){
+        return lookUpService.getPublicationStatus();
+    }
+
+    @GetMapping("/definition-topic")
+    public List<ValueSetDto> getDefinitionTopic(){
+        return lookUpService.getDefinitionTopic();
+    }
+
+    @GetMapping("/resource-type")
+    public List<ValueSetDto> getResourceType(){
+        return lookUpService.getResourceType();
+    }
+
+    @GetMapping("/action-participant-role")
+    public List<ValueSetDto> getActionParticipantRole(){
+        return lookUpService.getActionParticipantRole();
+    }
+
+    @GetMapping("/action-participant-type")
+    public List<ValueSetDto> getActionParticipantType(){
+        return lookUpService.getActionParticipantType();
+    }
+
+    @GetMapping("/task-status")
+    public List<ValueSetDto> getTaskStatus(){
+        return lookUpService.getTaskStatus();
+    }
+
+    @GetMapping("/request-priority")
+    public List<ValueSetDto> getRequestPriority(){
+        return lookUpService.getRequestPriority();
+    }
+
+    @GetMapping("/task-performer-type")
+    public List<ValueSetDto> getTaskPerformerType(){
+        return lookUpService.getTaskPerformerType();
+    }
+
+    @GetMapping("/request-intent")
+    public List<ValueSetDto> getRequestIntent(){
+        return lookUpService.getRequestIntent();
+    }
 }

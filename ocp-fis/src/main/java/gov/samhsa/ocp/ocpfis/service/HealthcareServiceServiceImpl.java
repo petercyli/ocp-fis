@@ -13,13 +13,14 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameLogicalIdIdentifiersDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
-import gov.samhsa.ocp.ocpfis.service.dto.SearchKeyEnum;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.HealthcareService;
@@ -96,7 +97,8 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 .execute();
 
         if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Healthcare Services were found in the FHIR server");
+            log.info("No Healthcare Services were found for the given criteria.");
+            return new PageDto<>(new ArrayList<>(), numberOfHealthcareServicesPerPage, 0, 0, 0, 0);
         }
 
         log.info("FHIR Healthcare Service(s) bundle retrieved " + firstPageHealthcareServiceSearchBundle.getTotal() + " Healthcare Service(s) from FHIR server successfully");
