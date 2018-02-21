@@ -1,9 +1,25 @@
 package gov.samhsa.ocp.ocpfis.web;
 
-import org.springframework.web.bind.annotation.RequestMapping;
+import gov.samhsa.ocp.ocpfis.service.TaskService;
+import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+
+import javax.validation.Valid;
 
 @RestController
 public class TaskController {
 
+    @Autowired
+    private TaskService taskService;
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public void createTask(@Valid @RequestBody TaskDto taskDto) {
+        taskService.createTask(taskDto);
+    }
 }
