@@ -16,13 +16,16 @@ public class ContextDto {
 
     private ValueSetDto type;
 
-    private String patient;
+    //Patient who is the focus of this context.
+    private ReferenceDto patient;
 
-    private String managingOrganization;
+    private ReferenceDto managingOrganization;
 
+    //Start date as active when enrollment task is active.
     private PeriodDto period;
 
-    private String referralRequest;
+    private ReferenceDto referralRequest;
 
-    private String careManager;
+    //Practitioner who create the task
+    private ReferenceDto careManager;
 }
