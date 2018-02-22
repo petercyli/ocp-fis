@@ -284,7 +284,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public void deactivateTask(String taskId) {
-        Task task=fhirClient.read().resource(Task.class).withId(taskId.trim()).execute();
+        Task task = fhirClient.read().resource(Task.class).withId(taskId.trim()).execute();
         task.setStatus(Task.TaskStatus.CANCELLED);
         fhirClient.update().resource(task).execute();
     }
@@ -338,7 +338,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = new Task();
         task.setDefinition(getReferenceValue(taskDto.getDefinition()));
 
-        if(taskDto.getPartOf()!=null) {
+        if (taskDto.getPartOf() != null) {
             List<Reference> partOfReferences = new ArrayList<>();
             partOfReferences.add(getReferenceValue(taskDto.getPartOf()));
             task.setPartOf(partOfReferences);
@@ -348,7 +348,7 @@ public class TaskServiceImpl implements TaskService {
         task.setIntent(Task.TaskIntent.valueOf(taskDto.getIntent().getCode().toUpperCase()));
         task.setPriority(Task.TaskPriority.valueOf(taskDto.getPriority().getCode().toUpperCase()));
 
-        if(taskDto.getDescription()!=null && !taskDto.getDescription().isEmpty()){
+        if (taskDto.getDescription() != null && !taskDto.getDescription().isEmpty()) {
             task.setDescription(taskDto.getDescription());
         }
 
@@ -366,7 +366,7 @@ public class TaskServiceImpl implements TaskService {
         task.getRequester().setAgent(getReferenceValue(taskDto.getAgent()));
 
         //Set on Behalf of
-        if(taskDto.getOnBehalfOf()!=null){
+        if (taskDto.getOnBehalfOf() != null) {
             task.getRequester().setOnBehalfOf(getReferenceValue(taskDto.getOnBehalfOf()));
         }
 
