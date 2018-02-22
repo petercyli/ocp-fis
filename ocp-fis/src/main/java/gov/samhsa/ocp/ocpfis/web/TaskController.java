@@ -19,7 +19,7 @@ public class TaskController {
 
     @GetMapping("/tasks/search")
     public PageDto<TaskDto> getTasks(@RequestParam Optional<List<String>> statusList,
-                                     @RequestParam(value = "searchKey") String searchKey,
+                                     @RequestParam(value = "searchType") String searchKey,
                                      @RequestParam(value = "searchValue") String searchValue,
                                      @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                      @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
