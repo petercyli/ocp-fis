@@ -199,6 +199,11 @@ public class LookUpController {
         return lookUpService.getHealthcareServiceReferralMethods();
     }
 
+    @GetMapping("/healthcare-service-statuses")
+    public List<OrganizationStatusDto> getHealthcareServiceStatuses() {
+        return lookUpService.getHealthcareServiceStatuses();
+    }
+
     @GetMapping("/care-team-categories")
     public List<ValueSetDto> getCareTeamCategories() {
         return lookUpService.getCareTeamCategories();

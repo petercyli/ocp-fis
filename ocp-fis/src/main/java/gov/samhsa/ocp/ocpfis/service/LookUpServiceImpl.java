@@ -402,6 +402,13 @@ public class LookUpServiceImpl implements LookUpService {
         return healthcareServiceSpecialitiesCodes;
     }
 
+    @Override
+    public List<OrganizationStatusDto> getHealthcareServiceStatuses() {
+        List<OrganizationStatusDto> healthcareServiceStatuses = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
+        log.info("Found " + healthcareServiceStatuses.size() + " organization status codes.");
+        return healthcareServiceStatuses;
+    }
+
 
     @Override
     public List<ValueSetDto> getHealthcareServiceReferralMethods() {
