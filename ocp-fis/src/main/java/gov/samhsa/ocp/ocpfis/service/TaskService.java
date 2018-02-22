@@ -13,4 +13,6 @@ public interface TaskService {
     void createTask(TaskDto taskDto);
 
     void updateTask(String taskId, TaskDto taskDto);
+
+    void deactivateTask(String taskId);
 }

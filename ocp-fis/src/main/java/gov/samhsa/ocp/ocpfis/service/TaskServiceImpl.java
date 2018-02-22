@@ -282,6 +282,13 @@ public class TaskServiceImpl implements TaskService {
         fhirClient.update().resource(task).execute();
     }
 
+    @Override
+    public void deactivateTask(String taskId) {
+        Task task=fhirClient.read().resource(Task.class).withId(taskId.trim()).execute();
+        task.setStatus(Task.TaskStatus.CANCELLED);
+        fhirClient.update().resource(task).execute();
+    }
+
 
     private Optional<String> getDisplay(String code, Optional<List<ValueSetDto>> lookupValueSets) {
         Optional<String> lookupDisplay = Optional.empty();
