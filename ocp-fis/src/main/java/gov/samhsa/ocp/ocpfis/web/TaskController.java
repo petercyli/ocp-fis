@@ -48,5 +48,11 @@ public class TaskController {
         taskService.updateTask(taskId,taskDto);
     }
 
+    @PutMapping("/tasks/{taskId}/deactivate")
+    @ResponseStatus(HttpStatus.OK)
+    public void deactivateTask(@PathVariable String taskId){
+        taskService.deactivateTask(taskId);
+    }
+
 
 }
