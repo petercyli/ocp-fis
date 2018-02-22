@@ -15,4 +15,6 @@ public interface TaskService {
     void updateTask(String taskId, TaskDto taskDto);
 
     void deactivateTask(String taskId);
+
+    TaskDto getTaskById(String taskId);
 }

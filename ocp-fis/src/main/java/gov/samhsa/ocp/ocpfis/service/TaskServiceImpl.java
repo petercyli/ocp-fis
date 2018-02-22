@@ -25,6 +25,7 @@ import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
+import org.hl7.fhir.dstu3.model.ValueSet;
 import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.dstu3.model.codesystems.TaskStatus;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -289,6 +290,106 @@ public class TaskServiceImpl implements TaskService {
         fhirClient.update().resource(task).execute();
     }
 
+    @Override
+    public TaskDto getTaskById(String taskId) {
+        Bundle taskBundle = fhirClient.search().forResource(Task.class)
+                .where(new TokenClientParam("_id").exactly().code(taskId))
+                .include(Task.INCLUDE_CONTEXT)
+                .returnBundle(Bundle.class)
+                .execute();
+
+        TaskDto taskDto = new TaskDto();
+
+        taskBundle.getEntry().stream()
+                .filter(taskResource -> taskResource.getResource().getResourceType().equals(ResourceType.Task))
+                .findFirst().ifPresent(taskPresent -> {
+            Task task = (Task) taskPresent.getResource();
+            //Setting definition
+            taskDto.setLogicalId(task.getIdElement().getIdPart());
+            try {
+                taskDto.setDefinition(convertReferenceToReferenceDto(task.getDefinitionReference()));
+            } catch (FHIRException e) {
+                e.printStackTrace();
+            }
+
+            if (task.hasPartOf()) {
+                taskDto.setPartOf(convertReferenceToReferenceDto(task.getPartOf().stream().findFirst().get()));
+            }
+
+            //Setting Status, Intent, Priority
+            taskDto.setStatus(convertCodeToValueSetDto(task.getStatus().toCode(), lookUpService.getTaskStatus()));
+            taskDto.setIntent(convertCodeToValueSetDto(task.getIntent().toCode(), lookUpService.getRequestIntent()));
+            taskDto.setPriority(convertCodeToValueSetDto(task.getPriority().toCode(), lookUpService.getRequestPriority()));
+
+            if (task.hasDescription()) {
+                taskDto.setDescription(task.getDescription());
+            }
+
+            taskDto.setBeneficiary(convertReferenceToReferenceDto(task.getFor()));
+
+            taskDto.setAgent(convertReferenceToReferenceDto(task.getRequester().getAgent()));
+
+            taskDto.setOnBehalfOf(convertReferenceToReferenceDto(task.getRequester().getOnBehalfOf()));
+
+            //Set Performer Type
+            if (task.hasPerformerType()) {
+                task.getPerformerType().stream().findFirst().ifPresent(performerType -> {
+                    performerType.getCoding().stream().findFirst().ifPresent(coding -> {
+                        taskDto.setPerformerType(convertCodeToValueSetDto(coding.getCode(), lookUpService.getTaskPerformerType()));
+                    });
+                });
+            }
+
+            taskDto.setOwner(convertReferenceToReferenceDto(task.getOwner()));
+
+            //Set Note
+            task.getNote().stream().findFirst().ifPresent(note -> {
+                taskDto.setNote(note.getText());
+            });
+
+
+            //Setting context
+            if (task.hasContext()) {
+                taskBundle.getEntry().stream().filter(bundle -> bundle.getResource().getResourceType().equals(ResourceType.EpisodeOfCare))
+                        .findFirst().ifPresent(episodeOfCareBundle -> {
+                    EpisodeOfCare episodeOfCare = (EpisodeOfCare) episodeOfCareBundle.getResource();
+                    ContextDto contextDto = new ContextDto();
+                    contextDto.setLogicalId(episodeOfCare.getIdElement().getIdPart());
+                    contextDto.setStatus(episodeOfCare.getStatus().toCode());
+
+                    if(episodeOfCare.hasType()) {
+                        episodeOfCare.getType().stream().findFirst().ifPresent(eocType->{
+                            ValueSetDto valueSetDto=new ValueSetDto();
+                            eocType.getCoding().stream().filter(coding->coding.hasCode()).findFirst().ifPresent(type->{
+                              valueSetDto.setCode((type.hasCode())?type.getCode():null);
+                            });
+                            eocType.getCoding().stream().filter(coding->coding.hasSystem()).findFirst().ifPresent(type->{
+                               valueSetDto.setSystem((type.hasSystem())?type.getSystem():null);
+                            });
+                            eocType.getCoding().stream().filter(coding->coding.hasDisplay()).findFirst().ifPresent(type->{
+                                valueSetDto.setDisplay((type.hasDisplay())?type.getDisplay():null);
+                            });
+                            contextDto.setType(valueSetDto);
+                        });
+                    }
+                    if (episodeOfCare.hasPatient())
+                        contextDto.setPatient(convertReferenceToReferenceDto(episodeOfCare.getPatient()));
+                    if (episodeOfCare.hasManagingOrganization())
+                        contextDto.setManagingOrganization(convertReferenceToReferenceDto(episodeOfCare.getManagingOrganization()));
+                    if (episodeOfCare.hasReferralRequest())
+                        contextDto.setReferralRequest(convertReferenceToReferenceDto((Reference) episodeOfCare.getReferralRequest()));
+                    if (episodeOfCare.hasCareManager())
+                        contextDto.setCareManager(convertReferenceToReferenceDto(episodeOfCare.getCareManager()));
+
+                    taskDto.setContext(contextDto);
+                });
+            }
+        });
+
+        return taskDto;
+
+    }
+
 
     private Optional<String> getDisplay(String code, Optional<List<ValueSetDto>> lookupValueSets) {
         Optional<String> lookupDisplay = Optional.empty();
@@ -306,6 +407,23 @@ public class TaskServiceImpl implements TaskService {
         reference.setDisplay(referenceDto.getDisplay());
         reference.setReference(referenceDto.getReference());
         return reference;
+    }
+
+    private ReferenceDto convertReferenceToReferenceDto(Reference reference) {
+        ReferenceDto referenceDto = new ReferenceDto();
+        referenceDto.setDisplay(reference.getDisplay());
+        referenceDto.setReference(reference.getReference());
+        return referenceDto;
+    }
+
+    private ValueSetDto convertCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
+        return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getCode())).map(valueSet -> {
+            ValueSetDto valueSetDto = new ValueSetDto();
+            valueSetDto.setCode(valueSet.getCode());
+            valueSetDto.setDisplay(valueSet.getDisplay());
+            valueSetDto.setSystem(valueSet.getSystem());
+            return valueSetDto;
+        }).findFirst().orElse(null);
     }
 
     private boolean isDuplicate(TaskDto taskDto) {
