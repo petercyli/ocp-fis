@@ -25,6 +25,9 @@ import javax.validation.Valid;
 @RestController
 public class TaskController {
 
+    @Autowired
+    private TaskService taskService;
+
     @GetMapping("/tasks/search")
     public PageDto<TaskDto> getTasks(@RequestParam Optional<List<String>> statusList,
                                      @RequestParam(value = "searchType") String searchKey,
@@ -33,8 +36,6 @@ public class TaskController {
                                      @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
         return taskService.getTasks(statusList, searchKey, searchValue, pageNumber, pageSize);
     }
-    @Autowired
-    private TaskService taskService;
 
     @PostMapping("/tasks")
     @ResponseStatus(HttpStatus.CREATED)
@@ -54,5 +55,9 @@ public class TaskController {
         taskService.deactivateTask(taskId);
     }
 
+    @GetMapping("/tasks/{taskId}")
+    public TaskDto getTaskById(@PathVariable String taskId){
+        return taskService.getTaskById(taskId);
+    }
 
 }
