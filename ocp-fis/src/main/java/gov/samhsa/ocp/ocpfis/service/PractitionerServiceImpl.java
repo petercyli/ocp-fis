@@ -87,7 +87,8 @@ public class PractitionerServiceImpl implements PractitionerService {
                 .execute();
 
         if (firstPagePractitionerBundle == null || firstPagePractitionerBundle.getEntry().size() < 1) {
-            throw new PractitionerNotFoundException("No practitioners were found in the FHIR server");
+            log.info("No practitioners were found for the given criteria.");
+            return new PageDto<>(new ArrayList<>(), numberOfPractitionersPerPage, 0, 0, 0, 0);
         }
 
         otherPagePractitionerBundle = firstPagePractitionerBundle;

@@ -5,8 +5,11 @@ import org.hl7.fhir.dstu3.model.Enumerations;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.Locale;
+import java.time.*;
+
 
 public class FhirUtils {
 
@@ -42,6 +45,32 @@ public class FhirUtils {
         }
 
         return null;
+    }
+
+    public static LocalDate convertToLocalDate(Date date) {
+        //the system default time zone will be appended
+        ZoneId defaultZoneId = ZoneId.systemDefault();
+
+        //1. Convert Date -> Instant
+        Instant instant = date.toInstant();
+
+        //2. Instant + system default time zone + toLocalDate() = LocalDate
+        LocalDate localDate = instant.atZone(defaultZoneId).toLocalDate();
+
+        return localDate;
+    }
+
+    public static LocalDateTime convertToLocalDateTime(Date date) {
+        //the system default time zone will be appended
+        ZoneId defaultZoneId = ZoneId.systemDefault();
+
+        //1. Convert Date -> Instant
+        Instant instant = date.toInstant();
+
+        //2. Instant + system default time zone + toLocalDateTime() = LocalDateTime
+        LocalDateTime localDateTime = instant.atZone(defaultZoneId).toLocalDateTime();
+
+        return localDateTime;
     }
 
     public static String convertToString(Date date) {

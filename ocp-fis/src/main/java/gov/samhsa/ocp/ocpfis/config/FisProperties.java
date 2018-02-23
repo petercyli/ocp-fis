@@ -26,6 +26,10 @@ public class FisProperties {
 
     @NotNull
     @Valid
+    private ActivityDefinition activityDefinition;
+
+    @NotNull
+    @Valid
     private HealthcareService healthcareService;
 
     @NotNull
@@ -52,10 +56,6 @@ public class FisProperties {
     @Valid
     private CareTeam careTeam;
 
-    @NotNull
-    @Valid
-    private ActivityDefinition activityDefinition;
-
     @Data
     public static class Fhir {
 
@@ -67,6 +67,30 @@ public class FisProperties {
         private EncodingEnum encoding = EncodingEnum.JSON;
 
     }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ActivityDefinition {
+
+        @NotNull
+        private String version;
+
+        @Valid
+        private Pagination pagination = new Pagination();
+
+        @Data
+        public static class Pagination {
+            @Min(1)
+            @Max(500)
+            private int defaultSize = 10;
+            @Min(1)
+            @Max(500)
+            private int maxSize = 50;
+        }
+    }
+
 
     @Data
     @Builder
@@ -201,17 +225,5 @@ public class FisProperties {
             private int maxSize = 50;
         }
     }
-
-    @Data
-    @Builder
-    @AllArgsConstructor
-    @NoArgsConstructor
-    public static class ActivityDefinition {
-
-        @NotNull
-        private String version;
-
-    }
-
 }
 

@@ -97,7 +97,8 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 .execute();
 
         if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Healthcare Services were found in the FHIR server");
+            log.info("No Healthcare Services were found for the given criteria.");
+            return new PageDto<>(new ArrayList<>(), numberOfHealthcareServicesPerPage, 0, 0, 0, 0);
         }
 
         log.info("FHIR Healthcare Service(s) bundle retrieved " + firstPageHealthcareServiceSearchBundle.getTotal() + " Healthcare Service(s) from FHIR server successfully");
@@ -344,7 +345,13 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         existingHealthcareService.setSpecialty(updatedHealthcareService.getSpecialty());
         existingHealthcareService.setReferralMethod(updatedHealthcareService.getReferralMethod());
         existingHealthcareService.setTelecom(updatedHealthcareService.getTelecom());
-        existingHealthcareService.setActive(updatedHealthcareService.getActive());
+        if(updatedHealthcareService.getActive()){
+            existingHealthcareService.setActive(updatedHealthcareService.getActive());
+        } else{
+            //Remove all locations
+            existingHealthcareService.setActive(updatedHealthcareService.getActive());
+            existingHealthcareService.setLocation(null);
+        }
 
         // Validate the resource
         validateHealthcareServiceResource(existingHealthcareService, Optional.of(healthcareServiceId), "Update healthcareService: ");

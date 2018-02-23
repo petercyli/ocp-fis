@@ -8,7 +8,7 @@ import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LookupPathUrls;
-import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
+import gov.samhsa.ocp.ocpfis.service.dto.StatusBooleanValuesDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -173,8 +173,8 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<OrganizationStatusDto> getOrganizationStatuses() {
-        List<OrganizationStatusDto> organizationStatuses = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
+    public List<StatusBooleanValuesDto> getOrganizationStatuses() {
+        List<StatusBooleanValuesDto> organizationStatuses = Arrays.asList(new StatusBooleanValuesDto(true, "Active"), new StatusBooleanValuesDto(false, "Inactive"));
         log.info("Found " + organizationStatuses.size() + " organization status codes.");
         return organizationStatuses;
     }
@@ -402,6 +402,13 @@ public class LookUpServiceImpl implements LookUpService {
         return healthcareServiceSpecialitiesCodes;
     }
 
+    @Override
+    public List<StatusBooleanValuesDto> getHealthcareServiceStatuses() {
+        List<StatusBooleanValuesDto> healthcareServiceStatuses = Arrays.asList(new StatusBooleanValuesDto(true, "Active"), new StatusBooleanValuesDto(false, "Inactive"));
+        log.info("Found " + healthcareServiceStatuses.size() + " organization status codes.");
+        return healthcareServiceStatuses;
+    }
+
 
     @Override
     public List<ValueSetDto> getHealthcareServiceReferralMethods() {
@@ -475,6 +482,46 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
         relationshipTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         return relationshipTypes;
+    }
+
+    @Override
+    public List<ValueSetDto> getTaskStatus() {
+        List<ValueSetDto> taskStatus;
+        ValueSet response=getValueSets(LookupPathUrls.TASK_STATUS.getUrlPath(), LookupPathUrls.TASK_STATUS.getType());
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        taskStatus=valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + taskStatus.size() + " task statuses.");
+        return taskStatus;
+    }
+
+    @Override
+    public List<ValueSetDto> getRequestPriority() {
+        List<ValueSetDto> requestPriority;
+        ValueSet response=getValueSets(LookupPathUrls.REQUEST_PRIORITY.getUrlPath(), LookupPathUrls.REQUEST_PRIORITY.getType());
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        requestPriority=valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + requestPriority.size() + " request priorities.");
+        return requestPriority;
+    }
+
+    @Override
+    public List<ValueSetDto> getTaskPerformerType() {
+        List<ValueSetDto> taskPerformerType;
+        ValueSet response=getValueSets(LookupPathUrls.TASK_PERFORMER_TYPE.getUrlPath(), LookupPathUrls.TASK_PERFORMER_TYPE.getType());
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        taskPerformerType=valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + taskPerformerType.size() + " task performer types.");
+        return taskPerformerType;
+    }
+
+    @Override
+    public List<ValueSetDto> getRequestIntent() {
+        List<ValueSetDto> requestIntent;
+        ValueSet response=getValueSets(LookupPathUrls.REQUEST_INTENT.getUrlPath(), LookupPathUrls.REQUEST_INTENT.getType());
+        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+        requestIntent=valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + requestIntent.size() + " request intents.");
+        return requestIntent;
     }
 
 

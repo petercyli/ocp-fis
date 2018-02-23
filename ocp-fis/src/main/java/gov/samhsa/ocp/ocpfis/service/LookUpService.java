@@ -1,7 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
-import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
+import gov.samhsa.ocp.ocpfis.service.dto.StatusBooleanValuesDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 
 import java.util.List;
@@ -40,7 +40,7 @@ public interface LookUpService {
 
     List<ValueSetDto> getLanguages();
 
-    List<OrganizationStatusDto> getOrganizationStatuses();
+    List<StatusBooleanValuesDto> getOrganizationStatuses();
 
     List<ValueSetDto> getPractitionerRoles();
 
@@ -51,6 +51,8 @@ public interface LookUpService {
     List<ValueSetDto> getHealthcareServiceReferralMethods();
 
     List<ValueSetDto> getHealthcareServiceSpecialities();
+
+    List<StatusBooleanValuesDto> getHealthcareServiceStatuses();
 
     List<ValueSetDto> getCareTeamCategories();
 
@@ -73,6 +75,14 @@ public interface LookUpService {
     List<ValueSetDto> getActionParticipantType();
 
     List<ValueSetDto> getRelatedPersonPatientRelationshipTypes();
+
+    List<ValueSetDto> getTaskStatus();
+
+    List<ValueSetDto> getRequestPriority();
+
+    List<ValueSetDto> getTaskPerformerType();
+
+    List<ValueSetDto> getRequestIntent();
 
     List<ValueSetDto> getActivityDefinitionRelatedArtifactTypes();
 

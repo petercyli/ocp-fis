@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 public class PeriodDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private LocalDate start;
+
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private LocalDate end;
 }

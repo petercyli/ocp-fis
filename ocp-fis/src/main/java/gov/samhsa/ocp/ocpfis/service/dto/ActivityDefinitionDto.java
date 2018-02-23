@@ -7,6 +7,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
+import javax.validation.constraints.NotNull;
+import java.time.LocalDate;
+import java.time.Period;
 import java.util.List;
 
 @Data
@@ -23,7 +27,7 @@ public class ActivityDefinitionDto {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private String date;
-    private String publisherReference;
+    private String publisher;
     private String description;
 
     private PeriodDto effectivePeriod;
@@ -31,6 +35,7 @@ public class ActivityDefinitionDto {
     private List<RelatedArtifactDto> relatedArtifact;
     private ValueSetDto kind;
 
+    @NotNull
     private TimingDto timing;
 
     private ValueSetDto actionParticipantType;

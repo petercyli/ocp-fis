@@ -126,7 +126,8 @@ public class CareTeamServiceImpl implements CareTeamService {
                 .returnBundle(Bundle.class).execute();
 
         if (firstPageCareTeamBundle == null || firstPageCareTeamBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Care Team members were found in the FHIR server.");
+            log.info("No Care Team members were found for the given criteria.");
+            return new PageDto<>(new ArrayList<>(), numberOfCareTeamMembersPerPage, 0, 0, 0, 0);
         }
 
         otherPageCareTeamBundle = firstPageCareTeamBundle;

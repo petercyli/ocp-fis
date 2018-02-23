@@ -12,6 +12,10 @@ ocp-fis:
     serverUrl: http://ocp.consent2share.org/fhir/baseDstu3
     clientSocketTimeoutInMs: 768000
     encoding: json
+  activityDefinition:
+    version: 1
+    pagination:
+      default-size: 20
   location:
     pagination:
       default-size: 20
@@ -33,8 +37,6 @@ ocp-fis:
   careTeam:
     pagination:
       default-size: 20
-  activityDefinition:
-    version: 1
 ---
 # updates configuration for docker environment
 spring.profiles: docker

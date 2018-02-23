@@ -2,7 +2,7 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
-import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
+import gov.samhsa.ocp.ocpfis.service.dto.StatusBooleanValuesDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -141,7 +141,7 @@ public class LookUpController {
 
 
     @GetMapping("/organization-statuses")
-    public List<OrganizationStatusDto> getOrganizationStatuses() {
+    public List<StatusBooleanValuesDto> getOrganizationStatuses() {
         return lookUpService.getOrganizationStatuses();
     }
 
@@ -199,6 +199,11 @@ public class LookUpController {
         return lookUpService.getHealthcareServiceReferralMethods();
     }
 
+    @GetMapping("/healthcare-service-statuses")
+    public List<StatusBooleanValuesDto> getHealthcareServiceStatuses() {
+        return lookUpService.getHealthcareServiceStatuses();
+    }
+
     @GetMapping("/care-team-categories")
     public List<ValueSetDto> getCareTeamCategories() {
         return lookUpService.getCareTeamCategories();
@@ -252,6 +257,26 @@ public class LookUpController {
     @GetMapping("/action-participant-type")
     public List<ValueSetDto> getActionParticipantType(){
         return lookUpService.getActionParticipantType();
+    }
+
+    @GetMapping("/task-status")
+    public List<ValueSetDto> getTaskStatus(){
+        return lookUpService.getTaskStatus();
+    }
+
+    @GetMapping("/request-priority")
+    public List<ValueSetDto> getRequestPriority(){
+        return lookUpService.getRequestPriority();
+    }
+
+    @GetMapping("/task-performer-type")
+    public List<ValueSetDto> getTaskPerformerType(){
+        return lookUpService.getTaskPerformerType();
+    }
+
+    @GetMapping("/request-intent")
+    public List<ValueSetDto> getRequestIntent(){
+        return lookUpService.getRequestIntent();
     }
 
     @GetMapping("/activity-definition-related-artifact-types")
