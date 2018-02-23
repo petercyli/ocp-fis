@@ -224,22 +224,17 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
         }
 
-        //TODO:: Need to Fix this
-
-/*        if(activityDefinition.getParticipant()!=null && !activityDefinition.getParticipant().isEmpty()) {
-            ActionParticipantDto actionParticipantDto = new ActionParticipantDto();
-            tempActivityDefinitionDto.getActionParticipantRole().setCode(actionParticipantDto);
-
-            ActivityDefinition.ActivityDefinitionParticipantComponent participantComponent = activityDefinition.
-            ().stream().findAny().get();
-
-            tempActivityDefinitionDto.getParticipant().setActionTypeCode(participantComponent.getType().toCode());
-            tempActivityDefinitionDto.getParticipant().setActionTypeDisplay(participantComponent.getType().getDisplay());
-
-            tempActivityDefinitionDto.getParticipant().setActionRoleCode(participantComponent.getRole().getCoding().stream().findAny().get().getCode());
-            tempActivityDefinitionDto.getParticipant().setActionRoleDisplay(participantComponent.getRole().getCoding().stream().findAny().get().getDisplay());
-        }*/
-
+        activityDefinition.getParticipant().stream().findFirst().ifPresent(participant->{
+            participant.getRole().getCoding().stream().findFirst().ifPresent(role->{
+                ValueSetDto valueSetDto=new ValueSetDto();
+                valueSetDto.setCode(role.getCode());
+                valueSetDto.setDisplay(role.getDisplay());
+                valueSetDto.setSystem(role.getSystem());
+                tempActivityDefinitionDto.setActionParticipantRole(valueSetDto);
+            });
+            if(participant.hasType())
+                tempActivityDefinitionDto.setActionParticipantType(convertCodeToValueSetDto(participant.getType().toCode(),lookUpService.getActionParticipantType()));
+        });
 
         TimingDto timingDto = new TimingDto();
         tempActivityDefinitionDto.setTiming(timingDto);
@@ -254,6 +249,16 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         } catch (FHIRException e) {
         }
         return tempActivityDefinitionDto;
+    }
+
+    private ValueSetDto convertCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
+        return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getCode())).map(valueSet -> {
+            ValueSetDto valueSetDto = new ValueSetDto();
+            valueSetDto.setCode(valueSet.getCode());
+            valueSetDto.setDisplay(valueSet.getDisplay());
+            valueSetDto.setSystem(valueSet.getSystem());
+            return valueSetDto;
+        }).findFirst().orElse(null);
     }
 
     private boolean isDuplicate(ActivityDefinitionDto activityDefinitionDto, String organizationid) {
