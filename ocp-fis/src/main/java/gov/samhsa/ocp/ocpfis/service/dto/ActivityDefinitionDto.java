@@ -32,10 +32,13 @@ public class ActivityDefinitionDto {
 
     private PeriodDto effectivePeriod;
     private ValueSetDto topic;
-    private List<ValueSetDto> relatedArtifact;
+    private List<RelatedArtifactDto> relatedArtifact;
     private ValueSetDto kind;
 
     @NotNull
     private TimingDto timing;
-    private ActionParticipantDto participant;
+
+    private ValueSetDto actionParticipantType;
+    private ValueSetDto actionParticipantRole;
+
 }

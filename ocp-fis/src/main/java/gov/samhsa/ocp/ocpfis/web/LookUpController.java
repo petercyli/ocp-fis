@@ -278,4 +278,9 @@ public class LookUpController {
     public List<ValueSetDto> getRequestIntent(){
         return lookUpService.getRequestIntent();
     }
+
+    @GetMapping("/activity-definition-related-artifact-types")
+    public List<ValueSetDto> getActivityDefinitionRelatedArtifactTypes() {
+        return lookUpService.getActivityDefinitionRelatedArtifactTypes();
+    }
 }
