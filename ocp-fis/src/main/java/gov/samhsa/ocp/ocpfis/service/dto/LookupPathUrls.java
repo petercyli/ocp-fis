@@ -31,7 +31,8 @@ public enum LookupPathUrls {
     TASK_STATUS("task status",Constants.TASK_STATUS_PATH),
     REQUEST_PRIORITY("request priority",Constants.REQUEST_PRIORITY_PATH),
     TASK_PERFORMER_TYPE("task performer type",Constants.TASK_PERFORMER_TYPE_PATH),
-    REQUEST_INTENT("request intent", Constants.REQUEST_INTENT_PATH);
+    REQUEST_INTENT("request intent", Constants.REQUEST_INTENT_PATH),
+    ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPES("activity definition related artifact type", Constants.ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPE_PATH);
 
     private final String type;
     private final String urlPath;
@@ -80,6 +81,7 @@ public enum LookupPathUrls {
         static final String REQUEST_PRIORITY_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/request-priority";
         static final String TASK_PERFORMER_TYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/task-performer-type";
         static final String REQUEST_INTENT_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/request-intent";
+        static final String ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/related-artifact-type";
     }
 
 }

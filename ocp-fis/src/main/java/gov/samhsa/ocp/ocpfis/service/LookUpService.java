@@ -84,4 +84,6 @@ public interface LookUpService {
 
     List<ValueSetDto> getRequestIntent();
 
+    List<ValueSetDto> getActivityDefinitionRelatedArtifactTypes();
+
 }
