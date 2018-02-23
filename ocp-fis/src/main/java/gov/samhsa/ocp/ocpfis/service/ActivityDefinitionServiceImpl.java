@@ -7,7 +7,6 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
-import gov.samhsa.ocp.ocpfis.service.dto.ActionParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
@@ -225,18 +224,21 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
         }
 
-        if(activityDefinition.getParticipant()!=null && !activityDefinition.getParticipant().isEmpty()) {
-            ActionParticipantDto actionParticipantDto = new ActionParticipantDto();
-            tempActivityDefinitionDto.setParticipant(actionParticipantDto);
+        //TODO:: Need to Fix this
 
-            ActivityDefinition.ActivityDefinitionParticipantComponent participantComponent = activityDefinition.getParticipant().stream().findAny().get();
+/*        if(activityDefinition.getParticipant()!=null && !activityDefinition.getParticipant().isEmpty()) {
+            ActionParticipantDto actionParticipantDto = new ActionParticipantDto();
+            tempActivityDefinitionDto.getActionParticipantRole().setCode(actionParticipantDto);
+
+            ActivityDefinition.ActivityDefinitionParticipantComponent participantComponent = activityDefinition.
+            ().stream().findAny().get();
 
             tempActivityDefinitionDto.getParticipant().setActionTypeCode(participantComponent.getType().toCode());
             tempActivityDefinitionDto.getParticipant().setActionTypeDisplay(participantComponent.getType().getDisplay());
 
             tempActivityDefinitionDto.getParticipant().setActionRoleCode(participantComponent.getRole().getCoding().stream().findAny().get().getCode());
             tempActivityDefinitionDto.getParticipant().setActionRoleDisplay(participantComponent.getRole().getCoding().stream().findAny().get().getDisplay());
-        }
+        }*/
 
 
         TimingDto timingDto = new TimingDto();
