@@ -351,6 +351,21 @@ public class TaskServiceImpl implements TaskService {
                 taskDto.setNote(note.getText());
             });
 
+            if (task.hasLastModified()) {
+                taskDto.setLastModified(FhirUtils.convertToLocalDate(task.getLastModified()));
+            }
+
+            if (task.hasAuthoredOn()) {
+                taskDto.setAuthoredOn(FhirUtils.convertToLocalDate(task.getAuthoredOn()));
+            }
+
+            if (task.getExecutionPeriod() != null && !task.getExecutionPeriod().isEmpty()) {
+                PeriodDto periodDto = new PeriodDto();
+                periodDto.setStart((task.getExecutionPeriod().hasStart()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
+                periodDto.setEnd((task.getExecutionPeriod().hasEnd()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getEnd()) : null);
+                taskDto.setExecutionPeriod(periodDto);
+            }
+
             //Setting context
             if (task.hasContext()) {
                 taskBundle.getEntry().stream().filter(bundle -> bundle.getResource().getResourceType().equals(ResourceType.EpisodeOfCare))
@@ -380,6 +395,12 @@ public class TaskServiceImpl implements TaskService {
                     if (episodeOfCare.hasCareManager())
                         contextDto.setCareManager(convertReferenceToReferenceDto(episodeOfCare.getCareManager()));
 
+                    if(episodeOfCare.hasPeriod()) {
+                        PeriodDto periodDto=new PeriodDto();
+                        periodDto.setStart((episodeOfCare.getPeriod().hasStart()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
+                        periodDto.setEnd((episodeOfCare.getPeriod().hasEnd())?FhirUtils.convertToLocalDate(task.getExecutionPeriod().getEnd()):null);
+                        contextDto.setPeriod(periodDto);
+                    }
                     taskDto.setContext(contextDto);
                 });
             }
@@ -470,12 +491,17 @@ public class TaskServiceImpl implements TaskService {
 
         task.setFor(getReferenceValue(taskDto.getBeneficiary()));
 
-
         //Set execution Period
-        if (taskDto.getStatus().getCode().equalsIgnoreCase(TaskStatus.INPROGRESS.toCode()))
+        if(taskDto.getExecutionPeriod() !=null){
+            if(taskDto.getExecutionPeriod().getStart() !=null)
+                task.getExecutionPeriod().setStart(java.sql.Date.valueOf(taskDto.getExecutionPeriod().getStart()));
+        } else if (taskDto.getStatus().getCode().equalsIgnoreCase(TaskStatus.INPROGRESS.toCode()))
             task.getExecutionPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
 
-        if (taskDto.getStatus().getCode().equalsIgnoreCase(TaskStatus.COMPLETED.toCode()))
+        if(taskDto.getExecutionPeriod() !=null){
+            if(taskDto.getExecutionPeriod().getEnd() !=null)
+                task.getExecutionPeriod().setEnd(java.sql.Date.valueOf(taskDto.getExecutionPeriod().getEnd()));
+        } else if (taskDto.getStatus().getCode().equalsIgnoreCase(TaskStatus.COMPLETED.toCode()))
             task.getExecutionPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
 
         //Set agent
@@ -528,17 +554,24 @@ public class TaskServiceImpl implements TaskService {
         ContextDto contextDto = taskDto.getContext();
         if (contextDto != null) {
             //Setting patient
-            episodeOfCare.setPatient(getReferenceValue(contextDto.getPatient()));
+            episodeOfCare.setPatient((contextDto.getPatient()!=null)?getReferenceValue(contextDto.getPatient()):null);
 
-            //Setting managing Organizaition
-            episodeOfCare.setManagingOrganization(getReferenceValue(contextDto.getManagingOrganization()));
+            //Setting managing Organization
+            episodeOfCare.setManagingOrganization((contextDto.getManagingOrganization()!=null)?getReferenceValue(contextDto.getManagingOrganization()):null);
 
             //Setting Start Period
+            if (contextDto.getPeriod() != null) {
+                if (taskDto.getContext().getPeriod().getStart() != null)
+                episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(taskDto.getContext().getPeriod().getStart()));
+            }else {
             episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
+            }
 
             //Setting CareManager
-            episodeOfCare.setCareManager(getReferenceValue(contextDto.getCareManager()));
+            episodeOfCare.setCareManager((contextDto.getCareManager()!=null)?getReferenceValue(contextDto.getCareManager()):null);
 
+        }else{
+            episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
         }
         return episodeOfCare;
 
