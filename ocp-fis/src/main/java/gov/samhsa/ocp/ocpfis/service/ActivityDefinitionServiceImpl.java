@@ -131,7 +131,12 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             if (activityDefinitionDto.getRelatedArtifact() != null && !activityDefinitionDto.getRelatedArtifact().isEmpty()) {
                 activityDefinitionDto.getRelatedArtifact().forEach(relatedArtifactDto -> {
                     RelatedArtifact relatedArtifact = new RelatedArtifact();
-                    relatedArtifact.setType(RelatedArtifactType.valueOf(relatedArtifactDto.getType()));
+                    try {
+                        relatedArtifact.setType(RelatedArtifactType.fromCode(relatedArtifactDto.getType()));
+                    } catch (FHIRException e) {
+                        throw new BadRequestException("Invalid related artifact type was given.");
+                    }
+
                     relatedArtifact.setDisplay(relatedArtifactDto.getDisplay());
                     relatedArtifact.setCitation(relatedArtifactDto.getCitation());
                     relatedArtifact.setUrl(relatedArtifactDto.getUrl());
