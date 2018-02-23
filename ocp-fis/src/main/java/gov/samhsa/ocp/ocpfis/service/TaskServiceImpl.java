@@ -260,13 +260,15 @@ public class TaskServiceImpl implements TaskService {
         Task task = setTaskDtoToTask(taskDto);
         task.setId(taskId);
 
-        if (taskDto.getDefinition().getDisplay().equalsIgnoreCase("Enrollment")) {
-            Bundle taskBundle = (Bundle) fhirClient.search().forResource(Task.class)
-                    .where(new TokenClientParam("_id").exactly().code(taskId))
-                    .returnBundle(Bundle.class)
-                    .execute();
+        Bundle taskBundle = (Bundle) fhirClient.search().forResource(Task.class)
+                .where(new TokenClientParam("_id").exactly().code(taskId))
+                .returnBundle(Bundle.class)
+                .execute();
 
-            Task existingTask = (Task) taskBundle.getEntry().get(0).getResource();
+        Task existingTask = (Task) taskBundle.getEntry().stream().findFirst().get().getResource();
+
+        if (taskDto.getDefinition().getDisplay().equalsIgnoreCase("Enrollment")) {
+
             if (!existingTask.hasContext()) {
                 EpisodeOfCare episodeOfCare = createEpisodeOfCare(taskDto);
                 MethodOutcome methodOutcome = fhirClient.create().resource(episodeOfCare).execute();
@@ -280,6 +282,8 @@ public class TaskServiceImpl implements TaskService {
                 task.setContext(contextReference.setReference("EpisodeOfCare/" + methodOutcome.getId().getIdPart()));
             }
         }
+
+        task.setAuthoredOn(existingTask.getAuthoredOn());
         fhirClient.update().resource(task).execute();
     }
 
@@ -347,7 +351,6 @@ public class TaskServiceImpl implements TaskService {
                 taskDto.setNote(note.getText());
             });
 
-
             //Setting context
             if (task.hasContext()) {
                 taskBundle.getEntry().stream().filter(bundle -> bundle.getResource().getResourceType().equals(ResourceType.EpisodeOfCare))
@@ -360,13 +363,9 @@ public class TaskServiceImpl implements TaskService {
                     if(episodeOfCare.hasType()) {
                         episodeOfCare.getType().stream().findFirst().ifPresent(eocType->{
                             ValueSetDto valueSetDto=new ValueSetDto();
-                            eocType.getCoding().stream().filter(coding->coding.hasCode()).findFirst().ifPresent(type->{
+                            eocType.getCoding().stream().findFirst().ifPresent(type->{
                               valueSetDto.setCode((type.hasCode())?type.getCode():null);
-                            });
-                            eocType.getCoding().stream().filter(coding->coding.hasSystem()).findFirst().ifPresent(type->{
                                valueSetDto.setSystem((type.hasSystem())?type.getSystem():null);
-                            });
-                            eocType.getCoding().stream().filter(coding->coding.hasDisplay()).findFirst().ifPresent(type->{
                                 valueSetDto.setDisplay((type.hasDisplay())?type.getDisplay():null);
                             });
                             contextDto.setType(valueSetDto);
@@ -389,7 +388,6 @@ public class TaskServiceImpl implements TaskService {
         return taskDto;
 
     }
-
 
     private Optional<String> getDisplay(String code, Optional<List<ValueSetDto>> lookupValueSets) {
         Optional<String> lookupDisplay = Optional.empty();
@@ -492,9 +490,9 @@ public class TaskServiceImpl implements TaskService {
         if (taskDto.getPerformerType() != null) {
             List<CodeableConcept> codeableConcepts = new ArrayList<>();
             CodeableConcept codeableConcept = new CodeableConcept();
-            codeableConcept.addCoding().setCode(taskDto.getPerformerType().getCode());
-            codeableConcept.addCoding().setSystem(taskDto.getPerformerType().getSystem());
-            codeableConcept.addCoding().setDisplay(taskDto.getPerformerType().getDisplay());
+            codeableConcept.addCoding().setCode(taskDto.getPerformerType().getCode())
+                                        .setDisplay(taskDto.getPerformerType().getDisplay())
+                                        .setSystem(taskDto.getPerformerType().getSystem());
             codeableConcepts.add(codeableConcept);
             task.setPerformerType(codeableConcepts);
         }
@@ -519,9 +517,9 @@ public class TaskServiceImpl implements TaskService {
 
         //Setting Episode of care type tp HACC
         CodeableConcept codeableConcept = new CodeableConcept();
-        codeableConcept.addCoding().setSystem(EpisodeofcareType.HACC.getSystem());
-        codeableConcept.addCoding().setDisplay(EpisodeofcareType.HACC.getDisplay());
-        codeableConcept.addCoding().setCode(EpisodeofcareType.HACC.toCode());
+        codeableConcept.addCoding().setSystem(EpisodeofcareType.HACC.getSystem())
+                                    .setDisplay(EpisodeofcareType.HACC.getDisplay())
+                                    .setCode(EpisodeofcareType.HACC.toCode());
         List<CodeableConcept> codeableConcepts = new ArrayList<>();
         codeableConcepts.add(codeableConcept);
 
