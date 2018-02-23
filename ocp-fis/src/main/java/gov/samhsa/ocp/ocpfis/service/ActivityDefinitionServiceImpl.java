@@ -131,7 +131,12 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             if (activityDefinitionDto.getRelatedArtifact() != null && !activityDefinitionDto.getRelatedArtifact().isEmpty()) {
                 activityDefinitionDto.getRelatedArtifact().forEach(relatedArtifactDto -> {
                     RelatedArtifact relatedArtifact = new RelatedArtifact();
-                    relatedArtifact.setType(RelatedArtifactType.valueOf(relatedArtifactDto.getType()));
+                    try {
+                        relatedArtifact.setType(RelatedArtifactType.fromCode(relatedArtifactDto.getType()));
+                    } catch (FHIRException e) {
+                        throw new BadRequestException("Invalid related artifact type was given.");
+                    }
+
                     relatedArtifact.setDisplay(relatedArtifactDto.getDisplay());
                     relatedArtifact.setCitation(relatedArtifactDto.getCitation());
                     relatedArtifact.setUrl(relatedArtifactDto.getUrl());
@@ -150,26 +155,27 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
             //Topic
             CodeableConcept topic = new CodeableConcept();
-            topic.addCoding().setCode(activityDefinitionDto.getTopic().getCode()).setSystem(activityDefinitionDto.getTopic().getSystem())
-                    .setDisplay(activityDefinitionDto.getTopic().getDisplay());
-            activityDefinition.addTopic(topic);
+            if(activityDefinitionDto.getTopic()!=null) {
+                topic.addCoding().setCode((activityDefinitionDto.getTopic().getCode()!=null)?activityDefinitionDto.getTopic().getCode():null)
+                        .setSystem((activityDefinitionDto.getTopic().getSystem()!=null)?activityDefinitionDto.getTopic().getSystem():null)
+                        .setDisplay((activityDefinitionDto.getTopic().getDisplay()!=null)?activityDefinitionDto.getTopic().getDisplay():null);
+                activityDefinition.addTopic(topic);
+            }
+
 
             //Period
             if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("active")) {
-
-                    if (activityDefinitionDto.getEffectivePeriod().getStart() != null) {
+                if(activityDefinitionDto.getEffectivePeriod()!=null){
+                    if (activityDefinitionDto.getEffectivePeriod().getStart() != null)
                         activityDefinition.getEffectivePeriod().setStart((java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getStart())));
-                    } else {
-                        activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(Calendar.getInstance().toString()));
-                    }
-
+                } else {
+                    activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
+                }
             }
-
-            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("retired")) {
+            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("retired")){
                 activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
-            } else {
-                activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getEnd()));
             }
+
 
             //Timing
             Timing timing = new Timing();
