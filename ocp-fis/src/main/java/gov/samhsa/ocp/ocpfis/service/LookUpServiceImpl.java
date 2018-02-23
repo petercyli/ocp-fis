@@ -405,7 +405,7 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public List<StatusBooleanValuesDto> getHealthcareServiceStatuses() {
         List<StatusBooleanValuesDto> healthcareServiceStatuses = Arrays.asList(new StatusBooleanValuesDto(true, "Active"), new StatusBooleanValuesDto(false, "Inactive"));
-        log.info("Found " + healthcareServiceStatuses.size() + " organization status codes.");
+        log.info("Found " + healthcareServiceStatuses.size() + " healthcare service status codes.");
         return healthcareServiceStatuses;
     }
 
