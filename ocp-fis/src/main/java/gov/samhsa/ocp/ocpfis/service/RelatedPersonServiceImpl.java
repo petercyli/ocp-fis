@@ -110,7 +110,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
     @Override
     public void createRelatedPerson(RelatedPersonDto relatedPersonDto) {
-        checkForDuplicates(relatedPersonDto);
+        checkForDuplicates(relatedPersonDto, relatedPersonDto.getPatient());
         try {
             final RelatedPerson relatedPerson = RelatedPersonDtoToRelatedPersonConverter.map(relatedPersonDto);
 
@@ -142,9 +142,10 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
         }
     }
 
-    private void checkForDuplicates(RelatedPersonDto relatedPersonDto) {
+    private void checkForDuplicates(RelatedPersonDto relatedPersonDto, String patientId) {
         Bundle relatedPersonBundle = fhirClient.search().forResource(RelatedPerson.class)
                 .where(RelatedPerson.IDENTIFIER.exactly().systemAndIdentifier(relatedPersonDto.getIdentifierType(), relatedPersonDto.getIdentifierValue()))
+                .where(new TokenClientParam("patient").exactly().code(patientId))
                 .returnBundle(Bundle.class)
                 .execute();
         log.info("Existing RelatedPersons size : " + relatedPersonBundle.getEntry().size());
