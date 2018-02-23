@@ -20,7 +20,7 @@ public class ActivityDefinitionController {
     @Autowired
     private ActivityDefinitionService activityDefinitionService;
 
-    @PostMapping("organization/{organizationId}/activity-definitions")
+    @PostMapping("/organization/{organizationId}/activity-definitions")
     public void createActivityDefinition(@PathVariable String organizationId, @RequestBody ActivityDefinitionDto activityDefinitionDto) {
         activityDefinitionService.createActivityDefinition(activityDefinitionDto, organizationId);
     }
