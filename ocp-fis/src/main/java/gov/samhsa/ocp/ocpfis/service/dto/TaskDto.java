@@ -48,10 +48,10 @@ public class TaskDto {
     private PeriodDto executionPeriod;
 
     //Task Creation Date
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate authoredOn;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate lastModified;
 
     //Creator Practitioner of the task
