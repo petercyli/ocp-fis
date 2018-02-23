@@ -7,7 +7,6 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
-import gov.samhsa.ocp.ocpfis.service.dto.ActionParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
@@ -132,7 +131,10 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             if (activityDefinitionDto.getRelatedArtifact() != null && !activityDefinitionDto.getRelatedArtifact().isEmpty()) {
                 activityDefinitionDto.getRelatedArtifact().forEach(relatedArtifactDto -> {
                     RelatedArtifact relatedArtifact = new RelatedArtifact();
-                    relatedArtifact.setType(RelatedArtifactType.valueOf(relatedArtifactDto.getCode().toUpperCase()));
+                    relatedArtifact.setType(RelatedArtifactType.valueOf(relatedArtifactDto.getType()));
+                    relatedArtifact.setDisplay(relatedArtifactDto.getDisplay());
+                    relatedArtifact.setCitation(relatedArtifactDto.getCitation());
+                    relatedArtifact.setUrl(relatedArtifactDto.getUrl());
                     relatedArtifacts.add(relatedArtifact);
                 });
                 activityDefinition.setRelatedArtifact(relatedArtifacts);
@@ -140,11 +142,11 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
             //Participant
             CodeableConcept actionParticipantRole = new CodeableConcept();
-            actionParticipantRole.addCoding().setCode(activityDefinitionDto.getParticipant().getActionRoleCode())
-                    .setDisplay(activityDefinitionDto.getParticipant().getActionRoleDisplay())
-                    .setSystem(activityDefinitionDto.getParticipant().getActionRoleSystem());
+            actionParticipantRole.addCoding().setCode(activityDefinitionDto.getActionParticipantRole().getCode())
+                    .setDisplay(activityDefinitionDto.getActionParticipantRole().getDisplay())
+                    .setSystem(activityDefinitionDto.getActionParticipantRole().getSystem());
 
-            activityDefinition.addParticipant().setRole(actionParticipantRole).setType(ActivityDefinition.ActivityParticipantType.valueOf(activityDefinitionDto.getParticipant().getActionTypeCode().toUpperCase()));
+            activityDefinition.addParticipant().setRole(actionParticipantRole).setType(ActivityDefinition.ActivityParticipantType.valueOf(activityDefinitionDto.getActionParticipantType().getCode().toUpperCase()));
 
             //Topic
             CodeableConcept topic = new CodeableConcept();
@@ -163,7 +165,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
             }
 
-            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("expired")) {
+            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("retired")) {
                 activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
             } else {
                 activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getEnd()));
@@ -222,18 +224,21 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
         }
 
-        if(activityDefinition.getParticipant()!=null && !activityDefinition.getParticipant().isEmpty()) {
-            ActionParticipantDto actionParticipantDto = new ActionParticipantDto();
-            tempActivityDefinitionDto.setParticipant(actionParticipantDto);
+        //TODO:: Need to Fix this
 
-            ActivityDefinition.ActivityDefinitionParticipantComponent participantComponent = activityDefinition.getParticipant().stream().findAny().get();
+/*        if(activityDefinition.getParticipant()!=null && !activityDefinition.getParticipant().isEmpty()) {
+            ActionParticipantDto actionParticipantDto = new ActionParticipantDto();
+            tempActivityDefinitionDto.getActionParticipantRole().setCode(actionParticipantDto);
+
+            ActivityDefinition.ActivityDefinitionParticipantComponent participantComponent = activityDefinition.
+            ().stream().findAny().get();
 
             tempActivityDefinitionDto.getParticipant().setActionTypeCode(participantComponent.getType().toCode());
             tempActivityDefinitionDto.getParticipant().setActionTypeDisplay(participantComponent.getType().getDisplay());
 
             tempActivityDefinitionDto.getParticipant().setActionRoleCode(participantComponent.getRole().getCoding().stream().findAny().get().getCode());
             tempActivityDefinitionDto.getParticipant().setActionRoleDisplay(participantComponent.getRole().getCoding().stream().findAny().get().getDisplay());
-        }
+        }*/
 
 
         TimingDto timingDto = new TimingDto();

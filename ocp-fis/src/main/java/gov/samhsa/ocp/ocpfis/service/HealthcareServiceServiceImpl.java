@@ -345,7 +345,13 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         existingHealthcareService.setSpecialty(updatedHealthcareService.getSpecialty());
         existingHealthcareService.setReferralMethod(updatedHealthcareService.getReferralMethod());
         existingHealthcareService.setTelecom(updatedHealthcareService.getTelecom());
-        existingHealthcareService.setActive(updatedHealthcareService.getActive());
+        if(updatedHealthcareService.getActive()){
+            existingHealthcareService.setActive(updatedHealthcareService.getActive());
+        } else{
+            //Remove all locations
+            existingHealthcareService.setActive(updatedHealthcareService.getActive());
+            existingHealthcareService.setLocation(null);
+        }
 
         // Validate the resource
         validateHealthcareServiceResource(existingHealthcareService, Optional.of(healthcareServiceId), "Update healthcareService: ");

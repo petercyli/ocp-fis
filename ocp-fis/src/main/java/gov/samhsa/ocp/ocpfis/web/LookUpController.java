@@ -2,7 +2,7 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
-import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
+import gov.samhsa.ocp.ocpfis.service.dto.StatusBooleanValuesDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -141,7 +141,7 @@ public class LookUpController {
 
 
     @GetMapping("/organization-statuses")
-    public List<OrganizationStatusDto> getOrganizationStatuses() {
+    public List<StatusBooleanValuesDto> getOrganizationStatuses() {
         return lookUpService.getOrganizationStatuses();
     }
 
@@ -197,6 +197,11 @@ public class LookUpController {
     @GetMapping("/healthcare-service-referral-methods")
     public List<ValueSetDto> getHealthcareServiceReferralMethod() {
         return lookUpService.getHealthcareServiceReferralMethods();
+    }
+
+    @GetMapping("/healthcare-service-statuses")
+    public List<StatusBooleanValuesDto> getHealthcareServiceStatuses() {
+        return lookUpService.getHealthcareServiceStatuses();
     }
 
     @GetMapping("/care-team-categories")
@@ -272,5 +277,10 @@ public class LookUpController {
     @GetMapping("/request-intent")
     public List<ValueSetDto> getRequestIntent(){
         return lookUpService.getRequestIntent();
+    }
+
+    @GetMapping("/activity-definition-related-artifact-types")
+    public List<ValueSetDto> getActivityDefinitionRelatedArtifactTypes() {
+        return lookUpService.getActivityDefinitionRelatedArtifactTypes();
     }
 }
