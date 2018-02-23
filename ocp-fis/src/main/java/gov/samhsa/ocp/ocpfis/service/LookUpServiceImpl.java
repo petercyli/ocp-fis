@@ -8,7 +8,7 @@ import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LookupPathUrls;
-import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
+import gov.samhsa.ocp.ocpfis.service.dto.StatusBooleanValuesDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -173,8 +173,8 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<OrganizationStatusDto> getOrganizationStatuses() {
-        List<OrganizationStatusDto> organizationStatuses = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
+    public List<StatusBooleanValuesDto> getOrganizationStatuses() {
+        List<StatusBooleanValuesDto> organizationStatuses = Arrays.asList(new StatusBooleanValuesDto(true, "Active"), new StatusBooleanValuesDto(false, "Inactive"));
         log.info("Found " + organizationStatuses.size() + " organization status codes.");
         return organizationStatuses;
     }
@@ -403,8 +403,8 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<OrganizationStatusDto> getHealthcareServiceStatuses() {
-        List<OrganizationStatusDto> healthcareServiceStatuses = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
+    public List<StatusBooleanValuesDto> getHealthcareServiceStatuses() {
+        List<StatusBooleanValuesDto> healthcareServiceStatuses = Arrays.asList(new StatusBooleanValuesDto(true, "Active"), new StatusBooleanValuesDto(false, "Inactive"));
         log.info("Found " + healthcareServiceStatuses.size() + " organization status codes.");
         return healthcareServiceStatuses;
     }
