@@ -22,6 +22,10 @@ public class TelecomCodeValidator implements ConstraintValidator<TelecomCodeCons
     @Override
     public boolean isValid(String telecomCodeToCheck, ConstraintValidatorContext cxt) {
 
+        if (telecomCodeToCheck == null || telecomCodeToCheck.isEmpty()) {
+            return true;
+        }
+
         List<ValueSetDto> list = lookUpService.getTelecomSystems();
 
         boolean isValid = list.stream().anyMatch(t -> t.getCode().equals(telecomCodeToCheck));
