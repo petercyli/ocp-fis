@@ -7,7 +7,6 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
-import gov.samhsa.ocp.ocpfis.service.dto.ActionParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
@@ -132,7 +131,15 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             if (activityDefinitionDto.getRelatedArtifact() != null && !activityDefinitionDto.getRelatedArtifact().isEmpty()) {
                 activityDefinitionDto.getRelatedArtifact().forEach(relatedArtifactDto -> {
                     RelatedArtifact relatedArtifact = new RelatedArtifact();
-                    relatedArtifact.setType(RelatedArtifactType.valueOf(relatedArtifactDto.getCode().toUpperCase()));
+                    try {
+                        relatedArtifact.setType(RelatedArtifactType.fromCode(relatedArtifactDto.getType()));
+                    } catch (FHIRException e) {
+                        throw new BadRequestException("Invalid related artifact type was given.");
+                    }
+
+                    relatedArtifact.setDisplay(relatedArtifactDto.getDisplay());
+                    relatedArtifact.setCitation(relatedArtifactDto.getCitation());
+                    relatedArtifact.setUrl(relatedArtifactDto.getUrl());
                     relatedArtifacts.add(relatedArtifact);
                 });
                 activityDefinition.setRelatedArtifact(relatedArtifacts);
@@ -140,34 +147,35 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
             //Participant
             CodeableConcept actionParticipantRole = new CodeableConcept();
-            actionParticipantRole.addCoding().setCode(activityDefinitionDto.getParticipant().getActionRoleCode())
-                    .setDisplay(activityDefinitionDto.getParticipant().getActionRoleDisplay())
-                    .setSystem(activityDefinitionDto.getParticipant().getActionRoleSystem());
+            actionParticipantRole.addCoding().setCode(activityDefinitionDto.getActionParticipantRole().getCode())
+                    .setDisplay(activityDefinitionDto.getActionParticipantRole().getDisplay())
+                    .setSystem(activityDefinitionDto.getActionParticipantRole().getSystem());
 
-            activityDefinition.addParticipant().setRole(actionParticipantRole).setType(ActivityDefinition.ActivityParticipantType.valueOf(activityDefinitionDto.getParticipant().getActionTypeCode().toUpperCase()));
+            activityDefinition.addParticipant().setRole(actionParticipantRole).setType(ActivityDefinition.ActivityParticipantType.valueOf(activityDefinitionDto.getActionParticipantType().getCode().toUpperCase()));
 
             //Topic
             CodeableConcept topic = new CodeableConcept();
-            topic.addCoding().setCode(activityDefinitionDto.getTopic().getCode()).setSystem(activityDefinitionDto.getTopic().getSystem())
-                    .setDisplay(activityDefinitionDto.getTopic().getDisplay());
-            activityDefinition.addTopic(topic);
+            if(activityDefinitionDto.getTopic()!=null) {
+                topic.addCoding().setCode((activityDefinitionDto.getTopic().getCode()!=null)?activityDefinitionDto.getTopic().getCode():null)
+                        .setSystem((activityDefinitionDto.getTopic().getSystem()!=null)?activityDefinitionDto.getTopic().getSystem():null)
+                        .setDisplay((activityDefinitionDto.getTopic().getDisplay()!=null)?activityDefinitionDto.getTopic().getDisplay():null);
+                activityDefinition.addTopic(topic);
+            }
+
 
             //Period
             if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("active")) {
-
-                    if (activityDefinitionDto.getEffectivePeriod().getStart() != null) {
+                if(activityDefinitionDto.getEffectivePeriod()!=null){
+                    if (activityDefinitionDto.getEffectivePeriod().getStart() != null)
                         activityDefinition.getEffectivePeriod().setStart((java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getStart())));
-                    } else {
-                        activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(Calendar.getInstance().toString()));
-                    }
-
+                } else {
+                    activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
+                }
             }
-
-            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("expired")) {
+            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("retired")){
                 activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
-            } else {
-                activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getEnd()));
             }
+
 
             //Timing
             Timing timing = new Timing();
@@ -222,19 +230,17 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
         }
 
-        if(activityDefinition.getParticipant()!=null && !activityDefinition.getParticipant().isEmpty()) {
-            ActionParticipantDto actionParticipantDto = new ActionParticipantDto();
-            tempActivityDefinitionDto.setParticipant(actionParticipantDto);
-
-            ActivityDefinition.ActivityDefinitionParticipantComponent participantComponent = activityDefinition.getParticipant().stream().findAny().get();
-
-            tempActivityDefinitionDto.getParticipant().setActionTypeCode(participantComponent.getType().toCode());
-            tempActivityDefinitionDto.getParticipant().setActionTypeDisplay(participantComponent.getType().getDisplay());
-
-            tempActivityDefinitionDto.getParticipant().setActionRoleCode(participantComponent.getRole().getCoding().stream().findAny().get().getCode());
-            tempActivityDefinitionDto.getParticipant().setActionRoleDisplay(participantComponent.getRole().getCoding().stream().findAny().get().getDisplay());
-        }
-
+        activityDefinition.getParticipant().stream().findFirst().ifPresent(participant->{
+            participant.getRole().getCoding().stream().findFirst().ifPresent(role->{
+                ValueSetDto valueSetDto=new ValueSetDto();
+                valueSetDto.setCode(role.getCode());
+                valueSetDto.setDisplay(role.getDisplay());
+                valueSetDto.setSystem(role.getSystem());
+                tempActivityDefinitionDto.setActionParticipantRole(valueSetDto);
+            });
+            if(participant.hasType())
+                tempActivityDefinitionDto.setActionParticipantType(convertCodeToValueSetDto(participant.getType().toCode(),lookUpService.getActionParticipantType()));
+        });
 
         TimingDto timingDto = new TimingDto();
         tempActivityDefinitionDto.setTiming(timingDto);
@@ -249,6 +255,16 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         } catch (FHIRException e) {
         }
         return tempActivityDefinitionDto;
+    }
+
+    private ValueSetDto convertCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
+        return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getCode())).map(valueSet -> {
+            ValueSetDto valueSetDto = new ValueSetDto();
+            valueSetDto.setCode(valueSet.getCode());
+            valueSetDto.setDisplay(valueSet.getDisplay());
+            valueSetDto.setSystem(valueSet.getSystem());
+            return valueSetDto;
+        }).findFirst().orElse(null);
     }
 
     private boolean isDuplicate(ActivityDefinitionDto activityDefinitionDto, String organizationid) {

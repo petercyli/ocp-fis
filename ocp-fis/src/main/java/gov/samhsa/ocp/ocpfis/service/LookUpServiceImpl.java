@@ -8,7 +8,7 @@ import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LookupPathUrls;
-import gov.samhsa.ocp.ocpfis.service.dto.OrganizationStatusDto;
+import gov.samhsa.ocp.ocpfis.service.dto.StatusBooleanValuesDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -173,8 +173,8 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<OrganizationStatusDto> getOrganizationStatuses() {
-        List<OrganizationStatusDto> organizationStatuses = Arrays.asList(new OrganizationStatusDto(true, "Active"), new OrganizationStatusDto(false, "Inactive"));
+    public List<StatusBooleanValuesDto> getOrganizationStatuses() {
+        List<StatusBooleanValuesDto> organizationStatuses = Arrays.asList(new StatusBooleanValuesDto(true, "Active"), new StatusBooleanValuesDto(false, "Inactive"));
         log.info("Found " + organizationStatuses.size() + " organization status codes.");
         return organizationStatuses;
     }
@@ -402,6 +402,13 @@ public class LookUpServiceImpl implements LookUpService {
         return healthcareServiceSpecialitiesCodes;
     }
 
+    @Override
+    public List<StatusBooleanValuesDto> getHealthcareServiceStatuses() {
+        List<StatusBooleanValuesDto> healthcareServiceStatuses = Arrays.asList(new StatusBooleanValuesDto(true, "Active"), new StatusBooleanValuesDto(false, "Inactive"));
+        log.info("Found " + healthcareServiceStatuses.size() + " healthcare service status codes.");
+        return healthcareServiceStatuses;
+    }
+
 
     @Override
     public List<ValueSetDto> getHealthcareServiceReferralMethods() {
@@ -586,6 +593,17 @@ public class LookUpServiceImpl implements LookUpService {
         return resourceTypes;
     }
 
+    @Override
+    public List<ValueSetDto> getActivityDefinitionRelatedArtifactTypes() {
+        List<ValueSetDto> resourceTypes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPES.getUrlPath(), LookupPathUrls.ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPES.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPES.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + resourceTypes.size() + " ActivityDefinition related-artifact-types.");
+        return resourceTypes;
+    }
 
     private ValueSet getValueSets(String urlPath, String type) {
 
