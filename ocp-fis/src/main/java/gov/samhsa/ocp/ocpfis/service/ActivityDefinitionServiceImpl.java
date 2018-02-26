@@ -226,8 +226,10 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             PeriodDto periodDto = new PeriodDto();
             tempActivityDefinitionDto.setEffectivePeriod(periodDto);
 
-            tempActivityDefinitionDto.getEffectivePeriod().setStart(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getStart()));
-            tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
+            if( null !=  activityDefinition.getEffectivePeriod().getStart())
+                tempActivityDefinitionDto.getEffectivePeriod().setStart(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getStart()));
+            if( null !=  activityDefinition.getEffectivePeriod().getEnd())
+                tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
         }
 
         activityDefinition.getParticipant().stream().findFirst().ifPresent(participant->{
