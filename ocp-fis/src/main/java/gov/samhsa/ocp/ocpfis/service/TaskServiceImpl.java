@@ -118,7 +118,8 @@ public class TaskServiceImpl implements TaskService {
 
             taskDto.setLogicalId(task.getIdElement().getIdPart());
             taskDto.setDescription(task.getDescription());
-            taskDto.setNote(task.getNote().get(0).getText());
+            if (task.getNote() != null && (task.getNote().size() > 0))
+                taskDto.setNote(task.getNote().get(0).getText());
 
             if (task.getStatus() != null) {
 
