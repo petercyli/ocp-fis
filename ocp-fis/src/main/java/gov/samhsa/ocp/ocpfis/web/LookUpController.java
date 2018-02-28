@@ -283,4 +283,25 @@ public class LookUpController {
     public List<ValueSetDto> getActivityDefinitionRelatedArtifactTypes() {
         return lookUpService.getActivityDefinitionRelatedArtifactTypes();
     }
+
+    @GetMapping("/communication-statuses")
+    public List<ValueSetDto> getCommunicationEventStatus() {
+        return lookUpService.getCommunicationEventStatus();
+    }
+
+    @GetMapping("/communication-categories")
+    public List<ValueSetDto> getCommunicationCategory() {
+        return lookUpService.getCommunicationCategory();
+    }
+
+    @GetMapping("/communication-not-done-reasons")
+    public List<ValueSetDto> getCommunicationNotDoneReason() {
+        return lookUpService.getCommunicationNotDoneReason();
+    }
+
+    @GetMapping("/communication-mediums")
+    public List<ValueSetDto> getCommunicationMedium() {
+        return lookUpService.getCommunicationMedium();
+    }
+
 }
