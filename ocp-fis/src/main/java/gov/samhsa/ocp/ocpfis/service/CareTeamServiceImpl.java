@@ -33,11 +33,8 @@ import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -297,6 +294,34 @@ public class CareTeamServiceImpl implements CareTeamService {
         int currentPage = firstPage ? 1 : page.get();
 
         return new PageDto<>(careTeamDtos, numberOfCareTeamMembersPerPage, totalPages, currentPage, careTeamDtos.size(), otherPageCareTeamBundle.getTotal());
+    }
+
+    @Override
+    public List<ParticipantDto> getCareTeamParticipants(String patient, List<String> roles) {
+        List<ParticipantDto> finalParticipantDto = new ArrayList<>();
+
+        Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
+                .where(new ReferenceClientParam("patient").hasId("Patient/" + patient))
+                .include(CareTeam.INCLUDE_PARTICIPANT)
+                .returnBundle(Bundle.class).execute();
+
+        if(careTeamBundle != null) {
+            List<Bundle.BundleEntryComponent> retrievedCareTeams = careTeamBundle.getEntry();
+
+            if(retrievedCareTeams != null) {
+                List<CareTeam> careTeams = retrievedCareTeams.stream()
+                        .filter(bundle -> bundle.getResource().getResourceType().equals(ResourceType.CareTeam))
+                        .map(careTeamMember -> (CareTeam) careTeamMember.getResource()).collect(toList());
+
+
+                for (CareTeam careTeam : careTeams) {
+                    List<ParticipantDto> participantDos = CareTeamToCareTeamDtoConverter.mapToPartipants(careTeam, roles);
+                    finalParticipantDto.addAll(participantDos);
+                }
+            }
+        }
+
+        return finalParticipantDto;
     }
 
     @Override
