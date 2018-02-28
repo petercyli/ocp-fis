@@ -21,6 +21,9 @@ public class CommunicationDto {
     //Comments about Communication.
     private String note;
 
+    //Message part content
+    private String payloadContent;
+
     private boolean notDone;
 
     private ValueSetDto status;
@@ -55,6 +58,5 @@ public class CommunicationDto {
     //Communication Received Date
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate received;
-
 
 }
