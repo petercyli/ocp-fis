@@ -285,8 +285,8 @@ public class LookUpController {
     }
 
     @GetMapping("/communication-statuses")
-    public List<ValueSetDto> getCommunicationEventStatus() {
-        return lookUpService.getCommunicationEventStatus();
+    public List<ValueSetDto> getCommunicationStatus() {
+        return lookUpService.getCommunicationStatus();
     }
 
     @GetMapping("/communication-categories")
