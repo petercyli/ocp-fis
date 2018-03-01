@@ -661,22 +661,50 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getAppointmentStatus() {
-        return null;
+        List<ValueSetDto> appointmentStatusList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.APPOINTMENT_STATUS.getUrlPath(), LookupPathUrls.APPOINTMENT_STATUS.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.APPOINTMENT_STATUS.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            appointmentStatusList = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + appointmentStatusList.size() + " appointment statuses.");
+        return appointmentStatusList;
     }
 
     @Override
     public List<ValueSetDto> getAppointmentType() {
-        return null;
+        List<ValueSetDto> appointmentTypeList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.APPOINTMENT_TYPE.getUrlPath(), LookupPathUrls.APPOINTMENT_TYPE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.APPOINTMENT_TYPE.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            appointmentTypeList = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + appointmentTypeList.size() + " appointment types.");
+        return appointmentTypeList;
     }
 
     @Override
-    public List<ValueSetDto> getParticipantStatus() {
-        return null;
+    public List<ValueSetDto> getAppointmentParticipantStatus() {
+        List<ValueSetDto> participantStatusList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.PARTICIPANT_STATUS.getUrlPath(), LookupPathUrls.PARTICIPANT_STATUS.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.PARTICIPANT_STATUS.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            participantStatusList = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + participantStatusList.size() + " appointment participant statuses.");
+        return participantStatusList;
     }
 
     @Override
-    public List<ValueSetDto> getParticipantType() {
-        return null;
+    public List<ValueSetDto> getAppointmentParticipantType() {
+        List<ValueSetDto> participantTypeList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.PARTICIPANT_TYPE.getUrlPath(), LookupPathUrls.PARTICIPANT_TYPE.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.PARTICIPANT_TYPE.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            participantTypeList = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + participantTypeList.size() + " appointment participant types.");
+        return participantTypeList;
     }
 
     private ValueSet getValueSets(String urlPath, String type) {
