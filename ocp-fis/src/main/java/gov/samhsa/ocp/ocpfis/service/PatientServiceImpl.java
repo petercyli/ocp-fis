@@ -18,7 +18,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
-import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -149,7 +149,7 @@ public class PatientServiceImpl implements PatientService {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setActive(Boolean.TRUE);
-            patient.setGender(FhirUtils.getPatientGender(patientDto.getGenderCode()));
+            patient.setGender(DateUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
@@ -174,7 +174,7 @@ public class PatientServiceImpl implements PatientService {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setId(new IdType(patientDto.getId()));
-            patient.setGender(FhirUtils.getPatientGender(patientDto.getGenderCode()));
+            patient.setGender(DateUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
@@ -241,17 +241,10 @@ public class PatientServiceImpl implements PatientService {
 
     private void setIdentifiers(Patient patient, PatientDto patientDto) {
         patient.setId(new IdType(patientDto.getId()));
-        patientDto.getIdentifier()
-                .forEach(identifier -> {
-                            final Identifier id = patient.addIdentifier()
-                                    .setSystem(identifier.getSystem())
-                                    .setValue(identifier.getValue());
-                            if (id.getValue().equals(patientDto.getId())) {
-                                // if mrn, set use to official
-                                id.setUse(Identifier.IdentifierUse.OFFICIAL);
-                            }
-                        }
-                );
+        // if mrn, set use to official
+        patientDto.getIdentifier().stream().map(identifier -> patient.addIdentifier()
+                .setSystem(identifier.getSystem())
+                .setValue(identifier.getValue())).filter(id -> id.getValue().equals(patientDto.getId())).forEach(id -> id.setUse(Identifier.IdentifierUse.OFFICIAL));
     }
 
     private String getCodeSystemByValue(List<IdentifierDto> identifierList, String value) {
@@ -311,18 +304,15 @@ public class PatientServiceImpl implements PatientService {
     private void mapExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = patient.getExtension();
 
-        extensionList.stream().map(this::convertExtensionToCoding).forEach(obj -> {
-            if (obj.isPresent()) {
-                Coding coding = obj.get();
-                if (coding.getSystem().contains(RACE_CODE)) {
-                    patientDto.setRace(coding.getCode());
-                } else if (coding.getSystem().contains(LANGUAGE_CODE)) {
-                    patientDto.setLanguage(coding.getCode());
-                } else if (coding.getSystem().contains(ETHNICITY_CODE)) {
-                    patientDto.setEthnicity(coding.getCode());
-                } else if (coding.getSystem().contains(GENDER_CODE)) {
-                    patientDto.setBirthSex(coding.getCode());
-                }
+        extensionList.stream().map(this::convertExtensionToCoding).filter(Optional::isPresent).map(Optional::get).forEach(coding -> {
+            if (coding.getSystem().contains(RACE_CODE)) {
+                patientDto.setRace(coding.getCode());
+            } else if (coding.getSystem().contains(LANGUAGE_CODE)) {
+                patientDto.setLanguage(coding.getCode());
+            } else if (coding.getSystem().contains(ETHNICITY_CODE)) {
+                patientDto.setEthnicity(coding.getCode());
+            } else if (coding.getSystem().contains(GENDER_CODE)) {
+                patientDto.setBirthSex(coding.getCode());
             }
         });
     }
@@ -335,12 +325,10 @@ public class PatientServiceImpl implements PatientService {
             if (type instanceof CodeableConcept) {
                 CodeableConcept codeableConcept = (CodeableConcept) type;
 
-                if (codeableConcept != null) {
-                    List<Coding> codingList = codeableConcept.getCoding();
+                List<Coding> codingList = codeableConcept.getCoding();
 
-                    if (codingList != null) {
-                        coding = Optional.of(codingList.get(0));
-                    }
+                if (codingList != null) {
+                    coding = Optional.of(codingList.get(0));
                 }
             }
         }

@@ -1,7 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
-import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -70,7 +70,7 @@ public class RelatedPersonToRelatedPersonDtoConverter {
         }
 
         //birthdate
-        relatedPersonDto.setBirthDate(FhirUtils.convertToString(relatedPerson.getBirthDate()));
+        relatedPersonDto.setBirthDate(DateUtil.convertToString(relatedPerson.getBirthDate()));
 
         //address
         List<Address> addresses = relatedPerson.getAddress();
@@ -88,8 +88,8 @@ public class RelatedPersonToRelatedPersonDtoConverter {
         //period
         Period period = relatedPerson.getPeriod();
         if (period != null) {
-            relatedPersonDto.setStartDate(FhirUtils.convertToString(period.getStart()));
-            relatedPersonDto.setEndDate(FhirUtils.convertToString(period.getEnd()));
+            relatedPersonDto.setStartDate(DateUtil.convertToString(period.getStart()));
+            relatedPersonDto.setEndDate(DateUtil.convertToString(period.getEnd()));
         }
 
         return relatedPersonDto;

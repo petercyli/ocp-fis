@@ -11,7 +11,7 @@ import java.util.Locale;
 import java.time.*;
 
 
-public class FhirUtils {
+public class DateUtil {
 
     public static Enumerations.AdministrativeGender getPatientGender(String codeString) {
         switch (codeString.toUpperCase()) {
@@ -40,8 +40,7 @@ public class FhirUtils {
     public static Date convertToDate(String dateString) throws ParseException {
         DateFormat format = new SimpleDateFormat("MM/dd/yyyy", Locale.US);
         if (dateString != null) {
-            Date date = format.parse(dateString);
-            return date;
+            return format.parse(dateString);
         }
 
         return null;
@@ -55,9 +54,8 @@ public class FhirUtils {
         Instant instant = date.toInstant();
 
         //2. Instant + system default time zone + toLocalDate() = LocalDate
-        LocalDate localDate = instant.atZone(defaultZoneId).toLocalDate();
 
-        return localDate;
+        return instant.atZone(defaultZoneId).toLocalDate();
     }
 
     public static LocalDateTime convertToLocalDateTime(Date date) {
@@ -68,9 +66,8 @@ public class FhirUtils {
         Instant instant = date.toInstant();
 
         //2. Instant + system default time zone + toLocalDateTime() = LocalDateTime
-        LocalDateTime localDateTime = instant.atZone(defaultZoneId).toLocalDateTime();
 
-        return localDateTime;
+        return instant.atZone(defaultZoneId).toLocalDateTime();
     }
 
     public static String convertToString(Date date) {
