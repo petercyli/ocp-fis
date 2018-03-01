@@ -1,7 +1,8 @@
 package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
-import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -13,7 +14,7 @@ import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 
 import java.text.ParseException;
-import java.util.Arrays;
+import java.util.Collections;
 
 public class RelatedPersonDtoToRelatedPersonConverter {
 
@@ -28,7 +29,7 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         Identifier identifier = new Identifier();
         identifier.setSystem(relatedPersonDto.getIdentifierType());
         identifier.setValue(relatedPersonDto.getIdentifierValue());
-        relatedPerson.setIdentifier(Arrays.asList(identifier));
+        relatedPerson.setIdentifier(Collections.singletonList(identifier));
 
         //active
         relatedPerson.setActive(relatedPersonDto.isActive());
@@ -45,7 +46,7 @@ public class RelatedPersonDtoToRelatedPersonConverter {
 
         //name
         HumanName humanName = new HumanName().addGiven(relatedPersonDto.getFirstName()).setFamily(relatedPersonDto.getLastName());
-        relatedPerson.setName(Arrays.asList(humanName));
+        relatedPerson.setName(Collections.singletonList(humanName));
 
         //telecom
         ContactPoint contactPoint = new ContactPoint();
@@ -56,14 +57,14 @@ public class RelatedPersonDtoToRelatedPersonConverter {
             contactPoint.setUse(ContactPoint.ContactPointUse.valueOf(relatedPersonDto.getTelecomUse().toUpperCase()));
         }
         contactPoint.setValue(relatedPersonDto.getTelecomValue());
-        relatedPerson.setTelecom(Arrays.asList(contactPoint));
+        relatedPerson.setTelecom(Collections.singletonList(contactPoint));
 
         //gender
-        Enumerations.AdministrativeGender gender = FhirUtils.getPatientGender(relatedPersonDto.getGenderCode());
+        Enumerations.AdministrativeGender gender = FhirUtil.getPatientGender(relatedPersonDto.getGenderCode());
         relatedPerson.setGender(gender);
 
         //birthdate
-        relatedPerson.setBirthDate(FhirUtils.convertToDate(relatedPersonDto.getBirthDate()));
+        relatedPerson.setBirthDate(DateUtil.convertToDate(relatedPersonDto.getBirthDate()));
 
         //address
         Address address = new Address();
@@ -73,12 +74,12 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         address.setState(relatedPersonDto.getState());
         address.setPostalCode(relatedPersonDto.getZip());
         address.setCountry(relatedPersonDto.getCountry());
-        relatedPerson.setAddress(Arrays.asList(address));
+        relatedPerson.setAddress(Collections.singletonList(address));
 
         //period
         Period period = new Period();
-        period.setStart(FhirUtils.convertToDate(relatedPersonDto.getStartDate()));
-        period.setEnd(FhirUtils.convertToDate(relatedPersonDto.getEndDate()));
+        period.setStart(DateUtil.convertToDate(relatedPersonDto.getStartDate()));
+        period.setEnd(DateUtil.convertToDate(relatedPersonDto.getEndDate()));
         relatedPerson.setPeriod(period);
 
         return relatedPerson;

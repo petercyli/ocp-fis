@@ -15,7 +15,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
-import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Annotation;
@@ -25,7 +25,6 @@ import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
-import org.hl7.fhir.dstu3.model.ValueSet;
 import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.dstu3.model.codesystems.TaskStatus;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -145,12 +144,10 @@ public class TaskServiceImpl implements TaskService {
             }
 
             if (task.getPerformerType() != null) {
-                task.getPerformerType().stream().findFirst().ifPresent(performerType -> {
-                    performerType.getCoding().stream().findFirst().ifPresent(coding -> {
-                        performerTypeDto.setCode((coding.getCode() != null && !coding.getCode().isEmpty()) ? coding.getCode() : null);
-                        performerTypeDto.setDisplay((getDisplay(coding.getCode(), Optional.ofNullable(lookUpService.getTaskPerformerType()))).orElse(null));
-                    });
-                });
+                task.getPerformerType().stream().findFirst().ifPresent(performerType -> performerType.getCoding().stream().findFirst().ifPresent(coding -> {
+                    performerTypeDto.setCode((coding.getCode() != null && !coding.getCode().isEmpty()) ? coding.getCode() : null);
+                    performerTypeDto.setDisplay((getDisplay(coding.getCode(), Optional.ofNullable(lookUpService.getTaskPerformerType()))).orElse(null));
+                }));
 
                 taskDto.setPerformerType(performerTypeDto);
             }
@@ -199,6 +196,7 @@ public class TaskServiceImpl implements TaskService {
                             .display((task.hasDefinitionReference()) ? task.getDefinitionReference().getDisplay() : null)
                             .build());
                 } catch (FHIRException e) {
+                    log.error("FHIR Exception when setting task definition", e);
                 }
             }
 
@@ -209,18 +207,18 @@ public class TaskServiceImpl implements TaskService {
             }
 
             if (task.hasLastModified()) {
-                taskDto.setLastModified(FhirUtils.convertToLocalDate(task.getLastModified()));
+                taskDto.setLastModified(DateUtil.convertToLocalDate(task.getLastModified()));
             }
 
             if (task.hasAuthoredOn()) {
-                taskDto.setAuthoredOn(FhirUtils.convertToLocalDate(task.getAuthoredOn()));
+                taskDto.setAuthoredOn(DateUtil.convertToLocalDate(task.getAuthoredOn()));
             }
 
             if (task.getExecutionPeriod() != null && !task.getExecutionPeriod().isEmpty()) {
                 PeriodDto periodDto = new PeriodDto();
                 taskDto.setExecutionPeriod(periodDto);
-                taskDto.getExecutionPeriod().setStart((task.getExecutionPeriod().hasStart()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
-                taskDto.getExecutionPeriod().setEnd((task.getExecutionPeriod().hasEnd()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getEnd()) : null);
+                taskDto.getExecutionPeriod().setStart((task.getExecutionPeriod().hasStart()) ? DateUtil.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
+                taskDto.getExecutionPeriod().setEnd((task.getExecutionPeriod().hasEnd()) ? DateUtil.convertToLocalDate(task.getExecutionPeriod().getEnd()) : null);
             }
 
             return taskDto;
@@ -261,7 +259,7 @@ public class TaskServiceImpl implements TaskService {
         Task task = setTaskDtoToTask(taskDto);
         task.setId(taskId);
 
-        Bundle taskBundle = (Bundle) fhirClient.search().forResource(Task.class)
+        Bundle taskBundle = fhirClient.search().forResource(Task.class)
                 .where(new TokenClientParam("_id").exactly().code(taskId))
                 .returnBundle(Bundle.class)
                 .execute();
@@ -338,32 +336,28 @@ public class TaskServiceImpl implements TaskService {
 
             //Set Performer Type
             if (task.hasPerformerType()) {
-                task.getPerformerType().stream().findFirst().ifPresent(performerType -> {
-                    performerType.getCoding().stream().findFirst().ifPresent(coding -> {
-                        taskDto.setPerformerType(convertCodeToValueSetDto(coding.getCode(), lookUpService.getTaskPerformerType()));
-                    });
-                });
+                task.getPerformerType().stream().findFirst().ifPresent(performerType -> performerType.getCoding().stream().findFirst().ifPresent(coding -> {
+                    taskDto.setPerformerType(convertCodeToValueSetDto(coding.getCode(), lookUpService.getTaskPerformerType()));
+                }));
             }
 
             taskDto.setOwner(convertReferenceToReferenceDto(task.getOwner()));
 
             //Set Note
-            task.getNote().stream().findFirst().ifPresent(note -> {
-                taskDto.setNote(note.getText());
-            });
+            task.getNote().stream().findFirst().ifPresent(note -> taskDto.setNote(note.getText()));
 
             if (task.hasLastModified()) {
-                taskDto.setLastModified(FhirUtils.convertToLocalDate(task.getLastModified()));
+                taskDto.setLastModified(DateUtil.convertToLocalDate(task.getLastModified()));
             }
 
             if (task.hasAuthoredOn()) {
-                taskDto.setAuthoredOn(FhirUtils.convertToLocalDate(task.getAuthoredOn()));
+                taskDto.setAuthoredOn(DateUtil.convertToLocalDate(task.getAuthoredOn()));
             }
 
             if (task.getExecutionPeriod() != null && !task.getExecutionPeriod().isEmpty()) {
                 PeriodDto periodDto = new PeriodDto();
-                periodDto.setStart((task.getExecutionPeriod().hasStart()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
-                periodDto.setEnd((task.getExecutionPeriod().hasEnd()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getEnd()) : null);
+                periodDto.setStart((task.getExecutionPeriod().hasStart()) ? DateUtil.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
+                periodDto.setEnd((task.getExecutionPeriod().hasEnd()) ? DateUtil.convertToLocalDate(task.getExecutionPeriod().getEnd()) : null);
                 taskDto.setExecutionPeriod(periodDto);
             }
 
@@ -398,8 +392,8 @@ public class TaskServiceImpl implements TaskService {
 
                     if(episodeOfCare.hasPeriod()) {
                         PeriodDto periodDto=new PeriodDto();
-                        periodDto.setStart((episodeOfCare.getPeriod().hasStart()) ? FhirUtils.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
-                        periodDto.setEnd((episodeOfCare.getPeriod().hasEnd())?FhirUtils.convertToLocalDate(task.getExecutionPeriod().getEnd()):null);
+                        periodDto.setStart((episodeOfCare.getPeriod().hasStart()) ? DateUtil.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
+                        periodDto.setEnd((episodeOfCare.getPeriod().hasEnd())? DateUtil.convertToLocalDate(task.getExecutionPeriod().getEnd()):null);
                         contextDto.setPeriod(periodDto);
                     }
                     taskDto.setContext(contextDto);
@@ -447,7 +441,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private boolean isDuplicate(TaskDto taskDto) {
-        Bundle taskForPatientbundle = (Bundle) fhirClient.search().forResource(Task.class)
+        Bundle taskForPatientbundle = fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(taskDto.getBeneficiary().getReference()))
                 .returnBundle(Bundle.class)
                 .execute();
@@ -464,11 +458,7 @@ public class TaskServiceImpl implements TaskService {
                 }
             }).collect(Collectors.toList());
         }
-        if (duplicateCheckList.isEmpty()) {
-            return false;
-        } else {
-            return true;
-        }
+        return !duplicateCheckList.isEmpty();
     }
 
 
