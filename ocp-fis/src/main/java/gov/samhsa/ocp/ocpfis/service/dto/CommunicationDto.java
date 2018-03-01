@@ -26,10 +26,17 @@ public class CommunicationDto {
 
     private boolean notDone;
 
-    private ValueSetDto status;
-    private ValueSetDto notDoneReason;
-    private ValueSetDto category;
-    private ValueSetDto medium;
+    private String statusCode;
+    private String statusValue;
+
+    private String notDoneReasonCode;
+    private String notDoneReasonValue;
+
+    private String categoryCode;
+    private String categoryValue;
+
+    private String mediumCode;
+    private String mediumVaule;
 
 
     /*To be supported later once organization relationship is established.
@@ -52,11 +59,11 @@ public class CommunicationDto {
     private ContextDto context;
 
     //Communication Sent Date
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
+    //@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate sent;
 
     //Communication Received Date
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
+    //@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate received;
 
 }
