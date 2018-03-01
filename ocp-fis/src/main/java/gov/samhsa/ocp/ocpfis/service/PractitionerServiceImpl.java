@@ -22,6 +22,7 @@ import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Practitioner;
@@ -150,7 +151,33 @@ public class PractitionerServiceImpl implements PractitionerService {
         return practitionersInPage(retrievedPractitioners, otherPagePractitionerSearchBundle, numberOfPractitionersPerPage, firstPage, page);
     }
 
+    @Override
+    public List<PractitionerDto> getPractitionersByOrganization(String organization) {
+        List<PractitionerDto> practitioners = new ArrayList<>();
 
+        Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+                .where(new ReferenceClientParam("organization").hasId("Organization/" + organization))
+                .include(PractitionerRole.INCLUDE_PRACTITIONER)
+                .returnBundle(Bundle.class).execute();
+
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> practitionerComponents = bundle.getEntry();
+
+            if (practitionerComponents != null) {
+                practitioners = practitionerComponents.stream()
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.PractitionerRole))
+                        .map(it -> (PractitionerRole) it.getResource())
+                        .map(it -> (Practitioner) it.getPractitioner().getResource())
+                        .map(it -> modelMapper.map(it, PractitionerDto.class))
+                        .collect(toList());
+
+            }
+        }
+
+        return practitioners;
+    }
+
+    @Override
     public void createPractitioner(PractitionerDto practitionerDto) {
         //Check Duplicate Identifier
         boolean hasDuplicateIdentifier = practitionerDto.getIdentifiers().stream().anyMatch(identifierDto -> {
