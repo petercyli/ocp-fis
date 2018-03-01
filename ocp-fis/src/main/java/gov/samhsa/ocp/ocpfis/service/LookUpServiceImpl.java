@@ -605,6 +605,54 @@ public class LookUpServiceImpl implements LookUpService {
         return resourceTypes;
     }
 
+    @Override
+    public List<ValueSetDto> getCommunicationEventStatus(){
+        List<ValueSetDto> resourceTypes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.COMMUNICATION_EVENT_STATUS.getUrlPath(), LookupPathUrls.COMMUNICATION_EVENT_STATUS.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.COMMUNICATION_EVENT_STATUS.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + resourceTypes.size() + " Communication event statuses.");
+        return resourceTypes;
+    }
+
+    @Override
+    public List<ValueSetDto> getCommunicationCategory(){
+        List<ValueSetDto> resourceTypes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.COMMUNICATION_CATEGORY.getUrlPath(), LookupPathUrls.COMMUNICATION_CATEGORY.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.COMMUNICATION_CATEGORY.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + resourceTypes.size() + " Communication categories.");
+        return resourceTypes;
+    }
+
+    @Override
+    public List<ValueSetDto> getCommunicationNotDoneReason(){
+        List<ValueSetDto> resourceTypes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.COMMUNICATION_NOT_DONE_REASON.getUrlPath(), LookupPathUrls.COMMUNICATION_NOT_DONE_REASON.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.COMMUNICATION_NOT_DONE_REASON.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + resourceTypes.size() + " Communication not done reasons.");
+        return resourceTypes;
+    }
+
+    @Override
+    public List<ValueSetDto> getCommunicationMedium(){
+        List<ValueSetDto> resourceTypes = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.COMMUNICATION_MEDIUM.getUrlPath(), LookupPathUrls.COMMUNICATION_MEDIUM.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.COMMUNICATION_MEDIUM.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + resourceTypes.size() + " Communication medium.");
+        return resourceTypes;
+    }
+
     private ValueSet getValueSets(String urlPath, String type) {
 
         ValueSet response;
