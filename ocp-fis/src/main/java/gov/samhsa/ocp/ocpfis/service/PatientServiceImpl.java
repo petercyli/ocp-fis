@@ -18,7 +18,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
-import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -149,7 +149,7 @@ public class PatientServiceImpl implements PatientService {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setActive(Boolean.TRUE);
-            patient.setGender(DateUtil.getPatientGender(patientDto.getGenderCode()));
+            patient.setGender(FhirUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
@@ -174,7 +174,7 @@ public class PatientServiceImpl implements PatientService {
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setId(new IdType(patientDto.getId()));
-            patient.setGender(DateUtil.getPatientGender(patientDto.getGenderCode()));
+            patient.setGender(FhirUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
