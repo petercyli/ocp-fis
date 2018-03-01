@@ -612,10 +612,10 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<ValueSetDto> getCommunicationEventStatus(){
+    public List<ValueSetDto> getCommunicationStatus(){
         List<ValueSetDto> resourceTypes = new ArrayList<>();
-        ValueSet response = getValueSets(LookupPathUrls.COMMUNICATION_EVENT_STATUS.getUrlPath(), LookupPathUrls.COMMUNICATION_EVENT_STATUS.getType());
-        if (isValueSetAvailableInServer(response, LookupPathUrls.COMMUNICATION_EVENT_STATUS.getType())) {
+        ValueSet response = getValueSets(LookupPathUrls.COMMUNICATION_STATUS.getUrlPath(), LookupPathUrls.COMMUNICATION_STATUS.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.COMMUNICATION_STATUS.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             resourceTypes = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
