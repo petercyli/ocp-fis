@@ -47,7 +47,7 @@ public class CommunicationDto {
     private List<ReferenceDto> recipient;
 
     //Communication Sent Date
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy HH:mm:ss")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate sent;
 
     //Communication Received Date
