@@ -2,10 +2,13 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.CommunicationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Annotation;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -17,6 +20,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,6 +53,24 @@ public class CommunicationServiceImpl implements CommunicationService {
     public void createCommunication(CommunicationDto communicationDto) {
             Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             fhirClient.create().resource(communication).execute();
+    }
+
+    @Override
+    public void updateCommunication(String communicationId, CommunicationDto communicationDto) {
+
+        try {
+            final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
+            communication.setId(communicationId);
+            validate(communication);
+
+            fhirClient.update().resource(communication).execute();
+
+        } catch (Exception e) {
+
+            throw new FHIRClientException("FHIR Client returned with an error while creating a Communication : " + e.getMessage());
+
+        }
+
     }
 
     private Communication convertCommunicationDtoToCommunication(CommunicationDto communicationDto) {
@@ -176,6 +198,14 @@ public class CommunicationServiceImpl implements CommunicationService {
                 codeableConcept.addCoding(coding);
             }
             return codeableConcept;
+    }
+
+    private void validate(Communication communication) {
+        final ValidationResult validationResult = fhirValidator.validateWithResult(communication);
+
+        if (!validationResult.isSuccessful()) {
+            throw new FHIRFormatErrorException("FHIR Communication validation is not successful" + validationResult.getMessages());
+        }
     }
 
 }
