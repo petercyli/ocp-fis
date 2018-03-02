@@ -1,7 +1,9 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Enumerations;
 
+@Slf4j
 public class FhirUtil {
     public static Enumerations.AdministrativeGender getPatientGender(String codeString) {
         switch (codeString.toUpperCase()) {

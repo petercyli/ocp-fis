@@ -1,5 +1,7 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -10,7 +12,7 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.Locale;
 
-
+@Slf4j
 public class DateUtil {
 
     public static Date convertToDate(String dateString) throws ParseException {
