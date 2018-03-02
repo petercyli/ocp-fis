@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
 
@@ -51,6 +52,16 @@ public class DateUtil {
 
         if (date != null) {
             return df.format(date);
+        }
+
+        return "";
+    }
+
+    public static String convertToString(LocalDate date) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+
+        if(date != null) {
+            return formatter.format(date);
         }
 
         return "";
