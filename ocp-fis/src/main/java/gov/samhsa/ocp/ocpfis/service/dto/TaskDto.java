@@ -40,7 +40,7 @@ public class TaskDto {
 
     /*Health care event during the task creation.
       *Assign episodeOf care when ActivityDefinition name="enrollment" */
-    private ContextDto context;
+    private ReferenceDto context;
 
     /*Start and end time of execution.
      * Start date when status is changed to "in-progress"
@@ -71,4 +71,7 @@ public class TaskDto {
     Comments about task. Generally entered by the owner who is assigned to complete the task
      */
     private String note;
+
+    //managingOrganization
+    private ReferenceDto organization;
 }
