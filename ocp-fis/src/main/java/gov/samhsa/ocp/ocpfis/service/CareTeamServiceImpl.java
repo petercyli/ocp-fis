@@ -190,8 +190,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
                 //Getting participant start and end date
                 if (participant.getPeriod() != null && !participant.getPeriod().isEmpty()) {
-                    participantDto.setStartDate((participant.getPeriod().getStart() != null) ? DateUtil.convertToString(participant.getPeriod().getStart()) : null);
-                    participantDto.setEndDate((participant.getPeriod().getEnd() != null) ? DateUtil.convertToString(participant.getPeriod().getEnd()) : null);
+                    participantDto.setStartDate((participant.getPeriod().getStart() != null) ? DateUtil.convertDateToString(participant.getPeriod().getStart()) : null);
+                    participantDto.setEndDate((participant.getPeriod().getEnd() != null) ? DateUtil.convertDateToString(participant.getPeriod().getEnd()) : null);
                 }
 
                 //Getting participant member and onBehalfof
@@ -270,8 +270,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
             careTeamDto.setParticipants(participantDtos);
             if (careTeam.getPeriod() != null && !careTeam.getPeriod().isEmpty()) {
-                careTeamDto.setStartDate((careTeam.getPeriod().getStart() != null) ? DateUtil.convertToString(careTeam.getPeriod().getStart()) : null);
-                careTeamDto.setEndDate((careTeam.getPeriod().getEnd() != null) ? DateUtil.convertToString(careTeam.getPeriod().getEnd()) : null);
+                careTeamDto.setStartDate((careTeam.getPeriod().getStart() != null) ? DateUtil.convertDateToString(careTeam.getPeriod().getStart()) : null);
+                careTeamDto.setEndDate((careTeam.getPeriod().getEnd() != null) ? DateUtil.convertDateToString(careTeam.getPeriod().getEnd()) : null);
             }
             return careTeamDto;
         }).collect(toList());
