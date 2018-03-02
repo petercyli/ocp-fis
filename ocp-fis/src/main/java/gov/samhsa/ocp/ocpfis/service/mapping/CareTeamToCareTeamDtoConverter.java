@@ -3,7 +3,7 @@ package gov.samhsa.ocp.ocpfis.service.mapping;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
-import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -14,10 +14,7 @@ import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -42,10 +39,7 @@ public class CareTeamToCareTeamDtoConverter {
         CodeableConcept codeableConcept = codeableConceptList.stream().findFirst().orElse(null);
         if(codeableConcept != null) {
             List<Coding> codingList = codeableConcept.getCoding();
-            Coding coding = codingList.stream().findFirst().orElse(null);
-            if(coding != null) {
-                careTeamDto.setCategoryCode(coding.getCode());
-            }
+            codingList.stream().findFirst().ifPresent(coding -> careTeamDto.setCategoryCode(coding.getCode()));
         }
 
         //subject
@@ -62,10 +56,7 @@ public class CareTeamToCareTeamDtoConverter {
 
         if(codeableConceptReasonCode != null) {
             List<Coding> codingReasonCodeList = codeableConceptReasonCode.getCoding();
-            Coding codingReasonCode = codingReasonCodeList.stream().findFirst().orElse(null);
-            if (codingReasonCode != null) {
-                careTeamDto.setReasonCode(codingReasonCode.getCode());
-            }
+            codingReasonCodeList.stream().findFirst().ifPresent(codingReasonCode -> careTeamDto.setReasonCode(codingReasonCode.getCode()));
         }
 
         //participants
@@ -75,11 +66,11 @@ public class CareTeamToCareTeamDtoConverter {
         //start and end date
         Period period = careTeam.getPeriod();
         if(period.getStart() != null) {
-            careTeamDto.setStartDate(FhirUtils.convertToString(period.getStart()));
+            careTeamDto.setStartDate(DateUtil.convertToString(period.getStart()));
         }
 
         if(period.getEnd() != null) {
-            careTeamDto.setEndDate(FhirUtils.convertToString(period.getEnd()));
+            careTeamDto.setEndDate(DateUtil.convertToString(period.getEnd()));
         }
 
         for (CareTeam.CareTeamParticipantComponent careTeamParticipantComponent : careTeamParticipantComponentList) {
@@ -128,13 +119,10 @@ public class CareTeamToCareTeamDtoConverter {
 
             CodeableConcept roleCodeableConcept = careTeamParticipantComponent.getRole();
             List<Coding> codingRoleCodeList = roleCodeableConcept.getCoding();
-            Coding codingRoleCode = codingRoleCodeList.stream().findFirst().orElse(null);
-            if(codingRoleCode != null) {
-                participantDto.setRoleCode(codingRoleCode.getCode());
-            }
+            codingRoleCodeList.stream().findFirst().ifPresent(codingRoleCode -> participantDto.setRoleCode(codingRoleCode.getCode()));
 
-            participantDto.setStartDate(FhirUtils.convertToString(careTeamParticipantComponent.getPeriod().getStart()));
-            participantDto.setEndDate(FhirUtils.convertToString(careTeamParticipantComponent.getPeriod().getEnd()));
+            participantDto.setStartDate(DateUtil.convertToString(careTeamParticipantComponent.getPeriod().getStart()));
+            participantDto.setEndDate(DateUtil.convertToString(careTeamParticipantComponent.getPeriod().getEnd()));
 
 
             participantDtos.add(participantDto);

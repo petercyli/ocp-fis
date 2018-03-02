@@ -86,11 +86,21 @@ public interface LookUpService {
 
     List<ValueSetDto> getActivityDefinitionRelatedArtifactTypes();
 
-    List<ValueSetDto> getCommunicationEventStatus();
+    List<ValueSetDto> getCommunicationStatus();
 
     List<ValueSetDto> getCommunicationCategory();
 
     List<ValueSetDto> getCommunicationNotDoneReason();
 
     List<ValueSetDto> getCommunicationMedium();
+
+    List<ValueSetDto> getAppointmentStatus();
+
+    List<ValueSetDto> getAppointmentType();
+
+    List<ValueSetDto> getAppointmentParticipationStatus();
+
+    List<ValueSetDto> getAppointmentParticipationType();
+
+    List<ValueSetDto> getAppointmentParticipantRequired();
 }

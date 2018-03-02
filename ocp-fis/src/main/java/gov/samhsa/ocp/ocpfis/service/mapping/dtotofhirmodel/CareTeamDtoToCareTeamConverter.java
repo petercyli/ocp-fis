@@ -3,21 +3,17 @@ package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
-import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.exceptions.FHIRException;
 
-import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
+import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 public class CareTeamDtoToCareTeamConverter {
 
@@ -44,8 +40,8 @@ public class CareTeamDtoToCareTeamConverter {
 
         //start and end date
         Period period = new Period();
-        period.setStart(FhirUtils.convertToDate(careTeamDto.getStartDate()));
-        period.setEnd(FhirUtils.convertToDate(careTeamDto.getEndDate()));
+        period.setStart(DateUtil.convertToDate(careTeamDto.getStartDate()));
+        period.setEnd(DateUtil.convertToDate(careTeamDto.getEndDate()));
         careTeam.setPeriod(period);
 
         //ReasonCode
@@ -53,7 +49,7 @@ public class CareTeamDtoToCareTeamConverter {
         Coding codingReasonCode = new Coding();
         codingReasonCode.setCode(careTeamDto.getReasonCode());
         CodeableConcept codeableConceptReasonCode = new CodeableConcept().addCoding(codingReasonCode);
-        careTeam.setReasonCode(Arrays.asList(codeableConceptReasonCode));
+        careTeam.setReasonCode(Collections.singletonList(codeableConceptReasonCode));
 
         //participants
         List<ParticipantDto> participantDtoList = careTeamDto.getParticipants();
@@ -83,8 +79,8 @@ public class CareTeamDtoToCareTeamConverter {
             careTeamParticipant.setRole(codeableConceptRoleCode);
 
             Period participantPeriod = new Period();
-            participantPeriod.setStart(FhirUtils.convertToDate(participantDto.getStartDate()));
-            participantPeriod.setEnd(FhirUtils.convertToDate(participantDto.getEndDate()));
+            participantPeriod.setStart(DateUtil.convertToDate(participantDto.getStartDate()));
+            participantPeriod.setEnd(DateUtil.convertToDate(participantDto.getEndDate()));
             careTeamParticipant.setPeriod(participantPeriod);
 
             participantsList.add(careTeamParticipant);
