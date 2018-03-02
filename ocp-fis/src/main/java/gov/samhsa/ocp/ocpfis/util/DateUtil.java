@@ -57,4 +57,9 @@ public class DateUtil {
 
         return "";
     }
+
+    public static Date convertLocalDateTimeToDate(LocalDateTime dateTime){
+        return Date.from(dateTime.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
 }
