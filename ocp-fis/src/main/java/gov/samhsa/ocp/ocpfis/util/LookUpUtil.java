@@ -9,7 +9,7 @@ import org.hl7.fhir.dstu3.model.ValueSet;
 @Slf4j
 public class LookUpUtil {
 
-    public static boolean isValueSetReponseValid(ValueSet response, String type) {
+    public static boolean isValueSetResponseValid(ValueSet response, String type) {
         boolean isValid = true;
         if (type.equalsIgnoreCase(LookupPathUrls.US_STATE.getType())
                 || type.equalsIgnoreCase(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType())) {
@@ -36,7 +36,7 @@ public class LookUpUtil {
     }
 
     public static boolean isValidResponseOrThrowException(ValueSet response, String type, boolean throwException) {
-        boolean isValid = isValueSetReponseValid(response, type);
+        boolean isValid = isValueSetResponseValid(response, type);
         if (!isValid && throwException) {
             log.error("Query was successful, but found no " + type + " codes in the configured FHIR server");
             throw new ResourceNotFoundException("Query was successful, but found no " + type + " codes in the configured FHIR server");
