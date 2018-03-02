@@ -289,15 +289,15 @@ public class LookUpController {
         return lookUpService.getAppointmentType();
     }
 
-    @GetMapping("/appointment-participant-statuses")
-    public List<ValueSetDto> getAppointmentParticipantStatus() {
+    @GetMapping("/appointment-participation-statuses")
+    public List<ValueSetDto> getAppointmentParticipationStatus() {
 
-        return lookUpService.getAppointmentParticipantStatus();
+        return lookUpService.getAppointmentParticipationStatus();
     }
 
-    @GetMapping("/appointment-participant-types")
-    public List<ValueSetDto> getAppointmentParticipantType() {
+    @GetMapping("/appointment-participation-types")
+    public List<ValueSetDto> getAppointmentParticipationType() {
 
-        return lookUpService.getAppointmentParticipantType();
+        return lookUpService.getAppointmentParticipationType();
     }
 }
