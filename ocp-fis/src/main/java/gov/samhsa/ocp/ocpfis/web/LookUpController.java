@@ -300,4 +300,10 @@ public class LookUpController {
 
         return lookUpService.getAppointmentParticipationType();
     }
+
+    @GetMapping("/appointment-participant-required")
+    public List<ValueSetDto> getAppointmentParticipantRequired() {
+
+        return lookUpService.getAppointmentParticipantRequired();
+    }
 }

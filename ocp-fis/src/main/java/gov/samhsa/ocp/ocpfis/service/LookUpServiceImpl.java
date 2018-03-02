@@ -707,6 +707,18 @@ public class LookUpServiceImpl implements LookUpService {
         return participationTypeList;
     }
 
+    @Override
+    public List<ValueSetDto> getAppointmentParticipantRequired() {
+        List<ValueSetDto> participantRequiredList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.PARTICIPANT_REQUIRED.getUrlPath(), LookupPathUrls.PARTICIPANT_REQUIRED.getType());
+        if (isValueSetAvailableInServer(response, LookupPathUrls.PARTICIPANT_REQUIRED.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            participantRequiredList = valueSetList.stream().map(this::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + participantRequiredList.size() + " appointment participant required.");
+        return participantRequiredList;
+    }
+
     private ValueSet getValueSets(String urlPath, String type) {
 
         ValueSet response;

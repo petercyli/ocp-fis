@@ -39,8 +39,9 @@ public enum LookupPathUrls {
     COMMUNICATION_MEDIUM("communication medium", Constants.COMMUNICATION_MEDIUM_PATH),
     APPOINTMENT_TYPE("appointment type",Constants.APPOINTMENT_TYPE_PATH),
     APPOINTMENT_STATUS("appointment status",Constants.APPOINTMENT_STATUS_PATH),
-    PARTICIPATION_TYPE("participant type",Constants.PARTICIPATION_TYPE_PATH),
-    PARTICIPATION_STATUS("participant status",Constants.PARTICIPATION_STATUS_PATH),;
+    PARTICIPATION_TYPE("participation type",Constants.PARTICIPATION_TYPE_PATH),
+    PARTICIPATION_STATUS("participation status",Constants.PARTICIPATION_STATUS_PATH),
+    PARTICIPANT_REQUIRED("participant required",Constants.PARTICIPANT_REQUIRED_PATH);
 
 
 
@@ -100,5 +101,6 @@ public enum LookupPathUrls {
         static final String APPOINTMENT_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/appointmentstatus";
         static final String PARTICIPATION_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/v3-ParticipationType";
         static final String PARTICIPATION_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/participationstatus";
+        static final String PARTICIPANT_REQUIRED_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/participantrequired";
     }
 }
