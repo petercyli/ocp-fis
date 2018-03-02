@@ -6,21 +6,17 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.CommunicationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
-import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Annotation;
-import org.hl7.fhir.dstu3.model.BackboneElement;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Communication;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.StringType;
-import org.hl7.fhir.dstu3.model.Type;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -69,7 +65,9 @@ public class CommunicationServiceImpl implements CommunicationService {
         communication.setSender(convertReferenceDtoToReference(communicationDto.getSender()));
 
         //Set Status
-        //communication.setStatus(Communication.CommunicationStatus.valueOf(communicationDto.getStatusCode().toUpperCase()));
+        if (communicationDto.getStatusCode() != null) {
+            communication.setStatus(Communication.CommunicationStatus.valueOf(communicationDto.getStatusCode().toUpperCase()));
+        }
 
         //Set Category
         if (communicationDto.getCategoryCode() != null) {
@@ -117,6 +115,12 @@ public class CommunicationServiceImpl implements CommunicationService {
             communication.setDefinition(definitions);
         }
 
+        //Set context
+        if (communicationDto.getContext() != null) {
+       //     Reference context = new Reference();
+       //     context = (convertReferenceDtoToReference(communicationDto.getContext()));
+            communication.setContext(convertReferenceDtoToReference(communicationDto.getContext()));
+        }
 
         if(communicationDto.getSent() !=null)
             communication.setSent((java.sql.Date.valueOf(communicationDto.getSent())));
@@ -163,15 +167,15 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     private CodeableConcept convertValuesetDtoToCodeableConcept (ValueSetDto valueSetDto) {
-            CodeableConcept tempCodeableConcept = new CodeableConcept();
+            CodeableConcept codeableConcept = new CodeableConcept();
             if (valueSetDto != null) {
-                Coding tempCoding = new Coding();
-                tempCoding.setCode(valueSetDto.getCode());
-                tempCoding.setSystem(valueSetDto.getSystem());
-                tempCoding.setDisplay(valueSetDto.getDisplay());
-                tempCodeableConcept.addCoding(tempCoding);
+                Coding coding = new Coding();
+                coding.setCode(valueSetDto.getCode());
+                coding.setSystem(valueSetDto.getSystem());
+                coding.setDisplay(valueSetDto.getDisplay());
+                codeableConcept.addCoding(coding);
             }
-            return tempCodeableConcept;
+            return codeableConcept;
     }
 
 }

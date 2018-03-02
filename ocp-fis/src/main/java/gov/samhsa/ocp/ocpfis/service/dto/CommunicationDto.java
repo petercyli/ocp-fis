@@ -38,32 +38,20 @@ public class CommunicationDto {
     private String mediumCode;
     private String mediumVaule;
 
-
-    /*To be supported later once organization relationship is established.
-    Allow user to select from ActivityDefinition list for the organization
-    in the current context and kind = Communication. There could be one or
-    more ActivityDefinition templates defined for Communication (e.g. Outreach).
-     */
     private ReferenceDto definition;
-
     private ReferenceDto topic;
     private ReferenceDto subject;
-    private List<ReferenceDto> recipient;
     private ReferenceDto sender;
+    private ReferenceDto context;
 
-    /* Select from list of Episode of Care for current patient context
-     * and current organization context. Generally there should be only
-     * one active Episode of Care for given patient and organization.
-     * Keeping it optional to allow communication that is not related to
-     * specific episode of care.*/
-    private ContextDto context;
+    private List<ReferenceDto> recipient;
 
     //Communication Sent Date
-    //@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy HH:mm:ss")
     private LocalDate sent;
 
     //Communication Received Date
-    //@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate received;
 
 }
