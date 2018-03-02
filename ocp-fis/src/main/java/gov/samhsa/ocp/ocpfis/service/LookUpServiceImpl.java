@@ -303,14 +303,14 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getUSCoreEthnicity() {
-        List<ValueSetDto> usCoreEthnicites = new ArrayList<>();
+        List<ValueSetDto> usCoreEthnicities = new ArrayList<>();
         ValueSet response = null;
         String url = fisProperties.getFhir().getServerUrl() + "/ValueSet/$expand?url=http://hl7.org/fhir/us/core/ValueSet/omb-ethnicity-category";
 
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            usCoreEthnicites = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+            usCoreEthnicities = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
         catch (Exception e) {
             log.debug("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
@@ -321,15 +321,15 @@ public class LookUpServiceImpl implements LookUpService {
             try {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-                usCoreEthnicites = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+                usCoreEthnicities = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
             }
             catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-ethnicity-category", e);
             }
         }
-        log.info("Found " + usCoreEthnicites.size() + " US Core ethnicities.");
-        return usCoreEthnicites;
+        log.info("Found " + usCoreEthnicities.size() + " US Core ethnicities.");
+        return usCoreEthnicities;
 
     }
 
