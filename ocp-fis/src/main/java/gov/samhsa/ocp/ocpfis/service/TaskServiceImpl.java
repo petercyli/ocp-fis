@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ContextDto;
+import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -36,6 +37,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -54,13 +56,21 @@ public class TaskServiceImpl implements TaskService {
 
     private final FisProperties fisProperties;
 
+    private final EpisodeOfCareService episodeOfCareService;
+
     @Autowired
-    public TaskServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
+    public TaskServiceImpl(ModelMapper modelMapper,
+                           IGenericClient fhirClient,
+                           FhirValidator fhirValidator,
+                           LookUpService lookUpService,
+                           FisProperties fisProperties,
+                           EpisodeOfCareService episodeOfCareService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.episodeOfCareService = episodeOfCareService;
     }
 
     @Override
@@ -200,11 +210,7 @@ public class TaskServiceImpl implements TaskService {
                 }
             }
 
-            if (task.hasContext()) {
-                taskDto.setContext(ContextDto.builder()
-                        .logicalId((task.hasContext()) ? task.getContext().getReference() : null)
-                        .build());
-            }
+            //TODO: redo context field
 
             if (task.hasLastModified()) {
                 taskDto.setLastModified(DateUtil.convertDateToLocalDate(task.getLastModified()));
@@ -239,10 +245,22 @@ public class TaskServiceImpl implements TaskService {
 
             //Checking activity definition for enrollment and creating context with Episode of care
             if (taskDto.getDefinition().getDisplay().equalsIgnoreCase("Enrollment")) {
-                EpisodeOfCare episodeOfCare = createEpisodeOfCare(taskDto);
-                MethodOutcome methodOutcome = fhirClient.create().resource(episodeOfCare).execute();
+
+                Optional<EpisodeOfCareDto> episodeOfCare = retrieveEpisodeOfCare(taskDto);
+
                 Reference contextReference = new Reference();
-                task.setContext(contextReference.setReference("EpisodeOfCare/" + methodOutcome.getId().getIdPart()));
+
+                if (episodeOfCare.isPresent()) {
+                    EpisodeOfCareDto dto = episodeOfCare.get();
+                    contextReference.setReference(ResourceType.EpisodeOfCare + "/" + dto.getId());
+                } else {
+                    EpisodeOfCare newEpisodeOfCare = createEpisodeOfCare(taskDto);
+                    MethodOutcome methodOutcome = fhirClient.create().resource(newEpisodeOfCare).execute();
+                    contextReference.setReference(ResourceType.EpisodeOfCare + "/" + methodOutcome.getId().getIdPart());
+                }
+
+                contextReference.setDisplay(createDisplayForEpisodeOfCare(taskDto));
+                task.setContext(contextReference);
             }
 
             //Set authoredOn
@@ -396,7 +414,9 @@ public class TaskServiceImpl implements TaskService {
                         periodDto.setEnd((episodeOfCare.getPeriod().hasEnd())? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getEnd()):null);
                         contextDto.setPeriod(periodDto);
                     }
-                    taskDto.setContext(contextDto);
+
+                    //TODO: revisit the context logic
+                    //taskDto.setContext(contextDto);
                 });
             }
         });
@@ -416,14 +436,14 @@ public class TaskServiceImpl implements TaskService {
         return lookupDisplay;
     }
 
-    private Reference getReferenceValue(ReferenceDto referenceDto) {
+    private static Reference getReferenceValue(ReferenceDto referenceDto) {
         Reference reference = new Reference();
         reference.setDisplay(referenceDto.getDisplay());
         reference.setReference(referenceDto.getReference());
         return reference;
     }
 
-    private ReferenceDto convertReferenceToReferenceDto(Reference reference) {
+    private static ReferenceDto convertReferenceToReferenceDto(Reference reference) {
         ReferenceDto referenceDto = new ReferenceDto();
         referenceDto.setDisplay(reference.getDisplay());
         referenceDto.setReference(reference.getReference());
@@ -460,7 +480,6 @@ public class TaskServiceImpl implements TaskService {
         }
         return !duplicateCheckList.isEmpty();
     }
-
 
     private Task setTaskDtoToTask(TaskDto taskDto) {
         Task task = new Task();
@@ -542,30 +561,35 @@ public class TaskServiceImpl implements TaskService {
 
         episodeOfCare.setType(codeableConcepts);
 
-        ContextDto contextDto = taskDto.getContext();
-        if (contextDto != null) {
-            //Setting patient
-            episodeOfCare.setPatient((contextDto.getPatient()!=null)?getReferenceValue(contextDto.getPatient()):null);
+        //patient
+        episodeOfCare.setPatient(getReferenceValue(taskDto.getBeneficiary()));
 
-            //Setting managing Organization
-            episodeOfCare.setManagingOrganization((contextDto.getManagingOrganization()!=null)?getReferenceValue(contextDto.getManagingOrganization()):null);
+        //managing organization
+        episodeOfCare.setManagingOrganization(getReferenceValue(taskDto.getOrganization()));
 
-            //Setting Start Period
-            if (contextDto.getPeriod() != null) {
-                if (taskDto.getContext().getPeriod().getStart() != null)
-                episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(taskDto.getContext().getPeriod().getStart()));
-            }else {
-            episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-            }
+        //start date
+        episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(taskDto.getExecutionPeriod().getStart()));
 
-            //Setting CareManager
-            episodeOfCare.setCareManager((contextDto.getCareManager()!=null)?getReferenceValue(contextDto.getCareManager()):null);
+        //careManager
+        episodeOfCare.setCareManager(getReferenceValue(taskDto.getAgent()));
 
-        }else{
-            episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-        }
         return episodeOfCare;
+    }
 
+    private Optional<EpisodeOfCareDto> retrieveEpisodeOfCare(TaskDto taskDto) {
+        String patient = getReferenceValue(taskDto.getBeneficiary()).getReference();
+
+        List<EpisodeOfCareDto> episodeOfCareDtos = episodeOfCareService.getEpisodeOfCares(patient, Optional.of(taskDto.getStatus().getCode()));
+
+        return episodeOfCareDtos.stream().findFirst();
+    }
+
+    private static String createDisplayForEpisodeOfCare(TaskDto dto) {
+        String status = dto.getStatus() != null ? dto.getStatus().getCode() : "NA";
+        String date = dto.getExecutionPeriod() != null ? DateUtil.convertToString(dto.getExecutionPeriod().getStart()) : "NA";
+        String agent = dto.getAgent() != null ? dto.getAgent().getDisplay() : "NA";
+
+        return new StringJoiner("-").add(status).add(date).add(agent).toString();
     }
 
 }

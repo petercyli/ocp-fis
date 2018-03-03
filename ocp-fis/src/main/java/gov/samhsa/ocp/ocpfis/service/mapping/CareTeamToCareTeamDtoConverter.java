@@ -37,7 +37,7 @@ public class CareTeamToCareTeamDtoConverter {
         //categories
         List<CodeableConcept> codeableConceptList = careTeam.getCategory();
         CodeableConcept codeableConcept = codeableConceptList.stream().findFirst().orElse(null);
-        if(codeableConcept != null) {
+        if (codeableConcept != null) {
             List<Coding> codingList = codeableConcept.getCoding();
             codingList.stream().findFirst().ifPresent(coding -> careTeamDto.setCategoryCode(coding.getCode()));
         }
@@ -45,7 +45,7 @@ public class CareTeamToCareTeamDtoConverter {
         //subject
         careTeamDto.setSubjectId(careTeam.getSubject().getReference().replace("Patient/", ""));
         Patient patientSubject = (Patient) careTeam.getSubject().getResource();
-        if(patientSubject != null && patientSubject.getName() != null && patientSubject.getName().get(0) != null) {
+        if (patientSubject != null && patientSubject.getName() != null && patientSubject.getName().get(0) != null) {
             careTeamDto.setSubjectFirstName(patientSubject.getName().get(0).getGiven().get(0).toString());
             careTeamDto.setSubjectLastName(patientSubject.getName().get(0).getFamily());
         }
@@ -54,7 +54,7 @@ public class CareTeamToCareTeamDtoConverter {
         List<CodeableConcept> codeableConceptReasonCodeList = careTeam.getReasonCode();
         CodeableConcept codeableConceptReasonCode = codeableConceptReasonCodeList.stream().findFirst().orElse(null);
 
-        if(codeableConceptReasonCode != null) {
+        if (codeableConceptReasonCode != null) {
             List<Coding> codingReasonCodeList = codeableConceptReasonCode.getCoding();
             codingReasonCodeList.stream().findFirst().ifPresent(codingReasonCode -> careTeamDto.setReasonCode(codingReasonCode.getCode()));
         }
@@ -79,50 +79,17 @@ public class CareTeamToCareTeamDtoConverter {
             ParticipantDto participantDto = new ParticipantDto();
 
 
-            if (member.getReference().contains(ParticipantTypeEnum.organization.getName())) {
-                participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.organization.getName() + "/", ""));
-                participantDto.setMemberType(ParticipantTypeEnum.organization.getCode());
-
-                Organization organization = (Organization) member.getResource();
-                participantDto.setMemberName(Optional.ofNullable(organization.getName()));
-
-            } else if (member.getReference().contains(ParticipantTypeEnum.patient.getName())) {
-                participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.patient.getName() + "/", ""));
-                participantDto.setMemberType(ParticipantTypeEnum.patient.getCode());
-
-                Patient patientMember = (Patient) member.getResource();
-                if(patientMember != null && patientMember.getName() != null && patientMember.getName().get(0) != null) {
-                    participantDto.setMemberFirstName(Optional.ofNullable(patientMember.getName().get(0).getGiven().get(0).toString()));
-                    participantDto.setMemberLastName(Optional.ofNullable(patientMember.getName().get(0).getFamily()));
-                }
-
-            } else if (member.getReference().contains(ParticipantTypeEnum.practitioner.getName())) {
-                participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.practitioner.getName() + "/", ""));
-                participantDto.setMemberType(ParticipantTypeEnum.practitioner.getCode());
-
-                Practitioner practitioner = (Practitioner) member.getResource();
-                if(practitioner != null && practitioner.getName() != null && practitioner.getName().get(0) != null) {
-                    participantDto.setMemberFirstName(Optional.ofNullable(practitioner.getName().get(0).getGiven().get(0).toString()));
-                    participantDto.setMemberLastName(Optional.ofNullable(practitioner.getName().get(0).getFamily()));
-                }
-
-            } else if (member.getReference().contains(ParticipantTypeEnum.relatedPerson.getName())) {
-                participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.relatedPerson.getName() + "/", ""));
-                participantDto.setMemberType(ParticipantTypeEnum.relatedPerson.getCode());
-
-                RelatedPerson relatedPerson = (RelatedPerson) member.getResource();
-                if(relatedPerson != null && relatedPerson.getName() != null && relatedPerson.getName().get(0) != null) {
-                    participantDto.setMemberFirstName(Optional.ofNullable(relatedPerson.getName().get(0).getGiven().get(0).toString()));
-                    participantDto.setMemberLastName(Optional.ofNullable(relatedPerson.getName().get(0).getFamily()));
-                }
-            }
+            populateParticipantMemberInformation(member, participantDto);
 
             CodeableConcept roleCodeableConcept = careTeamParticipantComponent.getRole();
             List<Coding> codingRoleCodeList = roleCodeableConcept.getCoding();
-            codingRoleCodeList.stream().findFirst().ifPresent(codingRoleCode -> participantDto.setRoleCode(codingRoleCode.getCode()));
+            Coding codingRoleCode = codingRoleCodeList.stream().findFirst().orElse(null);
+            if (codingRoleCode != null) {
+                participantDto.setRoleCode(codingRoleCode.getCode());
+            }
 
-            participantDto.setStartDate(DateUtil.convertDateToString(careTeamParticipantComponent.getPeriod().getStart()));
-            participantDto.setEndDate(DateUtil.convertDateToString(careTeamParticipantComponent.getPeriod().getEnd()));
+            participantDto.setStartDate(DateUtil.convertToString(careTeamParticipantComponent.getPeriod().getStart()));
+            participantDto.setEndDate(DateUtil.convertToString(careTeamParticipantComponent.getPeriod().getEnd()));
 
 
             participantDtos.add(participantDto);
@@ -133,7 +100,72 @@ public class CareTeamToCareTeamDtoConverter {
         return careTeamDto;
     }
 
+    public static List<ParticipantDto> mapToPartipants(CareTeam careTeam, List<String> roles) {
+        List<ParticipantDto> participantDtos = new ArrayList<>();
 
+        List<CareTeam.CareTeamParticipantComponent> careTeamParticipantComponentList = careTeam.getParticipant();
+
+        for (CareTeam.CareTeamParticipantComponent careTeamParticipantComponent : careTeamParticipantComponentList) {
+            Reference member = careTeamParticipantComponent.getMember();
+
+            CodeableConcept roleCodeableConcept = careTeamParticipantComponent.getRole();
+            List<Coding> codingRoleCodeList = roleCodeableConcept.getCoding();
+            Coding codingRoleCode = codingRoleCodeList.stream().findFirst().orElse(null);
+
+            if (roles.contains(codingRoleCode.getCode())) {
+                //add this partcipant to the list of participantDtos
+                ParticipantDto participantDto = new ParticipantDto();
+
+                populateParticipantMemberInformation(member, participantDto);
+
+                participantDtos.add(participantDto);
+            }
+
+        }
+
+        return participantDtos;
+
+    }
+
+    private static void populateParticipantMemberInformation(Reference member, ParticipantDto participantDto) {
+        if (member.getReference().contains(ParticipantTypeEnum.organization.getName())) {
+            participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.organization.getName() + "/", ""));
+            participantDto.setMemberType(ParticipantTypeEnum.organization.getCode());
+
+            Organization organization = (Organization) member.getResource();
+            participantDto.setMemberName(Optional.ofNullable(organization.getName()));
+
+        } else if (member.getReference().contains(ParticipantTypeEnum.patient.getName())) {
+            participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.patient.getName() + "/", ""));
+            participantDto.setMemberType(ParticipantTypeEnum.patient.getCode());
+
+            Patient patientMember = (Patient) member.getResource();
+            if (patientMember != null && patientMember.getName() != null && patientMember.getName().get(0) != null) {
+                participantDto.setMemberFirstName(Optional.ofNullable(patientMember.getName().get(0).getGiven().get(0).toString()));
+                participantDto.setMemberLastName(Optional.ofNullable(patientMember.getName().get(0).getFamily()));
+            }
+
+        } else if (member.getReference().contains(ParticipantTypeEnum.practitioner.getName())) {
+            participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.practitioner.getName() + "/", ""));
+            participantDto.setMemberType(ParticipantTypeEnum.practitioner.getCode());
+
+            Practitioner practitioner = (Practitioner) member.getResource();
+            if (practitioner != null && practitioner.getName() != null && practitioner.getName().get(0) != null) {
+                participantDto.setMemberFirstName(Optional.ofNullable(practitioner.getName().get(0).getGiven().get(0).toString()));
+                participantDto.setMemberLastName(Optional.ofNullable(practitioner.getName().get(0).getFamily()));
+            }
+
+        } else if (member.getReference().contains(ParticipantTypeEnum.relatedPerson.getName())) {
+            participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.relatedPerson.getName() + "/", ""));
+            participantDto.setMemberType(ParticipantTypeEnum.relatedPerson.getCode());
+
+            RelatedPerson relatedPerson = (RelatedPerson) member.getResource();
+            if (relatedPerson != null && relatedPerson.getName() != null && relatedPerson.getName().get(0) != null) {
+                participantDto.setMemberFirstName(Optional.ofNullable(relatedPerson.getName().get(0).getGiven().get(0).toString()));
+                participantDto.setMemberLastName(Optional.ofNullable(relatedPerson.getName().get(0).getFamily()));
+            }
+        }
+    }
 
 
 }

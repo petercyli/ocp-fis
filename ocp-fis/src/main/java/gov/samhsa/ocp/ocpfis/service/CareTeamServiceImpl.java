@@ -283,6 +283,34 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
+    public List<ParticipantDto> getCareTeamParticipants(String patient, List<String> roles) {
+        List<ParticipantDto> finalParticipantDto = new ArrayList<>();
+
+        Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
+                .where(new ReferenceClientParam("patient").hasId("Patient/" + patient))
+                .include(CareTeam.INCLUDE_PARTICIPANT)
+                .returnBundle(Bundle.class).execute();
+
+        if(careTeamBundle != null) {
+            List<Bundle.BundleEntryComponent> retrievedCareTeams = careTeamBundle.getEntry();
+
+            if(retrievedCareTeams != null) {
+                List<CareTeam> careTeams = retrievedCareTeams.stream()
+                        .filter(bundle -> bundle.getResource().getResourceType().equals(ResourceType.CareTeam))
+                        .map(careTeamMember -> (CareTeam) careTeamMember.getResource()).collect(toList());
+
+
+                for (CareTeam careTeam : careTeams) {
+                    List<ParticipantDto> participantDos = CareTeamToCareTeamDtoConverter.mapToPartipants(careTeam, roles);
+                    finalParticipantDto.addAll(participantDos);
+                }
+            }
+        }
+
+        return finalParticipantDto;
+    }
+
+    @Override
     public CareTeamDto getCareTeamById(String careTeamById) {
         Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
                 .where(new TokenClientParam("_id").exactly().code(careTeamById))
