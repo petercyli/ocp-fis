@@ -586,7 +586,7 @@ public class TaskServiceImpl implements TaskService {
 
     private static String createDisplayForEpisodeOfCare(TaskDto dto) {
         String status = dto.getStatus() != null ? dto.getStatus().getCode() : "NA";
-        String date = dto.getExecutionPeriod() != null ? DateUtil.convertToString(dto.getExecutionPeriod().getStart()) : "NA";
+        String date = dto.getExecutionPeriod() != null ? DateUtil.convertLocalDateToString(dto.getExecutionPeriod().getStart()) : "NA";
         String agent = dto.getAgent() != null ? dto.getAgent().getDisplay() : "NA";
 
         return new StringJoiner("-").add(status).add(date).add(agent).toString();

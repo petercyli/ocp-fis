@@ -57,7 +57,7 @@ public class DateUtil {
         return "";
     }
 
-    public static String convertToString(LocalDate date) {
+    public static String convertLocalDateToString(LocalDate date) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
         if(date != null) {

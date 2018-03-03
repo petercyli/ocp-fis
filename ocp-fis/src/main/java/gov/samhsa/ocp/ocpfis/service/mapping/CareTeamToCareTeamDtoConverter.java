@@ -88,8 +88,8 @@ public class CareTeamToCareTeamDtoConverter {
                 participantDto.setRoleCode(codingRoleCode.getCode());
             }
 
-            participantDto.setStartDate(DateUtil.convertToString(careTeamParticipantComponent.getPeriod().getStart()));
-            participantDto.setEndDate(DateUtil.convertToString(careTeamParticipantComponent.getPeriod().getEnd()));
+            participantDto.setStartDate(DateUtil.convertDateToString(careTeamParticipantComponent.getPeriod().getStart()));
+            participantDto.setEndDate(DateUtil.convertDateToString(careTeamParticipantComponent.getPeriod().getEnd()));
 
 
             participantDtos.add(participantDto);
@@ -112,8 +112,8 @@ public class CareTeamToCareTeamDtoConverter {
             List<Coding> codingRoleCodeList = roleCodeableConcept.getCoding();
             Coding codingRoleCode = codingRoleCodeList.stream().findFirst().orElse(null);
 
-            if (roles.contains(codingRoleCode.getCode())) {
-                //add this partcipant to the list of participantDtos
+            if (codingRoleCode != null && roles.contains(codingRoleCode.getCode())) {
+                //add this participant to the list of participantDtos
                 ParticipantDto participantDto = new ParticipantDto();
 
                 populateParticipantMemberInformation(member, participantDto);
