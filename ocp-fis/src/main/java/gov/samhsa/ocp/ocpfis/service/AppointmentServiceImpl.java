@@ -98,7 +98,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             if(isCreate){
                 appointment.setStatus(Appointment.AppointmentStatus.fromCode("proposed"));
             } else if(isStringNotNullAndNotEmpty(appointmentDto.getStatusCode())){
-                log.info("About to set Appointment Status-- Check if system, display is SET!!");
                 Appointment.AppointmentStatus status = Appointment.AppointmentStatus.fromCode(appointmentDto.getStatusCode().trim());
                 appointment.setStatus(status);
             }
@@ -150,11 +149,11 @@ public class AppointmentServiceImpl implements AppointmentService {
                     //Actor
                     if(isStringNotNullAndNotEmpty(participant.getActorReference())){
                         Reference ref = new Reference(participant.getActorReference().trim());
+
                         if(isStringNotNullAndNotEmpty(participant.getActorName())){
                             ref.setDisplay(participant.getActorName().trim());
                         }
                         participantModel.setActor(ref);
-
 
                         //Participant Required
                         if(isStringNotNullAndNotEmpty(participant.getParticipantRequiredCode())){
@@ -203,8 +202,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private Appointment.ParticipantRequired getRequiredBasedOnParticipantReference(String reference) throws FHIRException {
         String resourceType = reference.trim().split("/")[0];
-        List<String> requiredResources = Arrays.asList(ResourceType.Practitioner.name(),ResourceType.Patient.name(), ResourceType.RelatedPerson.name());
-        List<String> infoOnlyResources = Arrays.asList(ResourceType.HealthcareService.name(),ResourceType.Location.name());
+        List<String> requiredResources = Arrays.asList(ResourceType.Practitioner.name().toUpperCase(),ResourceType.Patient.name().toUpperCase(), ResourceType.RelatedPerson.name().toUpperCase());
+        List<String> infoOnlyResources = Arrays.asList(ResourceType.HealthcareService.name().toUpperCase(),ResourceType.Location.name().toUpperCase());
 
         if(requiredResources.contains(resourceType.toUpperCase())){
             return Appointment.ParticipantRequired.fromCode("required");
