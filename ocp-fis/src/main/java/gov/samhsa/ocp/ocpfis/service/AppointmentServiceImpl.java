@@ -16,11 +16,9 @@ import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -34,7 +32,6 @@ import java.util.Optional;
 @Service
 @Slf4j
 public class AppointmentServiceImpl implements AppointmentService {
-    private final ModelMapper modelMapper;
 
     private final IGenericClient fhirClient;
 
@@ -43,8 +40,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final FisProperties fisProperties;
 
     @Autowired
-    public AppointmentServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
-        this.modelMapper = modelMapper;
+    public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
@@ -135,10 +131,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
                     //Participation Type
                     if(isStringNotNullAndNotEmpty(participant.getParticipationTypeCode())){
-                        Coding coding = new Coding();
-                        coding.setCode(participant.getParticipationTypeCode());
-                        coding.setDisplay(participant.getParticipationTypeDisplay());
-                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(coding);
+                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirUtil.getCoding(participant.getParticipationTypeCode(), participant.getParticipationTypeDisplay(), null));
                         participantModel.setType(Collections.singletonList(codeableConcept));
                     } else if(isCreate){
                         //By default, add participants as "attender"
@@ -157,8 +150,8 @@ public class AppointmentServiceImpl implements AppointmentService {
                     //Actor
                     if(isStringNotNullAndNotEmpty(participant.getActorReference())){
                         Reference ref = new Reference(participant.getActorReference().trim());
-                        if(isStringNotNullAndNotEmpty(participant.getActorReference())){
-                            ref.setDisplay(participant.getActorReference().trim());
+                        if(isStringNotNullAndNotEmpty(participant.getActorName())){
+                            ref.setDisplay(participant.getActorName().trim());
                         }
                         participantModel.setActor(ref);
 
