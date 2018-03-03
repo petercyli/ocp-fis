@@ -104,7 +104,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
             //Type
             if(isStringNotNullAndNotEmpty(appointmentDto.getTypeCode())){
-                CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirUtil.getCoding(appointmentDto.getTypeCode(), appointmentDto.getTypeDisplay(), null));
+                CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirUtil.getCoding(appointmentDto.getTypeCode(), null, null));
                 appointment.setAppointmentType(codeableConcept);
             }
 
@@ -130,7 +130,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
                     //Participation Type
                     if(isStringNotNullAndNotEmpty(participant.getParticipationTypeCode())){
-                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirUtil.getCoding(participant.getParticipationTypeCode(), participant.getParticipationTypeDisplay(), null));
+                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirUtil.getCoding(participant.getParticipationTypeCode(), null, null));
                         participantModel.setType(Collections.singletonList(codeableConcept));
                     } else if(isCreate){
                         //By default, add participants as "attender"
