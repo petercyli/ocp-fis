@@ -9,8 +9,8 @@ import org.hl7.fhir.dstu3.model.ValueSet;
 @Slf4j
 public class LookUpUtil {
 
-    public static boolean checkIfValueSetAvailableInServer(ValueSet response, String type) {
-        boolean isAvailable = true;
+    public static boolean isValueSetResponseValid(ValueSet response, String type) {
+        boolean isValid = true;
         if (type.equalsIgnoreCase(LookupPathUrls.US_STATE.getType())
                 || type.equalsIgnoreCase(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType())) {
             if (response == null || response.getCompose() == null ||
@@ -18,30 +18,30 @@ public class LookUpUtil {
                     response.getCompose().getInclude().isEmpty() ||
                     response.getCompose().getInclude().get(0).getConcept() == null ||
                     response.getCompose().getInclude().get(0).getConcept().isEmpty()) {
-                isAvailable = false;
+                isValid = false;
             }
         } else {
             if (response == null ||
                     response.getExpansion() == null ||
                     response.getExpansion().getContains() == null ||
                     response.getExpansion().getContains().isEmpty()) {
-                isAvailable = false;
+                isValid = false;
             }
         }
-        return isAvailable;
+        return isValid;
     }
 
     public static boolean isValueSetAvailableInServer(ValueSet response, String type) {
-        return isValueSetAvailableInServer(response, type, Boolean.TRUE);
+        return isValidResponseOrThrowException(response, type, true);
     }
 
-    public static boolean isValueSetAvailableInServer(ValueSet response, String type, boolean isThrow) {
-        boolean isAvailable = checkIfValueSetAvailableInServer(response, type);
-        if (!isAvailable && isThrow) {
+    public static boolean isValidResponseOrThrowException(ValueSet response, String type, boolean throwException) {
+        boolean isValid = isValueSetResponseValid(response, type);
+        if (!isValid && throwException) {
             log.error("Query was successful, but found no " + type + " codes in the configured FHIR server");
             throw new ResourceNotFoundException("Query was successful, but found no " + type + " codes in the configured FHIR server");
         }
-        return isAvailable;
+        return isValid;
     }
 
     public static ValueSetDto convertConceptReferenceToValueSetDto(ValueSet.ConceptReferenceComponent conceptReferenceComponent) {

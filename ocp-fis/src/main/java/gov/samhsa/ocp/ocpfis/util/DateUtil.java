@@ -16,16 +16,15 @@ import java.util.Locale;
 @Slf4j
 public class DateUtil {
 
-    public static Date convertToDate(String dateString) throws ParseException {
+    public static Date convertStringToDate(String dateString) throws ParseException {
         DateFormat format = new SimpleDateFormat("MM/dd/yyyy", Locale.US);
         if (dateString != null) {
             return format.parse(dateString);
         }
-
         return null;
     }
 
-    public static LocalDate convertToLocalDate(Date date) {
+    public static LocalDate convertDateToLocalDate(Date date) {
         //the system default time zone will be appended
         ZoneId defaultZoneId = ZoneId.systemDefault();
 
@@ -37,7 +36,7 @@ public class DateUtil {
         return instant.atZone(defaultZoneId).toLocalDate();
     }
 
-    public static LocalDateTime convertToLocalDateTime(Date date) {
+    public static LocalDateTime convertDateToLocalDateTime(Date date) {
         //the system default time zone will be appended
         ZoneId defaultZoneId = ZoneId.systemDefault();
 
@@ -49,23 +48,26 @@ public class DateUtil {
         return instant.atZone(defaultZoneId).toLocalDateTime();
     }
 
-    public static String convertToString(Date date) {
+    public static String convertDateToString(Date date) {
         DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
 
         if (date != null) {
             return df.format(date);
         }
-
         return "";
     }
 
-    public static String convertToString(LocalDate date) {
+    public static String convertLocalDateToString(LocalDate date) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
         if(date != null) {
             return formatter.format(date);
         }
-
         return "";
     }
+
+    public static Date convertLocalDateTimeToDate(LocalDateTime dateTime){
+        return Date.from(dateTime.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
 }

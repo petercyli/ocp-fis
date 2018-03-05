@@ -213,18 +213,18 @@ public class TaskServiceImpl implements TaskService {
             //TODO: redo context field
 
             if (task.hasLastModified()) {
-                taskDto.setLastModified(DateUtil.convertToLocalDate(task.getLastModified()));
+                taskDto.setLastModified(DateUtil.convertDateToLocalDate(task.getLastModified()));
             }
 
             if (task.hasAuthoredOn()) {
-                taskDto.setAuthoredOn(DateUtil.convertToLocalDate(task.getAuthoredOn()));
+                taskDto.setAuthoredOn(DateUtil.convertDateToLocalDate(task.getAuthoredOn()));
             }
 
             if (task.getExecutionPeriod() != null && !task.getExecutionPeriod().isEmpty()) {
                 PeriodDto periodDto = new PeriodDto();
                 taskDto.setExecutionPeriod(periodDto);
-                taskDto.getExecutionPeriod().setStart((task.getExecutionPeriod().hasStart()) ? DateUtil.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
-                taskDto.getExecutionPeriod().setEnd((task.getExecutionPeriod().hasEnd()) ? DateUtil.convertToLocalDate(task.getExecutionPeriod().getEnd()) : null);
+                taskDto.getExecutionPeriod().setStart((task.getExecutionPeriod().hasStart()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getStart()) : null);
+                taskDto.getExecutionPeriod().setEnd((task.getExecutionPeriod().hasEnd()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getEnd()) : null);
             }
 
             return taskDto;
@@ -365,17 +365,17 @@ public class TaskServiceImpl implements TaskService {
             task.getNote().stream().findFirst().ifPresent(note -> taskDto.setNote(note.getText()));
 
             if (task.hasLastModified()) {
-                taskDto.setLastModified(DateUtil.convertToLocalDate(task.getLastModified()));
+                taskDto.setLastModified(DateUtil.convertDateToLocalDate(task.getLastModified()));
             }
 
             if (task.hasAuthoredOn()) {
-                taskDto.setAuthoredOn(DateUtil.convertToLocalDate(task.getAuthoredOn()));
+                taskDto.setAuthoredOn(DateUtil.convertDateToLocalDate(task.getAuthoredOn()));
             }
 
             if (task.getExecutionPeriod() != null && !task.getExecutionPeriod().isEmpty()) {
                 PeriodDto periodDto = new PeriodDto();
-                periodDto.setStart((task.getExecutionPeriod().hasStart()) ? DateUtil.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
-                periodDto.setEnd((task.getExecutionPeriod().hasEnd()) ? DateUtil.convertToLocalDate(task.getExecutionPeriod().getEnd()) : null);
+                periodDto.setStart((task.getExecutionPeriod().hasStart()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getStart()) : null);
+                periodDto.setEnd((task.getExecutionPeriod().hasEnd()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getEnd()) : null);
                 taskDto.setExecutionPeriod(periodDto);
             }
 
@@ -410,8 +410,8 @@ public class TaskServiceImpl implements TaskService {
 
                     if(episodeOfCare.hasPeriod()) {
                         PeriodDto periodDto=new PeriodDto();
-                        periodDto.setStart((episodeOfCare.getPeriod().hasStart()) ? DateUtil.convertToLocalDate(task.getExecutionPeriod().getStart()) : null);
-                        periodDto.setEnd((episodeOfCare.getPeriod().hasEnd())? DateUtil.convertToLocalDate(task.getExecutionPeriod().getEnd()):null);
+                        periodDto.setStart((episodeOfCare.getPeriod().hasStart()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getStart()) : null);
+                        periodDto.setEnd((episodeOfCare.getPeriod().hasEnd())? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getEnd()):null);
                         contextDto.setPeriod(periodDto);
                     }
 
@@ -586,7 +586,7 @@ public class TaskServiceImpl implements TaskService {
 
     private static String createDisplayForEpisodeOfCare(TaskDto dto) {
         String status = dto.getStatus() != null ? dto.getStatus().getCode() : "NA";
-        String date = dto.getExecutionPeriod() != null ? DateUtil.convertToString(dto.getExecutionPeriod().getStart()) : "NA";
+        String date = dto.getExecutionPeriod() != null ? DateUtil.convertLocalDateToString(dto.getExecutionPeriod().getStart()) : "NA";
         String agent = dto.getAgent() != null ? dto.getAgent().getDisplay() : "NA";
 
         return new StringJoiner("-").add(status).add(date).add(agent).toString();

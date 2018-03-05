@@ -11,6 +11,7 @@ import gov.samhsa.ocp.ocpfis.domain.CareTeamFieldEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
@@ -190,8 +191,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
                 //Getting participant start and end date
                 if (participant.getPeriod() != null && !participant.getPeriod().isEmpty()) {
-                    participantDto.setStartDate((participant.getPeriod().getStart() != null) ? DateUtil.convertToString(participant.getPeriod().getStart()) : null);
-                    participantDto.setEndDate((participant.getPeriod().getEnd() != null) ? DateUtil.convertToString(participant.getPeriod().getEnd()) : null);
+                    participantDto.setStartDate((participant.getPeriod().getStart() != null) ? DateUtil.convertDateToString(participant.getPeriod().getStart()) : null);
+                    participantDto.setEndDate((participant.getPeriod().getEnd() != null) ? DateUtil.convertDateToString(participant.getPeriod().getEnd()) : null);
                 }
 
                 //Getting participant member and onBehalfof
@@ -270,8 +271,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
             careTeamDto.setParticipants(participantDtos);
             if (careTeam.getPeriod() != null && !careTeam.getPeriod().isEmpty()) {
-                careTeamDto.setStartDate((careTeam.getPeriod().getStart() != null) ? DateUtil.convertToString(careTeam.getPeriod().getStart()) : null);
-                careTeamDto.setEndDate((careTeam.getPeriod().getEnd() != null) ? DateUtil.convertToString(careTeam.getPeriod().getEnd()) : null);
+                careTeamDto.setStartDate((careTeam.getPeriod().getStart() != null) ? DateUtil.convertDateToString(careTeam.getPeriod().getStart()) : null);
+                careTeamDto.setEndDate((careTeam.getPeriod().getEnd() != null) ? DateUtil.convertDateToString(careTeam.getPeriod().getEnd()) : null);
             }
             return careTeamDto;
         }).collect(toList());
@@ -283,27 +284,24 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public List<ParticipantDto> getCareTeamParticipants(String patient, List<String> roles) {
-        List<ParticipantDto> finalParticipantDto = new ArrayList<>();
+    public List<ReferenceDto> getCareTeamParticipants(String patient, List<String> roles) {
+        List<ReferenceDto> finalParticipantDto = new ArrayList<>();
 
         Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
                 .where(new ReferenceClientParam("patient").hasId("Patient/" + patient))
                 .include(CareTeam.INCLUDE_PARTICIPANT)
                 .returnBundle(Bundle.class).execute();
 
-        if(careTeamBundle != null) {
+        if (careTeamBundle != null) {
             List<Bundle.BundleEntryComponent> retrievedCareTeams = careTeamBundle.getEntry();
 
-            if(retrievedCareTeams != null) {
+            if (retrievedCareTeams != null) {
                 List<CareTeam> careTeams = retrievedCareTeams.stream()
                         .filter(bundle -> bundle.getResource().getResourceType().equals(ResourceType.CareTeam))
                         .map(careTeamMember -> (CareTeam) careTeamMember.getResource()).collect(toList());
 
 
-                for (CareTeam careTeam : careTeams) {
-                    List<ParticipantDto> participantDos = CareTeamToCareTeamDtoConverter.mapToPartipants(careTeam, roles);
-                    finalParticipantDto.addAll(participantDos);
-                }
+                finalParticipantDto = careTeams.stream().flatMap(it -> CareTeamToCareTeamDtoConverter.mapToPartipants(it, roles).stream()).collect(toList());
             }
         }
 

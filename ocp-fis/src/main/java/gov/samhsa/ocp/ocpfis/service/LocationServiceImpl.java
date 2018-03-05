@@ -1,6 +1,5 @@
 package gov.samhsa.ocp.ocpfis.service;
 
-import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
@@ -8,18 +7,16 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
-import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
-import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
-import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -216,18 +213,11 @@ public class LocationServiceImpl implements LocationService {
             fhirLocation.setPartOf(new Reference("Location/" + locationDto.getManagingLocationLogicalId().trim()));
         }
 
-        // Validate the resource
-        validateLocationResource(fhirLocation, Optional.empty(), "Create Location: ");
+        // Validate
+        FhirUtil.validateFhirResource(fhirValidator, fhirLocation, Optional.empty(), ResourceType.Location.name(), "Create Location");
 
-        try {
-            MethodOutcome serverResponse = fhirClient.create().resource(fhirLocation).execute();
-            log.info("Created a new location :" + serverResponse.getId().getIdPart() + " for Organization Id:" + organizationId);
-        }
-        catch (BaseServerResponseException e) {
-            log.error("Could NOT create location for Organization Id:" + organizationId);
-            throw new FHIRClientException("FHIR Client returned with an error while creating the location:" + e.getMessage());
-        }
-
+        //Create
+        FhirUtil.createFhirResource(fhirClient, fhirLocation, ResourceType.Location.name());
     }
 
     @Override
@@ -256,10 +246,10 @@ public class LocationServiceImpl implements LocationService {
         }
 
         // Validate the resource
-        validateLocationResource(existingFhirLocation, Optional.of(locationId), "Update Location: ");
+        FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Update Location");
 
         //Update the resource
-        updateLocationResource(existingFhirLocation, "Update Location");
+        FhirUtil.updateFhirResource(fhirClient, existingFhirLocation, "Update Location");
     }
 
     @Override
@@ -269,7 +259,7 @@ public class LocationServiceImpl implements LocationService {
         existingFhirLocation.setStatus(Location.LocationStatus.INACTIVE);
 
         //Update the resource
-        updateLocationResource(existingFhirLocation, "Inactivate Location");
+        FhirUtil.updateFhirResource(fhirClient, existingFhirLocation, "Inactivate Location");
     }
 
 
@@ -296,33 +286,6 @@ public class LocationServiceImpl implements LocationService {
         }
         return locationsSearchQuery;
     }
-
-    private void validateLocationResource(Location fhirLocation, Optional<String> locationId, String createOrUpdateLocation) {
-        ValidationResult validationResult = fhirValidator.validateWithResult(fhirLocation);
-
-        if (locationId.isPresent()) {
-            log.info(createOrUpdateLocation + "Validation successful? " + validationResult.isSuccessful() + " for LocationID: " + locationId);
-        } else {
-            log.info(createOrUpdateLocation + "Validation successful? " + validationResult.isSuccessful());
-        }
-
-        if (!validationResult.isSuccessful()) {
-            throw new FHIRFormatErrorException("Location Validation was not successful" + validationResult.getMessages());
-        }
-
-    }
-
-    private void updateLocationResource(Location fhirLocation, String logMessage){
-        try {
-            MethodOutcome serverResponse = fhirClient.update().resource(fhirLocation).execute();
-            log.info(logMessage + " was successful for Location Id: " + serverResponse.getId().getIdPart());
-        }
-        catch (BaseServerResponseException e) {
-            log.error("Could NOT " + logMessage + " for Location Id: " + fhirLocation.getIdElement().getIdPart());
-            throw new FHIRClientException("FHIR Client returned with an error during" + logMessage + " : " + e.getMessage());
-        }
-    }
-
 
     private Location readLocationFromServer(String locationId) {
         Location existingFhirLocation;
@@ -457,6 +420,5 @@ public class LocationServiceImpl implements LocationService {
         log.warn("Location physical type is empty or NULL.");
         return null;
     }
-
-
 }
+
