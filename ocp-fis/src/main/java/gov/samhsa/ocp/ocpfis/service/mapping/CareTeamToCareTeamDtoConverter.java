@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service.mapping;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -13,6 +14,7 @@ import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
+import org.hl7.fhir.dstu3.model.ResourceType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,30 +102,30 @@ public class CareTeamToCareTeamDtoConverter {
         return careTeamDto;
     }
 
-    public static List<ParticipantDto> mapToPartipants(CareTeam careTeam, List<String> roles) {
-        List<ParticipantDto> participantDtos = new ArrayList<>();
+    public static List<ReferenceDto> mapToPartipants(CareTeam careTeam, List<String> roles) {
+        List<ReferenceDto> referenceDtos = new ArrayList<>();
 
         List<CareTeam.CareTeamParticipantComponent> careTeamParticipantComponentList = careTeam.getParticipant();
 
         for (CareTeam.CareTeamParticipantComponent careTeamParticipantComponent : careTeamParticipantComponentList) {
             Reference member = careTeamParticipantComponent.getMember();
 
-            CodeableConcept roleCodeableConcept = careTeamParticipantComponent.getRole();
-            List<Coding> codingRoleCodeList = roleCodeableConcept.getCoding();
-            Coding codingRoleCode = codingRoleCodeList.stream().findFirst().orElse(null);
+            ReferenceDto referenceDto = new ReferenceDto();
 
-            if (roles.contains(codingRoleCode.getCode())) {
-                //add this partcipant to the list of participantDtos
-                ParticipantDto participantDto = new ParticipantDto();
+            if (member.getReference().contains(ParticipantTypeEnum.practitioner.getName())) {
+                referenceDto.setReference(member.getReference());
 
-                populateParticipantMemberInformation(member, participantDto);
+                Practitioner practitioner = (Practitioner) member.getResource();
+                if (practitioner != null && practitioner.getName() != null && practitioner.getName().get(0) != null) {
+                    referenceDto.setDisplay(practitioner.getName().get(0).getGiven().get(0).toString() + " " + practitioner.getName().get(0).getFamily());
+                }
 
-                participantDtos.add(participantDto);
+                referenceDtos.add(referenceDto);
             }
 
         }
 
-        return participantDtos;
+        return referenceDtos;
 
     }
 

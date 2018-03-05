@@ -5,8 +5,8 @@ import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.CareTeamService;
 import gov.samhsa.ocp.ocpfis.service.ParticipantService;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantSearchDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -38,7 +38,7 @@ public class ParticipantController {
     }
 
     @GetMapping
-    public List<ParticipantDto> getCareTeamParticipants(@RequestParam(value = "patient") String patient,
+    public List<ReferenceDto> getCareTeamParticipants(@RequestParam(value = "patient") String patient,
                                                       @RequestParam(value = "roles") List<String> roles) {
         return careTeamService.getCareTeamParticipants(patient, roles);
     }
