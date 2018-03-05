@@ -50,9 +50,9 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     @Override
     public void createCommunication(CommunicationDto communicationDto) {
-            Communication communication = convertCommunicationDtoToCommunication(communicationDto);
+            final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             //Validate
-             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.empty(), ResourceType.Communication.name(), "Create Communication");
+            FhirUtil.validateFhirResource(fhirValidator, communication, Optional.empty(), ResourceType.Communication.name(), "Create Communication");
             //Create
             FhirUtil.createFhirResource(fhirClient, communication, ResourceType.Communication.name());
     }
@@ -60,10 +60,10 @@ public class CommunicationServiceImpl implements CommunicationService {
     @Override
     public void updateCommunication(String communicationId, CommunicationDto communicationDto) {
 
-            final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
+            Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             communication.setId(communicationId);
             //Validate
-             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.of(communicationId), ResourceType.Communication.name(), "Create Communication");
+            FhirUtil.validateFhirResource(fhirValidator, communication, Optional.of(communicationId), ResourceType.Communication.name(), "Create Communication");
             //Update
             FhirUtil.updateFhirResource(fhirClient, communication, ResourceType.Communication.name());
     }
