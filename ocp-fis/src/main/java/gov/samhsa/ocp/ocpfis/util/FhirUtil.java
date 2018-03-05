@@ -92,7 +92,7 @@ public class FhirUtil {
             log.info(actionAndResourceName + " was successful for Id: " + serverResponse.getId().getIdPart());
         }
         catch (BaseServerResponseException e) {
-            log.error("Could NOT " + actionAndResourceName + " for Id: " + fhirResource.getIdElement().getIdPart());
+            log.error("Could NOT " + actionAndResourceName + " with Id: " + fhirResource.getIdElement().getIdPart());
             throw new FHIRClientException("FHIR Client returned with an error during" + actionAndResourceName + " : " + e.getMessage());
         }
     }
