@@ -10,6 +10,7 @@ import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TimingDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
@@ -187,6 +188,12 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         } else {
             throw new DuplicateResourceFoundException("Duplicate Activity Definition is already present.");
         }
+    }
+
+    @Override
+    public List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner) {
+        //TODO: Implement this..
+        return null;
     }
 
     private IQuery addAdditionalSearchConditions(IQuery activityDefinitionsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {

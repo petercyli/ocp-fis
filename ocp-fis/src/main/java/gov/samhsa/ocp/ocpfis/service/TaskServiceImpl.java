@@ -585,7 +585,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private static String createDisplayForEpisodeOfCare(TaskDto dto) {
-        String status = dto.getStatus() != null ? dto.getStatus().getCode() : "NA";
+        String status = dto.getDefinition() != null ? dto.getDefinition().getDisplay() : "NA";
         String date = dto.getExecutionPeriod() != null ? DateUtil.convertLocalDateToString(dto.getExecutionPeriod().getStart()) : "NA";
         String agent = dto.getAgent() != null ? dto.getAgent().getDisplay() : "NA";
 
