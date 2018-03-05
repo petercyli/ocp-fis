@@ -61,13 +61,13 @@ public class FhirUtil {
 
     public static void validateFhirResource(FhirValidator fhirValidator, DomainResource fhirResource,
                                             Optional<String> fhirResourceId, String fhirResourceName,
-                                            String createOrUpdateFhirResource) {
+                                            String actionAndResourceName) {
         ValidationResult validationResult = fhirValidator.validateWithResult(fhirResource);
 
         if (fhirResourceId.isPresent()) {
-            log.info(createOrUpdateFhirResource + " : " + "Validation successful? " + validationResult.isSuccessful() + " for " + fhirResourceName + " ID: " + fhirResourceId);
+            log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful() + " for " + fhirResourceName + " ID: " + fhirResourceId);
         } else {
-            log.info(createOrUpdateFhirResource + " : " + "Validation successful? " + validationResult.isSuccessful());
+            log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful());
         }
 
         if (!validationResult.isSuccessful()) {
@@ -86,5 +86,15 @@ public class FhirUtil {
         }
     }
 
-
+    public static void updateFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String actionAndResourceName) {
+        try {
+            MethodOutcome serverResponse = fhirClient.update().resource(fhirResource).execute();
+            log.info(actionAndResourceName + " was successful for Id: " + serverResponse.getId().getIdPart());
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT " + actionAndResourceName + " for Id: " + fhirResource.getIdElement().getIdPart());
+            throw new FHIRClientException("FHIR Client returned with an error during" + actionAndResourceName + " : " + e.getMessage());
+        }
+    }
 }
+
