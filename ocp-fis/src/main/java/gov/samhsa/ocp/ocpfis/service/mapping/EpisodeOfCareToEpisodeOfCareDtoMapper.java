@@ -94,7 +94,7 @@ public class EpisodeOfCareToEpisodeOfCareDtoMapper {
         }
 
         String eocType = activityDefinitionRefDto != null ? activityDefinitionRefDto.getDisplay() : NA;
-        String date = episodeOfCare.getPeriod() != null ? DateUtil.convertToString(episodeOfCare.getPeriod().getStart()) : NA;
+        String date = episodeOfCare.getPeriod() != null ? DateUtil.convertDateToString(episodeOfCare.getPeriod().getStart()) : NA;
         String agent = episodeOfCare.getCareManager() != null ? episodeOfCare.getCareManager().getDisplay() : NA;
 
 
