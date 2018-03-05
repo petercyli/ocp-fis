@@ -13,7 +13,7 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface CareTeamStatusCodeConstraint {
-    String message() default "Invalid CareTea Status Code";
+    String message() default "Invalid CareTeam Status Code";
 
     Class<?>[] groups() default {};
 

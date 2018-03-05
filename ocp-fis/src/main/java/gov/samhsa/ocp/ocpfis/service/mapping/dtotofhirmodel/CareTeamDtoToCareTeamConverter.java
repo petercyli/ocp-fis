@@ -40,8 +40,8 @@ public class CareTeamDtoToCareTeamConverter {
 
         //start and end date
         Period period = new Period();
-        period.setStart(DateUtil.convertToDate(careTeamDto.getStartDate()));
-        period.setEnd(DateUtil.convertToDate(careTeamDto.getEndDate()));
+        period.setStart(DateUtil.convertStringToDate(careTeamDto.getStartDate()));
+        period.setEnd(DateUtil.convertStringToDate(careTeamDto.getEndDate()));
         careTeam.setPeriod(period);
 
         //ReasonCode
@@ -79,8 +79,8 @@ public class CareTeamDtoToCareTeamConverter {
             careTeamParticipant.setRole(codeableConceptRoleCode);
 
             Period participantPeriod = new Period();
-            participantPeriod.setStart(DateUtil.convertToDate(participantDto.getStartDate()));
-            participantPeriod.setEnd(DateUtil.convertToDate(participantDto.getEndDate()));
+            participantPeriod.setStart(DateUtil.convertStringToDate(participantDto.getStartDate()));
+            participantPeriod.setEnd(DateUtil.convertStringToDate(participantDto.getEndDate()));
             careTeamParticipant.setPeriod(participantPeriod);
 
             participantsList.add(careTeamParticipant);

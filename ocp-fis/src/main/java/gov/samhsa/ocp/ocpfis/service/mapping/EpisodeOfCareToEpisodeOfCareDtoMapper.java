@@ -56,12 +56,12 @@ public class EpisodeOfCareToEpisodeOfCareDtoMapper {
         //start date
         Period period = episodeOfCare.getPeriod();
         if (period != null && period.getStart() != null) {
-            dto.setStart(DateUtil.convertToString(period.getStart()));
+            dto.setStart(DateUtil.convertDateToString(period.getStart()));
         }
 
         //end date
         if (period != null && period.getEnd() != null) {
-            dto.setEnd(DateUtil.convertToString(period.getEnd()));
+            dto.setEnd(DateUtil.convertDateToString(period.getEnd()));
         }
 
         //care manager

@@ -10,6 +10,7 @@ import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TimingDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
@@ -117,7 +118,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             activityDefinition.setVersion(fisProperties.getActivityDefinition().getVersion());
             activityDefinition.setStatus(Enumerations.PublicationStatus.valueOf(activityDefinitionDto.getStatus().getCode().toUpperCase()));
             try {
-                activityDefinition.setDate(DateUtil.convertToDate(activityDefinitionDto.getDate()));
+                activityDefinition.setDate(DateUtil.convertStringToDate(activityDefinitionDto.getDate()));
             }
             catch (ParseException e) {
                 throw new BadRequestException("Invalid date was given.");
@@ -189,6 +190,12 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         }
     }
 
+    @Override
+    public List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner) {
+        //TODO: Implement this..
+        return null;
+    }
+
     private IQuery addAdditionalSearchConditions(IQuery activityDefinitionsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
         if (searchKey.isPresent() && !SearchKeyEnum.HealthcareServiceSearchKey.contains(searchKey.get())) {
             throw new BadRequestException("Unidentified search key:" + searchKey.get());
@@ -227,9 +234,9 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             tempActivityDefinitionDto.setEffectivePeriod(periodDto);
 
             if (null != activityDefinition.getEffectivePeriod().getStart())
-                tempActivityDefinitionDto.getEffectivePeriod().setStart(DateUtil.convertToLocalDate(activityDefinition.getEffectivePeriod().getStart()));
+                tempActivityDefinitionDto.getEffectivePeriod().setStart(DateUtil.convertDateToLocalDate(activityDefinition.getEffectivePeriod().getStart()));
             if (null != activityDefinition.getEffectivePeriod().getEnd())
-                tempActivityDefinitionDto.getEffectivePeriod().setEnd(DateUtil.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
+                tempActivityDefinitionDto.getEffectivePeriod().setEnd(DateUtil.convertDateToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
         }
 
         activityDefinition.getParticipant().stream().findFirst().ifPresent(participant -> {
