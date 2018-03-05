@@ -3,6 +3,8 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.OrganizationService;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -27,11 +30,6 @@ public class OrganizationController {
 
     @Autowired
     private OrganizationService organizationService;
-
-    @GetMapping
-    public PageDto<OrganizationDto> getAllOrganizations(@RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
-        return organizationService.getAllOrganizations(showInactive, page, size);
-    }
 
     @GetMapping("/search")
     public PageDto<OrganizationDto> searchOrganizations(@RequestParam SearchType searchType, @RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
@@ -54,6 +52,11 @@ public class OrganizationController {
     @ResponseStatus(HttpStatus.OK)
     public void inactivateOrganization(@PathVariable String organizationId) {
         organizationService.inactivateOrganization(organizationId);
+    }
+
+    @GetMapping
+    public List<ReferenceDto> getOrganizationsByPractitioner(@RequestParam(value = "practitioner") String practitioner) {
+        return organizationService.getOrganizationsByPractitioner(practitioner);
     }
 
 }
