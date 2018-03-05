@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Slf4j
-public final class AppointmentToAppointmentDtoConverter {
+public final class AppointmentDtoToAppointmentConverter {
     public static Appointment map(AppointmentDto appointmentDto, boolean isCreate) {
         try {
             Appointment appointment = new Appointment();

@@ -4,7 +4,7 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
-import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AppointmentToAppointmentDtoConverter;
+import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AppointmentDtoToAppointmentConverter;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Appointment;
@@ -37,7 +37,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String creatorName = appointmentDto.getCreatorName() != null? appointmentDto.getCreatorName().trim() : "";
         log.info("Creating an appointment initiated by " + creatorName);
         //Map
-        Appointment appointment = AppointmentToAppointmentDtoConverter.map(appointmentDto, true);
+        final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, true);
         //Set created Date
         appointment.setCreated(new Date());
         //Validate
