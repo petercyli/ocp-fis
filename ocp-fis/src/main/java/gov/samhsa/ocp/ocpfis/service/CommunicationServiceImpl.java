@@ -64,7 +64,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             communication.setId(communicationId);
             //Validate
              FhirUtil.validateFhirResource(fhirValidator, communication, Optional.empty(), ResourceType.Communication.name(), "Create Communication");
-            //Create
+            //Update
             FhirUtil.updateFhirResource(fhirClient, communication, ResourceType.Communication.name());
     }
 
