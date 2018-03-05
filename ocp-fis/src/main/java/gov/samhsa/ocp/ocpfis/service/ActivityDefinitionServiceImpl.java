@@ -117,7 +117,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             activityDefinition.setVersion(fisProperties.getActivityDefinition().getVersion());
             activityDefinition.setStatus(Enumerations.PublicationStatus.valueOf(activityDefinitionDto.getStatus().getCode().toUpperCase()));
             try {
-                activityDefinition.setDate(DateUtil.convertToDate(activityDefinitionDto.getDate()));
+                activityDefinition.setDate(DateUtil.convertStringToDate(activityDefinitionDto.getDate()));
             }
             catch (ParseException e) {
                 throw new BadRequestException("Invalid date was given.");
@@ -227,9 +227,9 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             tempActivityDefinitionDto.setEffectivePeriod(periodDto);
 
             if (null != activityDefinition.getEffectivePeriod().getStart())
-                tempActivityDefinitionDto.getEffectivePeriod().setStart(DateUtil.convertToLocalDate(activityDefinition.getEffectivePeriod().getStart()));
+                tempActivityDefinitionDto.getEffectivePeriod().setStart(DateUtil.convertDateToLocalDate(activityDefinition.getEffectivePeriod().getStart()));
             if (null != activityDefinition.getEffectivePeriod().getEnd())
-                tempActivityDefinitionDto.getEffectivePeriod().setEnd(DateUtil.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
+                tempActivityDefinitionDto.getEffectivePeriod().setEnd(DateUtil.convertDateToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
         }
 
         activityDefinition.getParticipant().stream().findFirst().ifPresent(participant -> {

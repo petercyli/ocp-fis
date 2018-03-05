@@ -67,12 +67,12 @@ public class CareTeamToCareTeamDtoConverter {
 
         //start and end date
         Period period = careTeam.getPeriod();
-        if (period.getStart() != null) {
-            careTeamDto.setStartDate(DateUtil.convertToString(period.getStart()));
+        if(period.getStart() != null) {
+            careTeamDto.setStartDate(DateUtil.convertDateToString(period.getStart()));
         }
 
-        if (period.getEnd() != null) {
-            careTeamDto.setEndDate(DateUtil.convertToString(period.getEnd()));
+        if(period.getEnd() != null) {
+            careTeamDto.setEndDate(DateUtil.convertDateToString(period.getEnd()));
         }
 
         for (CareTeam.CareTeamParticipantComponent careTeamParticipantComponent : careTeamParticipantComponentList) {
@@ -90,8 +90,8 @@ public class CareTeamToCareTeamDtoConverter {
                 participantDto.setRoleCode(codingRoleCode.getCode());
             }
 
-            participantDto.setStartDate(DateUtil.convertToString(careTeamParticipantComponent.getPeriod().getStart()));
-            participantDto.setEndDate(DateUtil.convertToString(careTeamParticipantComponent.getPeriod().getEnd()));
+            participantDto.setStartDate(DateUtil.convertDateToString(careTeamParticipantComponent.getPeriod().getStart()));
+            participantDto.setEndDate(DateUtil.convertDateToString(careTeamParticipantComponent.getPeriod().getEnd()));
 
 
             participantDtos.add(participantDto);
