@@ -63,7 +63,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             communication.setId(communicationId);
             //Validate
-             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.empty(), ResourceType.Communication.name(), "Create Communication");
+             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.of(communicationId), ResourceType.Communication.name(), "Create Communication");
             //Update
             FhirUtil.updateFhirResource(fhirClient, communication, ResourceType.Communication.name());
     }
@@ -184,10 +184,7 @@ public class CommunicationServiceImpl implements CommunicationService {
     private CodeableConcept convertValuesetDtoToCodeableConcept (ValueSetDto valueSetDto) {
             CodeableConcept codeableConcept = new CodeableConcept();
             if (valueSetDto != null) {
-                Coding coding = new Coding();
-                coding.setCode(valueSetDto.getCode());
-                coding.setSystem(valueSetDto.getSystem());
-                coding.setDisplay(valueSetDto.getDisplay());
+                Coding coding = FhirUtil.getCoding(valueSetDto.getCode(),valueSetDto.getDisplay(),valueSetDto.getSystem());
                 codeableConcept.addCoding(coding);
             }
             return codeableConcept;
