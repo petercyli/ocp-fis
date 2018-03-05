@@ -134,8 +134,6 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         //Set context
         if (communicationDto.getContext() != null) {
-       //     Reference context = new Reference();
-       //     context = (convertReferenceDtoToReference(communicationDto.getContext()));
             communication.setContext(convertReferenceDtoToReference(communicationDto.getContext()));
         }
 
