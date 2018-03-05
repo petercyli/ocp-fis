@@ -65,7 +65,7 @@ public class FhirUtil {
         ValidationResult validationResult = fhirValidator.validateWithResult(fhirResource);
 
         if (fhirResourceId.isPresent()) {
-            log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful() + " for " + fhirResourceName + " ID: " + fhirResourceId);
+            log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful() + " for " + fhirResourceName + " Id: " + fhirResourceId);
         } else {
             log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful());
         }
@@ -78,7 +78,7 @@ public class FhirUtil {
     public static void createFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String fhirResourceName) {
         try {
             MethodOutcome serverResponse = fhirClient.create().resource(fhirResource).execute();
-            log.info("Created a new " + fhirResourceName + " :" + serverResponse.getId().getIdPart());
+            log.info("Created a new " + fhirResourceName + " : " + serverResponse.getId().getIdPart());
         }
         catch (BaseServerResponseException e) {
             log.error("Could NOT create " + fhirResourceName);
