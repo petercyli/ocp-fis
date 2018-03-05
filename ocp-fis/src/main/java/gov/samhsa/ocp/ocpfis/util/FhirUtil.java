@@ -1,8 +1,18 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
+import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
+import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.ValidationResult;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.Enumerations;
+
+import java.util.Optional;
 
 @Slf4j
 public class FhirUtil {
@@ -26,7 +36,6 @@ public class FhirUtil {
                 return Enumerations.AdministrativeGender.UNKNOWN;
             default:
                 return Enumerations.AdministrativeGender.UNKNOWN;
-
         }
     }
 
@@ -49,4 +58,33 @@ public class FhirUtil {
     public static boolean isStringNotNullAndNotEmpty(String givenString) {
         return givenString != null && !givenString.trim().isEmpty();
     }
+
+    public static void validateFhirResource(FhirValidator fhirValidator, DomainResource fhirResource,
+                                            Optional<String> fhirResourceId, String fhirResourceName,
+                                            String createOrUpdateFhirResource) {
+        ValidationResult validationResult = fhirValidator.validateWithResult(fhirResource);
+
+        if (fhirResourceId.isPresent()) {
+            log.info(createOrUpdateFhirResource + " : " + "Validation successful? " + validationResult.isSuccessful() + " for " + fhirResourceName + " ID: " + fhirResourceId);
+        } else {
+            log.info(createOrUpdateFhirResource + " : " + "Validation successful? " + validationResult.isSuccessful());
+        }
+
+        if (!validationResult.isSuccessful()) {
+            throw new FHIRFormatErrorException(fhirResourceName + " validation was not successful" + validationResult.getMessages());
+        }
+    }
+
+    public static void createFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String fhirResourceName) {
+        try {
+            MethodOutcome serverResponse = fhirClient.create().resource(fhirResource).execute();
+            log.info("Created a new " + fhirResourceName + " :" + serverResponse.getId().getIdPart());
+        }
+        catch (BaseServerResponseException e) {
+            log.error("Could NOT create " + fhirResourceName);
+            throw new FHIRClientException("FHIR Client returned with an error while creating the " + fhirResourceName + " : " + e.getMessage());
+        }
+    }
+
+
 }
