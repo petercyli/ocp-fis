@@ -33,11 +33,16 @@ public enum LookupPathUrls {
     TASK_PERFORMER_TYPE("task performer type",Constants.TASK_PERFORMER_TYPE_PATH),
     REQUEST_INTENT("request intent", Constants.REQUEST_INTENT_PATH),
     ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPES("activity definition related artifact type", Constants.ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPE_PATH),
-    COMMUNICATION_EVENT_STATUS("communication event status", Constants.COMMUNICATION_EVENT_STATUS_PATH),
+    COMMUNICATION_STATUS("communication event status", Constants.COMMUNICATION_STATUS_PATH),
     COMMUNICATION_CATEGORY("communication category", Constants.COMMUNICATION_CATEGORY_PATH),
     COMMUNICATION_NOT_DONE_REASON("communication not done reason", Constants.COMMUNICATION_NOT_DONE_REASON_PATH),
-    COMMUNICATION_MEDIUM("communication medium", Constants.COMMUNICATION_MEDIUM_PATH);
-    //COMMUNICATION_REASON_CODE("communication reason code", Constants.COMMUNICATION_REASON_CODE_PATH);
+    COMMUNICATION_MEDIUM("communication medium", Constants.COMMUNICATION_MEDIUM_PATH),
+    APPOINTMENT_TYPE("appointment type",Constants.APPOINTMENT_TYPE_PATH),
+    APPOINTMENT_STATUS("appointment status",Constants.APPOINTMENT_STATUS_PATH),
+    PARTICIPATION_TYPE("participation type",Constants.PARTICIPATION_TYPE_PATH),
+    PARTICIPATION_STATUS("participation status",Constants.PARTICIPATION_STATUS_PATH),
+    PARTICIPANT_REQUIRED("participant required",Constants.PARTICIPANT_REQUIRED_PATH);
+
 
 
     private final String type;
@@ -88,11 +93,14 @@ public enum LookupPathUrls {
         static final String TASK_PERFORMER_TYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/task-performer-type";
         static final String REQUEST_INTENT_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/request-intent";
         static final String ACTIVITY_DEFINITION_RELATED_ARTIFACT_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/related-artifact-type";
-        static final String COMMUNICATION_EVENT_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/event-status";
+        static final String COMMUNICATION_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/event-status";
         static final String COMMUNICATION_CATEGORY_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/communication-category";
         static final String COMMUNICATION_NOT_DONE_REASON_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/communication-not-done-reason";
         static final String COMMUNICATION_MEDIUM_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/v3-ParticipationMode";
-        //static final String COMMUNICATION_REASON_CODE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/clinical-findings";
+        static final String APPOINTMENT_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/v2-0276";
+        static final String APPOINTMENT_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/appointmentstatus";
+        static final String PARTICIPATION_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/v3-ParticipationType";
+        static final String PARTICIPATION_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/participationstatus";
+        static final String PARTICIPANT_REQUIRED_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/participantrequired";
     }
-
 }

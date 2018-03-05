@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -28,14 +29,14 @@ public class PractitionerController {
     @Autowired
     private PractitionerService practitionerService;
 
-    @GetMapping
-    public PageDto<PractitionerDto> getPractitioners(@RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
-        return practitionerService.getAllPractitioners(showInactive, page, size);
-    }
-
     @GetMapping("/search")
     public PageDto<PractitionerDto> searchPractitioners(@RequestParam SearchType searchType, @RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
         return practitionerService.searchPractitioners(searchType, searchValue, showInactive, page, size);
+    }
+
+    @GetMapping
+    public List<PractitionerDto> getPractitionersByOrganization(@RequestParam String organization) {
+        return practitionerService.getPractitionersByOrganization(organization);
     }
 
     @PostMapping
