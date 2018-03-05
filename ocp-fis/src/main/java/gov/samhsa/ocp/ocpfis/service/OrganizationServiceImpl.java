@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
@@ -11,6 +12,7 @@ import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
@@ -21,6 +23,7 @@ import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -28,7 +31,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -87,7 +91,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
             organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
             return organizationDto;
-        }).collect(Collectors.toList());
+        }).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageOrganizationSearchBundle.getTotal() / numberOfOrganizationsPerPage);
         int currentPage = firstPage ? 1 : page.get();
@@ -142,7 +146,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
             organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
             return organizationDto;
-        }).collect(Collectors.toList());
+        }).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageOrganizationSearchBundle.getTotal() / numberOfOrganizationsPerPage);
         int currentPage = firstPage ? 1 : page.get();
@@ -234,6 +238,41 @@ public class OrganizationServiceImpl implements OrganizationService {
         log.info("Inactivating the organization Id: " + organizationId);
         Organization existingFhirOrganization = readOrganizationFromServer(organizationId);
         setOrganizationStatusToInactive(existingFhirOrganization);
+    }
+
+    @Override
+    public List<ReferenceDto> getOrganizationsByPractitioner(String practitioner) {
+        List<ReferenceDto> organizations = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+                .where(new ReferenceClientParam("practitioner").hasId(ResourceType.Practitioner + "/" + practitioner))
+                .include(PractitionerRole.INCLUDE_ORGANIZATION)
+                .returnBundle(Bundle.class).execute();
+
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> organizationComponents = bundle.getEntry();
+
+            if (organizationComponents != null) {
+                organizations = organizationComponents.stream()
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.PractitionerRole))
+                        .map(it -> (PractitionerRole) it.getResource())
+                        .map(it -> (Organization) it.getOrganization().getResource())
+                        .map(this::mapToReferenceDto)
+                        .collect(toList());
+
+            }
+        }
+
+        return organizations;
+    }
+
+    private ReferenceDto mapToReferenceDto(Organization organization) {
+        ReferenceDto referenceDto = new ReferenceDto();
+
+        referenceDto.setReference(ResourceType.Organization + "/" + organization.getIdElement().getIdPart());
+        referenceDto.setDisplay(organization.getName());
+
+        return referenceDto;
     }
 
     private Organization readOrganizationFromServer(String organizationId) {
