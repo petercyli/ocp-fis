@@ -64,7 +64,7 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         relatedPerson.setGender(gender);
 
         //birthdate
-        relatedPerson.setBirthDate(DateUtil.convertToDate(relatedPersonDto.getBirthDate()));
+        relatedPerson.setBirthDate(DateUtil.convertStringToDate(relatedPersonDto.getBirthDate()));
 
         //address
         Address address = new Address();
@@ -78,8 +78,8 @@ public class RelatedPersonDtoToRelatedPersonConverter {
 
         //period
         Period period = new Period();
-        period.setStart(DateUtil.convertToDate(relatedPersonDto.getStartDate()));
-        period.setEnd(DateUtil.convertToDate(relatedPersonDto.getEndDate()));
+        period.setStart(DateUtil.convertStringToDate(relatedPersonDto.getStartDate()));
+        period.setEnd(DateUtil.convertStringToDate(relatedPersonDto.getEndDate()));
         relatedPerson.setPeriod(period);
 
         return relatedPerson;

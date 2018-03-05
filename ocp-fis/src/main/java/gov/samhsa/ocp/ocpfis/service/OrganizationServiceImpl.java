@@ -176,7 +176,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             final ValidationResult validationResult = fhirValidator.validateWithResult(fhirOrganization);
             if (validationResult.isSuccessful()) {
                 MethodOutcome serverResponse = fhirClient.create().resource(fhirOrganization).execute();
-                log.info("Created a new organization :" + serverResponse.getId().getIdPart());
+                log.info("Successfully created a new organization :" + serverResponse.getId().getIdPart());
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
@@ -188,7 +188,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public void updateOrganization(String organizationId, OrganizationDto organizationDto) {
-        log.info("Updating for Organization Id:" + organizationId);
+        log.info("Updating the Organization with Id:" + organizationId);
         //Check Duplicate Identifier
         boolean hasDuplicateIdentifier = organizationDto.getIdentifiers().stream().anyMatch(identifierDto -> {
             IQuery organizationsWithUpdatedIdentifierQuery = fhirClient.search()
@@ -206,12 +206,12 @@ public class OrganizationServiceImpl implements OrganizationService {
         Organization existingOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
 
         if (!hasDuplicateIdentifier) {
-            Organization updatedorganization = modelMapper.map(organizationDto, Organization.class);
-            existingOrganization.setIdentifier(updatedorganization.getIdentifier());
-            existingOrganization.setName(updatedorganization.getName());
-            existingOrganization.setTelecom(updatedorganization.getTelecom());
-            existingOrganization.setAddress(updatedorganization.getAddress());
-            existingOrganization.setActive(updatedorganization.getActive());
+            Organization updatedOrganization = modelMapper.map(organizationDto, Organization.class);
+            existingOrganization.setIdentifier(updatedOrganization.getIdentifier());
+            existingOrganization.setName(updatedOrganization.getName());
+            existingOrganization.setTelecom(updatedOrganization.getTelecom());
+            existingOrganization.setAddress(updatedOrganization.getAddress());
+            existingOrganization.setActive(updatedOrganization.getActive());
 
             // Validate the resource
             final ValidationResult validationResult = fhirValidator.validateWithResult(existingOrganization);
@@ -220,6 +220,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
                 fhirClient.update().resource(existingOrganization)
                         .execute();
+                log.info("Organization successfully updated");
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
