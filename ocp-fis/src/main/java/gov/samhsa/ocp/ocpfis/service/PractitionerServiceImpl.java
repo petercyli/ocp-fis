@@ -13,26 +13,17 @@ import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
-import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
-import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.PractitionerRoleNotFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.*;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.Practitioner;
-import org.hl7.fhir.dstu3.model.PractitionerRole;
-import org.hl7.fhir.dstu3.model.Reference;
-import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.*;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -177,27 +168,32 @@ public class PractitionerServiceImpl implements PractitionerService {
             }
 
             MethodOutcome methodOutcome = fhirClient.create().resource(practitioner).execute();
-
-            //Create PractitionerRole for the practitioner
-            PractitionerRole practitionerRole = new PractitionerRole();
-            practitionerDto.getPractitionerRoles().forEach(practitionerRoleCode -> {
-                        //Assign fhir practitionerRole codes.
-                        CodeableConcept codeableConcept = new CodeableConcept();
-                        Coding coding = mapPractitionerRoleToCode(practitionerRoleCode);
-                        List<Coding> codings = new ArrayList<>();
-                        codings.add(coding);
-                        codeableConcept.setCoding(codings);
-                        practitionerRole.addCode(codeableConcept);
-                    }
-            );
-
             //Assign fhir Practitioner resource id.
             Reference practitionerId = new Reference();
             practitionerId.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
-            practitionerRole.setPractitioner(practitionerId);
 
-            fhirClient.create().resource(practitionerRole).execute();
+            //Create PractitionerRole for the practitioner
+            List<PractitionerRole> practitionerRoles = new ArrayList<>();
+            practitionerDto.getPractitionerRoles().forEach(practitionerRoleDto -> {
+                        PractitionerRole practitionerRole = new PractitionerRole();
+                        practitionerRole = modelMapper.map(practitionerRoleDto, PractitionerRole.class);
 
+                        //Set practitioner
+                        practitionerRole.setPractitioner(practitionerId);
+
+                        //set Code
+                        CodeableConcept codeCodeableConcept = new CodeableConcept();
+                        codeCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getCode().get(0), Coding.class));
+                        practitionerRole.setCode(Arrays.asList(codeCodeableConcept));
+
+                        //set Specialty
+                        CodeableConcept specialtyCodeableConcept = new CodeableConcept();
+                        specialtyCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getSpecialty().get(0), Coding.class));
+                        practitionerRole.setSpecialty(Arrays.asList(specialtyCodeableConcept));
+                        practitionerRoles.add(practitionerRole);
+                        fhirClient.create().resource(practitionerRole).execute();
+                    }
+            );
         } else {
             throw new DuplicateResourceFoundException("Practitioner with the same Identifier is already present.");
         }
@@ -325,17 +321,14 @@ public class PractitionerServiceImpl implements PractitionerService {
                 .filter(practitionerRole -> practitionerRole.getPractitioner().getReference().equalsIgnoreCase("Practitioner/" + practitionerId))
                 .map(practitionerRole -> {
                     PractitionerRoleDto practitionerRoleDto = new PractitionerRoleDto();
-                    practitionerRole.getCode().forEach(code -> {
-                        practitionerRoleDto.setCode((!code.getCoding().isEmpty() && code.getCoding() != null) ? code.getCoding().stream().map(coding -> coding.getCode()).findFirst().orElse(null) : null);
-                        practitionerRoleDto.setDisplay((!code.getCoding().isEmpty() && code.getCoding() != null) ? code.getCoding().stream().map(coding -> coding.getDisplay()).findFirst().orElse(null) : null);
-                        practitionerRoleDto.setSystem((!code.getCoding().isEmpty() && code.getCoding() != null) ? code.getCoding().stream().map(coding -> coding.getSystem()).findFirst().orElse(null) : null);
-                    });
+                    practitionerRoleDto = modelMapper.map(practitionerRole, PractitionerRoleDto.class);
+                    practitionerRoleDto.setLogicalId(practitionerRole.getIdElement().getIdPart());
                     return practitionerRoleDto;
                 }).collect(toList());
     }
 
     private Coding mapPractitionerRoleToCode(PractitionerRoleDto practitionerRoleDto) {
-        ValueSetDto practitionerValueSet = getValueSetDtoByCode(practitionerRoleDto.getCode());
+        ValueSetDto practitionerValueSet = getValueSetDtoByCode(practitionerRoleDto.getCode().get(0).getCode());
         return new Coding().setCode(practitionerValueSet.getCode()).setDisplay(practitionerValueSet.getDisplay()).setSystem(practitionerValueSet.getSystem());
     }
 
