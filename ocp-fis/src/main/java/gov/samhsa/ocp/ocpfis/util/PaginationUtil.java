@@ -45,7 +45,7 @@ public final class PaginationUtil {
                 break;
             case "COMMUNICATION":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
-                        s <= fisProperties.getActivityDefinition().getPagination().getMaxSize()).orElse(fisProperties.getCommunication().getPagination().getDefaultSize());
+                        s <= fisProperties.getCommunication().getPagination().getMaxSize()).orElse(fisProperties.getCommunication().getPagination().getDefaultSize());
                 break;
             case "LOCATION":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
