@@ -1,6 +1,8 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.gclient.IQuery;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +12,21 @@ import java.util.Optional;
 
 @Slf4j
 public final class PaginationUtil {
+
+    public static Bundle getSearchBundleFirstPage(IQuery query, int count, Optional<Include> include){
+        if(include.isPresent()){
+            return (Bundle) query.count(count)
+                    .include(include.get())
+                    .returnBundle(Bundle.class)
+                    .encodedJson()
+                    .execute();
+        } else{
+            return (Bundle) query.count(count)
+                    .returnBundle(Bundle.class)
+                    .encodedJson()
+                    .execute();
+        }
+    }
 
     public static Bundle getSearchBundleAfterFirstPage(IGenericClient fhirClient, FisProperties fisProperties, Bundle SearchBundle, int pageNumber, int pageSize) {
         if (SearchBundle.getLink(Bundle.LINK_NEXT) != null) {
@@ -42,6 +59,10 @@ public final class PaginationUtil {
             case "ACTIVITYDEFINITION":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getActivityDefinition().getPagination().getMaxSize()).orElse(fisProperties.getActivityDefinition().getPagination().getDefaultSize());
+                break;
+            case "COMMUNICATION":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getCommunication().getPagination().getMaxSize()).orElse(fisProperties.getCommunication().getPagination().getDefaultSize());
                 break;
             case "LOCATION":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&

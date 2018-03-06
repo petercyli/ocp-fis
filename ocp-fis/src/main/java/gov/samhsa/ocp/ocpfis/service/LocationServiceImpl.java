@@ -78,14 +78,11 @@ public class LocationServiceImpl implements LocationService {
             log.info("Searching for locations with ALL statuses");
         }
 
-       // Check if there are any additional search criteria
+        // Check if there are any additional search criteria
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
-        firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
-                .returnBundle(Bundle.class)
-                .encodedJson()
-                .execute();
+        firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(locationsSearchQuery, numberOfLocationsPerPage, Optional.empty());
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().isEmpty()) {
             throw new ResourceNotFoundException("No locations were found in the FHIR server");
@@ -131,10 +128,7 @@ public class LocationServiceImpl implements LocationService {
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
-        firstPageLocationSearchBundle = (Bundle) locationsSearchQuery.count(numberOfLocationsPerPage)
-                .returnBundle(Bundle.class)
-                .encodedJson()
-                .execute();
+        firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(locationsSearchQuery, numberOfLocationsPerPage, Optional.empty());
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().isEmpty()) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
@@ -245,10 +239,10 @@ public class LocationServiceImpl implements LocationService {
             existingFhirLocation.setPartOf(null);
         }
 
-        // Validate the resource
+        // Validate
         FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Update Location");
 
-        //Update the resource
+        //Update
         FhirUtil.updateFhirResource(fhirClient, existingFhirLocation, "Update Location");
     }
 
@@ -263,7 +257,7 @@ public class LocationServiceImpl implements LocationService {
     }
 
 
-    private  IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<String> searchKey, Optional<String> searchValue){
+    private IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
         //Check for bad requests
         if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
             throw new BadRequestException("Unidentified search key:" + searchKey.get());
