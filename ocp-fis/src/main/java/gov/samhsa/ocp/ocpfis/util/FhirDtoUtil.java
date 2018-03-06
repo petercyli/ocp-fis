@@ -32,9 +32,9 @@ public class FhirDtoUtil {
                     source.forEach(member -> {
                         participant.setActorName(member.getActor().getDisplay());
                         participant.setActorReference(member.getActor().getReference());
-                        participant.setParticipationStatusCode(member.getStatus().toCode());
-                        participant.setParticipantRequiredCode(member.getRequired().toCode());
-                        participant.setParticipationStatusCode(member.getStatus().toCode());
+                    //    participant.setParticipationStatusCode(member.getStatus().toCode());
+                    //    participant.setParticipantRequiredCode(member.getRequired().toCode());
+                    //    participant.setParticipationStatusCode(member.getStatus().toCode());
                         participants.add(participant);
 
                     });
