@@ -53,13 +53,16 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
     private final FisProperties fisProperties;
 
+    private final OrganizationService organizationService;
+
     @Autowired
-    public ActivityDefinitionServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
+    public ActivityDefinitionServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, OrganizationService organizationService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.organizationService = organizationService;
     }
 
     @Override
@@ -192,8 +195,43 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
     @Override
     public List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner) {
-        //TODO: Implement this..
-        return null;
+        List<ReferenceDto> referenceOrganizationDtos = organizationService.getOrganizationsByPractitioner(practitioner);
+
+        return referenceOrganizationDtos.stream()
+                .flatMap(it -> getActivityDefinitionByOrganization(getIdFromReference(it)).stream())
+                .collect(toList());
+    }
+
+    private String getIdFromReference(ReferenceDto dto) {
+        return dto.getReference().replace(ResourceType.Organization + "/", "");
+    }
+
+    private List<ReferenceDto> getActivityDefinitionByOrganization(String organization) {
+        List<ReferenceDto> activityDefinitions = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
+                .where(new StringClientParam("publisher").matches().value(ResourceType.Organization + "/" + organization))
+                .returnBundle(Bundle.class).execute();
+
+        if(bundle != null) {
+            List<Bundle.BundleEntryComponent> activityDefinitionComponents = bundle.getEntry();
+
+            if(activityDefinitionComponents != null) {
+                activityDefinitions = activityDefinitionComponents.stream()
+                    .map(it -> (ActivityDefinition) it.getResource())
+                    .map(it -> mapToReferenceDto(it))
+                    .collect(toList());
+            }
+        }
+
+        return activityDefinitions;
+    }
+
+    private ReferenceDto mapToReferenceDto(ActivityDefinition activityDefintion) {
+        ReferenceDto referenceDto = new ReferenceDto();
+        referenceDto.setReference(ResourceType.ActivityDefinition + "/" + activityDefintion.getIdElement().getIdPart());
+        referenceDto.setDisplay(activityDefintion.getName());
+        return referenceDto;
     }
 
     private IQuery addAdditionalSearchConditions(IQuery activityDefinitionsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
