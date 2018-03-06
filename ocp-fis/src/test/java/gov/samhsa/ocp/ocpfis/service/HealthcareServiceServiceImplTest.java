@@ -16,6 +16,7 @@ import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Reference;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -54,6 +55,7 @@ public class HealthcareServiceServiceImplTest {
     private HealthcareServiceServiceImpl healthcareServiceService;
 
     @Test
+    @Ignore
     public void testGetAllHealthcareServicesByLocation() {
         //Arrange
         final List<String> statusList = new ArrayList<>();
