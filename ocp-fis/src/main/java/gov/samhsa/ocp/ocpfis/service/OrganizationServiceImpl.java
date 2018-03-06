@@ -18,6 +18,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
@@ -258,7 +259,7 @@ public class OrganizationServiceImpl implements OrganizationService {
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.PractitionerRole))
                         .map(it -> (PractitionerRole) it.getResource())
                         .map(it -> (Organization) it.getOrganization().getResource())
-                        .map(this::mapToReferenceDto)
+                        .map(FhirDtoUtil::mapOrganizationToReferenceDto)
                         .distinct()
                         .collect(toList());
 
@@ -266,15 +267,6 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
 
         return organizations;
-    }
-
-    private ReferenceDto mapToReferenceDto(Organization organization) {
-        ReferenceDto referenceDto = new ReferenceDto();
-
-        referenceDto.setReference(ResourceType.Organization + "/" + organization.getIdElement().getIdPart());
-        referenceDto.setDisplay(organization.getName());
-
-        return referenceDto;
     }
 
     private Organization readOrganizationFromServer(String organizationId) {
