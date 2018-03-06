@@ -259,6 +259,7 @@ public class OrganizationServiceImpl implements OrganizationService {
                         .map(it -> (PractitionerRole) it.getResource())
                         .map(it -> (Organization) it.getOrganization().getResource())
                         .map(this::mapToReferenceDto)
+                        .distinct()
                         .collect(toList());
 
             }
