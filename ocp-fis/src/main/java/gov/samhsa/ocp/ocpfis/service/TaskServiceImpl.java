@@ -26,6 +26,7 @@ import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
+import org.hl7.fhir.dstu3.model.Type;
 import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.dstu3.model.codesystems.TaskStatus;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -423,6 +424,34 @@ public class TaskServiceImpl implements TaskService {
 
         return taskDto;
 
+    }
+
+    public List<ReferenceDto> getRelatedTasks(String patient) {
+        List<ReferenceDto> tasks = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(Task.class)
+                .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
+                .returnBundle(Bundle.class).execute();
+
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> taskComponents = bundle.getEntry();
+
+            if (taskComponents != null) {
+                tasks = taskComponents.stream()
+                        .map(it -> (Task) it.getResource())
+                        .map(it -> mapToReferenceDto(it))
+                        .collect(toList());
+            }
+        }
+
+        return tasks;
+    }
+
+    private ReferenceDto mapToReferenceDto(Task task) {
+        ReferenceDto referenceDto = new ReferenceDto();
+        referenceDto.setReference(ResourceType.Task + "/" + task.getIdElement().getIdPart());
+        referenceDto.setDisplay(task.getDescription() != null ? task.getDescription() : referenceDto.getReference());
+        return referenceDto;
     }
 
     private Optional<String> getDisplay(String code, Optional<List<ValueSetDto>> lookupValueSets) {
