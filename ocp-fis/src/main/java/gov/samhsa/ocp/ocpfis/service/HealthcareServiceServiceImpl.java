@@ -88,10 +88,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         healthcareServicesSearchQuery = addAdditionalSearchConditions(healthcareServicesSearchQuery, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
-        firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServicesSearchQuery.count(numberOfHealthcareServicesPerPage)
-                .returnBundle(Bundle.class)
-                .encodedJson()
-                .execute();
+        firstPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleFirstPage(healthcareServicesSearchQuery, numberOfHealthcareServicesPerPage, Optional.empty());
 
         if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().isEmpty()) {
             log.info("No Healthcare Services were found for the given criteria.");
@@ -148,10 +145,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         healthcareServicesSearchQuery = addAdditionalSearchConditions(healthcareServicesSearchQuery, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet with location
-        firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServicesSearchQuery.count(numberOfHealthcareServicesPerPage)
-                .returnBundle(Bundle.class)
-                .encodedJson()
-                .execute();
+        firstPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleFirstPage(healthcareServicesSearchQuery, numberOfHealthcareServicesPerPage, Optional.empty());
 
         if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().isEmpty()) {
             log.info("No Healthcare Service found for the given OrganizationID:" + organizationResourceId);
@@ -210,12 +204,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         healthcareServiceQuery = addAdditionalSearchConditions(healthcareServiceQuery, searchKey, searchValue);
 
         //The following bundle only contains page 1 of the resultset
-        firstPageHealthcareServiceSearchBundle = (Bundle) healthcareServiceQuery.count(numberOfHealthcareServicesPerPage)
-                .include(HealthcareService.INCLUDE_LOCATION)
-                .returnBundle(Bundle.class)
-                .encodedJson()
-                .execute();
-
+        firstPageHealthcareServiceSearchBundle = PaginationUtil.getSearchBundleFirstPage(healthcareServiceQuery, numberOfHealthcareServicesPerPage, Optional.of(HealthcareService.INCLUDE_LOCATION));
 
         if (firstPageHealthcareServiceSearchBundle == null || firstPageHealthcareServiceSearchBundle.getEntry().isEmpty()) {
             log.info("No Healthcare Service found for the given OrganizationID:" + organizationResourceId);
@@ -347,10 +336,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             existingHealthcareService.setLocation(null);
         }
 
-        // Validate the resource
+        // Validate
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
 
-        //Update the resource
+        //Update
         FhirUtil.updateFhirResource(fhirClient, existingHealthcareService, "Update Healthcare Service");
     }
 
@@ -361,7 +350,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         existingHealthcareService.setActive(false);
         //Also, remove all locations
         existingHealthcareService.setLocation(null);
-        //Update the resource
+        //Update
         FhirUtil.updateFhirResource(fhirClient, existingHealthcareService, "Inactivate Healthcare Service");
     }
 
@@ -399,7 +388,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             if (allChecksPassed) {
                 locationIdList.forEach(locationId -> assignedLocations.add(new Reference("Location/" + locationId)));
 
-                // Validate the resource
+                //Validate
                 FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Assign location to a Healthcare Service");
 
                 //Update
@@ -415,7 +404,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         HealthcareService existingHealthcareService = readHealthcareServiceFromServer(healthcareServiceId);
         List<Reference> assignedLocations = existingHealthcareService.getLocation();
         assignedLocations.removeIf(locRef -> locationIdList.contains(locRef.getReference().substring(9).trim()));
-        // Validate the resource
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Unassign location to a Healthcare Service");
 
         //Update
