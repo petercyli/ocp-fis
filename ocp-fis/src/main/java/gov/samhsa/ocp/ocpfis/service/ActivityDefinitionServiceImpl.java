@@ -16,6 +16,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
@@ -198,12 +199,8 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         List<ReferenceDto> referenceOrganizationDtos = organizationService.getOrganizationsByPractitioner(practitioner);
 
         return referenceOrganizationDtos.stream()
-                .flatMap(it -> getActivityDefinitionByOrganization(getIdFromReference(it)).stream())
+                .flatMap(it -> getActivityDefinitionByOrganization(FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Organization)).stream())
                 .collect(toList());
-    }
-
-    private String getIdFromReference(ReferenceDto dto) {
-        return dto.getReference().replace(ResourceType.Organization + "/", "");
     }
 
     private List<ReferenceDto> getActivityDefinitionByOrganization(String organization) {
@@ -219,19 +216,12 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             if(activityDefinitionComponents != null) {
                 activityDefinitions = activityDefinitionComponents.stream()
                     .map(it -> (ActivityDefinition) it.getResource())
-                    .map(it -> mapToReferenceDto(it))
+                    .map(it -> FhirDtoUtil.mapActivityDefinitionToReferenceDto(it))
                     .collect(toList());
             }
         }
 
         return activityDefinitions;
-    }
-
-    private ReferenceDto mapToReferenceDto(ActivityDefinition activityDefintion) {
-        ReferenceDto referenceDto = new ReferenceDto();
-        referenceDto.setReference(ResourceType.ActivityDefinition + "/" + activityDefintion.getIdElement().getIdPart());
-        referenceDto.setDisplay(activityDefintion.getName());
-        return referenceDto;
     }
 
     private IQuery addAdditionalSearchConditions(IQuery activityDefinitionsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
@@ -286,7 +276,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
                 tempActivityDefinitionDto.setActionParticipantRole(valueSetDto);
             });
             if (participant.hasType())
-                tempActivityDefinitionDto.setActionParticipantType(convertCodeToValueSetDto(participant.getType().toCode(), lookUpService.getActionParticipantType()));
+                tempActivityDefinitionDto.setActionParticipantType(FhirDtoUtil.convertCodeToValueSetDto(participant.getType().toCode(), lookUpService.getActionParticipantType()));
         });
 
         TimingDto timingDto = new TimingDto();
@@ -305,15 +295,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         return tempActivityDefinitionDto;
     }
 
-    private ValueSetDto convertCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
-        return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getCode())).map(valueSet -> {
-            ValueSetDto valueSetDto = new ValueSetDto();
-            valueSetDto.setCode(valueSet.getCode());
-            valueSetDto.setDisplay(valueSet.getDisplay());
-            valueSetDto.setSystem(valueSet.getSystem());
-            return valueSetDto;
-        }).findFirst().orElse(null);
-    }
+
 
     private boolean isDuplicate(ActivityDefinitionDto activityDefinitionDto, String organizationid) {
         return activityDefinitionDto.getStatus().getCode().equalsIgnoreCase(Enumerations.PublicationStatus.ACTIVE.toString()) && (isDuplicateWithNamePublisherKindAndStatus(activityDefinitionDto, organizationid) || isDuplicateWithTitlePublisherKindAndStatus(activityDefinitionDto, organizationid));

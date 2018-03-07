@@ -9,7 +9,6 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
-import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
@@ -20,6 +19,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerRoleNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
@@ -170,7 +170,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.PractitionerRole))
                         .map(it -> (PractitionerRole) it.getResource())
                         .map(it -> (Organization) it.getOrganization().getResource())
-                        .map(it -> mapToReferenceDto(it))
+                        .map(it -> FhirDtoUtil.mapOrganizationToReferenceDto(it))
                         .collect(toList());
 
             }
@@ -178,17 +178,13 @@ public class PractitionerServiceImpl implements PractitionerService {
 
         //retrieve practitioners for each of the organizations retrieved above.
         List<ReferenceDto> practitioners = organizations.stream()
-                .map(this::getIdFromReference)
+                .map(it -> FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Practitioner))
                 .flatMap(id -> getPractitionersByOrganization(id).stream())
-                .map(practitionerDto -> mapToReferenceDto(practitionerDto))
+                .map(practitionerDto -> FhirDtoUtil.mapPractitionerDtoToReferenceDto(practitionerDto))
                 .distinct()
                 .collect(toList());
 
         return practitioners;
-    }
-
-    private String getIdFromReference(ReferenceDto dto) {
-        return dto.getReference().replace(ResourceType.Organization + "/", "");
     }
 
     public List<PractitionerDto> getPractitionersByOrganization(String organization) {
@@ -417,25 +413,4 @@ public class PractitionerServiceImpl implements PractitionerService {
                 .orElseThrow(PractitionerRoleNotFoundException::new);
     }
 
-    private ReferenceDto mapToReferenceDto(Organization organization) {
-        ReferenceDto referenceDto = new ReferenceDto();
-
-        referenceDto.setReference(ResourceType.Organization + "/" + organization.getIdElement().getIdPart());
-        referenceDto.setDisplay(organization.getName());
-
-        return referenceDto;
-    }
-
-    private ReferenceDto  mapToReferenceDto(PractitionerDto practitionerDto) {
-        ReferenceDto referenceDto = new ReferenceDto();
-
-        referenceDto.setReference(ResourceType.Practitioner + "/" + practitionerDto.getLogicalId());
-        List<NameDto> names = practitionerDto.getName();
-        names.stream().findFirst().ifPresent(it -> {
-            String name = it.getFirstName() + " " + it.getLastName();
-            referenceDto.setDisplay(name);
-        });
-
-        return referenceDto;
-    }
 }

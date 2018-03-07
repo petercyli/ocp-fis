@@ -17,6 +17,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Annotation;
@@ -26,7 +27,6 @@ import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
-import org.hl7.fhir.dstu3.model.Type;
 import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.dstu3.model.codesystems.TaskStatus;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -41,6 +41,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
+import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -157,7 +158,7 @@ public class TaskServiceImpl implements TaskService {
             if (task.getPerformerType() != null) {
                 task.getPerformerType().stream().findFirst().ifPresent(performerType -> performerType.getCoding().stream().findFirst().ifPresent(coding -> {
                     performerTypeDto.setCode((coding.getCode() != null && !coding.getCode().isEmpty()) ? coding.getCode() : null);
-                    performerTypeDto.setDisplay((getDisplay(coding.getCode(), Optional.ofNullable(lookUpService.getTaskPerformerType()))).orElse(null));
+                    performerTypeDto.setDisplay((FhirDtoUtil.getDisplayForCode(coding.getCode(), Optional.ofNullable(lookUpService.getTaskPerformerType()))).orElse(null));
                 }));
 
                 taskDto.setPerformerType(performerTypeDto);
@@ -323,38 +324,38 @@ public class TaskServiceImpl implements TaskService {
             //Setting definition
             taskDto.setLogicalId(task.getIdElement().getIdPart());
             try {
-                taskDto.setDefinition(convertReferenceToReferenceDto(task.getDefinitionReference()));
+                taskDto.setDefinition(FhirDtoUtil.convertReferenceToReferenceDto(task.getDefinitionReference()));
             } catch (FHIRException e) {
                 e.printStackTrace();
             }
 
             if (task.hasPartOf()) {
-                taskDto.setPartOf(convertReferenceToReferenceDto(task.getPartOf().stream().findFirst().get()));
+                taskDto.setPartOf(FhirDtoUtil.convertReferenceToReferenceDto(task.getPartOf().stream().findFirst().get()));
             }
 
             //Setting Status, Intent, Priority
-            taskDto.setStatus(convertCodeToValueSetDto(task.getStatus().toCode(), lookUpService.getTaskStatus()));
-            taskDto.setIntent(convertCodeToValueSetDto(task.getIntent().toCode(), lookUpService.getRequestIntent()));
-            taskDto.setPriority(convertCodeToValueSetDto(task.getPriority().toCode(), lookUpService.getRequestPriority()));
+            taskDto.setStatus(FhirDtoUtil.convertCodeToValueSetDto(task.getStatus().toCode(), lookUpService.getTaskStatus()));
+            taskDto.setIntent(FhirDtoUtil.convertCodeToValueSetDto(task.getIntent().toCode(), lookUpService.getRequestIntent()));
+            taskDto.setPriority(FhirDtoUtil.convertCodeToValueSetDto(task.getPriority().toCode(), lookUpService.getRequestPriority()));
 
             if (task.hasDescription()) {
                 taskDto.setDescription(task.getDescription());
             }
 
-            taskDto.setBeneficiary(convertReferenceToReferenceDto(task.getFor()));
+            taskDto.setBeneficiary(FhirDtoUtil.convertReferenceToReferenceDto(task.getFor()));
 
-            taskDto.setAgent(convertReferenceToReferenceDto(task.getRequester().getAgent()));
+            taskDto.setAgent(FhirDtoUtil.convertReferenceToReferenceDto(task.getRequester().getAgent()));
 
-            taskDto.setOnBehalfOf(convertReferenceToReferenceDto(task.getRequester().getOnBehalfOf()));
+            taskDto.setOnBehalfOf(FhirDtoUtil.convertReferenceToReferenceDto(task.getRequester().getOnBehalfOf()));
 
             //Set Performer Type
             if (task.hasPerformerType()) {
                 task.getPerformerType().stream().findFirst().ifPresent(performerType -> performerType.getCoding().stream().findFirst().ifPresent(coding -> {
-                    taskDto.setPerformerType(convertCodeToValueSetDto(coding.getCode(), lookUpService.getTaskPerformerType()));
+                    taskDto.setPerformerType(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getTaskPerformerType()));
                 }));
             }
 
-            taskDto.setOwner(convertReferenceToReferenceDto(task.getOwner()));
+            taskDto.setOwner(FhirDtoUtil.convertReferenceToReferenceDto(task.getOwner()));
 
             //Set Note
             task.getNote().stream().findFirst().ifPresent(note -> taskDto.setNote(note.getText()));
@@ -395,13 +396,13 @@ public class TaskServiceImpl implements TaskService {
                         });
                     }
                     if (episodeOfCare.hasPatient())
-                        contextDto.setPatient(convertReferenceToReferenceDto(episodeOfCare.getPatient()));
+                        contextDto.setPatient(FhirDtoUtil.convertReferenceToReferenceDto(episodeOfCare.getPatient()));
                     if (episodeOfCare.hasManagingOrganization())
-                        contextDto.setManagingOrganization(convertReferenceToReferenceDto(episodeOfCare.getManagingOrganization()));
+                        contextDto.setManagingOrganization(FhirDtoUtil.convertReferenceToReferenceDto(episodeOfCare.getManagingOrganization()));
                     if (episodeOfCare.hasReferralRequest())
-                        contextDto.setReferralRequest(convertReferenceToReferenceDto((Reference) episodeOfCare.getReferralRequest()));
+                        contextDto.setReferralRequest(FhirDtoUtil.convertReferenceToReferenceDto((Reference) episodeOfCare.getReferralRequest()));
                     if (episodeOfCare.hasCareManager())
-                        contextDto.setCareManager(convertReferenceToReferenceDto(episodeOfCare.getCareManager()));
+                        contextDto.setCareManager(FhirDtoUtil.convertReferenceToReferenceDto(episodeOfCare.getCareManager()));
 
                     if (episodeOfCare.hasPeriod()) {
                         PeriodDto periodDto = new PeriodDto();
@@ -433,54 +434,12 @@ public class TaskServiceImpl implements TaskService {
             if (taskComponents != null) {
                 tasks = taskComponents.stream()
                         .map(it -> (Task) it.getResource())
-                        .map(it -> mapToReferenceDto(it))
+                        .map(it -> FhirDtoUtil.mapTaskToReferenceDto(it))
                         .collect(toList());
             }
         }
 
         return tasks;
-    }
-
-    private ReferenceDto mapToReferenceDto(Task task) {
-        ReferenceDto referenceDto = new ReferenceDto();
-        referenceDto.setReference(ResourceType.Task + "/" + task.getIdElement().getIdPart());
-        referenceDto.setDisplay(task.getDescription() != null ? task.getDescription() : referenceDto.getReference());
-        return referenceDto;
-    }
-
-    private Optional<String> getDisplay(String code, Optional<List<ValueSetDto>> lookupValueSets) {
-        Optional<String> lookupDisplay = Optional.empty();
-        if (lookupValueSets.isPresent()) {
-            lookupDisplay = lookupValueSets.get().stream()
-                    .filter(lookupValue -> code.equalsIgnoreCase(lookupValue.getCode()))
-                    .map(ValueSetDto::getDisplay).findFirst();
-
-        }
-        return lookupDisplay;
-    }
-
-    private static Reference getReferenceValue(ReferenceDto referenceDto) {
-        Reference reference = new Reference();
-        reference.setDisplay(referenceDto.getDisplay());
-        reference.setReference(referenceDto.getReference());
-        return reference;
-    }
-
-    private static ReferenceDto convertReferenceToReferenceDto(Reference reference) {
-        ReferenceDto referenceDto = new ReferenceDto();
-        referenceDto.setDisplay(reference.getDisplay());
-        referenceDto.setReference(reference.getReference());
-        return referenceDto;
-    }
-
-    private ValueSetDto convertCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
-        return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getCode())).map(valueSet -> {
-            ValueSetDto valueSetDto = new ValueSetDto();
-            valueSetDto.setCode(valueSet.getCode());
-            valueSetDto.setDisplay(valueSet.getDisplay());
-            valueSetDto.setSystem(valueSet.getSystem());
-            return valueSetDto;
-        }).findFirst().orElse(null);
     }
 
     private boolean isDuplicate(TaskDto taskDto) {
@@ -506,11 +465,11 @@ public class TaskServiceImpl implements TaskService {
 
     private Task setTaskDtoToTask(TaskDto taskDto) {
         Task task = new Task();
-        task.setDefinition(getReferenceValue(taskDto.getDefinition()));
+        task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(taskDto.getDefinition()));
 
         if (taskDto.getPartOf() != null) {
             List<Reference> partOfReferences = new ArrayList<>();
-            partOfReferences.add(getReferenceValue(taskDto.getPartOf()));
+            partOfReferences.add(mapReferenceDtoToReference(taskDto.getPartOf()));
             task.setPartOf(partOfReferences);
         }
 
@@ -522,7 +481,7 @@ public class TaskServiceImpl implements TaskService {
             task.setDescription(taskDto.getDescription());
         }
 
-        task.setFor(getReferenceValue(taskDto.getBeneficiary()));
+        task.setFor(mapReferenceDtoToReference(taskDto.getBeneficiary()));
 
         //Set execution Period
         if (taskDto.getExecutionPeriod() != null) {
@@ -538,11 +497,11 @@ public class TaskServiceImpl implements TaskService {
             task.getExecutionPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
 
         //Set agent
-        task.getRequester().setAgent(getReferenceValue(taskDto.getAgent()));
+        task.getRequester().setAgent(mapReferenceDtoToReference(taskDto.getAgent()));
 
         //Set on Behalf of
         if (taskDto.getOnBehalfOf() != null) {
-            task.getRequester().setOnBehalfOf(getReferenceValue(taskDto.getOnBehalfOf()));
+            task.getRequester().setOnBehalfOf(mapReferenceDtoToReference(taskDto.getOnBehalfOf()));
         }
 
         //Set PerformerType
@@ -559,7 +518,7 @@ public class TaskServiceImpl implements TaskService {
         //Set last Modified
         task.setLastModified(java.sql.Date.valueOf(LocalDate.now()));
 
-        task.setOwner(getReferenceValue(taskDto.getOwner()));
+        task.setOwner(mapReferenceDtoToReference(taskDto.getOwner()));
 
         Annotation annotation = new Annotation();
         annotation.setText(taskDto.getNote());
@@ -585,22 +544,22 @@ public class TaskServiceImpl implements TaskService {
         episodeOfCare.setType(codeableConcepts);
 
         //patient
-        episodeOfCare.setPatient(getReferenceValue(taskDto.getBeneficiary()));
+        episodeOfCare.setPatient(mapReferenceDtoToReference(taskDto.getBeneficiary()));
 
         //managing organization
-        episodeOfCare.setManagingOrganization(getReferenceValue(taskDto.getOrganization()));
+        episodeOfCare.setManagingOrganization(mapReferenceDtoToReference(taskDto.getOrganization()));
 
         //start date
         episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(taskDto.getExecutionPeriod().getStart()));
 
         //careManager
-        episodeOfCare.setCareManager(getReferenceValue(taskDto.getAgent()));
+        episodeOfCare.setCareManager(mapReferenceDtoToReference(taskDto.getAgent()));
 
         return episodeOfCare;
     }
 
     private Optional<EpisodeOfCareDto> retrieveEpisodeOfCare(TaskDto taskDto) {
-        String patient = getReferenceValue(taskDto.getBeneficiary()).getReference();
+        String patient = mapReferenceDtoToReference(taskDto.getBeneficiary()).getReference();
 
         List<EpisodeOfCareDto> episodeOfCareDtos = episodeOfCareService.getEpisodeOfCares(patient, Optional.of(taskDto.getStatus().getCode()));
 

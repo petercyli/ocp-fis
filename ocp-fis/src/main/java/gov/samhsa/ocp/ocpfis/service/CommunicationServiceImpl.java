@@ -12,13 +12,13 @@ import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Annotation;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Communication;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
@@ -111,18 +111,18 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
 
            if (communication.hasCategory()) {
-                ValueSetDto category = convertCodeableConceptListToValuesetDto(communication.getCategory());
+                ValueSetDto category = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getCategory());
                 communicationDto.setCategoryValue(category.getDisplay());
             }
 
             if (communication.hasMedium()) {
-                ValueSetDto medium = convertCodeableConceptListToValuesetDto(communication.getCategory());
+                ValueSetDto medium = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getCategory());
                 communicationDto.setMediumVaule(medium.getDisplay());
             }
 
 
             if (communication.hasRecipient()) {
-                communicationDto.setRecipient(communication.getRecipient().stream().map(recipient -> convertReferenceToReferenceDto(recipient)).collect(Collectors.toList()));
+                communicationDto.setRecipient(communication.getRecipient().stream().map(recipient -> FhirDtoUtil.convertReferenceToReferenceDto(recipient)).collect(Collectors.toList()));
             }
 
             if (communication.hasSender()) {
@@ -173,11 +173,11 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         //Set Subject
         if(communicationDto.getSubject() !=null) {
-            communication.setSubject(convertReferenceDtoToReference(communicationDto.getSubject()));
+            communication.setSubject(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSubject()));
         }
 
         //Set Sender
-        communication.setSender(convertReferenceDtoToReference(communicationDto.getSender()));
+        communication.setSender(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSender()));
 
         //Set Status
         if (communicationDto.getStatusCode() != null) {
@@ -186,53 +186,53 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         //Set Category
         if (communicationDto.getCategoryCode() != null) {
-            ValueSetDto category = convertCodeToValueSetDto(communicationDto.getCategoryCode(), lookUpService.getCommunicationCategory());
+            ValueSetDto category = FhirDtoUtil.convertCodeToValueSetDto(communicationDto.getCategoryCode(), lookUpService.getCommunicationCategory());
             List<CodeableConcept> categories = new ArrayList<>();
-            categories.add(convertValuesetDtoToCodeableConcept(category));
+            categories.add(FhirDtoUtil.convertValuesetDtoToCodeableConcept(category));
             communication.setCategory(categories);
         }
 
         //Set Medium
         if (communicationDto.getMediumCode() != null) {
-            ValueSetDto medium = convertCodeToValueSetDto(communicationDto.getMediumCode(), lookUpService.getCommunicationMedium());
+            ValueSetDto medium = FhirDtoUtil.convertCodeToValueSetDto(communicationDto.getMediumCode(), lookUpService.getCommunicationMedium());
             List<CodeableConcept> mediums = new ArrayList<>();
-            mediums.add(convertValuesetDtoToCodeableConcept(medium));
+            mediums.add(FhirDtoUtil.convertValuesetDtoToCodeableConcept(medium));
             communication.setMedium(mediums);
         }
 
         //Set Not Done Reason
         if (communicationDto.getNotDoneReasonCode() != null) {
-            ValueSetDto notDoneReason = convertCodeToValueSetDto(communicationDto.getNotDoneReasonCode(), lookUpService.getCommunicationNotDoneReason());
-            communication.setNotDoneReason(convertValuesetDtoToCodeableConcept(notDoneReason));
+            ValueSetDto notDoneReason = FhirDtoUtil.convertCodeToValueSetDto(communicationDto.getNotDoneReasonCode(), lookUpService.getCommunicationNotDoneReason());
+            communication.setNotDoneReason(FhirDtoUtil.convertValuesetDtoToCodeableConcept(notDoneReason));
         }
 
         //Set subject
         if (communicationDto.getSubject() != null) {
-            communication.setSubject(convertReferenceDtoToReference(communicationDto.getSubject()));
+            communication.setSubject(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSubject()));
         }
 
         //Set recipients
         if (communicationDto.getRecipient() != null) {
-            communication.setRecipient(communicationDto.getRecipient().stream().map(recipient -> convertReferenceDtoToReference(recipient)).collect(Collectors.toList()));
+            communication.setRecipient(communicationDto.getRecipient().stream().map(recipient -> FhirDtoUtil.mapReferenceDtoToReference(recipient)).collect(Collectors.toList()));
         }
 
         //Set topic
         if (communicationDto.getTopic() != null) {
             List<Reference> topics = new ArrayList<>();
-            topics.add(convertReferenceDtoToReference(communicationDto.getTopic()));
+            topics.add(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getTopic()));
             communication.setTopic(topics);
         }
 
         //Set definitions
         if (communicationDto.getDefinition() != null) {
             List<Reference> definitions = new ArrayList<>();
-            definitions.add(convertReferenceDtoToReference(communicationDto.getDefinition()));
+            definitions.add(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getDefinition()));
             communication.setDefinition(definitions);
         }
 
         //Set context
         if (communicationDto.getContext() != null) {
-            communication.setContext(convertReferenceDtoToReference(communicationDto.getContext()));
+            communication.setContext(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getContext()));
         }
 
         if(communicationDto.getSent() !=null)
@@ -260,69 +260,6 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
 
         return communication;
-    }
-
-    private Reference convertReferenceDtoToReference(ReferenceDto referenceDto) {
-        Reference reference = new Reference();
-        reference.setDisplay(referenceDto.getDisplay());
-        reference.setReference(referenceDto.getReference());
-        return reference;
-    }
-
-    private ReferenceDto convertReferenceToReferenceDto(Reference reference) {
-        ReferenceDto referenceDto = new ReferenceDto();
-        referenceDto.setDisplay(reference.getDisplay());
-        referenceDto.setReference(reference.getReference());
-        return referenceDto;
-    }
-
-    private ValueSetDto convertCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
-        return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getCode())).map(valueSet -> {
-            ValueSetDto valueSetDto = new ValueSetDto();
-            valueSetDto.setCode(valueSet.getCode());
-            valueSetDto.setDisplay(valueSet.getDisplay());
-            valueSetDto.setSystem(valueSet.getSystem());
-            return valueSetDto;
-        }).findFirst().orElse(null);
-    }
-
-    private CodeableConcept convertValuesetDtoToCodeableConcept (ValueSetDto valueSetDto) {
-            CodeableConcept codeableConcept = new CodeableConcept();
-            if (valueSetDto != null) {
-                Coding coding = FhirUtil.getCoding(valueSetDto.getCode(),valueSetDto.getDisplay(),valueSetDto.getSystem());
-                codeableConcept.addCoding(coding);
-            }
-            return codeableConcept;
-    }
-
-    private ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept  source) {
-        ValueSetDto valueSetDto =new ValueSetDto();
-        if(source !=null){
-            if(source.getCodingFirstRep().getDisplay() !=null)
-                valueSetDto.setDisplay(source.getCodingFirstRep().getDisplay());
-            if(source.getCodingFirstRep().getSystem()!=null)
-                valueSetDto.setSystem(source.getCodingFirstRep().getSystem());
-            if(source.getCodingFirstRep().getCode()!=null)
-                valueSetDto.setCode(source.getCodingFirstRep().getCode());
-        }
-        return valueSetDto;
-    }
-
-    private ValueSetDto convertCodeableConceptListToValuesetDto(List<CodeableConcept> source) {
-        ValueSetDto valueSetDto = new ValueSetDto();
-
-        if (!source.isEmpty()) {
-            int sourceSize = source.get(0).getCoding().size();
-            if (sourceSize > 0) {
-                source.get(0).getCoding().stream().findAny().ifPresent(coding -> {
-                    valueSetDto.setSystem(coding.getSystem());
-                    valueSetDto.setDisplay(coding.getDisplay());
-                    valueSetDto.setCode(coding.getCode());
-                });
-            }
-        }
-        return valueSetDto;
-
     }
 
 
