@@ -5,16 +5,12 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
-import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.Enumerations;
-import org.hl7.fhir.dstu3.model.Reference;
 
 import java.util.Optional;
 
@@ -57,23 +53,6 @@ public class FhirUtil {
             coding.setSystem(system);
         }
         return coding;
-    }
-
-
-    public static Reference convertReferenceDtoToReference(ReferenceDto referenceDto) {
-        Reference reference = new Reference();
-        reference.setDisplay(referenceDto.getDisplay());
-        reference.setReference(referenceDto.getReference());
-        return reference;
-    }
-
-    public static CodeableConcept convertValuesetDtoToCodeableConcept (ValueSetDto valueSetDto) {
-        CodeableConcept codeableConcept = new CodeableConcept();
-        if (valueSetDto != null) {
-            Coding coding = FhirUtil.getCoding(valueSetDto.getCode(),valueSetDto.getDisplay(),valueSetDto.getSystem());
-            codeableConcept.addCoding(coding);
-        }
-        return codeableConcept;
     }
 
     public static boolean isStringNotNullAndNotEmpty(String givenString) {

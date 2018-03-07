@@ -1,10 +1,12 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
+import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Organization;
@@ -12,6 +14,7 @@ import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,47 +43,6 @@ public class FhirDtoUtil {
         });
 
         return referenceDto;
-
-import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
-import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.Appointment;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Reference;
-
-import java.util.ArrayList;
-import java.util.List;
-
-@Slf4j
-public class FhirDtoUtil {
-
-    public static ReferenceDto convertReferenceToReferenceDto(Reference reference) {
-        ReferenceDto referenceDto = new ReferenceDto();
-        referenceDto.setDisplay(reference.getDisplay());
-        referenceDto.setReference(reference.getReference());
-        return referenceDto;
-    }
-
-    public static List<AppointmentParticipantDto> convertAppointmentParticipantListToAppointmentParticipantDtoList(List<Appointment.AppointmentParticipantComponent> source) {
-         List<AppointmentParticipantDto> participants = new ArrayList<>();
-         AppointmentParticipantDto participant = new AppointmentParticipantDto();
-
-            if (source != null && source.size() > 0) {
-                int numberOfSource = source.size();
-                if (numberOfSource > 0) {
-                    source.forEach(member -> {
-                        participant.setActorName(member.getActor().getDisplay());
-                        participant.setActorReference(member.getActor().getReference());
-                    //    participant.setParticipationStatusCode(member.getStatus().toCode());
-                    //    participant.setParticipantRequiredCode(member.getRequired().toCode());
-                    //    participant.setParticipationStatusCode(member.getStatus().toCode());
-                        participants.add(participant);
-
-                    });
-                }
-            }
-            return participants;
     }
 
     public static ValueSetDto convertCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
@@ -93,7 +55,6 @@ public class FhirDtoUtil {
         }).findFirst().orElse(null);
     }
 
-    public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept  source) {
     public static ReferenceDto mapOrganizationToReferenceDto(Organization organization) {
         ReferenceDto referenceDto = new ReferenceDto();
 
@@ -125,8 +86,7 @@ public class FhirDtoUtil {
         return referenceDto;
     }
 
-
-    public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept source) {
+   public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept source) {
         ValueSetDto valueSetDto =new ValueSetDto();
         if(source !=null){
             if(source.getCodingFirstRep().getDisplay() !=null)
@@ -176,5 +136,25 @@ public class FhirDtoUtil {
         return lookupDisplay;
     }
 
+    public static List<AppointmentParticipantDto> convertAppointmentParticipantListToAppointmentParticipantDtoList(List<Appointment.AppointmentParticipantComponent> source) {
+        List<AppointmentParticipantDto> participants = new ArrayList<>();
+        AppointmentParticipantDto participant = new AppointmentParticipantDto();
+
+        if (source != null && source.size() > 0) {
+            int numberOfSource = source.size();
+            if (numberOfSource > 0) {
+                source.forEach(member -> {
+                    participant.setActorName(member.getActor().getDisplay());
+                    participant.setActorReference(member.getActor().getReference());
+                    //    participant.setParticipationStatusCode(member.getStatus().toCode());
+                    //    participant.setParticipantRequiredCode(member.getRequired().toCode());
+                    //    participant.setParticipationStatusCode(member.getStatus().toCode());
+                    participants.add(participant);
+
+                });
+            }
+        }
+        return participants;
+    }
 
 }
