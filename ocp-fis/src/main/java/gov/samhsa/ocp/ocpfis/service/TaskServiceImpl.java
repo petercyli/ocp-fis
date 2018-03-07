@@ -179,7 +179,7 @@ public class TaskServiceImpl implements TaskService {
 
             if (task.hasRequester()) {
                 if (task.getRequester().hasOnBehalfOf())
-                    taskDto.setOnBehalfOf(ReferenceDto.builder()
+                    taskDto.setOrganization(ReferenceDto.builder()
                             .reference((task.getRequester().getOnBehalfOf().getReference() != null && !task.getRequester().getOnBehalfOf().getReference().isEmpty()) ? task.getRequester().getOnBehalfOf().getReference() : null)
                             .display((task.getRequester().getOnBehalfOf().getDisplay() != null && !task.getRequester().getOnBehalfOf().getDisplay().isEmpty()) ? task.getRequester().getOnBehalfOf().getDisplay() : null)
                             .build());
@@ -212,6 +212,15 @@ public class TaskServiceImpl implements TaskService {
             }
 
             //TODO: redo context field
+            if (task.hasContext()) {
+
+                taskDto.setContext(ReferenceDto.builder()
+                        .reference((task.hasContext()) ? task.getContext().getReference() : null)
+                        .display((task.hasContext()) ? task.getContext().getDisplay() : null)
+                        .build());
+
+            }
+
 
             if (task.hasLastModified()) {
                 taskDto.setLastModified(DateUtil.convertDateToLocalDate(task.getLastModified()));
@@ -237,7 +246,6 @@ public class TaskServiceImpl implements TaskService {
 
         return new PageDto<>(taskDtos, numberOfTasksPerPage, totalPages, currentPage, taskDtos.size(), otherPageTaskBundle.getTotal());
     }
-
 
     @Override
     public void createTask(TaskDto taskDto) {
@@ -345,7 +353,9 @@ public class TaskServiceImpl implements TaskService {
 
             taskDto.setAgent(FhirDtoUtil.convertReferenceToReferenceDto(task.getRequester().getAgent()));
 
-            taskDto.setOnBehalfOf(FhirDtoUtil.convertReferenceToReferenceDto(task.getRequester().getOnBehalfOf()));
+            taskDto.setOrganization(FhirDtoUtil.convertReferenceToReferenceDto(task.getRequester().getOnBehalfOf()));
+
+            taskDto.setOrganization(FhirDtoUtil.convertReferenceToReferenceDto(task.getRequester().getOnBehalfOf()));
 
             //Set Performer Type
             if (task.hasPerformerType()) {
@@ -460,8 +470,8 @@ public class TaskServiceImpl implements TaskService {
         task.getRequester().setAgent(mapReferenceDtoToReference(taskDto.getAgent()));
 
         //Set on Behalf of
-        if (taskDto.getOnBehalfOf() != null) {
-            task.getRequester().setOnBehalfOf(mapReferenceDtoToReference(taskDto.getOnBehalfOf()));
+        if (taskDto.getOrganization() != null) {
+            task.getRequester().setOnBehalfOf(mapReferenceDtoToReference(taskDto.getOrganization()));
         }
 
         //Set PerformerType
