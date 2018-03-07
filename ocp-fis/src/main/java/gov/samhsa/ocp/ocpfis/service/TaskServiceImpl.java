@@ -7,12 +7,12 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
@@ -21,7 +21,7 @@ import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.Annotation;
+import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
@@ -29,7 +29,6 @@ import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
-import org.hl7.fhir.dstu3.model.codesystems.TaskStatus;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,16 +49,12 @@ import static java.util.stream.Collectors.toList;
 public class TaskServiceImpl implements TaskService {
 
     private final ModelMapper modelMapper;
-
     private final IGenericClient fhirClient;
-
     private final FhirValidator fhirValidator;
-
     private final LookUpService lookUpService;
-
     private final FisProperties fisProperties;
-
     private final EpisodeOfCareService episodeOfCareService;
+    private final ActivityDefinitionService activityDefinitionService;
 
     @Autowired
     public TaskServiceImpl(ModelMapper modelMapper,
@@ -67,12 +62,14 @@ public class TaskServiceImpl implements TaskService {
                            FhirValidator fhirValidator,
                            LookUpService lookUpService,
                            FisProperties fisProperties,
+                           ActivityDefinitionService activityDefinitionService,
                            EpisodeOfCareService episodeOfCareService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.activityDefinitionService = activityDefinitionService;
         this.episodeOfCareService = episodeOfCareService;
     }
 
@@ -137,6 +134,7 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public void createTask(TaskDto taskDto) {
         if (!isDuplicate(taskDto)) {
+            retrieveActivityDefinitionDuration(taskDto);
             Task task = TaskDtoToTaskMap.map(taskDto);
 
             //Checking activity definition for enrollment
@@ -170,6 +168,23 @@ public class TaskServiceImpl implements TaskService {
         task.setAuthoredOn(existingTask.getAuthoredOn());
 
         fhirClient.update().resource(task).execute();
+    }
+
+    private void retrieveActivityDefinitionDuration(TaskDto taskDto) {
+        LocalDate startDate = taskDto.getExecutionPeriod().getStart();
+        LocalDate endDate = taskDto.getExecutionPeriod().getEnd();
+
+        //if start date is available but endDate (due date) is not sent by UI
+        if (startDate != null && endDate == null) {
+
+            Reference reference = FhirDtoUtil.mapReferenceDtoToReference(taskDto.getDefinition());
+            String activityDefinitionId = FhirDtoUtil.getIdFromReferenceDto(taskDto.getDefinition(), ResourceType.ActivityDefinition);
+
+            ActivityDefinitionDto activityDefinition = activityDefinitionService.getActivityDefinitionById(activityDefinitionId);
+
+            float duration = activityDefinition.getTiming().getDurationMax();
+            taskDto.getExecutionPeriod().setEnd(startDate.plusDays((long) duration));
+        }
     }
 
     private Reference createOrRetrieveEpisodeOfCare(TaskDto taskDto) {
