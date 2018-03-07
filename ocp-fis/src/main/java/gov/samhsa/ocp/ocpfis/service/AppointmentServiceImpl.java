@@ -25,6 +25,7 @@ import org.hl7.fhir.dstu3.model.ResourceType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -34,6 +35,10 @@ import static java.util.stream.Collectors.toList;
 @Service
 @Slf4j
 public class AppointmentServiceImpl implements AppointmentService {
+
+    private static final String PATIENT_ACTOR_REFERENCE = "Patient";
+    private static final String DATE_TIME_FORMATTER_PATTERN_DATE = "MM/dd/yyyy";
+    private static final String DATE_TIME_FORMATTER_PATTERN_TIME = "HH:mm";
 
     private final IGenericClient fhirClient;
 
@@ -50,7 +55,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public void createAppointment(AppointmentDto appointmentDto) {
-        String creatorName = appointmentDto.getCreatorName() != null? appointmentDto.getCreatorName().trim() : "";
+        String creatorName = appointmentDto.getCreatorName() != null ? appointmentDto.getCreatorName().trim() : "";
         log.info("Creating an appointment initiated by " + creatorName);
         //Map
         final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, true);
@@ -64,11 +69,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public PageDto<AppointmentDto> getAppointments (Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<AppointmentDto> getAppointments(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfAppointmentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Appointment.name());
         IQuery iQuery = fhirClient.search().forResource(Appointment.class);
 
-      // Check if there are any additional search criteria
+        // Check if there are any additional search criteria
         iQuery = addAdditionalSearchConditions(iQuery, searchKey, searchValue);
 
         Bundle firstPageAppointmentBundle;
@@ -100,16 +105,15 @@ public class AppointmentServiceImpl implements AppointmentService {
 
             AppointmentDto appointmentDto = new AppointmentDto();
 
-
             appointmentDto.setLogicalId(appointment.getIdElement().getIdPart());
 
             if (appointment.hasStatus()) {
                 appointmentDto.setStatusCode(appointment.getStatus().toCode());
             }
 
-            if (appointment.hasType()) {
-                ValueSetDto category = FhirDtoUtil.convertCodeableConceptToValueSetDto(appointment.getAppointmentType());
-                appointmentDto.setTypeCode(category.getCode());
+            if (appointment.hasAppointmentType()) {
+                ValueSetDto type = FhirDtoUtil.convertCodeableConceptToValueSetDto(appointment.getAppointmentType());
+                appointmentDto.setTypeCode(type.getCode());
             }
 
             if (appointment.hasDescription()) {
@@ -121,13 +125,37 @@ public class AppointmentServiceImpl implements AppointmentService {
                 appointmentDto.setParticipant(participantDtos);
             }
 
+            if (!appointmentDto.getParticipant().isEmpty()) {
+                List<String> actorNames = appointmentDto.getParticipant().stream()
+                        .filter(participant -> participant.getActorReference().toUpperCase().contains(PATIENT_ACTOR_REFERENCE.toUpperCase()))
+                        .map(AppointmentParticipantDto::getActorName)
+                        .collect(toList());
+                if (!actorNames.isEmpty())
+                appointmentDto.setDisplayPatientName(actorNames.get(0));
+            }
+
+            String duration = "";
+
             if (appointment.hasStart()) {
                 appointmentDto.setStart(DateUtil.convertDateToLocalDateTime(appointment.getStart()));
+                DateTimeFormatter startFormatterDate = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_DATE);
+                String formattedDate = appointmentDto.getStart().format(startFormatterDate); // "MM/dd/yyyy HH:mm"
+                appointmentDto.setDisplayDate(formattedDate);
+
+                DateTimeFormatter startFormatterTime = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_TIME);
+                String formattedStartTime = appointmentDto.getStart().format(startFormatterTime); // "MM/dd/yyyy HH:mm"
+
+                duration = duration + formattedStartTime;
             }
 
             if (appointment.hasEnd()) {
                 appointmentDto.setEnd(DateUtil.convertDateToLocalDateTime(appointment.getEnd()));
+                DateTimeFormatter endFormatterTime = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_TIME);
+                String formattedEndTime = appointmentDto.getEnd().format(endFormatterTime); // "HH:mm"
+                duration = duration + " - " + formattedEndTime;
             }
+            appointmentDto.setDisplayDuration(duration);
+
             return appointmentDto;
 
         }).collect(toList());
@@ -150,8 +178,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PATIENTID.name())) {
             log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.PATIENTID.name() + " = " + searchValue.get().trim());
             searchQuery.where(new ReferenceClientParam("patient").hasId(searchValue.get().trim()));
+
         } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
             log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
+            searchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
             searchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else {
             log.info("No additional search criteria entered.");
