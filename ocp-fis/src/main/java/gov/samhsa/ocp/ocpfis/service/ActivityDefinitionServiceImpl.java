@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
@@ -15,6 +16,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.TimingDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
@@ -110,6 +112,21 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         return new PageDto<>(activityDefinitionsList, numberOfActivityDefinitionsPerPage, totalPages, currentPage, activityDefinitionsList.size(), otherPageActivityDefinitionSearchBundle.getTotal());
     }
 
+    @Override
+    public ActivityDefinitionDto getActivityDefinitionById(String id) {
+
+        Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
+                .where(new TokenClientParam("_id").exactly().code(id))
+                .returnBundle(Bundle.class).execute();
+
+        if (bundle == null || bundle.isEmpty()) {
+            throw new ResourceNotFoundException("No ActivityDefinition was found for the given id : " + id);
+        }
+
+        Bundle.BundleEntryComponent component = bundle.getEntry().get(0);
+        return convertActivityDefinitionBundleEntryToActivityDefinitionDto(component);
+    }
+
 
     @Override
     public void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId) {
@@ -123,8 +140,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             activityDefinition.setStatus(Enumerations.PublicationStatus.valueOf(activityDefinitionDto.getStatus().getCode().toUpperCase()));
             try {
                 activityDefinition.setDate(DateUtil.convertStringToDate(activityDefinitionDto.getDate()));
-            }
-            catch (ParseException e) {
+            } catch (ParseException e) {
                 throw new BadRequestException("Invalid date was given.");
             }
             activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.valueOf(activityDefinitionDto.getKind().getCode().toUpperCase()));
@@ -137,8 +153,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
                     RelatedArtifact relatedArtifact = new RelatedArtifact();
                     try {
                         relatedArtifact.setType(RelatedArtifactType.fromCode(relatedArtifactDto.getType()));
-                    }
-                    catch (FHIRException e) {
+                    } catch (FHIRException e) {
                         throw new BadRequestException("Invalid related artifact type was given.");
                     }
 
@@ -210,14 +225,14 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
                 .where(new StringClientParam("publisher").matches().value(ResourceType.Organization + "/" + organization))
                 .returnBundle(Bundle.class).execute();
 
-        if(bundle != null) {
+        if (bundle != null) {
             List<Bundle.BundleEntryComponent> activityDefinitionComponents = bundle.getEntry();
 
-            if(activityDefinitionComponents != null) {
+            if (activityDefinitionComponents != null) {
                 activityDefinitions = activityDefinitionComponents.stream()
-                    .map(it -> (ActivityDefinition) it.getResource())
-                    .map(it -> FhirDtoUtil.mapActivityDefinitionToReferenceDto(it))
-                    .collect(toList());
+                        .map(it -> (ActivityDefinition) it.getResource())
+                        .map(it -> FhirDtoUtil.mapActivityDefinitionToReferenceDto(it))
+                        .collect(toList());
             }
         }
 
@@ -288,13 +303,11 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
                     tempActivityDefinitionDto.getTiming().setFrequency(activityDefinition.getTimingTiming().getRepeat().getFrequency());
                 }
             }
-        }
-        catch (FHIRException e) {
+        } catch (FHIRException e) {
             log.error("FHIR Exception when setting Duration and Frequency", e);
         }
         return tempActivityDefinitionDto;
     }
-
 
 
     private boolean isDuplicate(ActivityDefinitionDto activityDefinitionDto, String organizationid) {

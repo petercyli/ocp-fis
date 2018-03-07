@@ -7,19 +7,21 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
+import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TaskDtoToTaskMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.Annotation;
+import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
@@ -27,7 +29,6 @@ import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
-import org.hl7.fhir.dstu3.model.codesystems.TaskStatus;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,16 +49,12 @@ import static java.util.stream.Collectors.toList;
 public class TaskServiceImpl implements TaskService {
 
     private final ModelMapper modelMapper;
-
     private final IGenericClient fhirClient;
-
     private final FhirValidator fhirValidator;
-
     private final LookUpService lookUpService;
-
     private final FisProperties fisProperties;
-
     private final EpisodeOfCareService episodeOfCareService;
+    private final ActivityDefinitionService activityDefinitionService;
 
     @Autowired
     public TaskServiceImpl(ModelMapper modelMapper,
@@ -65,12 +62,14 @@ public class TaskServiceImpl implements TaskService {
                            FhirValidator fhirValidator,
                            LookUpService lookUpService,
                            FisProperties fisProperties,
+                           ActivityDefinitionService activityDefinitionService,
                            EpisodeOfCareService episodeOfCareService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.activityDefinitionService = activityDefinitionService;
         this.episodeOfCareService = episodeOfCareService;
     }
 
@@ -118,128 +117,12 @@ public class TaskServiceImpl implements TaskService {
 
         List<Bundle.BundleEntryComponent> retrievedTasks = otherPageTaskBundle.getEntry();
 
-
-        List<TaskDto> taskDtos = retrievedTasks.stream().filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Task)).map(retrievedTask -> {
-
-            Task task = (Task) retrievedTask.getResource();
-
-            TaskDto taskDto = new TaskDto();
-            ValueSetDto performerTypeDto = new ValueSetDto();
-
-            taskDto.setLogicalId(task.getIdElement().getIdPart());
-            taskDto.setDescription(task.getDescription());
-            if (task.getNote() != null && (task.getNote().size() > 0))
-                taskDto.setNote(task.getNote().get(0).getText());
-
-            if (task.getStatus() != null) {
-
-                taskDto.setStatus(ValueSetDto.builder()
-                        .code((task.getStatus().toCode() != null && !task.getStatus().toCode().isEmpty()) ? task.getStatus().toCode() : null)
-                        .display((task.getStatus().getDisplay() != null && !task.getStatus().getDisplay().isEmpty()) ? task.getStatus().getDisplay() : null)
-                        .build());
-            }
-
-            if (task.getIntent() != null) {
-
-                taskDto.setIntent(ValueSetDto.builder()
-                        .code((task.getIntent().toCode() != null && !task.getIntent().toCode().isEmpty()) ? task.getIntent().toCode() : null)
-                        .display((task.getIntent().getDisplay() != null && !task.getIntent().getDisplay().isEmpty()) ? task.getIntent().getDisplay() : null)
-                        .build());
-            }
-
-            if (task.getPriority() != null) {
-                taskDto.setPriority(ValueSetDto.builder()
-                        .code((task.getPriority().toCode() != null && !task.getPriority().toCode().isEmpty()) ? task.getPriority().toCode() : null)
-                        .display((task.getPriority().getDisplay() != null && !task.getPriority().getDisplay().isEmpty()) ? task.getPriority().getDisplay() : null)
-                        .build());
-            }
-
-            if (task.getPerformerType() != null) {
-                task.getPerformerType().stream().findFirst().ifPresent(performerType -> performerType.getCoding().stream().findFirst().ifPresent(coding -> {
-                    performerTypeDto.setCode((coding.getCode() != null && !coding.getCode().isEmpty()) ? coding.getCode() : null);
-                    performerTypeDto.setDisplay((FhirDtoUtil.getDisplayForCode(coding.getCode(), Optional.ofNullable(lookUpService.getTaskPerformerType()))).orElse(null));
-                }));
-
-                taskDto.setPerformerType(performerTypeDto);
-            }
-
-            if (task.hasPartOf()) {
-                taskDto.setPartOf(ReferenceDto.builder()
-                        .reference((task.getPartOf().get(0).getReference() != null && !task.getPartOf().get(0).getReference().isEmpty()) ? task.getPartOf().get(0).getReference() : null)
-                        .display((task.getPartOf().get(0).getDisplay() != null && !task.getPartOf().get(0).getDisplay().isEmpty()) ? task.getPartOf().get(0).getDisplay() : null)
-                        .build());
-            }
-
-            if (task.hasFor()) {
-                taskDto.setBeneficiary(ReferenceDto.builder()
-                        .reference((task.getFor().getReference() != null && !task.getFor().getReference().isEmpty()) ? task.getFor().getReference() : null)
-                        .display((task.getFor().getDisplay() != null && !task.getFor().getDisplay().isEmpty()) ? task.getFor().getDisplay() : null)
-                        .build());
-            }
-
-            if (task.hasRequester()) {
-                if (task.getRequester().hasOnBehalfOf())
-                    taskDto.setOrganization(ReferenceDto.builder()
-                            .reference((task.getRequester().getOnBehalfOf().getReference() != null && !task.getRequester().getOnBehalfOf().getReference().isEmpty()) ? task.getRequester().getOnBehalfOf().getReference() : null)
-                            .display((task.getRequester().getOnBehalfOf().getDisplay() != null && !task.getRequester().getOnBehalfOf().getDisplay().isEmpty()) ? task.getRequester().getOnBehalfOf().getDisplay() : null)
-                            .build());
-            }
-
-            if (task.hasRequester()) {
-                if (task.getRequester().hasAgent())
-                    taskDto.setAgent(ReferenceDto.builder()
-                            .reference((task.getRequester().getAgent().getReference() != null && !task.getRequester().getAgent().getReference().isEmpty()) ? task.getRequester().getAgent().getReference() : null)
-                            .display((task.getRequester().getAgent().getDisplay() != null && !task.getRequester().getAgent().getDisplay().isEmpty()) ? task.getRequester().getAgent().getDisplay() : null)
-                            .build());
-            }
-
-            if (task.hasOwner()) {
-                taskDto.setOwner(ReferenceDto.builder()
-                        .reference((task.getOwner().getReference() != null && !task.getOwner().getReference().isEmpty()) ? task.getOwner().getReference() : null)
-                        .display((task.getOwner().getDisplay() != null && !task.getOwner().getDisplay().isEmpty()) ? task.getOwner().getDisplay() : null)
-                        .build());
-            }
-
-            if (task.hasDefinition()) {
-                try {
-                    taskDto.setDefinition(ReferenceDto.builder()
-                            .reference((task.hasDefinitionReference()) ? task.getDefinitionReference().getReference() : null)
-                            .display((task.hasDefinitionReference()) ? task.getDefinitionReference().getDisplay() : null)
-                            .build());
-                } catch (FHIRException e) {
-                    log.error("FHIR Exception when setting task definition", e);
-                }
-            }
-
-            //TODO: redo context field
-            if (task.hasContext()) {
-
-                taskDto.setContext(ReferenceDto.builder()
-                        .reference((task.hasContext()) ? task.getContext().getReference() : null)
-                        .display((task.hasContext()) ? task.getContext().getDisplay() : null)
-                        .build());
-
-            }
-
-
-            if (task.hasLastModified()) {
-                taskDto.setLastModified(DateUtil.convertDateToLocalDate(task.getLastModified()));
-            }
-
-            if (task.hasAuthoredOn()) {
-                taskDto.setAuthoredOn(DateUtil.convertDateToLocalDate(task.getAuthoredOn()));
-            }
-
-            if (task.getExecutionPeriod() != null && !task.getExecutionPeriod().isEmpty()) {
-                PeriodDto periodDto = new PeriodDto();
-                taskDto.setExecutionPeriod(periodDto);
-                taskDto.getExecutionPeriod().setStart((task.getExecutionPeriod().hasStart()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getStart()) : null);
-                taskDto.getExecutionPeriod().setEnd((task.getExecutionPeriod().hasEnd()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getEnd()) : null);
-            }
-
-            return taskDto;
-
-        }).collect(toList());
+        List<TaskDto> taskDtos = retrievedTasks.stream()
+                .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Task))
+                .map(retrievedTask -> {
+                    Task task = (Task) retrievedTask.getResource();
+                    return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());
+                }).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageTaskBundle.getTotal() / numberOfTasksPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
@@ -247,10 +130,12 @@ public class TaskServiceImpl implements TaskService {
         return new PageDto<>(taskDtos, numberOfTasksPerPage, totalPages, currentPage, taskDtos.size(), otherPageTaskBundle.getTotal());
     }
 
+
     @Override
     public void createTask(TaskDto taskDto) {
         if (!isDuplicate(taskDto)) {
-            Task task = setTaskDtoToTask(taskDto);
+            retrieveActivityDefinitionDuration(taskDto);
+            Task task = TaskDtoToTaskMap.map(taskDto);
 
             //Checking activity definition for enrollment
             task.setContext(createOrRetrieveEpisodeOfCare(taskDto));
@@ -266,7 +151,7 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public void updateTask(String taskId, TaskDto taskDto) {
-        Task task = setTaskDtoToTask(taskDto);
+        Task task = TaskDtoToTaskMap.map(taskDto);
         task.setId(taskId);
 
         Bundle taskBundle = fhirClient.search().forResource(Task.class)
@@ -283,6 +168,23 @@ public class TaskServiceImpl implements TaskService {
         task.setAuthoredOn(existingTask.getAuthoredOn());
 
         fhirClient.update().resource(task).execute();
+    }
+
+    private void retrieveActivityDefinitionDuration(TaskDto taskDto) {
+        LocalDate startDate = taskDto.getExecutionPeriod().getStart();
+        LocalDate endDate = taskDto.getExecutionPeriod().getEnd();
+
+        //if start date is available but endDate (due date) is not sent by UI
+        if (startDate != null && endDate == null) {
+
+            Reference reference = FhirDtoUtil.mapReferenceDtoToReference(taskDto.getDefinition());
+            String activityDefinitionId = FhirDtoUtil.getIdFromReferenceDto(taskDto.getDefinition(), ResourceType.ActivityDefinition);
+
+            ActivityDefinitionDto activityDefinition = activityDefinitionService.getActivityDefinitionById(activityDefinitionId);
+
+            float duration = activityDefinition.getTiming().getDurationMax();
+            taskDto.getExecutionPeriod().setEnd(startDate.plusDays((long) duration));
+        }
     }
 
     private Reference createOrRetrieveEpisodeOfCare(TaskDto taskDto) {
@@ -431,72 +333,6 @@ public class TaskServiceImpl implements TaskService {
             }).collect(Collectors.toList());
         }
         return !duplicateCheckList.isEmpty();
-    }
-
-    private Task setTaskDtoToTask(TaskDto taskDto) {
-        Task task = new Task();
-        task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(taskDto.getDefinition()));
-
-        if (taskDto.getPartOf() != null) {
-            List<Reference> partOfReferences = new ArrayList<>();
-            partOfReferences.add(mapReferenceDtoToReference(taskDto.getPartOf()));
-            task.setPartOf(partOfReferences);
-        }
-
-        task.setStatus(Task.TaskStatus.valueOf(taskDto.getStatus().getCode().toUpperCase()));
-        task.setIntent(Task.TaskIntent.valueOf(taskDto.getIntent().getCode().toUpperCase()));
-        task.setPriority(Task.TaskPriority.valueOf(taskDto.getPriority().getCode().toUpperCase()));
-
-        if (taskDto.getDescription() != null && !taskDto.getDescription().isEmpty()) {
-            task.setDescription(taskDto.getDescription());
-        }
-
-        task.setFor(mapReferenceDtoToReference(taskDto.getBeneficiary()));
-
-        //Set execution Period
-        if (taskDto.getExecutionPeriod() != null) {
-            if (taskDto.getExecutionPeriod().getStart() != null)
-                task.getExecutionPeriod().setStart(java.sql.Date.valueOf(taskDto.getExecutionPeriod().getStart()));
-        } else if (taskDto.getStatus().getCode().equalsIgnoreCase(TaskStatus.INPROGRESS.toCode()))
-            task.getExecutionPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-
-        if (taskDto.getExecutionPeriod() != null) {
-            if (taskDto.getExecutionPeriod().getEnd() != null)
-                task.getExecutionPeriod().setEnd(java.sql.Date.valueOf(taskDto.getExecutionPeriod().getEnd()));
-        } else if (taskDto.getStatus().getCode().equalsIgnoreCase(TaskStatus.COMPLETED.toCode()))
-            task.getExecutionPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
-
-        //Set agent
-        task.getRequester().setAgent(mapReferenceDtoToReference(taskDto.getAgent()));
-
-        //Set on Behalf of
-        if (taskDto.getOrganization() != null) {
-            task.getRequester().setOnBehalfOf(mapReferenceDtoToReference(taskDto.getOrganization()));
-        }
-
-        //Set PerformerType
-        if (taskDto.getPerformerType() != null) {
-            List<CodeableConcept> codeableConcepts = new ArrayList<>();
-            CodeableConcept codeableConcept = new CodeableConcept();
-            codeableConcept.addCoding().setCode(taskDto.getPerformerType().getCode())
-                    .setDisplay(taskDto.getPerformerType().getDisplay())
-                    .setSystem(taskDto.getPerformerType().getSystem());
-            codeableConcepts.add(codeableConcept);
-            task.setPerformerType(codeableConcepts);
-        }
-
-        //Set last Modified
-        task.setLastModified(java.sql.Date.valueOf(LocalDate.now()));
-
-        task.setOwner(mapReferenceDtoToReference(taskDto.getOwner()));
-
-        Annotation annotation = new Annotation();
-        annotation.setText(taskDto.getNote());
-        List<Annotation> annotations = new ArrayList<>();
-        annotations.add(annotation);
-        task.setNote(annotations);
-
-        return task;
     }
 
     private EpisodeOfCare createEpisodeOfCare(TaskDto taskDto) {
