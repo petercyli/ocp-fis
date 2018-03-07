@@ -39,4 +39,20 @@ public class SearchKeyEnum {
             return false;
         }
     }
+
+    public enum AppointmentSearchKey {
+        /**
+         * Appointment be searched based on the following keys
+         */
+        LOGICALID, PATIENTID;
+
+        public static boolean contains(String s) {
+            for (AppointmentSearchKey appointmentSearchKey : values())
+                if (appointmentSearchKey.name().equalsIgnoreCase(s)) {
+                    return true;
+                }
+            return false;
+        }
+    }
+
 }
