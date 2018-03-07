@@ -2,7 +2,6 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.AppointmentService;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
-import gov.samhsa.ocp.ocpfis.service.dto.CommunicationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
