@@ -561,7 +561,7 @@ public class TaskServiceImpl implements TaskService {
     private Optional<EpisodeOfCareDto> retrieveEpisodeOfCare(TaskDto taskDto) {
         String patient = mapReferenceDtoToReference(taskDto.getBeneficiary()).getReference();
 
-        List<EpisodeOfCareDto> episodeOfCareDtos = episodeOfCareService.getEpisodeOfCares(patient, Optional.of(taskDto.getStatus().getCode()));
+        List<EpisodeOfCareDto> episodeOfCareDtos = episodeOfCareService.getEpisodeOfCares(patient, Optional.of(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE.toCode()));
 
         return episodeOfCareDtos.stream().findFirst();
     }
