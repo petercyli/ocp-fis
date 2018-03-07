@@ -35,8 +35,8 @@ public class AppointmentController {
 
     @GetMapping("/search")
     public PageDto<AppointmentDto> getAppointments(@RequestParam Optional<List<String>> statusList,
-                                                   @RequestParam(value = "searchKey") String searchKey,
-                                                   @RequestParam(value = "searchValue") String searchValue,
+                                                   @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                   @RequestParam(value = "searchValue") Optional<String> searchValue,
                                                    @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                    @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
         return appointmentService.getAppointments(statusList, searchKey, searchValue, pageNumber, pageSize);

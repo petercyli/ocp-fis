@@ -6,10 +6,12 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AppointmentDtoToAppointmentConverter;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
@@ -62,17 +64,12 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public PageDto<AppointmentDto> getAppointments (Optional<List<String>> statusList, String searchKey, String searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<AppointmentDto> getAppointments (Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfAppointmentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Appointment.name());
         IQuery iQuery = fhirClient.search().forResource(Appointment.class);
 
-        //Check for Patient
-        if (searchKey.equalsIgnoreCase("patientId"))
-            iQuery.where(new ReferenceClientParam("patient").hasId(searchValue));
-
-        //Check for Appointment
-        if (searchKey.equalsIgnoreCase("appointmentId"))
-            iQuery.where(new TokenClientParam("_id").exactly().code(searchValue));
+      // Check if there are any additional search criteria
+        iQuery = addAdditionalSearchConditions(iQuery, searchKey, searchValue);
 
         Bundle firstPageAppointmentBundle;
         Bundle otherPageAppointmentBundle;
@@ -139,7 +136,28 @@ public class AppointmentServiceImpl implements AppointmentService {
         int currentPage = firstPage ? 1 : pageNumber.get();
 
         return new PageDto<>(appointmentDtos, numberOfAppointmentsPerPage, totalPages, currentPage, appointmentDtos.size(), otherPageAppointmentBundle.getTotal());
-
     }
+
+    private IQuery addAdditionalSearchConditions(IQuery searchQuery, Optional<String> searchKey, Optional<String> searchValue) {
+        if (searchKey.isPresent() && !SearchKeyEnum.AppointmentSearchKey.contains(searchKey.get())) {
+            throw new BadRequestException("Unidentified search key:" + searchKey.get());
+        } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
+                (searchKey.isPresent() && searchValue.get().trim().isEmpty())) {
+            throw new BadRequestException("No search value found for the search key" + searchKey.get());
+        }
+
+        // Check if there are any additional search criteria
+        if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PATIENTID.name())) {
+            log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.PATIENTID.name() + " = " + searchValue.get().trim());
+            searchQuery.where(new ReferenceClientParam("patient").hasId(searchValue.get().trim()));
+        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
+            log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
+            searchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
+        } else {
+            log.info("No additional search criteria entered.");
+        }
+        return searchQuery;
+    }
+
 }
 
