@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.PractitionerService;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,8 +36,8 @@ public class PractitionerController {
     }
 
     @GetMapping
-    public List<PractitionerDto> getPractitionersByOrganization(@RequestParam String organization) {
-        return practitionerService.getPractitionersByOrganization(organization);
+    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam String practitioner) {
+        return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner);
     }
 
     @PostMapping

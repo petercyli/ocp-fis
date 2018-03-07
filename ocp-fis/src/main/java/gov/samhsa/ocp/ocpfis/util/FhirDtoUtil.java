@@ -1,5 +1,45 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import org.hl7.fhir.dstu3.model.ActivityDefinition;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.Task;
+
+import java.util.List;
+import java.util.Optional;
+
+public class FhirDtoUtil {
+
+
+    public static String getIdFromReferenceDto(ReferenceDto dto, ResourceType resourceType) {
+        return dto.getReference().replace(resourceType + "/", "");
+    }
+
+    public static ReferenceDto mapActivityDefinitionToReferenceDto(ActivityDefinition activityDefintion) {
+        ReferenceDto referenceDto = new ReferenceDto();
+        referenceDto.setReference(ResourceType.ActivityDefinition + "/" + activityDefintion.getIdElement().getIdPart());
+        referenceDto.setDisplay(activityDefintion.getName());
+        return referenceDto;
+    }
+
+    public static ReferenceDto mapPractitionerDtoToReferenceDto(PractitionerDto practitionerDto) {
+        ReferenceDto referenceDto = new ReferenceDto();
+
+        referenceDto.setReference(ResourceType.Practitioner + "/" + practitionerDto.getLogicalId());
+        List<NameDto> names = practitionerDto.getName();
+        names.stream().findFirst().ifPresent(it -> {
+            String name = it.getFirstName() + " " + it.getLastName();
+            referenceDto.setDisplay(name);
+        });
+
+        return referenceDto;
 
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -54,6 +94,39 @@ public class FhirDtoUtil {
     }
 
     public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept  source) {
+    public static ReferenceDto mapOrganizationToReferenceDto(Organization organization) {
+        ReferenceDto referenceDto = new ReferenceDto();
+
+        referenceDto.setReference(ResourceType.Organization + "/" + organization.getIdElement().getIdPart());
+        referenceDto.setDisplay(organization.getName());
+
+        return referenceDto;
+    }
+
+    public static Reference mapReferenceDtoToReference(ReferenceDto referenceDto) {
+        Reference reference = new Reference();
+        reference.setDisplay(referenceDto.getDisplay());
+        reference.setReference(referenceDto.getReference());
+        return reference;
+    }
+
+    public static ReferenceDto convertReferenceToReferenceDto(Reference reference) {
+        ReferenceDto referenceDto = new ReferenceDto();
+        referenceDto.setDisplay(reference.getDisplay());
+        referenceDto.setReference(reference.getReference());
+        return referenceDto;
+    }
+
+
+    public static ReferenceDto mapTaskToReferenceDto(Task task) {
+        ReferenceDto referenceDto = new ReferenceDto();
+        referenceDto.setReference(ResourceType.Task + "/" + task.getIdElement().getIdPart());
+        referenceDto.setDisplay(task.getDescription() != null ? task.getDescription() : referenceDto.getReference());
+        return referenceDto;
+    }
+
+
+    public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept source) {
         ValueSetDto valueSetDto =new ValueSetDto();
         if(source !=null){
             if(source.getCodingFirstRep().getDisplay() !=null)
@@ -81,6 +154,26 @@ public class FhirDtoUtil {
         }
         return valueSetDto;
 
+    }
+
+    public static CodeableConcept convertValuesetDtoToCodeableConcept (ValueSetDto valueSetDto) {
+            CodeableConcept codeableConcept = new CodeableConcept();
+            if (valueSetDto != null) {
+                Coding coding = FhirUtil.getCoding(valueSetDto.getCode(),valueSetDto.getDisplay(),valueSetDto.getSystem());
+                codeableConcept.addCoding(coding);
+            }
+            return codeableConcept;
+    }
+
+    public static Optional<String> getDisplayForCode(String code, Optional<List<ValueSetDto>> lookupValueSets) {
+        Optional<String> lookupDisplay = Optional.empty();
+        if (lookupValueSets.isPresent()) {
+            lookupDisplay = lookupValueSets.get().stream()
+                    .filter(lookupValue -> code.equalsIgnoreCase(lookupValue.getCode()))
+                    .map(ValueSetDto::getDisplay).findFirst();
+
+        }
+        return lookupDisplay;
     }
 
 
