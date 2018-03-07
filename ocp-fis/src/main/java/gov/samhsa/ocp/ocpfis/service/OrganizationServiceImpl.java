@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
@@ -11,16 +12,19 @@ import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -28,7 +32,8 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -87,7 +92,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
             organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
             return organizationDto;
-        }).collect(Collectors.toList());
+        }).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageOrganizationSearchBundle.getTotal() / numberOfOrganizationsPerPage);
         int currentPage = firstPage ? 1 : page.get();
@@ -142,7 +147,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
             organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
             return organizationDto;
-        }).collect(Collectors.toList());
+        }).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageOrganizationSearchBundle.getTotal() / numberOfOrganizationsPerPage);
         int currentPage = firstPage ? 1 : page.get();
@@ -176,7 +181,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             final ValidationResult validationResult = fhirValidator.validateWithResult(fhirOrganization);
             if (validationResult.isSuccessful()) {
                 MethodOutcome serverResponse = fhirClient.create().resource(fhirOrganization).execute();
-                log.info("Created a new organization :" + serverResponse.getId().getIdPart());
+                log.info("Successfully created a new organization :" + serverResponse.getId().getIdPart());
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
@@ -188,7 +193,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public void updateOrganization(String organizationId, OrganizationDto organizationDto) {
-        log.info("Updating for Organization Id:" + organizationId);
+        log.info("Updating the Organization with Id:" + organizationId);
         //Check Duplicate Identifier
         boolean hasDuplicateIdentifier = organizationDto.getIdentifiers().stream().anyMatch(identifierDto -> {
             IQuery organizationsWithUpdatedIdentifierQuery = fhirClient.search()
@@ -206,12 +211,12 @@ public class OrganizationServiceImpl implements OrganizationService {
         Organization existingOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
 
         if (!hasDuplicateIdentifier) {
-            Organization updatedorganization = modelMapper.map(organizationDto, Organization.class);
-            existingOrganization.setIdentifier(updatedorganization.getIdentifier());
-            existingOrganization.setName(updatedorganization.getName());
-            existingOrganization.setTelecom(updatedorganization.getTelecom());
-            existingOrganization.setAddress(updatedorganization.getAddress());
-            existingOrganization.setActive(updatedorganization.getActive());
+            Organization updatedOrganization = modelMapper.map(organizationDto, Organization.class);
+            existingOrganization.setIdentifier(updatedOrganization.getIdentifier());
+            existingOrganization.setName(updatedOrganization.getName());
+            existingOrganization.setTelecom(updatedOrganization.getTelecom());
+            existingOrganization.setAddress(updatedOrganization.getAddress());
+            existingOrganization.setActive(updatedOrganization.getActive());
 
             // Validate the resource
             final ValidationResult validationResult = fhirValidator.validateWithResult(existingOrganization);
@@ -220,6 +225,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
                 fhirClient.update().resource(existingOrganization)
                         .execute();
+                log.info("Organization successfully updated");
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
@@ -234,6 +240,33 @@ public class OrganizationServiceImpl implements OrganizationService {
         log.info("Inactivating the organization Id: " + organizationId);
         Organization existingFhirOrganization = readOrganizationFromServer(organizationId);
         setOrganizationStatusToInactive(existingFhirOrganization);
+    }
+
+    @Override
+    public List<ReferenceDto> getOrganizationsByPractitioner(String practitioner) {
+        List<ReferenceDto> organizations = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+                .where(new ReferenceClientParam("practitioner").hasId(ResourceType.Practitioner + "/" + practitioner))
+                .include(PractitionerRole.INCLUDE_ORGANIZATION)
+                .returnBundle(Bundle.class).execute();
+
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> organizationComponents = bundle.getEntry();
+
+            if (organizationComponents != null) {
+                organizations = organizationComponents.stream()
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.PractitionerRole))
+                        .map(it -> (PractitionerRole) it.getResource())
+                        .map(it -> (Organization) it.getOrganization().getResource())
+                        .map(FhirDtoUtil::mapOrganizationToReferenceDto)
+                        .distinct()
+                        .collect(toList());
+
+            }
+        }
+
+        return organizations;
     }
 
     private Organization readOrganizationFromServer(String organizationId) {

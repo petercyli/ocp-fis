@@ -10,11 +10,13 @@ import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TimingDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
-import gov.samhsa.ocp.ocpfis.util.FhirUtils;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
@@ -33,10 +35,8 @@ import org.springframework.stereotype.Service;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -54,13 +54,16 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
     private final FisProperties fisProperties;
 
+    private final OrganizationService organizationService;
+
     @Autowired
-    public ActivityDefinitionServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
+    public ActivityDefinitionServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, OrganizationService organizationService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.organizationService = organizationService;
     }
 
     @Override
@@ -99,7 +102,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         List<Bundle.BundleEntryComponent> retrievedActivityDefinitions = otherPageActivityDefinitionSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<ActivityDefinitionDto> activityDefinitionsList = retrievedActivityDefinitions.stream().map(aa -> convertActivityDefinitionBundleEntryToActivityDefinitionDto(aa)).collect(toList());
+        List<ActivityDefinitionDto> activityDefinitionsList = retrievedActivityDefinitions.stream().map(this::convertActivityDefinitionBundleEntryToActivityDefinitionDto).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageActivityDefinitionSearchBundle.getTotal() / numberOfActivityDefinitionsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
@@ -119,8 +122,9 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             activityDefinition.setVersion(fisProperties.getActivityDefinition().getVersion());
             activityDefinition.setStatus(Enumerations.PublicationStatus.valueOf(activityDefinitionDto.getStatus().getCode().toUpperCase()));
             try {
-                activityDefinition.setDate(FhirUtils.convertToDate(activityDefinitionDto.getDate()));
-            } catch (ParseException e) {
+                activityDefinition.setDate(DateUtil.convertStringToDate(activityDefinitionDto.getDate()));
+            }
+            catch (ParseException e) {
                 throw new BadRequestException("Invalid date was given.");
             }
             activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.valueOf(activityDefinitionDto.getKind().getCode().toUpperCase()));
@@ -133,7 +137,8 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
                     RelatedArtifact relatedArtifact = new RelatedArtifact();
                     try {
                         relatedArtifact.setType(RelatedArtifactType.fromCode(relatedArtifactDto.getType()));
-                    } catch (FHIRException e) {
+                    }
+                    catch (FHIRException e) {
                         throw new BadRequestException("Invalid related artifact type was given.");
                     }
 
@@ -155,24 +160,24 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
             //Topic
             CodeableConcept topic = new CodeableConcept();
-            if(activityDefinitionDto.getTopic()!=null) {
-                topic.addCoding().setCode((activityDefinitionDto.getTopic().getCode()!=null)?activityDefinitionDto.getTopic().getCode():null)
-                        .setSystem((activityDefinitionDto.getTopic().getSystem()!=null)?activityDefinitionDto.getTopic().getSystem():null)
-                        .setDisplay((activityDefinitionDto.getTopic().getDisplay()!=null)?activityDefinitionDto.getTopic().getDisplay():null);
+            if (activityDefinitionDto.getTopic() != null) {
+                topic.addCoding().setCode((activityDefinitionDto.getTopic().getCode() != null) ? activityDefinitionDto.getTopic().getCode() : null)
+                        .setSystem((activityDefinitionDto.getTopic().getSystem() != null) ? activityDefinitionDto.getTopic().getSystem() : null)
+                        .setDisplay((activityDefinitionDto.getTopic().getDisplay() != null) ? activityDefinitionDto.getTopic().getDisplay() : null);
                 activityDefinition.addTopic(topic);
             }
 
 
             //Period
             if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("active")) {
-                if(activityDefinitionDto.getEffectivePeriod()!=null){
+                if (activityDefinitionDto.getEffectivePeriod() != null) {
                     if (activityDefinitionDto.getEffectivePeriod().getStart() != null)
                         activityDefinition.getEffectivePeriod().setStart((java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getStart())));
                 } else {
                     activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
                 }
             }
-            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("retired")){
+            if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("retired")) {
                 activityDefinition.getEffectivePeriod().setEnd(java.sql.Date.valueOf(LocalDate.now()));
             }
 
@@ -187,6 +192,36 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         } else {
             throw new DuplicateResourceFoundException("Duplicate Activity Definition is already present.");
         }
+    }
+
+    @Override
+    public List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner) {
+        List<ReferenceDto> referenceOrganizationDtos = organizationService.getOrganizationsByPractitioner(practitioner);
+
+        return referenceOrganizationDtos.stream()
+                .flatMap(it -> getActivityDefinitionByOrganization(FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Organization)).stream())
+                .collect(toList());
+    }
+
+    private List<ReferenceDto> getActivityDefinitionByOrganization(String organization) {
+        List<ReferenceDto> activityDefinitions = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
+                .where(new StringClientParam("publisher").matches().value(ResourceType.Organization + "/" + organization))
+                .returnBundle(Bundle.class).execute();
+
+        if(bundle != null) {
+            List<Bundle.BundleEntryComponent> activityDefinitionComponents = bundle.getEntry();
+
+            if(activityDefinitionComponents != null) {
+                activityDefinitions = activityDefinitionComponents.stream()
+                    .map(it -> (ActivityDefinition) it.getResource())
+                    .map(it -> FhirDtoUtil.mapActivityDefinitionToReferenceDto(it))
+                    .collect(toList());
+            }
+        }
+
+        return activityDefinitions;
     }
 
     private IQuery addAdditionalSearchConditions(IQuery activityDefinitionsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
@@ -216,75 +251,59 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     private ActivityDefinitionDto convertActivityDefinitionBundleEntryToActivityDefinitionDto(Bundle.BundleEntryComponent fhirActivityDefinitionModel) {
         ActivityDefinitionDto tempActivityDefinitionDto = modelMapper.map(fhirActivityDefinitionModel.getResource(), ActivityDefinitionDto.class);
         tempActivityDefinitionDto.setLogicalId(fhirActivityDefinitionModel.getResource().getIdElement().getIdPart());
-        ActivityDefinition activityDefinition= (ActivityDefinition) fhirActivityDefinitionModel.getResource();
+        ActivityDefinition activityDefinition = (ActivityDefinition) fhirActivityDefinitionModel.getResource();
 
         tempActivityDefinitionDto.getStatus().setCode(activityDefinition.getStatus().toCode());
 
         tempActivityDefinitionDto.getKind().setCode(activityDefinition.getKind().toCode());
 
-        if(activityDefinition.getEffectivePeriod()!=null && !activityDefinition.getEffectivePeriod().isEmpty()) {
+        if (activityDefinition.getEffectivePeriod() != null && !activityDefinition.getEffectivePeriod().isEmpty()) {
             PeriodDto periodDto = new PeriodDto();
             tempActivityDefinitionDto.setEffectivePeriod(periodDto);
 
-            if( null !=  activityDefinition.getEffectivePeriod().getStart())
-                tempActivityDefinitionDto.getEffectivePeriod().setStart(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getStart()));
-            if( null !=  activityDefinition.getEffectivePeriod().getEnd())
-                tempActivityDefinitionDto.getEffectivePeriod().setEnd(FhirUtils.convertToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
+            if (null != activityDefinition.getEffectivePeriod().getStart())
+                tempActivityDefinitionDto.getEffectivePeriod().setStart(DateUtil.convertDateToLocalDate(activityDefinition.getEffectivePeriod().getStart()));
+            if (null != activityDefinition.getEffectivePeriod().getEnd())
+                tempActivityDefinitionDto.getEffectivePeriod().setEnd(DateUtil.convertDateToLocalDate(activityDefinition.getEffectivePeriod().getEnd()));
         }
 
-        activityDefinition.getParticipant().stream().findFirst().ifPresent(participant->{
-            participant.getRole().getCoding().stream().findFirst().ifPresent(role->{
-                ValueSetDto valueSetDto=new ValueSetDto();
+        activityDefinition.getParticipant().stream().findFirst().ifPresent(participant -> {
+            participant.getRole().getCoding().stream().findFirst().ifPresent(role -> {
+                ValueSetDto valueSetDto = new ValueSetDto();
                 valueSetDto.setCode(role.getCode());
                 valueSetDto.setDisplay(role.getDisplay());
                 valueSetDto.setSystem(role.getSystem());
                 tempActivityDefinitionDto.setActionParticipantRole(valueSetDto);
             });
-            if(participant.hasType())
-                tempActivityDefinitionDto.setActionParticipantType(convertCodeToValueSetDto(participant.getType().toCode(),lookUpService.getActionParticipantType()));
+            if (participant.hasType())
+                tempActivityDefinitionDto.setActionParticipantType(FhirDtoUtil.convertCodeToValueSetDto(participant.getType().toCode(), lookUpService.getActionParticipantType()));
         });
 
         TimingDto timingDto = new TimingDto();
         tempActivityDefinitionDto.setTiming(timingDto);
         try {
-            if((activityDefinition.getTimingTiming()!=null) && !activityDefinition.getTimingTiming().isEmpty()) {
-                if((activityDefinition.getTimingTiming().getRepeat() !=null ||!(activityDefinition.getTimingTiming().getRepeat().isEmpty())))
-                {
+            if ((activityDefinition.getTimingTiming() != null) && !activityDefinition.getTimingTiming().isEmpty()) {
+                if ((activityDefinition.getTimingTiming().getRepeat() != null || !(activityDefinition.getTimingTiming().getRepeat().isEmpty()))) {
                     tempActivityDefinitionDto.getTiming().setDurationMax((activityDefinition.getTimingTiming().getRepeat().getDurationMax().floatValue()));
                     tempActivityDefinitionDto.getTiming().setFrequency(activityDefinition.getTimingTiming().getRepeat().getFrequency());
                 }
             }
-        } catch (FHIRException e) {
+        }
+        catch (FHIRException e) {
+            log.error("FHIR Exception when setting Duration and Frequency", e);
         }
         return tempActivityDefinitionDto;
     }
 
-    private ValueSetDto convertCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
-        return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getCode())).map(valueSet -> {
-            ValueSetDto valueSetDto = new ValueSetDto();
-            valueSetDto.setCode(valueSet.getCode());
-            valueSetDto.setDisplay(valueSet.getDisplay());
-            valueSetDto.setSystem(valueSet.getSystem());
-            return valueSetDto;
-        }).findFirst().orElse(null);
-    }
+
 
     private boolean isDuplicate(ActivityDefinitionDto activityDefinitionDto, String organizationid) {
-        if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase(Enumerations.PublicationStatus.ACTIVE.toString())) {
-
-            if (isDuplicateWithNamePublisherKindAndStatus(activityDefinitionDto, organizationid) || isDuplicateWithTitlePublisherKindAndStatus(activityDefinitionDto, organizationid)) {
-                return true;
-            } else {
-                return false;
-            }
-
-        }
-        return false;
+        return activityDefinitionDto.getStatus().getCode().equalsIgnoreCase(Enumerations.PublicationStatus.ACTIVE.toString()) && (isDuplicateWithNamePublisherKindAndStatus(activityDefinitionDto, organizationid) || isDuplicateWithTitlePublisherKindAndStatus(activityDefinitionDto, organizationid));
     }
 
 
     private boolean isDuplicateWithNamePublisherKindAndStatus(ActivityDefinitionDto activityDefinitionDto, String organizationid) {
-        Bundle duplicateCheckWithNamePublisherAndStatusBundle = (Bundle) fhirClient.search().forResource(ActivityDefinition.class)
+        Bundle duplicateCheckWithNamePublisherAndStatusBundle = fhirClient.search().forResource(ActivityDefinition.class)
                 .where(new StringClientParam("publisher").matches().value("Organization/" + organizationid))
                 .where(new TokenClientParam("status").exactly().code("active"))
                 .where(new StringClientParam("name").matches().value(activityDefinitionDto.getName()))
@@ -297,7 +316,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
     private boolean isDuplicateWithTitlePublisherKindAndStatus(ActivityDefinitionDto activityDefinitionDto, String organizationid) {
 
-        Bundle duplicateCheckWithTitlePublisherAndStatusBundle = (Bundle) fhirClient.search().forResource(ActivityDefinition.class)
+        Bundle duplicateCheckWithTitlePublisherAndStatusBundle = fhirClient.search().forResource(ActivityDefinition.class)
                 .where(new StringClientParam("publisher").matches().value("Organization/" + organizationid))
                 .where(new TokenClientParam("status").exactly().code("active"))
                 .where(new StringClientParam("title").matches().value(activityDefinitionDto.getTitle()))
@@ -315,11 +334,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
                 return activityDefinition.getKind().toCode().equalsIgnoreCase(activityDefinitionDto.getKind().getCode());
             }).collect(toList());
         }
-        if (duplicateCheckList.isEmpty()) {
-            return false;
-        } else {
-            return true;
-        }
+        return !duplicateCheckList.isEmpty();
 
     }
 

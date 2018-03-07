@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
 
 import java.util.List;
@@ -17,4 +18,6 @@ public interface TaskService {
     void deactivateTask(String taskId);
 
     TaskDto getTaskById(String taskId);
+
+    List<ReferenceDto> getRelatedTasks(String patient);
 }

@@ -2,8 +2,10 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PractitionerService {
@@ -16,4 +18,6 @@ public interface PractitionerService {
     void updatePractitioner(String practitionerId, PractitionerDto practitionerDto);
 
     PractitionerDto getPractitioner(String practitionerId);
+
+    List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(String practitioner);
 }

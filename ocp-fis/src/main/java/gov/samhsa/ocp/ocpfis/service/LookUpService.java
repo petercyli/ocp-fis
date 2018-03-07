@@ -93,4 +93,14 @@ public interface LookUpService {
     List<ValueSetDto> getCommunicationNotDoneReason();
 
     List<ValueSetDto> getCommunicationMedium();
+
+    List<ValueSetDto> getAppointmentStatus();
+
+    List<ValueSetDto> getAppointmentType();
+
+    List<ValueSetDto> getAppointmentParticipationStatus();
+
+    List<ValueSetDto> getAppointmentParticipationType();
+
+    List<ValueSetDto> getAppointmentParticipantRequired();
 }
