@@ -3,7 +3,6 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
-import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
@@ -238,28 +237,41 @@ public class PractitionerServiceImpl implements PractitionerService {
             MethodOutcome methodOutcome = fhirClient.update().resource(existingPractitioner)
                     .execute();
 
+           //Assign fhir Practitioner resource id.
+            Reference practitionerReference = new Reference();
+            practitionerReference.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
+
             //Update PractitionerRole for the practitioner
-            PractitionerRole practitionerRole = new PractitionerRole();
-            practitionerDto.getPractitionerRoles().forEach(practitionerRoleCode -> {
-                        //Assign fhir practitionerRole codes.
-                        CodeableConcept codeableConcept = new CodeableConcept();
-                        Coding coding = mapPractitionerRoleToCode(practitionerRoleCode);
-                        List<Coding> codings = new ArrayList<>();
-                        codings.add(coding);
-                        codeableConcept.setCoding(codings);
-                        practitionerRole.addCode(codeableConcept);
+            List<PractitionerRole> practitionerRoles = new ArrayList<>();
+            practitionerDto.getPractitionerRoles().forEach(practitionerRoleDto -> {
+                        PractitionerRole practitionerRole = new PractitionerRole();
+                        practitionerRole = modelMapper.map(practitionerRoleDto, PractitionerRole.class);
+
+                        //Set practitioner
+                        practitionerRole.setPractitioner(practitionerReference);
+
+                        //set Code
+                        CodeableConcept codeCodeableConcept = new CodeableConcept();
+                        codeCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getCode().get(0), Coding.class));
+                        practitionerRole.setCode(Arrays.asList(codeCodeableConcept));
+
+                        //set Specialty
+                        CodeableConcept specialtyCodeableConcept = new CodeableConcept();
+                        specialtyCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getSpecialty().get(0), Coding.class));
+                        practitionerRole.setSpecialty(Arrays.asList(specialtyCodeableConcept));
+                        practitionerRoles.add(practitionerRole);
+                        if(practitionerRoleDto.getLogicalId()!=null)
+                        {
+                            practitionerRole.setId(practitionerRoleDto.getLogicalId());
+                            fhirClient.update().resource(practitionerRole).execute();
+                        }
+                        else
+                            fhirClient.create().resource(practitionerRole).execute();
+
                     }
             );
 
-            //Assign fhir Practitioner resource id.
-            Reference practitionerResourceId = new Reference();
-            practitionerResourceId.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
 
-            practitionerRole.setPractitioner(practitionerResourceId);
-
-            fhirClient.update().resource(practitionerRole).conditional()
-                    .where(new ReferenceClientParam("practitioner")
-                            .hasId("Practitioner/" + methodOutcome.getId().getIdPart())).execute();
         } else {
             throw new DuplicateResourceFoundException("Practitioner with the same Identifier is already present");
         }
