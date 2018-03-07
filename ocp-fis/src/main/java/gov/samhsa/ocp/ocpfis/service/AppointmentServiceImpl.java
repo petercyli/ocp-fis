@@ -71,19 +71,16 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public PageDto<AppointmentDto> getAppointments(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfAppointmentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Appointment.name());
+        Bundle firstPageAppointmentBundle;
+        Bundle otherPageAppointmentBundle;
+        boolean firstPage = true;
+
         IQuery iQuery = fhirClient.search().forResource(Appointment.class);
 
         // Check if there are any additional search criteria
         iQuery = addAdditionalSearchConditions(iQuery, searchKey, searchValue);
 
-        Bundle firstPageAppointmentBundle;
-        Bundle otherPageAppointmentBundle;
-        boolean firstPage = true;
-
-        firstPageAppointmentBundle = (Bundle) iQuery
-                .count(numberOfAppointmentsPerPage)
-                .returnBundle(Bundle.class)
-                .execute();
+        firstPageAppointmentBundle = PaginationUtil.getSearchBundleFirstPage(iQuery, numberOfAppointmentsPerPage, Optional.empty());
 
         if (firstPageAppointmentBundle == null || firstPageAppointmentBundle.getEntry().isEmpty()) {
             throw new ResourceNotFoundException("No Appointments were found in the FHIR server.");
@@ -98,73 +95,76 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         List<Bundle.BundleEntryComponent> retrievedAppointments = otherPageAppointmentBundle.getEntry();
 
-
-        List<AppointmentDto> appointmentDtos = retrievedAppointments.stream().filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment -> {
-
-            Appointment appointment = (Appointment) retrievedAppointment.getResource();
-
-            AppointmentDto appointmentDto = new AppointmentDto();
-
-            appointmentDto.setLogicalId(appointment.getIdElement().getIdPart());
-
-            if (appointment.hasStatus()) {
-                appointmentDto.setStatusCode(appointment.getStatus().toCode());
-            }
-
-            if (appointment.hasAppointmentType()) {
-                ValueSetDto type = FhirDtoUtil.convertCodeableConceptToValueSetDto(appointment.getAppointmentType());
-                appointmentDto.setTypeCode(type.getCode());
-            }
-
-            if (appointment.hasDescription()) {
-                appointmentDto.setDescription(appointment.getDescription());
-            }
-
-            if (appointment.hasParticipant()) {
-                List<AppointmentParticipantDto> participantDtos = FhirDtoUtil.convertAppointmentParticipantListToAppointmentParticipantDtoList(appointment.getParticipant());
-                appointmentDto.setParticipant(participantDtos);
-            }
-
-            if (!appointmentDto.getParticipant().isEmpty()) {
-                List<String> actorNames = appointmentDto.getParticipant().stream()
-                        .filter(participant -> participant.getActorReference().toUpperCase().contains(PATIENT_ACTOR_REFERENCE.toUpperCase()))
-                        .map(AppointmentParticipantDto::getActorName)
-                        .collect(toList());
-                if (!actorNames.isEmpty())
-                appointmentDto.setDisplayPatientName(actorNames.get(0));
-            }
-
-            String duration = "";
-
-            if (appointment.hasStart()) {
-                appointmentDto.setStart(DateUtil.convertDateToLocalDateTime(appointment.getStart()));
-                DateTimeFormatter startFormatterDate = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_DATE);
-                String formattedDate = appointmentDto.getStart().format(startFormatterDate); // "MM/dd/yyyy HH:mm"
-                appointmentDto.setDisplayDate(formattedDate);
-
-                DateTimeFormatter startFormatterTime = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_TIME);
-                String formattedStartTime = appointmentDto.getStart().format(startFormatterTime); // "MM/dd/yyyy HH:mm"
-
-                duration = duration + formattedStartTime;
-            }
-
-            if (appointment.hasEnd()) {
-                appointmentDto.setEnd(DateUtil.convertDateToLocalDateTime(appointment.getEnd()));
-                DateTimeFormatter endFormatterTime = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_TIME);
-                String formattedEndTime = appointmentDto.getEnd().format(endFormatterTime); // "HH:mm"
-                duration = duration + " - " + formattedEndTime;
-            }
-            appointmentDto.setDisplayDuration(duration);
-
-            return appointmentDto;
-
-        }).collect(toList());
+        List<AppointmentDto> appointmentDtos = retrievedAppointments.stream()
+                .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
+                        (mapAppointmentToAppointmentDto(retrievedAppointment))).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
         return new PageDto<>(appointmentDtos, numberOfAppointmentsPerPage, totalPages, currentPage, appointmentDtos.size(), otherPageAppointmentBundle.getTotal());
     }
+
+    private AppointmentDto mapAppointmentToAppointmentDto (Bundle.BundleEntryComponent retrievedAppointment){
+
+        Appointment appointment = (Appointment) retrievedAppointment.getResource();
+
+        AppointmentDto appointmentDto = new AppointmentDto();
+
+        appointmentDto.setLogicalId(appointment.getIdElement().getIdPart());
+
+        if (appointment.hasStatus()) {
+            appointmentDto.setStatusCode(appointment.getStatus().toCode());
+        }
+
+        if (appointment.hasAppointmentType()) {
+            ValueSetDto type = FhirDtoUtil.convertCodeableConceptToValueSetDto(appointment.getAppointmentType());
+            appointmentDto.setTypeCode(type.getCode());
+        }
+
+        if (appointment.hasDescription()) {
+            appointmentDto.setDescription(appointment.getDescription());
+        }
+
+        if (appointment.hasParticipant()) {
+            List<AppointmentParticipantDto> participantDtos = FhirDtoUtil.convertAppointmentParticipantListToAppointmentParticipantDtoList(appointment.getParticipant());
+            appointmentDto.setParticipant(participantDtos);
+        }
+
+        if (!appointmentDto.getParticipant().isEmpty()) {
+            List<String> actorNames = appointmentDto.getParticipant().stream()
+                    .filter(participant -> participant.getActorReference().toUpperCase().contains(PATIENT_ACTOR_REFERENCE.toUpperCase()))
+                    .map(AppointmentParticipantDto::getActorName)
+                    .collect(toList());
+            if (!actorNames.isEmpty())
+                appointmentDto.setDisplayPatientName(actorNames.get(0));
+        }
+
+        String duration = "";
+
+        if (appointment.hasStart()) {
+            appointmentDto.setStart(DateUtil.convertDateToLocalDateTime(appointment.getStart()));
+            DateTimeFormatter startFormatterDate = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_DATE);
+            String formattedDate = appointmentDto.getStart().format(startFormatterDate); // "MM/dd/yyyy HH:mm"
+            appointmentDto.setDisplayDate(formattedDate);
+
+            DateTimeFormatter startFormatterTime = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_TIME);
+            String formattedStartTime = appointmentDto.getStart().format(startFormatterTime); // "MM/dd/yyyy HH:mm"
+
+            duration = duration + formattedStartTime;
+        }
+
+        if (appointment.hasEnd()) {
+            appointmentDto.setEnd(DateUtil.convertDateToLocalDateTime(appointment.getEnd()));
+            DateTimeFormatter endFormatterTime = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_TIME);
+            String formattedEndTime = appointmentDto.getEnd().format(endFormatterTime); // "HH:mm"
+            duration = duration + " - " + formattedEndTime;
+        }
+        appointmentDto.setDisplayDuration(duration);
+
+        return appointmentDto;
+    }
+
 
     private IQuery addAdditionalSearchConditions(IQuery searchQuery, Optional<String> searchKey, Optional<String> searchValue) {
         if (searchKey.isPresent() && !SearchKeyEnum.AppointmentSearchKey.contains(searchKey.get())) {
