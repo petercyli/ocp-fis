@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.TaskService;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -58,6 +59,11 @@ public class TaskController {
     @GetMapping("/tasks/{taskId}")
     public TaskDto getTaskById(@PathVariable String taskId){
         return taskService.getTaskById(taskId);
+    }
+
+    @GetMapping
+    public List<ReferenceDto> getRelatedTasks(String patient) {
+        return taskService.getRelatedTasks(patient);
     }
 
 }

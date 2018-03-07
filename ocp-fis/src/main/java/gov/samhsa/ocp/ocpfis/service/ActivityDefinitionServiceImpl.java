@@ -16,6 +16,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
@@ -53,13 +54,16 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
     private final FisProperties fisProperties;
 
+    private final OrganizationService organizationService;
+
     @Autowired
-    public ActivityDefinitionServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
+    public ActivityDefinitionServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, OrganizationService organizationService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.organizationService = organizationService;
     }
 
     @Override
@@ -192,8 +196,32 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
     @Override
     public List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner) {
-        //TODO: Implement this..
-        return null;
+        List<ReferenceDto> referenceOrganizationDtos = organizationService.getOrganizationsByPractitioner(practitioner);
+
+        return referenceOrganizationDtos.stream()
+                .flatMap(it -> getActivityDefinitionByOrganization(FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Organization)).stream())
+                .collect(toList());
+    }
+
+    private List<ReferenceDto> getActivityDefinitionByOrganization(String organization) {
+        List<ReferenceDto> activityDefinitions = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
+                .where(new StringClientParam("publisher").matches().value(ResourceType.Organization + "/" + organization))
+                .returnBundle(Bundle.class).execute();
+
+        if(bundle != null) {
+            List<Bundle.BundleEntryComponent> activityDefinitionComponents = bundle.getEntry();
+
+            if(activityDefinitionComponents != null) {
+                activityDefinitions = activityDefinitionComponents.stream()
+                    .map(it -> (ActivityDefinition) it.getResource())
+                    .map(it -> FhirDtoUtil.mapActivityDefinitionToReferenceDto(it))
+                    .collect(toList());
+            }
+        }
+
+        return activityDefinitions;
     }
 
     private IQuery addAdditionalSearchConditions(IQuery activityDefinitionsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
@@ -248,7 +276,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
                 tempActivityDefinitionDto.setActionParticipantRole(valueSetDto);
             });
             if (participant.hasType())
-                tempActivityDefinitionDto.setActionParticipantType(convertCodeToValueSetDto(participant.getType().toCode(), lookUpService.getActionParticipantType()));
+                tempActivityDefinitionDto.setActionParticipantType(FhirDtoUtil.convertCodeToValueSetDto(participant.getType().toCode(), lookUpService.getActionParticipantType()));
         });
 
         TimingDto timingDto = new TimingDto();
@@ -267,15 +295,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         return tempActivityDefinitionDto;
     }
 
-    private ValueSetDto convertCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
-        return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getCode())).map(valueSet -> {
-            ValueSetDto valueSetDto = new ValueSetDto();
-            valueSetDto.setCode(valueSet.getCode());
-            valueSetDto.setDisplay(valueSet.getDisplay());
-            valueSetDto.setSystem(valueSet.getSystem());
-            return valueSetDto;
-        }).findFirst().orElse(null);
-    }
+
 
     private boolean isDuplicate(ActivityDefinitionDto activityDefinitionDto, String organizationid) {
         return activityDefinitionDto.getStatus().getCode().equalsIgnoreCase(Enumerations.PublicationStatus.ACTIVE.toString()) && (isDuplicateWithNamePublisherKindAndStatus(activityDefinitionDto, organizationid) || isDuplicateWithTitlePublisherKindAndStatus(activityDefinitionDto, organizationid));
