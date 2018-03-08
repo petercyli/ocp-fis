@@ -2,10 +2,9 @@ package gov.samhsa.ocp.ocpfis.service.mapping;
 
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
-import org.hl7.fhir.dstu3.model.Address;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
@@ -52,15 +51,12 @@ public class RelatedPersonToRelatedPersonDtoConverter {
         }
 
         //telecom
-        Optional<ContactPoint> contactPoint = relatedPerson.getTelecom().stream().findFirst();
-        if (contactPoint.isPresent()) {
-            if (contactPoint.get().getSystem() != null) {
-                relatedPersonDto.setTelecomCode(contactPoint.get().getSystem().toCode());
-            }
-            if (contactPoint.get().getUse() != null) {
-                relatedPersonDto.setTelecomUse(contactPoint.get().getUse().toCode());
-            }
-            relatedPersonDto.setTelecomValue(contactPoint.get().getValue());
+        if (relatedPerson.hasTelecom()){
+            relatedPersonDto.setTelecoms(FhirDtoUtil.convertTelecomListToTelecomDtoList(relatedPerson.getTelecom()));
+        }
+
+        if (relatedPerson.hasAddress()){
+            relatedPersonDto.setAddresses(FhirDtoUtil.convertAddressListToAddressDtoList(relatedPerson.getAddress()));
         }
 
         //gender
@@ -71,19 +67,6 @@ public class RelatedPersonToRelatedPersonDtoConverter {
 
         //birthdate
         relatedPersonDto.setBirthDate(DateUtil.convertDateToString(relatedPerson.getBirthDate()));
-
-        //address
-        List<Address> addresses = relatedPerson.getAddress();
-        Optional<Address> address = addresses.stream().findFirst();
-
-        if (address.isPresent()) {
-            relatedPersonDto.setAddress1(address.get().getLine().size() > 0 ? address.get().getLine().get(0).toString() : "");
-            relatedPersonDto.setAddress2(address.get().getLine().size() > 1 ? address.get().getLine().get(1).toString() : "");
-            relatedPersonDto.setCity(address.get().getCity());
-            relatedPersonDto.setState(address.get().getState());
-            relatedPersonDto.setZip(address.get().getPostalCode());
-            relatedPersonDto.setCountry(address.get().getCountry());
-        }
 
         //period
         Period period = relatedPerson.getPeriod();
