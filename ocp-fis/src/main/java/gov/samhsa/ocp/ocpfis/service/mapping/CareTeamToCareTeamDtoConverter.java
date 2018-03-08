@@ -101,7 +101,7 @@ public class CareTeamToCareTeamDtoConverter {
         return careTeamDto;
     }
 
-    public static List<ReferenceDto> mapToPartipants(CareTeam careTeam, List<String> roles) {
+    public static List<ReferenceDto> mapToParticipants(CareTeam careTeam, List<String> roles) {
         List<ReferenceDto> referenceDtos = new ArrayList<>();
 
         List<CareTeam.CareTeamParticipantComponent> careTeamParticipantComponentList = careTeam.getParticipant();
