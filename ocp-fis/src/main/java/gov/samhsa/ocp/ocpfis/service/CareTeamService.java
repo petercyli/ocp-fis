@@ -18,4 +18,6 @@ public interface CareTeamService {
     PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size);
 
     List<ReferenceDto> getCareTeamParticipants(String patient, List<String> roles);
+
+    List<ReferenceDto> getPatientsInCareTeamsByPractitioner(String practitioner);
 }

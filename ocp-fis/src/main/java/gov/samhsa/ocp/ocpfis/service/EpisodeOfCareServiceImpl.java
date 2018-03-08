@@ -83,6 +83,7 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
                 referenceDtos = eocCompoents.stream()
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.Task))
                         .map(it -> (Task) it.getResource())
+                        .filter(task -> task.hasContext())
                         .map(it -> EpisodeOfCareToEpisodeOfCareDtoMapper.mapToReferenceDto(it))
                         .collect(toList());
             }
