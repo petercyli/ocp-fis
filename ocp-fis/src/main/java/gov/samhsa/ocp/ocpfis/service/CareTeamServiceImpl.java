@@ -363,7 +363,6 @@ public class CareTeamServiceImpl implements CareTeamService {
             if(components != null) {
 
                 patients = components.stream()
-                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.Patient))
                         //filter by careTeam/CareCoordinator
                         .map(it -> (Patient) it.getResource())
