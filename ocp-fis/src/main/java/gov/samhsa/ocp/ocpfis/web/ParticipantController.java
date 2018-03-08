@@ -44,7 +44,7 @@ public class ParticipantController {
         return careTeamService.getCareTeamParticipants(patient, roles);
     }
 
-    @GetMapping
+    @GetMapping("/communication")
     public List<CommunicationReferenceDto> getRecipientsByCommunicationId(@RequestParam(value = "patient") String patient,
                                                                           @RequestParam(value = "communication") String communication) {
         return careTeamService.getRecipientsByCommunicationId(patient, communication);

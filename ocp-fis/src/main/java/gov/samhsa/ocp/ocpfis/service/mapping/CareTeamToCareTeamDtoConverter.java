@@ -113,7 +113,6 @@ public class CareTeamToCareTeamDtoConverter {
 
             if (member.getReference().contains(ParticipantTypeEnum.practitioner.getName())) {
                 referenceDto.setReference(member.getReference());
-
                 Practitioner practitioner = (Practitioner) member.getResource();
 
                 CodeableConcept roleCodeableConcept = careTeamParticipantComponent.getRole();
@@ -134,6 +133,22 @@ public class CareTeamToCareTeamDtoConverter {
 
         return referenceDtos;
 
+    }
+
+    public static List<ReferenceDto> mapToParticipants(CareTeam careTeam) {
+        List<ReferenceDto> participants = new ArrayList<>();
+
+        List<CareTeam.CareTeamParticipantComponent> careTeamParticipantComponentList = careTeam.getParticipant();
+
+        for (CareTeam.CareTeamParticipantComponent careTeamParticipantComponent : careTeamParticipantComponentList) {
+            Reference member = careTeamParticipantComponent.getMember();
+            ReferenceDto referenceDto = new ReferenceDto();
+
+            referenceDto.setReference(member.getReference());
+            participants.add(referenceDto);
+        }
+
+        return participants;
     }
 
     private static void populateParticipantMemberInformation(Reference member, ParticipantDto participantDto) {
