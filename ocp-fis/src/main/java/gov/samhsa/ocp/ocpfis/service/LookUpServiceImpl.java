@@ -720,6 +720,26 @@ public class LookUpServiceImpl implements LookUpService {
         return participantRequiredList;
     }
 
+    @Override
+    public List<ValueSetDto> getProviderRole() {
+        List<ValueSetDto> providerRoleList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.PROVIDER_ROLE.getUrlPath(), LookupPathUrls.PROVIDER_ROLE.getType());
+        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
+        providerRoleList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + providerRoleList.size() + " provider role.");
+        return providerRoleList;
+    }
+
+    @Override
+    public List<ValueSetDto> getProviderSpecialty() {
+        List<ValueSetDto> providerSpecialtyList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.PROVIDER_SPECIALTY.getUrlPath(), LookupPathUrls.PROVIDER_SPECIALTY.getType());
+        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
+        providerSpecialtyList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + providerSpecialtyList.size() + " provider specialty.");
+        return providerSpecialtyList;
+    }
+
     private ValueSet getValueSets(String urlPath, String type) {
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + urlPath;
