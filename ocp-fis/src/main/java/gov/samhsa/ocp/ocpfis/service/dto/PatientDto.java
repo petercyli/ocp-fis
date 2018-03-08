@@ -51,9 +51,9 @@ public class PatientDto {
     @BirthsexConstraint
     private String birthSex;
 
-    private List<AddressDto> address;
+    private List<AddressDto> addresses;
 
-    private List<TelecomDto> telecom;
+    private List<TelecomDto> telecoms;
 
     @LanguageConstraint
     private String language;
