@@ -14,7 +14,6 @@ import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
-import org.hl7.fhir.dstu3.model.ResourceType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,11 +66,11 @@ public class CareTeamToCareTeamDtoConverter {
 
         //start and end date
         Period period = careTeam.getPeriod();
-        if(period.getStart() != null) {
+        if (period.getStart() != null) {
             careTeamDto.setStartDate(DateUtil.convertDateToString(period.getStart()));
         }
 
-        if(period.getEnd() != null) {
+        if (period.getEnd() != null) {
             careTeamDto.setEndDate(DateUtil.convertDateToString(period.getEnd()));
         }
 
@@ -116,13 +115,21 @@ public class CareTeamToCareTeamDtoConverter {
                 referenceDto.setReference(member.getReference());
 
                 Practitioner practitioner = (Practitioner) member.getResource();
-                if (practitioner != null && practitioner.getName() != null && practitioner.getName().get(0) != null) {
-                    referenceDto.setDisplay(practitioner.getName().get(0).getGiven().get(0).toString() + " " + practitioner.getName().get(0).getFamily());
+
+                CodeableConcept roleCodeableConcept = careTeamParticipantComponent.getRole();
+                List<Coding> codingRoleCodeList = roleCodeableConcept.getCoding();
+                Coding codingRoleCode = codingRoleCodeList.stream().findFirst().orElse(null);
+                if (codingRoleCode != null) {
+                    String role = codingRoleCode.getCode();
+
+                    if (roles.contains(role))
+                        if (practitioner != null && practitioner.getName() != null && practitioner.getName().get(0) != null) {
+                            referenceDto.setDisplay(practitioner.getName().get(0).getGiven().get(0).toString() + " " + practitioner.getName().get(0).getFamily());
+                        }
+
+                    referenceDtos.add(referenceDto);
                 }
-
-                referenceDtos.add(referenceDto);
             }
-
         }
 
         return referenceDtos;

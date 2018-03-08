@@ -191,7 +191,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         List<PractitionerDto> practitioners = new ArrayList<>();
 
         Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
-                .where(new ReferenceClientParam("organization").hasId("Organization/" + organization))
+                .where(new ReferenceClientParam("organization").hasId( organization))
                 .include(PractitionerRole.INCLUDE_PRACTITIONER)
                 .returnBundle(Bundle.class).execute();
 
