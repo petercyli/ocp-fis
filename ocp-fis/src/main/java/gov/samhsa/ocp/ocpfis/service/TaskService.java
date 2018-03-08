@@ -3,7 +3,6 @@ package gov.samhsa.ocp.ocpfis.service;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
-import gov.samhsa.ocp.ocpfis.service.dto.UpcomingTaskDto;
 
 import java.util.List;
 import java.util.Optional;
