@@ -13,7 +13,6 @@ import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.AppointmentToAppointmentDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AppointmentDtoToAppointmentConverter;
-
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -121,5 +120,11 @@ public class AppointmentServiceImpl implements AppointmentService {
         return searchQuery;
     }
 
+    @Override
+    public void cancelAppointment(String appointmentId) {
+        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+        fhirClient.update().resource(appointment).execute();
+    }
 }
 
