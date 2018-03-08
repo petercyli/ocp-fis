@@ -9,6 +9,7 @@ import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.CareTeamFieldEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
+import gov.samhsa.ocp.ocpfis.service.dto.CommunicationReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -46,21 +47,19 @@ import static java.util.stream.Collectors.toList;
 public class CareTeamServiceImpl implements CareTeamService {
 
     public static final String STATUS_ACTIVE = "active";
-
     private final IGenericClient fhirClient;
-
     private final FhirValidator fhirValidator;
-
     private final LookUpService lookUpService;
-
     private final FisProperties fisProperties;
+    private final CommunicationService communicationService;
 
     @Autowired
-    public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
+    public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, CommunicationService communicationService) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.communicationService = communicationService;
     }
 
     @Override
@@ -284,7 +283,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public List<ReferenceDto> getCareTeamParticipants(String patient, List<String> roles) {
+    public List<ReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles) {
         List<ReferenceDto> finalParticipantDto = new ArrayList<>();
 
         Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
@@ -345,6 +344,31 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         return careTeamDto;
     }
+
+    @Override
+    public List<CommunicationReferenceDto> getRecipientsByCommunicationId(String patient, String communication) {
+        List<CommunicationReferenceDto> participantsSelected = new ArrayList<>();
+
+        //retrieve communication by Id
+        List<String> recipients = communicationService.getRecipientsByCommunicationId(patient, communication);
+
+        //get list of participants by patientId
+        List<ReferenceDto> participants = getCareTeamParticipants(patient, null);
+
+
+        for(ReferenceDto participant : participants) {
+            if(recipients.contains(participant.getReference())) {
+                CommunicationReferenceDto communicationReferenceDto = new CommunicationReferenceDto();
+
+                communicationReferenceDto.setReference(participant.getReference());
+                communicationReferenceDto.setDisplay(participant.getDisplay());
+                communicationReferenceDto.setSelected(true);
+            }
+        }
+
+        return participantsSelected;
+    }
+
 
     private void checkForDuplicates(CareTeamDto careTeamDto) {
         Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)

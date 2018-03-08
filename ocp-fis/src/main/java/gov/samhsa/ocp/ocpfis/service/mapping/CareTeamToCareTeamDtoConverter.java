@@ -101,7 +101,7 @@ public class CareTeamToCareTeamDtoConverter {
         return careTeamDto;
     }
 
-    public static List<ReferenceDto> mapToPartipants(CareTeam careTeam, List<String> roles) {
+    public static List<ReferenceDto> mapToPartipants(CareTeam careTeam, Optional<List<String>> roles) {
         List<ReferenceDto> referenceDtos = new ArrayList<>();
 
         List<CareTeam.CareTeamParticipantComponent> careTeamParticipantComponentList = careTeam.getParticipant();
@@ -122,7 +122,7 @@ public class CareTeamToCareTeamDtoConverter {
                 if (codingRoleCode != null) {
                     String role = codingRoleCode.getCode();
 
-                    if (roles.contains(role))
+                    if (roles.isPresent() && roles.get().contains(role))
                         if (practitioner != null && practitioner.getName() != null && practitioner.getName().get(0) != null) {
                             referenceDto.setDisplay(practitioner.getName().get(0).getGiven().get(0).toString() + " " + practitioner.getName().get(0).getFamily());
                         }

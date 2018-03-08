@@ -20,7 +20,12 @@ import org.hl7.fhir.dstu3.model.Annotation;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Communication;
+import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.RelatedPerson;
+import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.StringType;
 import org.modelmapper.ModelMapper;
@@ -144,6 +149,29 @@ public class CommunicationServiceImpl implements CommunicationService {
         int currentPage = firstPage ? 1 : pageNumber.get();
 
         return new PageDto<>(communicationDtos, numberOfCommunicationsPerPage, totalPages, currentPage, communicationDtos.size(), otherPageCommunicationBundle.getTotal());
+    }
+
+    public List<String> getRecipientsByCommunicationId(String patient, String communicationId) {
+        List<String> recipientIds = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(Communication.class)
+                .where(new ReferenceClientParam("patient").hasId(patient))
+                .where(new TokenClientParam("_id").exactly().code(communicationId))
+                .include(Communication.INCLUDE_RECIPIENT)
+                .returnBundle(Bundle.class).execute();
+
+        if(bundle != null) {
+            List<Bundle.BundleEntryComponent> components = bundle.getEntry();
+            for(Bundle.BundleEntryComponent component : components) {
+                Resource resource = component.getResource();
+
+                if(resource instanceof Practitioner || resource instanceof Patient || resource instanceof Practitioner || resource instanceof Organization) {
+                    recipientIds.add(resource.getIdElement().getIdPart());
+                }
+            }
+        }
+
+        return recipientIds;
     }
 
     @Override
