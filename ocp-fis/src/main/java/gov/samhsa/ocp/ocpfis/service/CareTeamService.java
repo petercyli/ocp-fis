@@ -23,4 +23,6 @@ public interface CareTeamService {
     List<ReferenceDto> getCareTeamParticipants(String patient);
 
     List<CommunicationReferenceDto> getRecipientsByCommunicationId(String patient, String communication);
+
+    List<ReferenceDto> getPatientsInCareTeamsByPractitioner(String practitioner);
 }
