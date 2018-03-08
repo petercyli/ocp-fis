@@ -255,7 +255,9 @@ public class TaskServiceImpl implements TaskService {
 
             taskDto.setAgent(FhirDtoUtil.convertReferenceToReferenceDto(task.getRequester().getAgent()));
 
-            taskDto.setOnBehalfOf(FhirDtoUtil.convertReferenceToReferenceDto(task.getRequester().getOnBehalfOf()));
+            taskDto.setOrganization(FhirDtoUtil.convertReferenceToReferenceDto(task.getRequester().getOnBehalfOf()));
+
+            taskDto.setOrganization(FhirDtoUtil.convertReferenceToReferenceDto(task.getRequester().getOnBehalfOf()));
 
             //Set Performer Type
             if (task.hasPerformerType()) {

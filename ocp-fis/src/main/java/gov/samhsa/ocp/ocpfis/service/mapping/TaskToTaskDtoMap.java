@@ -73,7 +73,7 @@ public class TaskToTaskDtoMap {
 
         if (task.hasRequester()) {
             if (task.getRequester().hasOnBehalfOf())
-                taskDto.setOnBehalfOf(ReferenceDto.builder()
+                taskDto.setOrganization(ReferenceDto.builder()
                         .reference((task.getRequester().getOnBehalfOf().getReference() != null && !task.getRequester().getOnBehalfOf().getReference().isEmpty()) ? task.getRequester().getOnBehalfOf().getReference() : null)
                         .display((task.getRequester().getOnBehalfOf().getDisplay() != null && !task.getRequester().getOnBehalfOf().getDisplay().isEmpty()) ? task.getRequester().getOnBehalfOf().getDisplay() : null)
                         .build());

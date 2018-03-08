@@ -53,8 +53,8 @@ public class TaskDtoToTaskMap {
         task.getRequester().setAgent(mapReferenceDtoToReference(taskDto.getAgent()));
 
         //Set on Behalf of
-        if (taskDto.getOnBehalfOf() != null) {
-            task.getRequester().setOnBehalfOf(mapReferenceDtoToReference(taskDto.getOnBehalfOf()));
+        if (taskDto.getOrganization() != null) {
+            task.getRequester().setOnBehalfOf(mapReferenceDtoToReference(taskDto.getOrganization()));
         }
 
         //Set PerformerType

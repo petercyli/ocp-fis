@@ -57,9 +57,6 @@ public class TaskDto {
     //Creator Practitioner of the task
     private ReferenceDto agent;
 
-    //Organization the agent is acting for
-    private ReferenceDto onBehalfOf;
-
     /*TaskPerformerType.
     Eg:requester | dispatcher | scheduler | performer | monitor | manager | acquirer | reviewer */
     private ValueSetDto performerType;
@@ -72,6 +69,6 @@ public class TaskDto {
      */
     private String note;
 
-    //managingOrganization
+    //managingOrganization - Organization the agent is acting for
     private ReferenceDto organization;
 }
