@@ -14,4 +14,6 @@ public interface ActivityDefinitionService {
     void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto,String organizationId);
 
     List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner);
+
+    ActivityDefinitionDto getActivityDefinitionById(String id);
 }

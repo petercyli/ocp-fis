@@ -19,6 +19,9 @@ public class AppointmentDto {
     private String typeCode;
 
     private String description;
+    private String displayDate;
+    private String displayDuration;
+    private String displayPatientName;
 
     private LocalDateTime start;
     private LocalDateTime end;

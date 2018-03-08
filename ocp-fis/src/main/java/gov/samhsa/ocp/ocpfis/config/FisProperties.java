@@ -29,6 +29,10 @@ public class FisProperties {
 
     @NotNull
     @Valid
+    private Appointment appointment;
+
+    @NotNull
+    @Valid
     private Communication communication;
 
     @NotNull
@@ -79,6 +83,26 @@ public class FisProperties {
 
         @NotNull
         private String version;
+
+        @Valid
+        private Pagination pagination = new Pagination();
+
+        @Data
+        public static class Pagination {
+            @Min(1)
+            @Max(500)
+            private int defaultSize = 10;
+            @Min(1)
+            @Max(500)
+            private int maxSize = 50;
+        }
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Appointment {
 
         @Valid
         private Pagination pagination = new Pagination();

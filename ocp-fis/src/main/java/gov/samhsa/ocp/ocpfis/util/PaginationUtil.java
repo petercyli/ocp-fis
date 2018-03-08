@@ -60,6 +60,10 @@ public final class PaginationUtil {
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getActivityDefinition().getPagination().getMaxSize()).orElse(fisProperties.getActivityDefinition().getPagination().getDefaultSize());
                 break;
+            case "APPOINTMENT":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getAppointment().getPagination().getMaxSize()).orElse(fisProperties.getAppointment().getPagination().getDefaultSize());
+                break;
             case "COMMUNICATION":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getCommunication().getPagination().getMaxSize()).orElse(fisProperties.getCommunication().getPagination().getDefaultSize());
