@@ -27,6 +27,6 @@ public class PractitionerToPractitionerDtoMap extends PropertyMap<Practitioner,P
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecoms(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
         using(humanNameListToNameDtoListConverter).map(source.getName()).setName(null);
-        using(addressListToAddressDtoListConverter).map(source.getAddress()).setAddress(null);
+        using(addressListToAddressDtoListConverter).map(source.getAddress()).setAddresses(null);
     }
 }
