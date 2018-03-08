@@ -5,23 +5,19 @@ import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import gov.samhsa.ocp.ocpfis.service.TaskService;
-import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
-
-import javax.validation.Valid;
 
 @RestController
 public class TaskController {
@@ -46,24 +42,31 @@ public class TaskController {
 
     @PutMapping("/tasks/{taskId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateTask(@PathVariable String taskId, @Valid @RequestBody TaskDto taskDto){
-        taskService.updateTask(taskId,taskDto);
+    public void updateTask(@PathVariable String taskId, @Valid @RequestBody TaskDto taskDto) {
+        taskService.updateTask(taskId, taskDto);
     }
 
     @PutMapping("/tasks/{taskId}/deactivate")
     @ResponseStatus(HttpStatus.OK)
-    public void deactivateTask(@PathVariable String taskId){
+    public void deactivateTask(@PathVariable String taskId) {
         taskService.deactivateTask(taskId);
     }
 
     @GetMapping("/tasks/{taskId}")
-    public TaskDto getTaskById(@PathVariable String taskId){
+    public TaskDto getTaskById(@PathVariable String taskId) {
         return taskService.getTaskById(taskId);
     }
 
+    //tasks?patient=123
     @GetMapping
-    public List<ReferenceDto> getRelatedTasks(String patient) {
+    public List<ReferenceDto> getRelatedTasks(@RequestParam(value = "patient") String patient) {
         return taskService.getRelatedTasks(patient);
+    }
+
+    //tasks?practitioner=123
+    @GetMapping("/tasks/upcoming")
+    public List<TaskDto> getUpcomingTasks(@RequestParam(value = "practitioner") String practitioner) {
+        return taskService.getUpcomingTasks(practitioner);
     }
 
 }

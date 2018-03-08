@@ -24,7 +24,7 @@ public class PractitionerDto {
 
     private List<TelecomDto> telecoms;
 
-    private List<AddressDto> address;
+    private List<AddressDto> addresses;
 
     private List<PractitionerRoleDto> practitionerRoles;
 }
