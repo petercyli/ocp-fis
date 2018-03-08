@@ -1,11 +1,13 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import com.netflix.eureka.Names;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
+import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.HumanName;
@@ -15,6 +17,7 @@ import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -98,8 +101,7 @@ public class FhirDtoUtil {
         return referenceDto;
     }
 
-
-    public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept source) {
+   public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept source) {
         ValueSetDto valueSetDto =new ValueSetDto();
         if(source !=null){
             if(source.getCodingFirstRep().getDisplay() !=null)
@@ -149,5 +151,21 @@ public class FhirDtoUtil {
         return lookupDisplay;
     }
 
+    public static List<AppointmentParticipantDto> convertAppointmentParticipantListToAppointmentParticipantDtoList(List<Appointment.AppointmentParticipantComponent> source) {
+        List<AppointmentParticipantDto> participants = new ArrayList<>();
+
+        if (source != null && source.size() > 0) {
+            int numberOfSource = source.size();
+            if (numberOfSource > 0) {
+                source.forEach(member -> {
+                    AppointmentParticipantDto participantDto = new AppointmentParticipantDto();
+                    participantDto.setActorName(member.getActor().getDisplay());
+                    participantDto.setActorReference(member.getActor().getReference());
+                    participants.add(participantDto);
+                });
+            }
+        }
+        return participants;
+    }
 
 }
