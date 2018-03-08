@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.util;
 
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
+import com.netflix.eureka.Names;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -9,7 +10,9 @@ import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
@@ -29,6 +32,18 @@ public class FhirDtoUtil {
         ReferenceDto referenceDto = new ReferenceDto();
         referenceDto.setReference(ResourceType.ActivityDefinition + "/" + activityDefintion.getIdElement().getIdPart());
         referenceDto.setDisplay(activityDefintion.getName());
+        return referenceDto;
+    }
+
+    public static ReferenceDto mapPatientToReferenceDto(Patient patient) {
+        ReferenceDto referenceDto = new ReferenceDto();
+        referenceDto.setReference(ResourceType.Patient + "/" + patient.getIdElement().getIdPart());
+        List<HumanName> names = patient.getName();
+        names.stream().findFirst().ifPresent(it -> {
+                it.getGiven().stream().findFirst().ifPresent(givenName -> {
+                    referenceDto.setDisplay(givenName.toString() + it.getGiven());
+                });
+        });
         return referenceDto;
     }
 

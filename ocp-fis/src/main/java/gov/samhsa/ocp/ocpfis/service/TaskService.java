@@ -20,4 +20,6 @@ public interface TaskService {
     TaskDto getTaskById(String taskId);
 
     List<ReferenceDto> getRelatedTasks(String patient);
+
+    List<TaskDto> getUpcomingTasks(String practitioner);
 }

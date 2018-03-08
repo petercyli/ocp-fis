@@ -8,6 +8,7 @@ import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.Enumerations;
@@ -95,6 +96,11 @@ public class FhirUtil {
             log.error("Could NOT " + actionAndResourceName + " with Id: " + fhirResource.getIdElement().getIdPart());
             throw new FHIRClientException("FHIR Client returned with an error during" + actionAndResourceName + " : " + e.getMessage());
         }
+    }
+
+    public static String getRoleFromCodeableConcept(CodeableConcept codeableConcept) {
+        Optional<Coding> codingRoleCode = codeableConcept.getCoding().stream().findFirst();
+        return codingRoleCode.isPresent() ? codingRoleCode.get().getCode() : "";
     }
 }
 

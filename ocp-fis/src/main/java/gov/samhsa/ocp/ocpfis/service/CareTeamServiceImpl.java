@@ -20,6 +20,7 @@ import gov.samhsa.ocp.ocpfis.service.mapping.CareTeamToCareTeamDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CareTeamDtoToCareTeamConverter;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -344,6 +345,34 @@ public class CareTeamServiceImpl implements CareTeamService {
         }
 
         return careTeamDto;
+    }
+
+    @Override
+    public List<ReferenceDto> getPatientsInCareTeamsByPractitioner(String practitioner) {
+        List<ReferenceDto> patients = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(CareTeam.class)
+                .where(new ReferenceClientParam("participant").hasId(practitioner))
+                .include(CareTeam.INCLUDE_PATIENT)
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if(bundle != null) {
+            List<Bundle.BundleEntryComponent> components = bundle.getEntry();
+
+            if(components != null) {
+
+                patients = components.stream()
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Patient))
+                        //filter by careTeam/CareCoordinator
+                        .map(it -> (Patient) it.getResource())
+                        .map(it -> FhirDtoUtil.mapPatientToReferenceDto(it))
+                        .collect(toList());
+            }
+        }
+
+        return patients;
     }
 
     private void checkForDuplicates(CareTeamDto careTeamDto) {

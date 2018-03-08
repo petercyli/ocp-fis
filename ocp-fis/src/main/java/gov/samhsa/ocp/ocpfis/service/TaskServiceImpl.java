@@ -21,7 +21,6 @@ import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
@@ -55,6 +54,7 @@ public class TaskServiceImpl implements TaskService {
     private final FisProperties fisProperties;
     private final EpisodeOfCareService episodeOfCareService;
     private final ActivityDefinitionService activityDefinitionService;
+    private final CareTeamService careTeamService;
 
     @Autowired
     public TaskServiceImpl(ModelMapper modelMapper,
@@ -63,7 +63,8 @@ public class TaskServiceImpl implements TaskService {
                            LookUpService lookUpService,
                            FisProperties fisProperties,
                            ActivityDefinitionService activityDefinitionService,
-                           EpisodeOfCareService episodeOfCareService) {
+                           EpisodeOfCareService episodeOfCareService,
+                           CareTeamService careTeamService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
@@ -71,6 +72,7 @@ public class TaskServiceImpl implements TaskService {
         this.fisProperties = fisProperties;
         this.activityDefinitionService = activityDefinitionService;
         this.episodeOfCareService = episodeOfCareService;
+        this.careTeamService = careTeamService;
     }
 
     @Override
@@ -170,9 +172,22 @@ public class TaskServiceImpl implements TaskService {
         fhirClient.update().resource(task).execute();
     }
 
+    public List<TaskDto> getUpcomingTasks(String practitioner) {
+        List<ReferenceDto> patients = careTeamService.getPatientsInCareTeamsByPractitioner(practitioner);
+
+        return patients.stream()
+                .map(it -> FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Patient))
+                .flatMap(it -> getTasksByPatient(it).stream())
+                .collect(toList());
+    }
+
     private void retrieveActivityDefinitionDuration(TaskDto taskDto) {
         LocalDate startDate = taskDto.getExecutionPeriod().getStart();
         LocalDate endDate = taskDto.getExecutionPeriod().getEnd();
+
+        if (startDate == null) {
+            startDate = LocalDate.now();
+        }
 
         //if start date is available but endDate (due date) is not sent by UI
         if (startDate != null && endDate == null) {
@@ -293,12 +308,35 @@ public class TaskServiceImpl implements TaskService {
 
     }
 
+    public List<TaskDto> getTasksByPatient(String patient) {
+        List<TaskDto> tasks = new ArrayList<>();
+
+        Bundle bundle = getBundleForPatient(patient);
+
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> taskComponents = bundle.getEntry();
+
+            if (taskComponents != null) {
+                tasks = taskComponents.stream()
+                        .map(it -> (Task) it.getResource())
+                        .map(it -> TaskToTaskDtoMap.map(it, lookUpService.getTaskPerformerType()))
+                        .collect(toList());
+            }
+        }
+
+        return tasks;
+    }
+
+    private Bundle getBundleForPatient(String patient) {
+        return fhirClient.search().forResource(Task.class)
+                .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
+                .returnBundle(Bundle.class).execute();
+    }
+
     public List<ReferenceDto> getRelatedTasks(String patient) {
         List<ReferenceDto> tasks = new ArrayList<>();
 
-        Bundle bundle = fhirClient.search().forResource(Task.class)
-                .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
-                .returnBundle(Bundle.class).execute();
+        Bundle bundle = getBundleForPatient(patient);
 
         if (bundle != null) {
             List<Bundle.BundleEntryComponent> taskComponents = bundle.getEntry();
