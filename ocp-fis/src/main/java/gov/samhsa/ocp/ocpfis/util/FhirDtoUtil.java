@@ -1,15 +1,18 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
-import com.netflix.eureka.Names;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
+import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
@@ -173,6 +176,48 @@ public class FhirDtoUtil {
             }
         }
         return participants;
+    }
+
+    public static List<TelecomDto> convertTelecomListToTelecomDtoList(List<ContactPoint> source) {
+        List<TelecomDto> telecomDtoList = new ArrayList<>();
+
+        if (source != null && source.size() > 0) {
+
+            for (ContactPoint telecom : source) {
+                TelecomDto telecomDto = new TelecomDto();
+                telecomDto.setValue(Optional.ofNullable(telecom.getValue()));
+                if (telecom.getSystem() != null)
+                    telecomDto.setSystem(Optional.ofNullable(telecom.getSystem().toCode()));
+                if (telecom.getUse() != null)
+                    telecomDto.setUse(Optional.ofNullable(telecom.getUse().toCode()));
+                telecomDtoList.add(telecomDto);
+            }
+        }
+        return telecomDtoList;
+    }
+
+    public static List<AddressDto> convertAddressListToAddressDtoList(List<Address> source) {
+        List<AddressDto> addressDtos = new ArrayList<>();
+
+        if (source != null && source.size() > 0) {
+
+            for (Address address : source) {
+
+                addressDtos.add(AddressDto.builder().line1(
+                        address.getLine().size() > 0 ?
+                                address.getLine().get(0).toString()
+                                : "")
+                        .line2(address.getLine().size() > 1 ?
+                                address.getLine().get(1).toString()
+                                : "")
+                        .city(address.getCity())
+                        .stateCode(address.getState())
+                        .countryCode(address.getCountry())
+                        .postalCode(address.getPostalCode())
+                        .build());
+            }
+        }
+        return addressDtos;
     }
 
 }

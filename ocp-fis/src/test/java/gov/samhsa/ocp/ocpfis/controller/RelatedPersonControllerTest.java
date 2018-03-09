@@ -129,18 +129,9 @@ public class RelatedPersonControllerTest {
         dto.setRelationshipValue("father");
         dto.setFirstName("Shya");
         dto.setLastName("Ajk");
-        dto.setTelecomCode("phone");
-        dto.setTelecomUse("home");
-        dto.setTelecomValue("4101472589");
         dto.setGenderCode("male");
         dto.setGenderValue("Male");
         dto.setBirthDate("12/12/1986");
-        dto.setAddress1("100 Main St");
-        dto.setAddress2("Apt 100");
-        dto.setCity("Ellicott City");
-        dto.setState("MD");
-        dto.setZip("21044");
-        dto.setCountry("USA");
         dto.setStartDate("12/12/2017");
         dto.setEndDate("12/30/2017");
         return dto;
