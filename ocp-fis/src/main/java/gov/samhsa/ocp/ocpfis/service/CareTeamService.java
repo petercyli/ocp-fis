@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
+import gov.samhsa.ocp.ocpfis.service.dto.CommunicationReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 
@@ -17,7 +18,11 @@ public interface CareTeamService {
 
     PageDto<CareTeamDto> getCareTeams(Optional<List<String>> statusList, String searchType, String searchValue, Optional<Integer> page, Optional<Integer> size);
 
-    List<ReferenceDto> getCareTeamParticipants(String patient, List<String> roles);
+    List<ReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles);
+
+    List<ReferenceDto> getCareTeamParticipants(String patient);
+
+    List<CommunicationReferenceDto> getRecipientsByCommunicationId(String patient, String communication);
 
     List<ReferenceDto> getPatientsInCareTeamsByPractitioner(String practitioner);
 }

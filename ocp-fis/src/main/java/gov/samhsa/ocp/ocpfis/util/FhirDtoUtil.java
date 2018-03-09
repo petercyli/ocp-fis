@@ -1,15 +1,18 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
-import com.netflix.eureka.Names;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
+import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
@@ -26,6 +29,13 @@ public class FhirDtoUtil {
 
     public static String getIdFromReferenceDto(ReferenceDto dto, ResourceType resourceType) {
         return dto.getReference().replace(resourceType + "/", "");
+    }
+
+    public static String getIdFromParticipantReferenceDto(ReferenceDto dto) {
+        return dto.getReference().replace(ResourceType.Practitioner + "/", "")
+                .replace(ResourceType.Patient + "/", "")
+                .replace(ResourceType.RelatedPerson + "/", "")
+                .replace(ResourceType.Organization + "/", "");
     }
 
     public static ReferenceDto mapActivityDefinitionToReferenceDto(ActivityDefinition activityDefintion) {
@@ -101,14 +111,14 @@ public class FhirDtoUtil {
         return referenceDto;
     }
 
-   public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept source) {
-        ValueSetDto valueSetDto =new ValueSetDto();
-        if(source !=null){
-            if(source.getCodingFirstRep().getDisplay() !=null)
+    public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept source) {
+        ValueSetDto valueSetDto = new ValueSetDto();
+        if (source != null) {
+            if (source.getCodingFirstRep().getDisplay() != null)
                 valueSetDto.setDisplay(source.getCodingFirstRep().getDisplay());
-            if(source.getCodingFirstRep().getSystem()!=null)
+            if (source.getCodingFirstRep().getSystem() != null)
                 valueSetDto.setSystem(source.getCodingFirstRep().getSystem());
-            if(source.getCodingFirstRep().getCode()!=null)
+            if (source.getCodingFirstRep().getCode() != null)
                 valueSetDto.setCode(source.getCodingFirstRep().getCode());
         }
         return valueSetDto;
@@ -131,13 +141,13 @@ public class FhirDtoUtil {
 
     }
 
-    public static CodeableConcept convertValuesetDtoToCodeableConcept (ValueSetDto valueSetDto) {
-            CodeableConcept codeableConcept = new CodeableConcept();
-            if (valueSetDto != null) {
-                Coding coding = FhirUtil.getCoding(valueSetDto.getCode(),valueSetDto.getDisplay(),valueSetDto.getSystem());
-                codeableConcept.addCoding(coding);
-            }
-            return codeableConcept;
+    public static CodeableConcept convertValuesetDtoToCodeableConcept(ValueSetDto valueSetDto) {
+        CodeableConcept codeableConcept = new CodeableConcept();
+        if (valueSetDto != null) {
+            Coding coding = FhirUtil.getCoding(valueSetDto.getCode(), valueSetDto.getDisplay(), valueSetDto.getSystem());
+            codeableConcept.addCoding(coding);
+        }
+        return codeableConcept;
     }
 
     public static Optional<String> getDisplayForCode(String code, Optional<List<ValueSetDto>> lookupValueSets) {
@@ -166,6 +176,48 @@ public class FhirDtoUtil {
             }
         }
         return participants;
+    }
+
+    public static List<TelecomDto> convertTelecomListToTelecomDtoList(List<ContactPoint> source) {
+        List<TelecomDto> telecomDtoList = new ArrayList<>();
+
+        if (source != null && source.size() > 0) {
+
+            for (ContactPoint telecom : source) {
+                TelecomDto telecomDto = new TelecomDto();
+                telecomDto.setValue(Optional.ofNullable(telecom.getValue()));
+                if (telecom.getSystem() != null)
+                    telecomDto.setSystem(Optional.ofNullable(telecom.getSystem().toCode()));
+                if (telecom.getUse() != null)
+                    telecomDto.setUse(Optional.ofNullable(telecom.getUse().toCode()));
+                telecomDtoList.add(telecomDto);
+            }
+        }
+        return telecomDtoList;
+    }
+
+    public static List<AddressDto> convertAddressListToAddressDtoList(List<Address> source) {
+        List<AddressDto> addressDtos = new ArrayList<>();
+
+        if (source != null && source.size() > 0) {
+
+            for (Address address : source) {
+
+                addressDtos.add(AddressDto.builder().line1(
+                        address.getLine().size() > 0 ?
+                                address.getLine().get(0).toString()
+                                : "")
+                        .line2(address.getLine().size() > 1 ?
+                                address.getLine().get(1).toString()
+                                : "")
+                        .city(address.getCity())
+                        .stateCode(address.getState())
+                        .countryCode(address.getCountry())
+                        .postalCode(address.getPostalCode())
+                        .build());
+            }
+        }
+        return addressDtos;
     }
 
 }

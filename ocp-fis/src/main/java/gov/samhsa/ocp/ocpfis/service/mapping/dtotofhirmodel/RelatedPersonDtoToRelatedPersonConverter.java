@@ -15,6 +15,8 @@ import org.hl7.fhir.dstu3.model.RelatedPerson;
 
 import java.text.ParseException;
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class RelatedPersonDtoToRelatedPersonConverter {
 
@@ -48,16 +50,17 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         HumanName humanName = new HumanName().addGiven(relatedPersonDto.getFirstName()).setFamily(relatedPersonDto.getLastName());
         relatedPerson.setName(Collections.singletonList(humanName));
 
-        //telecom
-        ContactPoint contactPoint = new ContactPoint();
-        if (relatedPersonDto.getTelecomCode() != null) {
-            contactPoint.setSystem(ContactPoint.ContactPointSystem.valueOf(relatedPersonDto.getTelecomCode().toUpperCase()));
-        }
-        if (relatedPersonDto.getTelecomUse() != null) {
-            contactPoint.setUse(ContactPoint.ContactPointUse.valueOf(relatedPersonDto.getTelecomUse().toUpperCase()));
-        }
-        contactPoint.setValue(relatedPersonDto.getTelecomValue());
-        relatedPerson.setTelecom(Collections.singletonList(contactPoint));
+        //telecoms
+        List<ContactPoint> contactPoints = relatedPersonDto.getTelecoms().stream()
+                .map(telecomDto -> {
+                    ContactPoint contactPoint = new ContactPoint();
+                    telecomDto.getSystem().ifPresent(system -> contactPoint.setSystem(ContactPoint.ContactPointSystem.valueOf(system.toUpperCase())));
+                    telecomDto.getValue().ifPresent(contactPoint::setValue);
+                    telecomDto.getUse().ifPresent(user -> contactPoint.setUse(ContactPoint.ContactPointUse.valueOf(user.toUpperCase())));
+                    return contactPoint;
+                })
+                .collect(Collectors.toList());
+        relatedPerson.setTelecom(contactPoints);
 
         //gender
         Enumerations.AdministrativeGender gender = FhirUtil.getPatientGender(relatedPersonDto.getGenderCode());
@@ -66,15 +69,20 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         //birthdate
         relatedPerson.setBirthDate(DateUtil.convertStringToDate(relatedPersonDto.getBirthDate()));
 
-        //address
-        Address address = new Address();
-        address.addLine(relatedPersonDto.getAddress1());
-        address.addLine(relatedPersonDto.getAddress2());
-        address.setCity(relatedPersonDto.getCity());
-        address.setState(relatedPersonDto.getState());
-        address.setPostalCode(relatedPersonDto.getZip());
-        address.setCountry(relatedPersonDto.getCountry());
-        relatedPerson.setAddress(Collections.singletonList(address));
+        //addressess
+        List<Address> addresses = relatedPersonDto.getAddresses().stream()
+                .map(addressDto -> {
+                    Address address = new Address();
+                    address.addLine(addressDto.getLine1());
+                    address.addLine(addressDto.getLine2());
+                    address.setCity(addressDto.getCity());
+                    address.setState(addressDto.getStateCode());
+                    address.setPostalCode(addressDto.getPostalCode());
+                    address.setCountry(addressDto.getCountryCode());
+                    return address;
+                })
+                .collect(Collectors.toList());
+        relatedPerson.setAddress(addresses);
 
         //period
         Period period = new Period();
