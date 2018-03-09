@@ -178,6 +178,7 @@ public class TaskServiceImpl implements TaskService {
         return patients.stream()
                 .map(it -> FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Patient))
                 .flatMap(it -> getTasksByPatient(it).stream())
+                .distinct()
                 .collect(toList());
     }
 
