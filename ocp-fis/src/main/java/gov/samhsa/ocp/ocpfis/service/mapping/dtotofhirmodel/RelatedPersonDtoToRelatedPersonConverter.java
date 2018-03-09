@@ -1,8 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
-import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
-import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import org.hl7.fhir.dstu3.model.Address;
@@ -16,9 +14,9 @@ import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 
 import java.text.ParseException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class RelatedPersonDtoToRelatedPersonConverter {
 
@@ -53,34 +51,16 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         relatedPerson.setName(Collections.singletonList(humanName));
 
         //telecoms
-        if (relatedPersonDto.getTelecoms() != null) {
-
-            List<TelecomDto> telecomDtos = relatedPersonDto.getTelecoms();
-            List<ContactPoint> contactPoints = new ArrayList<>();
-
-            if (telecomDtos != null && telecomDtos.size() > 0) {
-                int rank = 0;
-                for (TelecomDto telecomDto : telecomDtos) {
+        List<ContactPoint> contactPoints = relatedPersonDto.getTelecoms().stream()
+                .map(telecomDto -> {
                     ContactPoint contactPoint = new ContactPoint();
-
-                    contactPoint.setRank(++rank);
-
-                    if (telecomDto.getSystem().isPresent()) {
-                        contactPoint.setSystem(ContactPoint.ContactPointSystem.valueOf(telecomDto.getSystem().get()));
-                    }
-                    if (telecomDto.getUse().isPresent()) {
-                        contactPoint.setUse(ContactPoint.ContactPointUse.valueOf(telecomDto.getUse().get()));
-                    }
-
-                    if (telecomDto.getValue().isPresent()) {
-                        contactPoint.setValue(telecomDto.getValue().get());
-                    }
-
-                    contactPoints.add(contactPoint);
-                }
-                relatedPerson.setTelecom(contactPoints);
-            }
-        }
+                    telecomDto.getSystem().ifPresent(system -> contactPoint.setSystem(ContactPoint.ContactPointSystem.valueOf(system.toUpperCase())));
+                    telecomDto.getValue().ifPresent(contactPoint::setValue);
+                    telecomDto.getUse().ifPresent(user -> contactPoint.setUse(ContactPoint.ContactPointUse.valueOf(user.toUpperCase())));
+                    return contactPoint;
+                })
+                .collect(Collectors.toList());
+        relatedPerson.setTelecom(contactPoints);
 
         //gender
         Enumerations.AdministrativeGender gender = FhirUtil.getPatientGender(relatedPersonDto.getGenderCode());
@@ -90,33 +70,19 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         relatedPerson.setBirthDate(DateUtil.convertStringToDate(relatedPersonDto.getBirthDate()));
 
         //addressess
-        if (relatedPersonDto.getAddresses() != null) {
-
-            List<AddressDto> addressDtos = relatedPersonDto.getAddresses();
-            List<Address> addresses = new ArrayList<>();
-
-            if (addressDtos != null && addressDtos.size() > 0) {
-                for (AddressDto addressDto : addressDtos) {
+        List<Address> addresses = relatedPersonDto.getAddresses().stream()
+                .map(addressDto -> {
                     Address address = new Address();
-                    if (addressDto.getLine1() != null)
-                        address.addLine(addressDto.getLine1());
-                    if (addressDto.getLine2() != null)
-                        address.addLine(addressDto.getLine2());
-                    if (addressDto.getCity() != null)
-                        address.setCity(addressDto.getCity());
-                    if (addressDto.getPostalCode() != null)
-                        address.setPostalCode(addressDto.getPostalCode());
-                    if (addressDto.getStateCode() != null)
-                        address.setState(addressDto.getStateCode());
-                    if (addressDto.getCountryCode() != null)
-                        address.setCountry(addressDto.getCountryCode());
-
-                    addresses.add(address);
-                }
-                relatedPerson.setAddress(addresses);
-
-            }
-        }
+                    address.addLine(addressDto.getLine1());
+                    address.addLine(addressDto.getLine2());
+                    address.setCity(addressDto.getCity());
+                    address.setState(addressDto.getStateCode());
+                    address.setPostalCode(addressDto.getPostalCode());
+                    address.setCountry(addressDto.getCountryCode());
+                    return address;
+                })
+                .collect(Collectors.toList());
+        relatedPerson.setAddress(addresses);
 
         //period
         Period period = new Period();
