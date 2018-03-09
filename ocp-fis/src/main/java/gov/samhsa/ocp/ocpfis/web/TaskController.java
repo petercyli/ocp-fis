@@ -57,12 +57,12 @@ public class TaskController {
         return taskService.getTaskById(taskId);
     }
 
-    @GetMapping("/tasks/task-references")
+    @GetMapping
     public List<ReferenceDto> getRelatedTasks(@RequestParam(value = "patient") String patient) {
         return taskService.getRelatedTasks(patient);
     }
 
-    @GetMapping("/tasks")
+    @GetMapping("/tasks/upcoming")
     public List<TaskDto> getUpcomingTasks(@RequestParam(value = "practitioner") String practitioner) {
         return taskService.getUpcomingTasks(practitioner);
     }

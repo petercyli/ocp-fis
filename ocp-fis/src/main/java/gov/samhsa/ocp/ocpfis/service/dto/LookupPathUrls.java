@@ -41,9 +41,9 @@ public enum LookupPathUrls {
     APPOINTMENT_STATUS("appointment status",Constants.APPOINTMENT_STATUS_PATH),
     PARTICIPATION_TYPE("participation type",Constants.PARTICIPATION_TYPE_PATH),
     PARTICIPATION_STATUS("participation status",Constants.PARTICIPATION_STATUS_PATH),
-    PARTICIPANT_REQUIRED("participant required",Constants.PARTICIPANT_REQUIRED_PATH);
-
-
+    PARTICIPANT_REQUIRED("participant required",Constants.PARTICIPANT_REQUIRED_PATH),
+    PROVIDER_ROLE("provider role",Constants.PROVIDER_ROLE_PATH),
+    PROVIDER_SPECIALTY("provider specialty",Constants.PROVIDER_SPECIALTY_PATH);
 
     private final String type;
     private final String urlPath;
@@ -102,5 +102,7 @@ public enum LookupPathUrls {
         static final String PARTICIPATION_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/v3-ParticipationType";
         static final String PARTICIPATION_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/participationstatus";
         static final String PARTICIPANT_REQUIRED_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/participantrequired";
+        static final String PROVIDER_ROLE_PATH = "/ValueSet/ocp-provider-role";
+        static final String PROVIDER_SPECIALTY_PATH = "/ValueSet/ocp-provider-specialty";
     }
 }

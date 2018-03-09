@@ -34,8 +34,8 @@ public class PatientToPatientDtoMap extends PropertyMap<Patient, PatientDto> {
         map().setResourceURL(source.getId());
         map().setActive(source.getActive());
 
-        using(addressListToAddressDtoListConverter).map(source.getAddress()).setAddress(null);
-        using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecom(null);
+        using(addressListToAddressDtoListConverter).map(source.getAddress()).setAddresses(null);
+        using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecoms(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifier(null);
         using(DateToLocalDate).map(source.getBirthDate()).setBirthDate(null);
         using(humanNameListToNameDtoListConverter).map(source.getName()).setName(null);

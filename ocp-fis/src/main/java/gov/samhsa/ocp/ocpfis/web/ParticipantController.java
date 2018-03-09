@@ -4,6 +4,7 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.CareTeamService;
 import gov.samhsa.ocp.ocpfis.service.ParticipantService;
+import gov.samhsa.ocp.ocpfis.service.dto.CommunicationReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantSearchDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -38,9 +39,10 @@ public class ParticipantController {
     }
 
     @GetMapping
-    public List<ReferenceDto> getCareTeamParticipants(@RequestParam(value = "patient") String patient,
-                                                      @RequestParam(value = "roles") List<String> roles) {
-        return careTeamService.getCareTeamParticipants(patient, roles);
+    public List<CommunicationReferenceDto> getCareTeamParticipants(@RequestParam(value = "patient") String patient,
+                                                      @RequestParam(value = "roles", required = false) Optional<List<String>> roles,
+                                                      @RequestParam(value = "communication", required = false) Optional<String> communication)  {
+        return careTeamService.getCareTeamParticipants(patient, roles, communication);
     }
 
 }

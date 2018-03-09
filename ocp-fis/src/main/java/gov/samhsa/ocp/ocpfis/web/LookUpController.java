@@ -306,4 +306,16 @@ public class LookUpController {
 
         return lookUpService.getAppointmentParticipantRequired();
     }
+
+    @GetMapping("/provider-role")
+    public List<ValueSetDto> getProviderRole() {
+
+        return lookUpService.getProviderRole();
+    }
+
+    @GetMapping("/provider-specialty")
+    public List<ValueSetDto> getProviderSpecialty() {
+
+        return lookUpService.getProviderSpecialty();
+    }
 }
