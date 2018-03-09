@@ -13,7 +13,6 @@ import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.AppointmentToAppointmentDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AppointmentDtoToAppointmentConverter;
-
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -110,10 +109,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PATIENTID.name())) {
             log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.PATIENTID.name() + " = " + searchValue.get().trim());
             searchQuery.where(new ReferenceClientParam("patient").hasId(searchValue.get().trim()));
-
-        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
+        }  else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name())) {
+            log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name() + " = " + searchValue.get().trim());
+            searchQuery.where(new ReferenceClientParam("practitioner").hasId(searchValue.get().trim()));
+        }
+           else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
             log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            searchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
             searchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else {
             log.info("No additional search criteria entered.");
@@ -121,5 +122,11 @@ public class AppointmentServiceImpl implements AppointmentService {
         return searchQuery;
     }
 
+    @Override
+    public void cancelAppointment(String appointmentId) {
+        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+        fhirClient.update().resource(appointment).execute();
+    }
 }
 

@@ -48,7 +48,7 @@ public class AppointmentToAppointmentDtoConverter {
                     .map(AppointmentParticipantDto::getActorName)
                     .collect(toList());
             if (!actorNames.isEmpty())
-                appointmentDto.setDisplayPatientName(actorNames.get(0));
+                appointmentDto.setPatientName(actorNames.get(0));
         }
 
         String duration = "";
@@ -57,7 +57,7 @@ public class AppointmentToAppointmentDtoConverter {
             appointmentDto.setStart(DateUtil.convertDateToLocalDateTime(appointment.getStart()));
             DateTimeFormatter startFormatterDate = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_DATE);
             String formattedDate = appointmentDto.getStart().format(startFormatterDate); // "MM/dd/yyyy HH:mm"
-            appointmentDto.setDisplayDate(formattedDate);
+            appointmentDto.setAppointmentDate(formattedDate);
 
             DateTimeFormatter startFormatterTime = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_TIME);
             String formattedStartTime = appointmentDto.getStart().format(startFormatterTime); // "MM/dd/yyyy HH:mm"
@@ -71,7 +71,7 @@ public class AppointmentToAppointmentDtoConverter {
             String formattedEndTime = appointmentDto.getEnd().format(endFormatterTime); // "HH:mm"
             duration = duration + " - " + formattedEndTime;
         }
-        appointmentDto.setDisplayDuration(duration);
+        appointmentDto.setAppointmentDuration(duration);
 
         return appointmentDto;
     }
