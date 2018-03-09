@@ -5,6 +5,8 @@ import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -18,6 +20,8 @@ import org.hl7.fhir.dstu3.model.RelatedPerson;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import static java.util.stream.Collectors.toList;
 
 public class CareTeamToCareTeamDtoConverter {
 
@@ -102,53 +106,25 @@ public class CareTeamToCareTeamDtoConverter {
     }
 
     public static List<ReferenceDto> mapToPartipants(CareTeam careTeam, Optional<List<String>> roles) {
-        List<ReferenceDto> referenceDtos = new ArrayList<>();
+        return careTeam.getParticipant().stream()
+                .map(it -> {
+                    Reference member = it.getMember();
+                    ReferenceDto referenceDto = new ReferenceDto();
 
-        List<CareTeam.CareTeamParticipantComponent> careTeamParticipantComponentList = careTeam.getParticipant();
+                    if (roles.isPresent()) {
+                        String role = FhirUtil.getRoleFromCodeableConcept(it.getRole());
 
-        for (CareTeam.CareTeamParticipantComponent careTeamParticipantComponent : careTeamParticipantComponentList) {
-            Reference member = careTeamParticipantComponent.getMember();
-
-            ReferenceDto referenceDto = new ReferenceDto();
-
-            if (member.getReference().contains(ParticipantTypeEnum.practitioner.getName())) {
-                referenceDto.setReference(member.getReference());
-                Practitioner practitioner = (Practitioner) member.getResource();
-
-                CodeableConcept roleCodeableConcept = careTeamParticipantComponent.getRole();
-                List<Coding> codingRoleCodeList = roleCodeableConcept.getCoding();
-                Coding codingRoleCode = codingRoleCodeList.stream().findFirst().orElse(null);
-                if (codingRoleCode != null) {
-                    String role = codingRoleCode.getCode();
-
-                    if (roles.isPresent() && roles.get().contains(role))
-                        if (practitioner != null && practitioner.getName() != null && practitioner.getName().get(0) != null) {
-                            referenceDto.setDisplay(practitioner.getName().get(0).getGiven().get(0).toString() + " " + practitioner.getName().get(0).getFamily());
+                        if (roles.get().contains(role)) {
+                            referenceDto.setReference(member.getReference());
                         }
+                    } else {
+                        referenceDto.setReference(member.getReference());
+                    }
 
-                    referenceDtos.add(referenceDto);
-                }
-            }
-        }
-
-        return referenceDtos;
-
-    }
-
-    public static List<ReferenceDto> mapToParticipants(CareTeam careTeam) {
-        List<ReferenceDto> participants = new ArrayList<>();
-
-        List<CareTeam.CareTeamParticipantComponent> careTeamParticipantComponentList = careTeam.getParticipant();
-
-        for (CareTeam.CareTeamParticipantComponent careTeamParticipantComponent : careTeamParticipantComponentList) {
-            Reference member = careTeamParticipantComponent.getMember();
-            ReferenceDto referenceDto = new ReferenceDto();
-
-            referenceDto.setReference(member.getReference());
-            participants.add(referenceDto);
-        }
-
-        return participants;
+                    return referenceDto;
+                })
+                .filter(it -> it.getReference() != null)
+                .collect(toList());
     }
 
     private static void populateParticipantMemberInformation(Reference member, ParticipantDto participantDto) {

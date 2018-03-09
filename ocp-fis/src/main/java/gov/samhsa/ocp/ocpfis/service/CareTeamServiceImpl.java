@@ -281,8 +281,9 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public List<ReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles) {
-        List<ReferenceDto> finalParticipantDto = new ArrayList<>();
+    public List<CommunicationReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles, Optional<String> communication) {
+        List<ReferenceDto> participantsByRoles = new ArrayList<>();
+        List<CommunicationReferenceDto> participantsSelected = new ArrayList<>();
 
         Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
                 .where(new ReferenceClientParam("patient").hasId("Patient/" + patient))
@@ -298,40 +299,33 @@ public class CareTeamServiceImpl implements CareTeamService {
                         .map(careTeamMember -> (CareTeam) careTeamMember.getResource()).collect(toList());
 
 
-                finalParticipantDto = careTeams.stream()
+                participantsByRoles = careTeams.stream()
                         .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToPartipants(it, roles).stream()).collect(toList());
             }
         }
 
-        return finalParticipantDto;
-    }
+        //retrieve recipients by Id
+        List<String> recipients = new ArrayList<>();
 
-    @Override
-    public List<ReferenceDto> getCareTeamParticipants(String patient) {
-        List<ReferenceDto> finalParticipantDto = new ArrayList<>();
+        if (communication.isPresent()) {
 
-        Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
-                .where(new ReferenceClientParam("patient").hasId("Patient/" + patient))
-                .include(CareTeam.INCLUDE_PARTICIPANT)
-                .returnBundle(Bundle.class).execute();
+            recipients = communicationService.getRecipientsByCommunicationId(patient, communication.get());
 
-        if (careTeamBundle != null) {
-            List<Bundle.BundleEntryComponent> retrievedCareTeams = careTeamBundle.getEntry();
-
-            if (retrievedCareTeams != null) {
-                List<CareTeam> careTeams = retrievedCareTeams.stream()
-                        .filter(bundle -> bundle.getResource().getResourceType().equals(ResourceType.CareTeam))
-                        .map(careTeamMember -> (CareTeam) careTeamMember.getResource()).collect(toList());
-
-
-                finalParticipantDto = careTeams.stream()
-                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it).stream()).collect(toList());
-            }
         }
 
-        return finalParticipantDto;
-    }
+        for (ReferenceDto participant : participantsByRoles) {
+            CommunicationReferenceDto communicationReferenceDto = new CommunicationReferenceDto();
+            communicationReferenceDto.setReference(participant.getReference());
+            communicationReferenceDto.setDisplay(participant.getDisplay());
 
+            if (recipients.contains(FhirDtoUtil.getIdFromParticipantReferenceDto(participant))) {
+                communicationReferenceDto.setSelected(true);
+            }
+            participantsSelected.add(communicationReferenceDto);
+        }
+
+        return participantsSelected;
+    }
 
     @Override
     public CareTeamDto getCareTeamById(String careTeamById) {
@@ -372,30 +366,6 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public List<CommunicationReferenceDto> getRecipientsByCommunicationId(String patient, String communication) {
-        List<CommunicationReferenceDto> participantsSelected = new ArrayList<>();
-
-        //retrieve communication by Id
-        List<String> recipients = communicationService.getRecipientsByCommunicationId(patient, communication);
-
-        //get list of participants by patientId
-        List<ReferenceDto> participants = getCareTeamParticipants(patient);
-
-        for (ReferenceDto participant : participants) {
-            CommunicationReferenceDto communicationReferenceDto = new CommunicationReferenceDto();
-            communicationReferenceDto.setReference(participant.getReference());
-            communicationReferenceDto.setDisplay(participant.getDisplay());
-
-            if (recipients.contains(FhirDtoUtil.getIdFromParticipantReferenceDto(participant))) {
-                communicationReferenceDto.setSelected(true);
-            }
-            participantsSelected.add(communicationReferenceDto);
-        }
-
-        return participantsSelected;
-    }
-
-    @Override
     public List<ReferenceDto> getPatientsInCareTeamsByPractitioner(String practitioner) {
         List<ReferenceDto> patients = new ArrayList<>();
 
@@ -405,10 +375,10 @@ public class CareTeamServiceImpl implements CareTeamService {
                 .returnBundle(Bundle.class)
                 .execute();
 
-        if(bundle != null) {
+        if (bundle != null) {
             List<Bundle.BundleEntryComponent> components = bundle.getEntry();
 
-            if(components != null) {
+            if (components != null) {
 
                 patients = components.stream()
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
