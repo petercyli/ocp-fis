@@ -386,9 +386,6 @@ public class CareTeamServiceImpl implements CareTeamService {
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
                         .map(it -> (CareTeam) it.getResource())
                         .filter(it -> checkIfParticipantIsCareManager(it.getParticipant()))
-                        .peek(careTeam -> {
-                            System.out.println(careTeam.getName());
-                        })
                         .map(it -> (Patient) it.getSubject().getResource())
                         .map(it -> FhirDtoUtil.mapPatientToReferenceDto(it))
                         .collect(toList());
