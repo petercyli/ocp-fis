@@ -44,7 +44,7 @@ public class SearchKeyEnum {
         /**
          * Appointment be searched based on the following keys
          */
-        LOGICALID, PATIENTID;
+        LOGICALID, PATIENTID, PRACTITIONERID;
 
         public static boolean contains(String s) {
             for (AppointmentSearchKey appointmentSearchKey : values())

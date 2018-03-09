@@ -110,10 +110,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PATIENTID.name())) {
             log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.PATIENTID.name() + " = " + searchValue.get().trim());
             searchQuery.where(new ReferenceClientParam("patient").hasId(searchValue.get().trim()));
-
-        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
+        }  else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name())) {
+            log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name() + " = " + searchValue.get().trim());
+            searchQuery.where(new ReferenceClientParam("practitioner").hasId(searchValue.get().trim()));
+        }
+           else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
             log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
-            searchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
             searchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else {
             log.info("No additional search criteria entered.");
