@@ -28,6 +28,13 @@ public class FhirDtoUtil {
         return dto.getReference().replace(resourceType + "/", "");
     }
 
+    public static String getIdFromParticipantReferenceDto(ReferenceDto dto) {
+        return dto.getReference().replace(ResourceType.Practitioner + "/", "")
+                .replace(ResourceType.Patient + "/", "")
+                .replace(ResourceType.RelatedPerson + "/", "")
+                .replace(ResourceType.Organization + "/", "");
+    }
+
     public static ReferenceDto mapActivityDefinitionToReferenceDto(ActivityDefinition activityDefintion) {
         ReferenceDto referenceDto = new ReferenceDto();
         referenceDto.setReference(ResourceType.ActivityDefinition + "/" + activityDefintion.getIdElement().getIdPart());
@@ -101,14 +108,14 @@ public class FhirDtoUtil {
         return referenceDto;
     }
 
-   public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept source) {
-        ValueSetDto valueSetDto =new ValueSetDto();
-        if(source !=null){
-            if(source.getCodingFirstRep().getDisplay() !=null)
+    public static ValueSetDto convertCodeableConceptToValueSetDto(CodeableConcept source) {
+        ValueSetDto valueSetDto = new ValueSetDto();
+        if (source != null) {
+            if (source.getCodingFirstRep().getDisplay() != null)
                 valueSetDto.setDisplay(source.getCodingFirstRep().getDisplay());
-            if(source.getCodingFirstRep().getSystem()!=null)
+            if (source.getCodingFirstRep().getSystem() != null)
                 valueSetDto.setSystem(source.getCodingFirstRep().getSystem());
-            if(source.getCodingFirstRep().getCode()!=null)
+            if (source.getCodingFirstRep().getCode() != null)
                 valueSetDto.setCode(source.getCodingFirstRep().getCode());
         }
         return valueSetDto;
@@ -131,13 +138,13 @@ public class FhirDtoUtil {
 
     }
 
-    public static CodeableConcept convertValuesetDtoToCodeableConcept (ValueSetDto valueSetDto) {
-            CodeableConcept codeableConcept = new CodeableConcept();
-            if (valueSetDto != null) {
-                Coding coding = FhirUtil.getCoding(valueSetDto.getCode(),valueSetDto.getDisplay(),valueSetDto.getSystem());
-                codeableConcept.addCoding(coding);
-            }
-            return codeableConcept;
+    public static CodeableConcept convertValuesetDtoToCodeableConcept(ValueSetDto valueSetDto) {
+        CodeableConcept codeableConcept = new CodeableConcept();
+        if (valueSetDto != null) {
+            Coding coding = FhirUtil.getCoding(valueSetDto.getCode(), valueSetDto.getDisplay(), valueSetDto.getSystem());
+            codeableConcept.addCoding(coding);
+        }
+        return codeableConcept;
     }
 
     public static Optional<String> getDisplayForCode(String code, Optional<List<ValueSetDto>> lookupValueSets) {
