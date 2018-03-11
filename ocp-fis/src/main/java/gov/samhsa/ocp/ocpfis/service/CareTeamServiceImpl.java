@@ -303,7 +303,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
 
                 participantsByRoles = careTeams.stream()
-                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToPartipants(it, roles).stream()).collect(toList());
+                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles).stream()).collect(toList());
             }
         }
 
