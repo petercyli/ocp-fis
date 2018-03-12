@@ -21,6 +21,7 @@ import gov.samhsa.ocp.ocpfis.service.mapping.CareTeamToCareTeamDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CareTeamDtoToCareTeamConverter;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -28,6 +29,7 @@ import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
@@ -47,6 +49,7 @@ import static java.util.stream.Collectors.toList;
 public class CareTeamServiceImpl implements CareTeamService {
 
     public static final String STATUS_ACTIVE = "active";
+    public static final String CAREMANAGER_ROLE = "171M00000X";
     private final IGenericClient fhirClient;
     private final FhirValidator fhirValidator;
     private final LookUpService lookUpService;
@@ -300,7 +303,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
 
                 participantsByRoles = careTeams.stream()
-                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToPartipants(it, roles).stream()).collect(toList());
+                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles).stream()).collect(toList());
             }
         }
 
@@ -372,25 +375,38 @@ public class CareTeamServiceImpl implements CareTeamService {
         Bundle bundle = fhirClient.search().forResource(CareTeam.class)
                 .where(new ReferenceClientParam("participant").hasId(practitioner))
                 .include(CareTeam.INCLUDE_PATIENT)
+                .include(CareTeam.INCLUDE_PARTICIPANT)
                 .returnBundle(Bundle.class)
                 .execute();
 
         if (bundle != null) {
             List<Bundle.BundleEntryComponent> components = bundle.getEntry();
-
             if (components != null) {
-
                 patients = components.stream()
-                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
-                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Patient))
-                        //filter by careTeam/CareCoordinator
-                        .map(it -> (Patient) it.getResource())
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
+                        .map(it -> (CareTeam) it.getResource())
+                        .filter(it -> checkIfParticipantIsCareManager(it.getParticipant()))
+                        .map(it -> (Patient) it.getSubject().getResource())
                         .map(it -> FhirDtoUtil.mapPatientToReferenceDto(it))
                         .collect(toList());
             }
         }
 
         return patients;
+    }
+
+    private boolean checkIfParticipantIsCareManager(List<CareTeam.CareTeamParticipantComponent> components) {
+        //write logic to check if each participant, if of type Practitioner, is a CareManager or not
+        return components.stream()
+                .map(component -> {
+                    Reference member = component.getMember();
+                    String role = "";
+                    if (member.getReference().contains(ResourceType.Practitioner.toString())) {
+                        role = FhirUtil.getRoleFromCodeableConcept(component.getRole());
+                    }
+                    return role;
+                })
+                .anyMatch(t -> t.contains(CAREMANAGER_ROLE));
     }
 
 

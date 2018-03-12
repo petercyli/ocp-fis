@@ -105,27 +105,43 @@ public class CareTeamToCareTeamDtoConverter {
         return careTeamDto;
     }
 
-    public static List<ReferenceDto> mapToPartipants(CareTeam careTeam, Optional<List<String>> roles) {
+    public static List<ReferenceDto> mapToParticipants(CareTeam careTeam, Optional<List<String>> roles) {
         return careTeam.getParticipant().stream()
                 .map(it -> {
                     Reference member = it.getMember();
                     ReferenceDto referenceDto = new ReferenceDto();
-
+                    ParticipantDto participantDto = new ParticipantDto();
                     if (roles.isPresent()) {
                         String role = FhirUtil.getRoleFromCodeableConcept(it.getRole());
 
                         if (roles.get().contains(role)) {
                             referenceDto.setReference(member.getReference());
+
                         }
                     } else {
                         referenceDto.setReference(member.getReference());
                     }
 
+                    referenceDto.setDisplay(getDisplay(member, participantDto));
                     return referenceDto;
                 })
                 .filter(it -> it.getReference() != null)
                 .collect(toList());
     }
+
+    private static String getDisplay(Reference member, ParticipantDto participantDto) {
+        String display = "";
+        populateParticipantMemberInformation(member, participantDto);
+        if (member.getReference().contains(ParticipantTypeEnum.organization.getName())) {
+            display = participantDto.getMemberName().isPresent() ? participantDto.getMemberName().get() : "";
+        } else {
+            String firstName = participantDto.getMemberFirstName().isPresent() ? participantDto.getMemberFirstName().get() : "";
+            String lastName = participantDto.getMemberLastName().isPresent() ? participantDto.getMemberLastName().get() : "";
+            display = firstName + " " + lastName;
+        }
+        return display;
+    }
+
 
     private static void populateParticipantMemberInformation(Reference member, ParticipantDto participantDto) {
         if (member.getReference().contains(ParticipantTypeEnum.organization.getName())) {

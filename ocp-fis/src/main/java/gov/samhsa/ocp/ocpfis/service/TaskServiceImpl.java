@@ -35,13 +35,16 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.groupingBy;
 
 @Service
 @Slf4j
@@ -175,11 +178,34 @@ public class TaskServiceImpl implements TaskService {
     public List<TaskDto> getUpcomingTasks(String practitioner) {
         List<ReferenceDto> patients = careTeamService.getPatientsInCareTeamsByPractitioner(practitioner);
 
-        return patients.stream()
+        List<TaskDto> allTasks = patients.stream()
                 .map(it -> FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Patient))
                 .flatMap(it -> getTasksByPatient(it).stream())
                 .distinct()
                 .collect(toList());
+
+        Map<String, List<TaskDto>> tasksGroupedByPatient = allTasks.stream().collect(groupingBy(x -> x.getBeneficiary().getReference()));
+
+        List<TaskDto> finalList = new ArrayList<>();
+
+        for(Map.Entry<String, List<TaskDto>> entry: tasksGroupedByPatient.entrySet()) {
+            List<TaskDto> filtered = entry.getValue();
+            Collections.sort(filtered);
+
+            if(!filtered.isEmpty()) {
+                TaskDto upcomingTask = filtered.get(0);
+                finalList.add(upcomingTask);
+
+                filtered.stream().skip(1).forEach(task -> {
+                    if(upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())) {
+                        finalList.add(task);
+                    }
+                });
+            }
+        }
+
+        Collections.sort(finalList);
+        return finalList;
     }
 
     private void retrieveActivityDefinitionDuration(TaskDto taskDto) {
