@@ -63,6 +63,10 @@ public class FhirUtil {
         return givenString != null && !givenString.trim().isEmpty();
     }
 
+    public static boolean isStringNullOrEmpty(String givenString) {
+        return givenString == null || givenString.trim().isEmpty();
+    }
+
     public static void validateFhirResource(FhirValidator fhirValidator, DomainResource fhirResource,
                                             Optional<String> fhirResourceId, String fhirResourceName,
                                             String actionAndResourceName) {
