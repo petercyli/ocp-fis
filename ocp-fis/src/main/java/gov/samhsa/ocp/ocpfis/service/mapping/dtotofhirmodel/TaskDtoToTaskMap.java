@@ -26,9 +26,9 @@ public class TaskDtoToTaskMap {
             task.setPartOf(partOfReferences);
         }
 
-        task.setStatus(Task.TaskStatus.valueOf(taskDto.getStatus().getCode().toUpperCase()));
-        task.setIntent(Task.TaskIntent.valueOf(taskDto.getIntent().getCode().toUpperCase()));
-        task.setPriority(Task.TaskPriority.valueOf(taskDto.getPriority().getCode().toUpperCase()));
+        task.setStatus(Task.TaskStatus.valueOf(taskDto.getStatus().getDisplay().replaceAll("\\s", "").toUpperCase()));
+        task.setIntent(Task.TaskIntent.valueOf(taskDto.getIntent().getDisplay().replaceAll("\\s", "").toUpperCase()));
+        task.setPriority(Task.TaskPriority.valueOf(taskDto.getPriority().getDisplay().replaceAll("\\s", "").toUpperCase()));
 
         if (taskDto.getDescription() != null && !taskDto.getDescription().isEmpty()) {
             task.setDescription(taskDto.getDescription());
