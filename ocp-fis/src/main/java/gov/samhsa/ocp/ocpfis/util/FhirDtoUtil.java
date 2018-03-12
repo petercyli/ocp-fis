@@ -80,6 +80,16 @@ public class FhirDtoUtil {
         }).findFirst().orElse(null);
     }
 
+    public static ValueSetDto convertDisplayCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
+        return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getDisplay().replaceAll("\\s", "").toUpperCase())).map(valueSet -> {
+            ValueSetDto valueSetDto = new ValueSetDto();
+            valueSetDto.setCode(valueSet.getCode());
+            valueSetDto.setDisplay(valueSet.getDisplay());
+            valueSetDto.setSystem(valueSet.getSystem());
+            return valueSetDto;
+        }).findFirst().orElse(null);
+    }
+
     public static ReferenceDto mapOrganizationToReferenceDto(Organization organization) {
         ReferenceDto referenceDto = new ReferenceDto();
 
