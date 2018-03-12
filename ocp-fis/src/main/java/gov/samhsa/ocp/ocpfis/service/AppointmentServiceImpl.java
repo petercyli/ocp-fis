@@ -50,7 +50,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     public void createAppointment(AppointmentDto appointmentDto) {
         String creatorName = appointmentDto.getCreatorName() != null ? appointmentDto.getCreatorName().trim() : "";
         log.info("Creating an appointment initiated by " + creatorName);
-        //Validate if the request bidy has all the mandatory fields
+
+        //Validate if the request body has all the mandatory fields
         validateAppointDtoFromRequest(appointmentDto);
         //Map
         final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, true);
@@ -91,7 +92,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<Bundle.BundleEntryComponent> retrievedAppointments = otherPageAppointmentBundle.getEntry();
 
         List<AppointmentDto> appointmentDtos = retrievedAppointments.stream()
-                .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
+                .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
                         (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource()))).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
