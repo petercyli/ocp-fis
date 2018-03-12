@@ -36,7 +36,7 @@ public class CommunicationDto {
     private String categoryValue;
 
     private String mediumCode;
-    private String mediumVaule;
+    private String mediumValue;
 
     private ReferenceDto definition;
     private ReferenceDto topic;
@@ -46,12 +46,9 @@ public class CommunicationDto {
 
     private List<ReferenceDto> recipient;
 
-    //Communication Sent Date
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
-    private LocalDate sent;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
+    private String sent;
 
-    //Communication Received Date
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
-    private LocalDate received;
-
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
+    private String received;
 }

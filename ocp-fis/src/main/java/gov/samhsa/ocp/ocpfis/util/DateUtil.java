@@ -49,7 +49,7 @@ public class DateUtil {
     }
 
     public static String convertDateToString(Date date) {
-        DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
+        DateFormat df = new SimpleDateFormat("MM/dd/YYYY", Locale.US);
 
         if (date != null) {
             return df.format(date);
