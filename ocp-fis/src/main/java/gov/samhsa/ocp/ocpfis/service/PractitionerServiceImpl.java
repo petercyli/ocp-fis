@@ -179,6 +179,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
                 .where(new ReferenceClientParam("organization").hasId( organization))
                 .include(PractitionerRole.INCLUDE_PRACTITIONER)
+                .limitTo(100)
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
@@ -186,9 +187,8 @@ public class PractitionerServiceImpl implements PractitionerService {
 
             if (practitionerComponents != null) {
                 practitioners = practitionerComponents.stream()
-                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.PractitionerRole))
-                        .map(it -> (PractitionerRole) it.getResource())
-                        .map(it -> (Practitioner) it.getPractitioner().getResource())
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
+                        .map(it -> (Practitioner) it.getResource())
                         .map(it -> {
                             PractitionerDto dto = modelMapper.map(it, PractitionerDto.class);
                             dto.setLogicalId(it.getIdElement().getIdPart());
