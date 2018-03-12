@@ -285,9 +285,9 @@ public class TaskServiceImpl implements TaskService {
             }
 
             //Setting Status, Intent, Priority
-            taskDto.setStatus(FhirDtoUtil.convertCodeToValueSetDto(task.getStatus().toCode(), lookUpService.getTaskStatus()));
-            taskDto.setIntent(FhirDtoUtil.convertCodeToValueSetDto(task.getIntent().toCode(), lookUpService.getRequestIntent()));
-            taskDto.setPriority(FhirDtoUtil.convertCodeToValueSetDto(task.getPriority().toCode(), lookUpService.getRequestPriority()));
+            taskDto.setStatus(FhirDtoUtil.convertDisplayCodeToValueSetDto(task.getStatus().toCode(), lookUpService.getTaskStatus()));
+            taskDto.setIntent(FhirDtoUtil.convertDisplayCodeToValueSetDto(task.getIntent().toCode(), lookUpService.getRequestIntent()));
+            taskDto.setPriority(FhirDtoUtil.convertDisplayCodeToValueSetDto(task.getPriority().toCode(), lookUpService.getRequestPriority()));
 
             if (task.hasDescription()) {
                 taskDto.setDescription(task.getDescription());
