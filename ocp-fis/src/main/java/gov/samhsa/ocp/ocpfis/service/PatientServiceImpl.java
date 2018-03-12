@@ -39,6 +39,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static gov.samhsa.ocp.ocpfis.util.FhirUtil.createExtension;
+import static gov.samhsa.ocp.ocpfis.util.FhirUtil.getCoding;
+import static gov.samhsa.ocp.ocpfis.util.FhirUtil.convertExtensionToCoding;
+
 @Service
 @Slf4j
 public class PatientServiceImpl implements PatientService {
@@ -168,26 +172,18 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public void updatePatient(PatientDto patientDto) {
-        int existingNumberOfPatients = this.getPatientsByIdentifier(patientDto.getIdentifier().get(0).getSystem(), patientDto.getIdentifier().get(0).getValue());
+        final Patient patient = modelMapper.map(patientDto, Patient.class);
+        patient.setId(new IdType(patientDto.getId()));
+        patient.setGender(FhirUtil.getPatientGender(patientDto.getGenderCode()));
+        patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
-        if (existingNumberOfPatients == 0) {
+        setExtensionFields(patient, patientDto);
 
-            final Patient patient = modelMapper.map(patientDto, Patient.class);
-            patient.setId(new IdType(patientDto.getId()));
-            patient.setGender(FhirUtil.getPatientGender(patientDto.getGenderCode()));
-            patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
-
-            setExtensionFields(patient, patientDto);
-
-            final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
-            if (validationResult.isSuccessful()) {
-                fhirClient.update().resource(patient).execute();
-            } else {
-                throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
-            }
+        final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
+        if (validationResult.isSuccessful()) {
+            fhirClient.update().resource(patient).execute();
         } else {
-            log.info("Patient already exists with the given identifier system and value");
-            throw new DuplicateResourceFoundException("Patient already exists with the given identifier system and value");
+            throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
         }
     }
 
@@ -239,47 +235,33 @@ public class PatientServiceImpl implements PatientService {
         return patientDtos;
     }
 
-    private void setIdentifiers(Patient patient, PatientDto patientDto) {
-        patient.setId(new IdType(patientDto.getId()));
-        // if mrn, set use to official
-        patientDto.getIdentifier().stream().map(identifier -> patient.addIdentifier()
-                .setSystem(identifier.getSystem())
-                .setValue(identifier.getValue())).filter(id -> id.getValue().equals(patientDto.getId())).forEach(id -> id.setUse(Identifier.IdentifierUse.OFFICIAL));
-    }
-
-    private String getCodeSystemByValue(List<IdentifierDto> identifierList, String value) {
-        // TODO: review business logic
-        //return identifierList.stream().filter(identifier -> identifier.getValue().equalsIgnoreCase(value)).findFirst().get().getSystem();
-        return identifierList.stream().findFirst().get().getSystem();
-    }
-
     private void setExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = new ArrayList<>();
 
         //language
         if(patientDto.getLanguage() != null && !patientDto.getLanguage().isEmpty()) {
-            Coding langCoding = createCoding(CODING_SYSTEM_LANGUAGE, patientDto.getLanguage());
+            Coding langCoding = getCoding(patientDto.getLanguage(), "", CODING_SYSTEM_LANGUAGE);
             Extension langExtension = createExtension(EXTENSION_URL_LANGUAGE, new CodeableConcept().addCoding(langCoding));
             extensionList.add(langExtension);
         }
 
         //race
         if(patientDto.getRace() != null && !patientDto.getRace().isEmpty()) {
-            Coding raceCoding = createCoding(CODING_SYSTEM_RACE, patientDto.getRace());
+            Coding raceCoding = getCoding(patientDto.getRace(), "", CODING_SYSTEM_RACE);
             Extension raceExtension = createExtension(EXTENSION_URL_RACE, new CodeableConcept().addCoding(raceCoding));
             extensionList.add(raceExtension);
         }
 
         //ethnicity
         if(patientDto.getEthnicity() != null && !patientDto.getEthnicity().isEmpty()) {
-            Coding ethnicityCoding = createCoding(CODING_SYSTEM_ETHNICITY, patientDto.getEthnicity());
+            Coding ethnicityCoding = getCoding(patientDto.getEthnicity(), "", CODING_SYSTEM_ETHNICITY);
             Extension ethnicityExtension = createExtension(EXTENSION_URL_ETHNICITY, new CodeableConcept().addCoding(ethnicityCoding));
             extensionList.add(ethnicityExtension);
         }
 
         //us-core-birthsex
         if(patientDto.getBirthSex() != null && !patientDto.getBirthSex().isEmpty()) {
-            Coding birthSexCoding = createCoding(CODING_SYSTEM_BIRTHSEX, patientDto.getBirthSex());
+            Coding birthSexCoding = getCoding(patientDto.getBirthSex(), "", CODING_SYSTEM_BIRTHSEX);
             Extension birthSexExtension = createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthSexCoding));
             extensionList.add(birthSexExtension);
         }
@@ -287,24 +269,11 @@ public class PatientServiceImpl implements PatientService {
         patient.setExtension(extensionList);
     }
 
-    private Coding createCoding(String codeSystem, String code) {
-        Coding coding = new Coding();
-        coding.setSystem(codeSystem);
-        coding.setCode(code);
-        return coding;
-    }
-
-    private Extension createExtension(String url, Type t) {
-        Extension ext = new Extension();
-        ext.setUrl(url);
-        ext.setValue(t);
-        return ext;
-    }
 
     private void mapExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = patient.getExtension();
 
-        extensionList.stream().map(this::convertExtensionToCoding).filter(Optional::isPresent).map(Optional::get).forEach(coding -> {
+        extensionList.stream().map(FhirUtil::convertExtensionToCoding).filter(Optional::isPresent).map(Optional::get).forEach(coding -> {
             if (coding.getSystem().contains(RACE_CODE)) {
                 patientDto.setRace(coding.getCode());
             } else if (coding.getSystem().contains(LANGUAGE_CODE)) {
@@ -317,24 +286,7 @@ public class PatientServiceImpl implements PatientService {
         });
     }
 
-    private Optional<Coding> convertExtensionToCoding(Extension extension) {
-        Optional<Coding> coding = Optional.empty();
 
-        Type type = extension.getValue();
-        if (type != null) {
-            if (type instanceof CodeableConcept) {
-                CodeableConcept codeableConcept = (CodeableConcept) type;
-
-                List<Coding> codingList = codeableConcept.getCoding();
-
-                if (codingList != null) {
-                    coding = Optional.of(codingList.get(0));
-                }
-            }
-        }
-
-        return coding;
-    }
 }
 
 
