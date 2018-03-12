@@ -36,7 +36,7 @@ public class CommunicationDto {
     private String categoryValue;
 
     private String mediumCode;
-    private String mediumVaule;
+    private String mediumValue;
 
     private ReferenceDto definition;
     private ReferenceDto topic;

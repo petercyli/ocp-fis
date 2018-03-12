@@ -122,7 +122,7 @@ public class CommunicationServiceImpl implements CommunicationService {
 
             if (communication.hasMedium()) {
                 ValueSetDto medium = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getCategory());
-                communicationDto.setMediumVaule(medium.getDisplay());
+                communicationDto.setMediumValue(medium.getDisplay());
             }
 
 
