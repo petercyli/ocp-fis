@@ -13,6 +13,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.AppointmentToAppointmentDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AppointmentDtoToAppointmentConverter;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +50,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     public void createAppointment(AppointmentDto appointmentDto) {
         String creatorName = appointmentDto.getCreatorName() != null ? appointmentDto.getCreatorName().trim() : "";
         log.info("Creating an appointment initiated by " + creatorName);
+        //Validate if the request bidy has all the mandatory fields
+        validateAppointDtoFromRequest(appointmentDto);
         //Map
         final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, true);
         //Set created Date
@@ -109,11 +112,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PATIENTID.name())) {
             log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.PATIENTID.name() + " = " + searchValue.get().trim());
             searchQuery.where(new ReferenceClientParam("patient").hasId(searchValue.get().trim()));
-        }  else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name())) {
+        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name())) {
             log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name() + " = " + searchValue.get().trim());
             searchQuery.where(new ReferenceClientParam("practitioner").hasId(searchValue.get().trim()));
-        }
-           else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
+        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
             log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
             searchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else {
@@ -128,5 +130,40 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
         fhirClient.update().resource(appointment).execute();
     }
+
+    private void validateAppointDtoFromRequest(AppointmentDto appointmentDto) {
+        log.info("Validating appointment request DTO");
+        String missingFields = "";
+
+        if (appointmentDto == null) {
+            throw new BadRequestException("AppointmentDto is NULL!!");
+        }
+
+        if (FhirUtil.isStringNullOrEmpty(appointmentDto.getTypeCode())) {
+            missingFields = missingFields + "typeCode, ";
+        }
+
+        if (appointmentDto.getStart() == null) {
+            missingFields = missingFields + "(appointment)start, ";
+        }
+
+        if (appointmentDto.getEnd() == null) {
+            missingFields = missingFields + "(appointment)end, ";
+        }
+
+        if (appointmentDto.getParticipant().size() < 1) {
+            missingFields = missingFields + "(appointment)participant(s), ";
+        }
+
+        if (missingFields.length() > 0) {
+            missingFields = missingFields.substring(0, (missingFields.length() - 2)) + ".";
+            throw new BadRequestException("The following required fields are missing in the appointmentDto: " + missingFields);
+        }
+
+        if (!DateUtil.isValidDateTimeRange(appointmentDto.getStart(), appointmentDto.getEnd(), false)) {
+            throw new BadRequestException("Appointment EndDateTime is before StartDateTime");
+        }
+    }
+
 }
 

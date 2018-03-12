@@ -10,6 +10,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.CommunicationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
@@ -24,7 +25,6 @@ import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
-import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.StringType;
@@ -32,6 +32,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -122,7 +123,7 @@ public class CommunicationServiceImpl implements CommunicationService {
 
             if (communication.hasMedium()) {
                 ValueSetDto medium = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getCategory());
-                communicationDto.setMediumVaule(medium.getDisplay());
+                communicationDto.setMediumValue(medium.getDisplay());
             }
 
 
@@ -138,7 +139,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
 
             if (communication.hasSent()) {
-                communicationDto.setSent(DateUtil.convertDateToLocalDate(communication.getSent()));
+                communicationDto.setSent(DateUtil.convertDateToString(communication.getSent()));
             }
 
             return communicationDto;
@@ -176,25 +177,36 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     @Override
     public void createCommunication(CommunicationDto communicationDto) {
+
+        try{
             final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.empty(), ResourceType.Communication.name(), "Create Communication");
             //Create
             FhirUtil.createFhirResource(fhirClient, communication, ResourceType.Communication.name());
+        }
+        catch ( ParseException e) {
+            throw new FHIRClientException("FHIR Client returned with an error while create a communication:" + e.getMessage());
+        }
     }
 
     @Override
     public void updateCommunication(String communicationId, CommunicationDto communicationDto) {
 
+        try {
             Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             communication.setId(communicationId);
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.of(communicationId), ResourceType.Communication.name(), "Update Communication");
             //Update
             FhirUtil.updateFhirResource(fhirClient, communication, ResourceType.Communication.name());
+        }
+        catch ( ParseException e) {
+            throw new FHIRClientException("FHIR Client returned with an error while update a communication:" + e.getMessage());
+        }
     }
 
-    private Communication convertCommunicationDtoToCommunication(CommunicationDto communicationDto) {
+    private Communication convertCommunicationDtoToCommunication(CommunicationDto communicationDto) throws ParseException {
         Communication communication = new Communication();
 
         communication.setNotDone(communicationDto.isNotDone());
@@ -263,11 +275,13 @@ public class CommunicationServiceImpl implements CommunicationService {
             communication.setContext(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getContext()));
         }
 
-        if(communicationDto.getSent() !=null)
-            communication.setSent((java.sql.Date.valueOf(communicationDto.getSent())));
+        if(communicationDto.getSent() !=null) {
+            communication.setSent(DateUtil.convertStringToDate(communicationDto.getSent()));
+        }
+
 
         if(communicationDto.getReceived() !=null)
-            communication.setReceived((java.sql.Date.valueOf(communicationDto.getReceived())));
+            communication.setReceived(DateUtil.convertStringToDate(communicationDto.getReceived()));
 
         //Set Note
         if (communicationDto.getNote() != null){

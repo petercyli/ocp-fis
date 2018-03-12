@@ -12,7 +12,10 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.Enumerations;
+import org.hl7.fhir.dstu3.model.Extension;
+import org.hl7.fhir.dstu3.model.Type;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -60,6 +63,10 @@ public class FhirUtil {
         return givenString != null && !givenString.trim().isEmpty();
     }
 
+    public static boolean isStringNullOrEmpty(String givenString) {
+        return givenString == null || givenString.trim().isEmpty();
+    }
+
     public static void validateFhirResource(FhirValidator fhirValidator, DomainResource fhirResource,
                                             Optional<String> fhirResourceId, String fhirResourceName,
                                             String actionAndResourceName) {
@@ -102,5 +109,33 @@ public class FhirUtil {
         Optional<Coding> codingRoleCode = codeableConcept.getCoding().stream().findFirst();
         return codingRoleCode.isPresent() ? codingRoleCode.get().getCode() : "";
     }
+
+    public static Extension createExtension(String url, Type t) {
+        Extension ext = new Extension();
+        ext.setUrl(url);
+        ext.setValue(t);
+        return ext;
+    }
+
+    public static Optional<Coding> convertExtensionToCoding(Extension extension) {
+        Optional<Coding> coding = Optional.empty();
+
+        Type type = extension.getValue();
+        if (type != null) {
+            if (type instanceof CodeableConcept) {
+                CodeableConcept codeableConcept = (CodeableConcept) type;
+
+                List<Coding> codingList = codeableConcept.getCoding();
+
+                if (codingList != null) {
+                    coding = Optional.of(codingList.get(0));
+                }
+            }
+        }
+
+        return coding;
+    }
+
+
 }
 

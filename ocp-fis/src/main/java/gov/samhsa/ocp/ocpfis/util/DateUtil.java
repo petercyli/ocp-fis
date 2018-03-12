@@ -49,7 +49,7 @@ public class DateUtil {
     }
 
     public static String convertDateToString(Date date) {
-        DateFormat df = new SimpleDateFormat("MM/dd/yyyy");
+        DateFormat df = new SimpleDateFormat("MM/dd/YYYY", Locale.US);
 
         if (date != null) {
             return df.format(date);
@@ -68,6 +68,44 @@ public class DateUtil {
 
     public static Date convertLocalDateTimeToDate(LocalDateTime dateTime){
         return Date.from(dateTime.atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    /**
+     * Returns true if endDate is after startDate or if startDate equals endDate.
+     * Returns false if either value is null.  If equalOK, returns true if the
+     * dates are equal.
+     **/
+    public static boolean isValidDateRange(Date startDate, Date endDate, boolean equalOK) {
+        // false if either value is null
+        if (startDate == null || endDate == null) { return false; }
+
+        if (equalOK) {
+            // true if they are equal
+            if (startDate.equals(endDate)) { return true; }
+        }
+
+        // true if endDate after startDate
+        return endDate.after(startDate);
+
+    }
+
+    /**
+     * Returns true if endDateTime is after startDateTime or if startDateTime equals endDateTime.
+     * Returns false if either value is null.  If equalOK, returns true if the
+     * datesTimes are equal.
+     **/
+    public static boolean isValidDateTimeRange(LocalDateTime startDateTime, LocalDateTime endDateTime, boolean equalOK) {
+        // false if either value is null
+        if (startDateTime == null || endDateTime == null) { return false; }
+
+        if (equalOK) {
+            // true if they are equal
+            if (startDateTime.equals(endDateTime)) { return true; }
+        }
+
+        // true if endDateTime after startDateTime
+        return endDateTime.isAfter(startDateTime);
+
     }
 
 }

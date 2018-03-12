@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class TaskDto {
+public class TaskDto implements Comparable<TaskDto>  {
     private String logicalId;
 
     //Reference to activity definition
@@ -71,4 +71,20 @@ public class TaskDto {
 
     //managingOrganization - Organization the agent is acting for
     private ReferenceDto organization;
+
+    @Override
+    public int compareTo(TaskDto taskDto) {
+        if(endDateAvailable(this) && endDateAvailable(taskDto)) {
+            return this.getExecutionPeriod().getEnd().compareTo(taskDto.getExecutionPeriod().getEnd());
+        }
+        return 0;
+    }
+
+    private boolean endDateAvailable(TaskDto taskDto) {
+        if(taskDto.getExecutionPeriod() != null && taskDto.getExecutionPeriod().getEnd() != null) {
+            return true;
+        }
+        return false;
+    }
+
 }
