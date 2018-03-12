@@ -44,7 +44,7 @@ public class AppointmentToAppointmentDtoConverter {
 
         if (!appointmentDto.getParticipant().isEmpty()) {
             List<String> actorNames = appointmentDto.getParticipant().stream()
-                    .filter(participant -> participant.getActorReference().toUpperCase().contains(PATIENT_ACTOR_REFERENCE.toUpperCase()))
+                    .filter(participant -> participant.getActorReference() != null && participant.getActorReference().toUpperCase().contains(PATIENT_ACTOR_REFERENCE.toUpperCase()))
                     .map(AppointmentParticipantDto::getActorName)
                     .collect(toList());
             if (!actorNames.isEmpty())
