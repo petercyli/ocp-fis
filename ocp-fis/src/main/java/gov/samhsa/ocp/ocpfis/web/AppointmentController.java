@@ -30,10 +30,11 @@ public class AppointmentController {
     public PageDto<AppointmentDto> getAppointments(@RequestParam Optional<List<String>> statusList,
                                                    @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                    @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                   @RequestParam(value = "showPastAppointments", defaultValue = "false") Optional<Boolean> showPastAppointments,
                                                    @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc,
                                                    @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                    @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return appointmentService.getAppointments(statusList, searchKey, searchValue, sortByStartTimeAsc, pageNumber, pageSize);
+        return appointmentService.getAppointments(statusList, searchKey, searchValue, showPastAppointments, sortByStartTimeAsc, pageNumber, pageSize);
     }
 
     @PutMapping("/{appointmentId}/cancel")
