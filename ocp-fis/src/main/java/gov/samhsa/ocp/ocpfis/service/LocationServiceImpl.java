@@ -267,16 +267,16 @@ public class LocationServiceImpl implements LocationService {
         }
 
         if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
+            log.info("Searching for location " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
             locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.LOGICALID.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
+            log.info("Searching for location " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
             locationsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
+            log.info("Searching for location " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
             locationsSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
         } else {
-            log.info("No additional search criteria entered.");
+            log.info("Searching location : No additional search criteria entered.");
         }
         return locationsSearchQuery;
     }
