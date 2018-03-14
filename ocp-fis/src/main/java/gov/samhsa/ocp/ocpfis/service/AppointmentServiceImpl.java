@@ -113,7 +113,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     public void cancelAppointment(String appointmentId) {
         Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
         appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
-        fhirClient.update().resource(appointment).execute();
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, appointment, "Cancel Appointment");
     }
 
     private IQuery addAdditionalSearchConditions(IQuery searchQuery, Optional<String> searchKey, Optional<String> searchValue) {
