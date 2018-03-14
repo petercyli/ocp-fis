@@ -65,7 +65,12 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public PageDto<AppointmentDto> getAppointments(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<AppointmentDto> getAppointments(Optional<List<String>> statusList,
+                                                   Optional<String> searchKey,
+                                                   Optional<String> searchValue,
+                                                   Optional<Boolean> sortByStartTimeAsc,
+                                                   Optional<Integer> pageNumber,
+                                                   Optional<Integer> pageSize) {
         int numberOfAppointmentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Appointment.name());
         Bundle firstPageAppointmentBundle;
         Bundle otherPageAppointmentBundle;
@@ -75,6 +80,9 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         // Check if there are any additional search criteria
         iQuery = addAdditionalSearchConditions(iQuery, searchKey, searchValue);
+
+        //Check sort order
+        iQuery = addSortConditions(iQuery, sortByStartTimeAsc);
 
         firstPageAppointmentBundle = PaginationUtil.getSearchBundleFirstPage(iQuery, numberOfAppointmentsPerPage, Optional.empty());
 
@@ -101,6 +109,14 @@ public class AppointmentServiceImpl implements AppointmentService {
         return new PageDto<>(appointmentDtos, numberOfAppointmentsPerPage, totalPages, currentPage, appointmentDtos.size(), otherPageAppointmentBundle.getTotal());
     }
 
+    @Override
+    public void cancelAppointment(String appointmentId) {
+        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, appointment, "Cancel Appointment");
+    }
+
     private IQuery addAdditionalSearchConditions(IQuery searchQuery, Optional<String> searchKey, Optional<String> searchValue) {
         if (searchKey.isPresent() && !SearchKeyEnum.AppointmentSearchKey.contains(searchKey.get())) {
             throw new BadRequestException("Unidentified search key:" + searchKey.get());
@@ -122,14 +138,18 @@ public class AppointmentServiceImpl implements AppointmentService {
         } else {
             log.info("No additional search criteria entered.");
         }
+
         return searchQuery;
     }
 
-    @Override
-    public void cancelAppointment(String appointmentId) {
-        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
-        appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
-        fhirClient.update().resource(appointment).execute();
+    private IQuery addSortConditions(IQuery searchQuery, Optional<Boolean> sortByStartTimeAsc) {
+        // Currently, appointments can only be sorted by Appointment.DATE ("Appointment date/time.")
+        if (!sortByStartTimeAsc.isPresent() || sortByStartTimeAsc.get()) {
+            searchQuery.sort().ascending(Appointment.DATE);
+        } else if(!sortByStartTimeAsc.get()){
+            searchQuery.sort().descending(Appointment.DATE);
+        }
+        return searchQuery;
     }
 
     private void validateAppointDtoFromRequest(AppointmentDto appointmentDto) {
