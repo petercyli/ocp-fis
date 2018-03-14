@@ -188,16 +188,16 @@ public class TaskServiceImpl implements TaskService {
 
         List<TaskDto> finalList = new ArrayList<>();
 
-        for(Map.Entry<String, List<TaskDto>> entry: tasksGroupedByPatient.entrySet()) {
+        for (Map.Entry<String, List<TaskDto>> entry : tasksGroupedByPatient.entrySet()) {
             List<TaskDto> filtered = entry.getValue();
             Collections.sort(filtered);
 
-            if(!filtered.isEmpty()) {
+            if (!filtered.isEmpty()) {
                 TaskDto upcomingTask = filtered.get(0);
                 finalList.add(upcomingTask);
 
                 filtered.stream().skip(1).forEach(task -> {
-                    if(upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())) {
+                    if (upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())) {
                         finalList.add(task);
                     }
                 });
@@ -360,21 +360,16 @@ public class TaskServiceImpl implements TaskService {
                 .returnBundle(Bundle.class).execute();
     }
 
-    public List<ReferenceDto> getRelatedTasks(String patient) {
-        List<ReferenceDto> tasks = new ArrayList<>();
+    public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition) {
 
-        Bundle bundle = getBundleForPatient(patient);
+        List<ReferenceDto> tasks = getBundleForPatient(patient).getEntry().stream()
+                .map(Bundle.BundleEntryComponent::getResource)
+                .map(resource -> FhirDtoUtil.mapTaskToReferenceDto((Task) resource))
+                .collect(toList());
 
-        if (bundle != null) {
-            List<Bundle.BundleEntryComponent> taskComponents = bundle.getEntry();
+        if (definition.isPresent())
+        tasks.stream().filter(t -> t.getDisplay().equalsIgnoreCase(definition.get())).collect(toList());
 
-            if (taskComponents != null) {
-                tasks = taskComponents.stream()
-                        .map(it -> (Task) it.getResource())
-                        .map(it -> FhirDtoUtil.mapTaskToReferenceDto(it))
-                        .collect(toList());
-            }
-        }
 
         return tasks;
     }

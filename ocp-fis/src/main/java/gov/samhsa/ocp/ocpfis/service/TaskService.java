@@ -19,7 +19,7 @@ public interface TaskService {
 
     TaskDto getTaskById(String taskId);
 
-    List<ReferenceDto> getRelatedTasks(String patient);
+    List<ReferenceDto> getRelatedTasks(String patient,Optional<String> definition);
 
     List<TaskDto> getUpcomingTasks(String practitioner);
 }
