@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @RunWith(SpringRunner.class)
 @WebMvcTest(value = TaskController.class, secure = false)
@@ -46,7 +47,7 @@ public class TaskControllerTest {
         ReferenceDto referenceDto = createReference();
         List<ReferenceDto> referenceDtoList = new ArrayList<>();
         referenceDtoList.add(referenceDto);
-        Mockito.when(taskService.getRelatedTasks("12")).thenReturn(referenceDtoList);
+        Mockito.when(taskService.getRelatedTasks("12", Optional.empty())).thenReturn(referenceDtoList);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/tasks/task-references?patient=12");
