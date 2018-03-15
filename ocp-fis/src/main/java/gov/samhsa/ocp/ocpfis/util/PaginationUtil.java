@@ -13,14 +13,14 @@ import java.util.Optional;
 @Slf4j
 public final class PaginationUtil {
 
-    public static Bundle getSearchBundleFirstPage(IQuery query, int count, Optional<Include> include){
-        if(include.isPresent()){
+    public static Bundle getSearchBundleFirstPage(IQuery query, int count, Optional<Include> include) {
+        if (include.isPresent()) {
             return (Bundle) query.count(count)
                     .include(include.get())
                     .returnBundle(Bundle.class)
                     .encodedJson()
                     .execute();
-        } else{
+        } else {
             return (Bundle) query.count(count)
                     .returnBundle(Bundle.class)
                     .encodedJson()
@@ -50,6 +50,14 @@ public final class PaginationUtil {
         } else {
             throw new ResourceNotFoundException("No resources were found in the FHIR server for the page number: " + pageNumber);
         }
+    }
+
+    public static boolean isFirstPage(Optional<Integer> pageNumber) {
+        boolean firstPage = true;
+        if (pageNumber.isPresent() && pageNumber.get() > 1) {
+            firstPage = false;
+        }
+        return firstPage;
     }
 
     public static int getValidPageSize(FisProperties fisProperties, Optional<Integer> pageSize, String resource) {
@@ -90,7 +98,7 @@ public final class PaginationUtil {
                 break;
             case "PRACTITIONER":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
-                    s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
+                        s <= fisProperties.getPractitioner().getPagination().getMaxSize()).orElse(fisProperties.getPractitioner().getPagination().getDefaultSize());
                 break;
             case "RELATEDPERSON":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&

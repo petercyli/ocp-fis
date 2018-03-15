@@ -14,10 +14,8 @@ import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Extension;
-import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.dstu3.model.Type;
 
 import java.util.List;
@@ -160,15 +158,5 @@ public class FhirUtil {
 
         return coding;
     }
-
-    public static boolean checkFirstPage(Optional<Integer> pageNumber) {
-        boolean firstPage = true;
-        if (pageNumber.isPresent() && pageNumber.get() > 1) {
-            firstPage = false;
-        }
-        return firstPage;
-    }
-
-
 }
 

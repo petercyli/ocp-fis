@@ -20,7 +20,6 @@ import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TaskDtoToTaskMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -45,9 +44,8 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
-import static java.util.Optional.empty;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -182,7 +180,7 @@ public class TaskServiceImpl implements TaskService {
     public PageDto<TaskDto> getUpcomingTasksByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfTasksPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Task.name());
 
-        boolean firstPage = FhirUtil.checkFirstPage(pageNumber);
+        boolean firstPage = PaginationUtil.isFirstPage(pageNumber);
 
         List<TaskDto> upcomingTasks = this.getUpcomingTasksByPractitionerAndRole(practitioner, role, searchKey, searchValue);
 
@@ -292,7 +290,8 @@ public class TaskServiceImpl implements TaskService {
             taskDto.setLogicalId(task.getIdElement().getIdPart());
             try {
                 taskDto.setDefinition(FhirDtoUtil.convertReferenceToReferenceDto(task.getDefinitionReference()));
-            } catch (FHIRException e) {
+            }
+            catch (FHIRException e) {
                 e.printStackTrace();
             }
 
@@ -408,7 +407,8 @@ public class TaskServiceImpl implements TaskService {
                 try {
                     return task.getDefinitionReference().getReference().equalsIgnoreCase(taskDto.getDefinition().getReference());
 
-                } catch (FHIRException e) {
+                }
+                catch (FHIRException e) {
                     throw new ResourceNotFoundException("No definition reference found in the Server");
                 }
             }).collect(Collectors.toList());
