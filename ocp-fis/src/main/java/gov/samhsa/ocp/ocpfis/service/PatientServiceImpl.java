@@ -15,11 +15,15 @@ import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -48,6 +52,7 @@ import java.util.stream.Collectors;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.createExtension;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.getCoding;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.convertExtensionToCoding;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -71,13 +76,15 @@ public class PatientServiceImpl implements PatientService {
     private final ModelMapper modelMapper;
     private final FhirValidator fhirValidator;
     private final FisProperties fisProperties;
+    private final LookUpService lookUpService;
 
-    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties) {
+    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
         this.fhirClient = fhirClient;
         this.iParser = iParser;
         this.modelMapper = modelMapper;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
+        this.lookUpService=lookUpService;
     }
 
     @Override
@@ -117,7 +124,9 @@ public class PatientServiceImpl implements PatientService {
         Bundle otherPagePatientSearchBundle;
         boolean firstPage = true;
         log.debug("Patients Search Query to FHIR Server: START");
-        firstPagePatientSearchBundle = (Bundle) PatientSearchQuery.count(numberOfPatientsPerPage)
+        firstPagePatientSearchBundle = (Bundle) PatientSearchQuery
+                .count(numberOfPatientsPerPage)
+                .revInclude(Flag.INCLUDE_PATIENT)
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
@@ -220,6 +229,7 @@ public class PatientServiceImpl implements PatientService {
     public PatientDto getPatientById(String patientId) {
         Bundle patientBundle = fhirClient.search().forResource(Patient.class)
                 .where(new TokenClientParam("_id").exactly().code(patientId))
+                .revInclude(Flag.INCLUDE_PATIENT)
                 .returnBundle(Bundle.class)
                 .execute();
 
@@ -233,6 +243,10 @@ public class PatientServiceImpl implements PatientService {
         patientDto.setId(patient.getIdElement().getIdPart());
         patientDto.setBirthDate(patient.getBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         patientDto.setGenderCode(patient.getGender().toCode());
+
+        //Get Flags for the patient
+        List<FlagDto> flagDtos=getFlagsForEachPatient(patientBundle.getEntry(),patientBundleEntry.getResource().getIdElement().getIdPart());
+        patientDto.setFlags(flagDtos);
 
         mapExtensionFields(patient, patientDto);
 
@@ -256,12 +270,43 @@ public class PatientServiceImpl implements PatientService {
                         if (patient.getGender() != null)
                             patientDto.setGenderCode(patient.getGender().toCode());
                         mapExtensionFields(patient, patientDto);
+                        //Getting flags into the patient dto
+                        List<FlagDto> flagDtos=getFlagsForEachPatient(response.getEntry(),patient.getIdElement().getIdPart());
+                        patientDto.setFlags(flagDtos);
                         return patientDto;
                     })
-                    .collect(Collectors.toList());
+                    .collect(toList());
         }
         log.info("Total Patients retrieved from Server #" + patientDtos.size());
         return patientDtos;
+    }
+
+    private List<FlagDto> getFlagsForEachPatient(List<Bundle.BundleEntryComponent> patientAndAllReferenceBundle, String patientId) {
+        return patientAndAllReferenceBundle.stream().filter(patientWithAllReference->patientWithAllReference.getResource().getResourceType().equals(ResourceType.Flag))
+                .map(flagBundle->{
+                    Flag flag= (Flag) flagBundle.getResource();
+                    return flag;
+                })
+                .filter(flag->flag.getSubject().getReference().equalsIgnoreCase("Patient/"+patientId))
+                .map(flag->{
+                    FlagDto flagDto=modelMapper.map(flag,FlagDto.class);
+                    if(flag.getPeriod()!=null && !flag.getPeriod().isEmpty()) {
+                        PeriodDto periodDto=new PeriodDto();
+                        flagDto.setPeriod(periodDto);
+                        flagDto.getPeriod().setStart((flag.getPeriod().hasStart())? DateUtil.convertDateToLocalDate(flag.getPeriod().getStart()):null);
+                        flagDto.getPeriod().setEnd((flag.getPeriod().hasEnd())?DateUtil.convertDateToLocalDate(flag.getPeriod().getEnd()):null);
+                    }
+
+                    flagDto.setStatus(FhirDtoUtil.convertCodeToValueSetDto(flag.getStatus().toCode(),lookUpService.getFlagStatus()));
+                    flag.getCategory().getCoding().stream().findAny().ifPresent(coding -> {
+                        flagDto.setCategory(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getFlagCategory()));
+                    });
+
+                    flagDto.setCode(flag.getCode().getText());
+                    flagDto.setSubject(flag.getSubject().getReference());
+                    flagDto.setLogicalId(flag.getIdElement().getIdPart());
+                    return flagDto;
+                }).collect(toList());
     }
 
     private void setExtensionFields(Patient patient, PatientDto patientDto) {
