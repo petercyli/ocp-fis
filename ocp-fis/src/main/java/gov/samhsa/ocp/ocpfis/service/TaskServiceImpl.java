@@ -5,7 +5,6 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
-import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
@@ -30,7 +29,6 @@ import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.exceptions.FHIRException;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -51,9 +49,7 @@ import static java.util.stream.Collectors.toList;
 @Slf4j
 public class TaskServiceImpl implements TaskService {
 
-    private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
-    private final FhirValidator fhirValidator;
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
     private final EpisodeOfCareService episodeOfCareService;
@@ -61,17 +57,13 @@ public class TaskServiceImpl implements TaskService {
     private final PatientService patientService;
 
     @Autowired
-    public TaskServiceImpl(ModelMapper modelMapper,
-                           IGenericClient fhirClient,
-                           FhirValidator fhirValidator,
+    public TaskServiceImpl(IGenericClient fhirClient,
                            LookUpService lookUpService,
                            FisProperties fisProperties,
                            ActivityDefinitionService activityDefinitionService,
                            EpisodeOfCareService episodeOfCareService,
                            PatientService patientService) {
-        this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
-        this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.activityDefinitionService = activityDefinitionService;
@@ -188,8 +180,8 @@ public class TaskServiceImpl implements TaskService {
         return new PageDto<>(upcomingTasks, upcomingTasks.size(), 1, 1, upcomingTasks.size(), upcomingTasks.size());
     }
 
-    public List<TaskDto> getUpcomingTasksByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue) {
-        List<PatientDto> patients = patientService.getPatientsByPractitionerAndRole(practitioner, role, null, null);
+    private List<TaskDto> getUpcomingTasksByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue) {
+        List<PatientDto> patients = patientService.getPatientsByPractitionerAndRole(practitioner, role, Optional.empty(), Optional.empty());
 
         List<TaskDto> allTasks = patients.stream()
                 .flatMap(it -> getTasksByPatient(it.getId()).stream())
@@ -231,7 +223,7 @@ public class TaskServiceImpl implements TaskService {
         }
 
         //if start date is available but endDate (due date) is not sent by UI
-        if (startDate != null && endDate == null) {
+        if (endDate == null) {
 
             Reference reference = FhirDtoUtil.mapReferenceDtoToReference(taskDto.getDefinition());
             String activityDefinitionId = FhirDtoUtil.getIdFromReferenceDto(taskDto.getDefinition(), ResourceType.ActivityDefinition);
@@ -350,7 +342,7 @@ public class TaskServiceImpl implements TaskService {
 
     }
 
-    public List<TaskDto> getTasksByPatient(String patient) {
+    private List<TaskDto> getTasksByPatient(String patient) {
         List<TaskDto> tasks = new ArrayList<>();
 
         Bundle bundle = getBundleForPatient(patient);
@@ -386,7 +378,7 @@ public class TaskServiceImpl implements TaskService {
             if (taskComponents != null) {
                 tasks = taskComponents.stream()
                         .map(it -> (Task) it.getResource())
-                        .map(it -> FhirDtoUtil.mapTaskToReferenceDto(it))
+                        .map(FhirDtoUtil::mapTaskToReferenceDto)
                         .collect(toList());
             }
         }
