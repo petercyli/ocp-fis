@@ -361,16 +361,15 @@ public class TaskServiceImpl implements TaskService {
     }
 
     public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition) {
-
         List<ReferenceDto> tasks = getBundleForPatient(patient).getEntry().stream()
                 .map(Bundle.BundleEntryComponent::getResource)
                 .map(resource -> FhirDtoUtil.mapTaskToReferenceDto((Task) resource))
                 .collect(toList());
-
-        if (definition.isPresent())
-        tasks.stream().filter(t -> t.getDisplay().equalsIgnoreCase(definition.get())).collect(toList());
-
-
+        if (definition.isPresent()) {
+            return tasks.stream()
+                    .filter(referenceDto -> referenceDto.getDisplay().equalsIgnoreCase(definition.get()))
+                    .collect(toList());
+        }
         return tasks;
     }
 

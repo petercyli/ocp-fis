@@ -58,7 +58,7 @@ public class TaskController {
     }
 
     @GetMapping("/tasks/task-references")
-    public List<ReferenceDto> getRelatedTasks(@RequestParam String patient, Optional<String> definition) {
+    public List<ReferenceDto> getRelatedTasks(@RequestParam String patient, @RequestParam Optional<String> definition) {
         return taskService.getRelatedTasks(patient, definition);
     }
 
