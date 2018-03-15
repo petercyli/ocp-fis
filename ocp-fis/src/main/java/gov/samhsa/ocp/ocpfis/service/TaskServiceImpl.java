@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
@@ -128,6 +129,67 @@ public class TaskServiceImpl implements TaskService {
                     Task task = (Task) retrievedTask.getResource();
                     return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());
                 }).collect(toList());
+
+        double totalPages = Math.ceil((double) otherPageTaskBundle.getTotal() / numberOfTasksPerPage);
+        int currentPage = firstPage ? 1 : pageNumber.get();
+
+        return new PageDto<>(taskDtos, numberOfTasksPerPage, totalPages, currentPage, taskDtos.size(), otherPageTaskBundle.getTotal());
+    }
+
+
+    @Override
+    public PageDto<TaskDto> getSubTodos(Optional<List<String>> statusList, Optional<String> practitionerId, Optional<String> patientId, Optional<String> definition, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfTasksPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Task.name());
+        IQuery iQuery = fhirClient.search().forResource(Task.class);
+
+
+        if (practitionerId.isPresent()) {
+            iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()));
+        }
+
+        if (patientId.isPresent()) {
+            iQuery.where(new ReferenceClientParam("patient").hasId(patientId.get()));
+        }
+
+        //Check for Status
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
+            iQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
+        }
+
+        Bundle firstPageTaskBundle;
+        Bundle otherPageTaskBundle;
+        boolean firstPage = true;
+
+        firstPageTaskBundle = (Bundle) iQuery
+                .count(numberOfTasksPerPage)
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (firstPageTaskBundle == null || firstPageTaskBundle.getEntry().isEmpty()) {
+            throw new ResourceNotFoundException("No Tasks were found in the FHIR server.");
+        }
+
+        otherPageTaskBundle = firstPageTaskBundle;
+
+        if (pageNumber.isPresent() && pageNumber.get() > 1 && otherPageTaskBundle.getLink(Bundle.LINK_NEXT) != null) {
+            firstPage = false;
+            otherPageTaskBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageTaskBundle, pageNumber.get(), numberOfTasksPerPage);
+        }
+
+        List<Bundle.BundleEntryComponent> retrievedTasks = otherPageTaskBundle.getEntry();
+
+        List<TaskDto> taskDtos = retrievedTasks.stream()
+                .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Task))
+                .map(retrievedTask -> {
+                    Task task = (Task) retrievedTask.getResource();
+                    return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());
+                }).collect(toList());
+
+        if (definition.isPresent()) {
+            taskDtos = taskDtos.stream()
+                    .filter(t -> t.getPartOf()!=null)
+                    .filter(taskDto -> taskDto.getPartOf().getDisplay().equalsIgnoreCase(definition.get())).collect(toList());
+        }
 
         double totalPages = Math.ceil((double) otherPageTaskBundle.getTotal() / numberOfTasksPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();

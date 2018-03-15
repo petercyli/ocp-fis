@@ -34,6 +34,18 @@ public class TaskController {
         return taskService.getTasks(statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
+
+    @GetMapping("/tasks/subtasks/search")
+    public PageDto<TaskDto> getSubTodos(@RequestParam Optional<List<String>> statusList,
+                                        @RequestParam(value = "practitionerId") Optional<String> practitionerId,
+                                        @RequestParam(value = "patientId") Optional<String> patientId,
+                                        @RequestParam(value = "definition") Optional<String> definition,
+                                        @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                        @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+        return taskService.getSubTodos(statusList, practitionerId, patientId, definition, pageNumber, pageSize);
+    }
+
+
     @PostMapping("/tasks")
     @ResponseStatus(HttpStatus.CREATED)
     public void createTask(@Valid @RequestBody TaskDto taskDto) {
