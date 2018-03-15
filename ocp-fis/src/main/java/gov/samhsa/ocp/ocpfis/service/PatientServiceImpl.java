@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service;
 
 
 import ca.uhn.fhir.parser.IParser;
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
@@ -10,6 +11,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
+import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
@@ -25,11 +27,15 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Extension;
+import org.hl7.fhir.dstu3.model.Flag;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Period;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Type;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -160,7 +166,16 @@ public class PatientServiceImpl implements PatientService {
 
             final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
             if (validationResult.isSuccessful()) {
-                fhirClient.create().resource(patient).execute();
+                MethodOutcome methodOutcome=fhirClient.create().resource(patient).execute();
+                //Assign fhir Patient resource id.
+                Reference patientId=new Reference();
+                patientId.setReference("Patient/"+methodOutcome.getId().getIdPart());
+
+                //Create flag for the patient
+                patientDto.getFlags().forEach(flagDto -> {
+                    Flag flag = convertFlagDtoToFlag(patientId, flagDto);
+                    fhirClient.create().resource(flag).execute();
+                });
             } else {
                 throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
             }
@@ -181,7 +196,21 @@ public class PatientServiceImpl implements PatientService {
 
         final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
         if (validationResult.isSuccessful()) {
-            fhirClient.update().resource(patient).execute();
+            MethodOutcome methodOutcome=fhirClient.update().resource(patient).execute();
+            //Assign fhir Patient resource id.
+            Reference patientId=new Reference();
+            patientId.setReference("Patient/"+methodOutcome.getId().getIdPart());
+
+            patientDto.getFlags().forEach(flagDto->{
+                Flag flag=convertFlagDtoToFlag(patientId,flagDto);
+                if(flagDto.getLogicalId()!=null) {
+                    flag.setId(flagDto.getLogicalId());
+                    fhirClient.update().resource(flag).execute();
+                }else{
+                    fhirClient.create().resource(flag).execute();
+                }
+            });
+
         } else {
             throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
         }
@@ -284,6 +313,40 @@ public class PatientServiceImpl implements PatientService {
                 patientDto.setBirthSex(coding.getCode());
             }
         });
+    }
+
+    private Flag convertFlagDtoToFlag(Reference patientId,FlagDto flagDto){
+        Flag flag=new Flag();
+
+        //Set Subject
+        flag.setSubject(patientId);
+
+        //Set code
+        flag.getCode().setText(flagDto.getCode());
+
+        //Set Status
+        try {
+            flag.setStatus(Flag.FlagStatus.fromCode(flagDto.getStatus().getCode()));
+        } catch (FHIRException e) {
+            throw new BadRequestException("No such fhir status exist.");
+        }
+
+        //Set Category
+        CodeableConcept codeableConcept=new CodeableConcept();
+        codeableConcept.addCoding(modelMapper.map(flagDto.getCategory(),Coding.class));
+        flag.setCategory(codeableConcept);
+
+        //Set Period
+        Period period=new Period();
+        period.setStart(java.sql.Date.valueOf(flagDto.getPeriod().getStart()));
+        period.setEnd(java.sql.Date.valueOf(flagDto.getPeriod().getEnd()));
+        flag.setPeriod(period);
+
+        //Set Author
+        Reference reference=modelMapper.map(flagDto.getAuthor(),Reference.class);
+        flag.setAuthor(reference);
+
+        return flag;
     }
 
 
