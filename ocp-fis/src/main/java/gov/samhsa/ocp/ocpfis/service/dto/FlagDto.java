@@ -13,9 +13,11 @@ import lombok.NoArgsConstructor;
 public class FlagDto {
     private String logicalId;
 
-    private ValueSetDto status;
+    private String status;
+    private String statusDisplay;
 
-    private ValueSetDto category;
+    private String category;
+    private String categoryDisplay;
 
     private String code;
 
