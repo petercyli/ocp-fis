@@ -8,11 +8,16 @@ import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Extension;
+import org.hl7.fhir.dstu3.model.HumanName;
+import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.dstu3.model.Type;
 
 import java.util.List;
@@ -57,6 +62,26 @@ public class FhirUtil {
             coding.setSystem(system);
         }
         return coding;
+    }
+
+    public static boolean checkPatientName(Patient patient, String searchValue) {
+        return patient.getName()
+                .stream()
+                .anyMatch(humanName -> humanName.getGiven().stream().anyMatch(name -> name.toString().equalsIgnoreCase(searchValue)) || humanName.getFamily().equalsIgnoreCase(searchValue));
+    }
+
+    public static boolean checkPatientId(Patient patient, String searchValue) {
+        return patient.getIdentifier()
+                .stream()
+                .anyMatch(identifier -> identifier.getValue().equalsIgnoreCase(searchValue));
+
+    }
+
+    public static boolean checkParticipantRole(List<CareTeam.CareTeamParticipantComponent> components, String role) {
+        return components.stream()
+                .filter(it -> it.getMember().getReference().contains(ResourceType.Practitioner.toString()))
+                .map(it -> FhirUtil.getRoleFromCodeableConcept(it.getRole()))
+                .anyMatch(t -> t.contains(role));
     }
 
     public static boolean isStringNotNullAndNotEmpty(String givenString) {
@@ -134,6 +159,14 @@ public class FhirUtil {
         }
 
         return coding;
+    }
+
+    public static boolean checkFirstPage(Optional<Integer> pageNumber) {
+        boolean firstPage = true;
+        if (pageNumber.isPresent() && pageNumber.get() > 1) {
+            firstPage = false;
+        }
+        return firstPage;
     }
 
 
