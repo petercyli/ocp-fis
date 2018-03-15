@@ -4,6 +4,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
@@ -18,16 +19,19 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.IdType;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Type;
 import org.modelmapper.ModelMapper;
@@ -42,6 +46,7 @@ import java.util.stream.Collectors;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.createExtension;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.getCoding;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.convertExtensionToCoding;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -117,7 +122,7 @@ public class PatientServiceImpl implements PatientService {
                 .execute();
         log.debug("Patients Search Query to FHIR Server: END");
 
-        if(firstPagePatientSearchBundle == null || firstPagePatientSearchBundle.getEntry().isEmpty()) {
+        if (firstPagePatientSearchBundle == null || firstPagePatientSearchBundle.getEntry().isEmpty()) {
             log.info("No patients were found for the given criteria.");
             return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
         }
@@ -136,6 +141,71 @@ public class PatientServiceImpl implements PatientService {
 
         return new PageDto<>(patientDtos, numberOfPatientsPerPage, totalPages, currentPage, patientDtos.size(), otherPagePatientSearchBundle.getTotal());
     }
+
+    @Override
+    public PageDto<PatientDto> getPatientsByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Patient.name());
+
+        boolean firstPage = FhirUtil.checkFirstPage(pageNumber);
+
+        List<PatientDto> patients = this.getPatientsByPractitionerAndRole(practitioner, role, searchKey, searchValue);
+
+        //TODO: Pagination logic
+        return new PageDto<>(patients, patients.size(), 1, 1, patients.size(), patients.size());
+    }
+
+    public List<PatientDto> getPatientsByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue) {
+        List<PatientDto> patients = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(CareTeam.class)
+                .where(new ReferenceClientParam("participant").hasId(practitioner))
+                .include(CareTeam.INCLUDE_PATIENT)
+                .include(CareTeam.INCLUDE_PARTICIPANT)
+                .sort().ascending(CareTeam.RES_ID)
+                .returnBundle(Bundle.class)
+                .limitTo(1000)
+                .execute();
+
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> components = bundle.getEntry();
+            if (components != null) {
+                patients = components.stream()
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
+                        .map(it -> (CareTeam) it.getResource())
+                        .filter(it -> FhirUtil.checkParticipantRole(it.getParticipant(), role))
+                        .map(it -> (Patient) it.getSubject().getResource())
+                        //.filter(it -> filterBySearchKey(it, searchKey, searchValue))
+                        .map(this::mapPatientToPatientDto)
+                        .distinct()
+                        .collect(toList());
+            }
+        }
+        return patients;
+    }
+
+    private boolean filterBySearchKey(Patient patient, Optional<String> searchKey, Optional<String> searchValue) {
+        //returning everything if searchKey is not present, change to false later.
+        boolean result = true;
+        if(searchKey.isPresent() && searchValue.isPresent()) {
+            if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
+                FhirUtil.checkPatientName(patient, searchValue.get());
+            } else if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
+                FhirUtil.checkPatientId(patient, searchValue.get());
+            }
+        }
+        return result;
+    }
+
+    private PatientDto mapPatientToPatientDto(Patient patient) {
+        PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
+        patientDto.setId(patient.getIdElement().getIdPart());
+        if (patient.getGender() != null)
+            patientDto.setGenderCode(patient.getGender().toCode());
+        mapExtensionFields(patient, patientDto);
+        return patientDto;
+    }
+
+
 
     private int getPatientsByIdentifier(String system, String value) {
         log.info("Searching patients with identifier.system : " + system + " and value : " + value);
@@ -221,14 +291,7 @@ public class PatientServiceImpl implements PatientService {
                     .filter(bundleEntryComponent -> bundleEntryComponent.getResource().getResourceType().equals(ResourceType.Patient))  //patient entries
                     .map(bundleEntryComponent -> (Patient) bundleEntryComponent.getResource()) // patient resources
                     .peek(patient -> log.debug(iParser.encodeResourceToString(patient)))
-                    .map(patient -> {
-                        PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
-                        patientDto.setId(patient.getIdElement().getIdPart());
-                        if (patient.getGender() != null)
-                            patientDto.setGenderCode(patient.getGender().toCode());
-                        mapExtensionFields(patient, patientDto);
-                        return patientDto;
-                    })
+                    .map(this::mapPatientToPatientDto)
                     .collect(Collectors.toList());
         }
         log.info("Total Patients retrieved from Server #" + patientDtos.size());
@@ -239,28 +302,28 @@ public class PatientServiceImpl implements PatientService {
         List<Extension> extensionList = new ArrayList<>();
 
         //language
-        if(patientDto.getLanguage() != null && !patientDto.getLanguage().isEmpty()) {
+        if (patientDto.getLanguage() != null && !patientDto.getLanguage().isEmpty()) {
             Coding langCoding = getCoding(patientDto.getLanguage(), "", CODING_SYSTEM_LANGUAGE);
             Extension langExtension = createExtension(EXTENSION_URL_LANGUAGE, new CodeableConcept().addCoding(langCoding));
             extensionList.add(langExtension);
         }
 
         //race
-        if(patientDto.getRace() != null && !patientDto.getRace().isEmpty()) {
+        if (patientDto.getRace() != null && !patientDto.getRace().isEmpty()) {
             Coding raceCoding = getCoding(patientDto.getRace(), "", CODING_SYSTEM_RACE);
             Extension raceExtension = createExtension(EXTENSION_URL_RACE, new CodeableConcept().addCoding(raceCoding));
             extensionList.add(raceExtension);
         }
 
         //ethnicity
-        if(patientDto.getEthnicity() != null && !patientDto.getEthnicity().isEmpty()) {
+        if (patientDto.getEthnicity() != null && !patientDto.getEthnicity().isEmpty()) {
             Coding ethnicityCoding = getCoding(patientDto.getEthnicity(), "", CODING_SYSTEM_ETHNICITY);
             Extension ethnicityExtension = createExtension(EXTENSION_URL_ETHNICITY, new CodeableConcept().addCoding(ethnicityCoding));
             extensionList.add(ethnicityExtension);
         }
 
         //us-core-birthsex
-        if(patientDto.getBirthSex() != null && !patientDto.getBirthSex().isEmpty()) {
+        if (patientDto.getBirthSex() != null && !patientDto.getBirthSex().isEmpty()) {
             Coding birthSexCoding = getCoding(patientDto.getBirthSex(), "", CODING_SYSTEM_BIRTHSEX);
             Extension birthSexExtension = createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthSexCoding));
             extensionList.add(birthSexExtension);

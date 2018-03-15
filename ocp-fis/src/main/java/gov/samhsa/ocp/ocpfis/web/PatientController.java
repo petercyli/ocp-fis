@@ -37,12 +37,6 @@ public class PatientController {
     }
 
 
-    @GetMapping
-    public List<PatientDto> getPatients() {
-        return patientService.getPatients();
-    }
-
-
     @GetMapping("/search")
     public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "value") String value,
                                                   @RequestParam(value = "type", defaultValue = "name") String type,
@@ -73,4 +67,16 @@ public class PatientController {
     public PatientDto getPatientById(@PathVariable String patientId) {
         return patientService.getPatientById(patientId);
     }
+
+    @GetMapping
+    PageDto<PatientDto> getPatientsByPractitionerAndRole(@RequestParam(value = "practitioner") String practitioner,
+                                                         @RequestParam(value = "role") String role,
+                                                         @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                         @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                         @RequestParam(value = "showInActive") Optional<Boolean> showInactive,
+                                                         @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                         @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+        return patientService.getPatientsByPractitionerAndRole(practitioner, role, searchKey, searchValue, showInactive, pageNumber, pageSize);
+    }
+
 }
