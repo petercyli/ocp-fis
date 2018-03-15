@@ -10,6 +10,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
@@ -19,6 +20,7 @@ import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TaskDtoToTaskMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -43,6 +45,7 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
+import static java.util.Optional.empty;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.groupingBy;
 
@@ -57,7 +60,7 @@ public class TaskServiceImpl implements TaskService {
     private final FisProperties fisProperties;
     private final EpisodeOfCareService episodeOfCareService;
     private final ActivityDefinitionService activityDefinitionService;
-    private final CareTeamService careTeamService;
+    private final PatientService patientService;
 
     @Autowired
     public TaskServiceImpl(ModelMapper modelMapper,
@@ -67,7 +70,7 @@ public class TaskServiceImpl implements TaskService {
                            FisProperties fisProperties,
                            ActivityDefinitionService activityDefinitionService,
                            EpisodeOfCareService episodeOfCareService,
-                           CareTeamService careTeamService) {
+                           PatientService patientService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
@@ -75,7 +78,7 @@ public class TaskServiceImpl implements TaskService {
         this.fisProperties = fisProperties;
         this.activityDefinitionService = activityDefinitionService;
         this.episodeOfCareService = episodeOfCareService;
-        this.careTeamService = careTeamService;
+        this.patientService = patientService;
     }
 
     @Override
@@ -175,12 +178,23 @@ public class TaskServiceImpl implements TaskService {
         fhirClient.update().resource(task).execute();
     }
 
-    public List<TaskDto> getUpcomingTasks(String practitioner) {
-        List<ReferenceDto> patients = careTeamService.getPatientsInCareTeamsByPractitioner(practitioner);
+    @Override
+    public PageDto<TaskDto> getUpcomingTasksByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfTasksPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Task.name());
+
+        boolean firstPage = FhirUtil.checkFirstPage(pageNumber);
+
+        List<TaskDto> upcomingTasks = this.getUpcomingTasksByPractitionerAndRole(practitioner, role, searchKey, searchValue);
+
+        //TODO: pagination logic
+        return new PageDto<>(upcomingTasks, upcomingTasks.size(), 1, 1, upcomingTasks.size(), upcomingTasks.size());
+    }
+
+    public List<TaskDto> getUpcomingTasksByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue) {
+        List<PatientDto> patients = patientService.getPatientsByPractitionerAndRole(practitioner, role, null, null);
 
         List<TaskDto> allTasks = patients.stream()
-                .map(it -> FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Patient))
-                .flatMap(it -> getTasksByPatient(it).stream())
+                .flatMap(it -> getTasksByPatient(it.getId()).stream())
                 .distinct()
                 .collect(toList());
 
@@ -188,21 +202,23 @@ public class TaskServiceImpl implements TaskService {
 
         List<TaskDto> finalList = new ArrayList<>();
 
-        for(Map.Entry<String, List<TaskDto>> entry: tasksGroupedByPatient.entrySet()) {
+        for (Map.Entry<String, List<TaskDto>> entry : tasksGroupedByPatient.entrySet()) {
             List<TaskDto> filtered = entry.getValue();
             Collections.sort(filtered);
 
-            if(!filtered.isEmpty()) {
+            if (!filtered.isEmpty()) {
                 TaskDto upcomingTask = filtered.get(0);
                 finalList.add(upcomingTask);
 
                 filtered.stream().skip(1).forEach(task -> {
-                    if(upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())) {
+                    if (upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())) {
                         finalList.add(task);
                     }
                 });
             }
         }
+
+        //TODO: filter tasks by searchKey/value if present
 
         Collections.sort(finalList);
         return finalList;
