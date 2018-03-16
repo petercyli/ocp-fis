@@ -70,13 +70,12 @@ public class PatientController {
 
     @GetMapping
     PageDto<PatientDto> getPatientsByPractitionerAndRole(@RequestParam(value = "practitioner") String practitioner,
-                                                         @RequestParam(value = "role") String role,
                                                          @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                          @RequestParam(value = "searchValue") Optional<String> searchValue,
                                                          @RequestParam(value = "showInActive") Optional<Boolean> showInactive,
                                                          @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                          @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return patientService.getPatientsByPractitionerAndRole(practitioner, role, searchKey, searchValue, showInactive, pageNumber, pageSize);
+        return patientService.getPatientsByPractitioner(practitioner, searchKey, searchValue, showInactive, pageNumber, pageSize);
     }
 
 }

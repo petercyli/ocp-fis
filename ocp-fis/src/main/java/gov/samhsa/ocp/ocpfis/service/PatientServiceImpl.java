@@ -11,7 +11,6 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
-import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
@@ -19,7 +18,6 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
-import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -29,11 +27,8 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Patient;
-import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.Type;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -45,7 +40,6 @@ import java.util.stream.Collectors;
 
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.createExtension;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.getCoding;
-import static gov.samhsa.ocp.ocpfis.util.FhirUtil.convertExtensionToCoding;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -143,24 +137,24 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<PatientDto> getPatientsByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Patient.name());
 
         boolean firstPage = FhirUtil.checkFirstPage(pageNumber);
 
-        List<PatientDto> patients = this.getPatientsByPractitionerAndRole(practitioner, role, searchKey, searchValue);
+        List<PatientDto> patients = this.getPatientsByPractitioner(practitioner, searchKey, searchValue);
 
         //TODO: Pagination logic
         return new PageDto<>(patients, patients.size(), 1, 1, patients.size(), patients.size());
     }
 
-    public List<PatientDto> getPatientsByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue) {
+    @Override
+    public List<PatientDto> getPatientsByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue) {
         List<PatientDto> patients = new ArrayList<>();
 
         Bundle bundle = fhirClient.search().forResource(CareTeam.class)
                 .where(new ReferenceClientParam("participant").hasId(practitioner))
                 .include(CareTeam.INCLUDE_PATIENT)
-                .include(CareTeam.INCLUDE_PARTICIPANT)
                 .sort().ascending(CareTeam.RES_ID)
                 .returnBundle(Bundle.class)
                 .limitTo(1000)
@@ -170,11 +164,9 @@ public class PatientServiceImpl implements PatientService {
             List<Bundle.BundleEntryComponent> components = bundle.getEntry();
             if (components != null) {
                 patients = components.stream()
-                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
-                        .map(it -> (CareTeam) it.getResource())
-                        .filter(it -> FhirUtil.checkParticipantRole(it.getParticipant(), role))
-                        .map(it -> (Patient) it.getSubject().getResource())
-                        //.filter(it -> filterBySearchKey(it, searchKey, searchValue))
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Patient))
+                        .map(it -> (Patient) it.getResource())
+                        .filter(it -> filterBySearchKey(it, searchKey, searchValue))
                         .map(this::mapPatientToPatientDto)
                         .distinct()
                         .collect(toList());
