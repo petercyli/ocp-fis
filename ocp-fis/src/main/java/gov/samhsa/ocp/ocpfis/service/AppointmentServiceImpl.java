@@ -143,13 +143,15 @@ public class AppointmentServiceImpl implements AppointmentService {
             log.info("Appointments - No additional search criteria entered.");
         }
 
-        if(!showPastAppointments.isPresent() || !showPastAppointments.get()){
+        if(showPastAppointments.isPresent() && !showPastAppointments.get()){
             log.info("Search results will NOT include past appointments.");
             searchQuery.where(Appointment.DATE.afterOrEquals().day(new Date()));
+        } else if(showPastAppointments.isPresent() && showPastAppointments.get()){
+            log.info("Search results will include ONLY past appointments.");
+            searchQuery.where(Appointment.DATE.before().day(new Date()));
         } else {
-            log.info("Search results will include past appointments.");
+            log.info("Search results will include past AND upcoming appointments.");
         }
-
         return searchQuery;
     }
 
