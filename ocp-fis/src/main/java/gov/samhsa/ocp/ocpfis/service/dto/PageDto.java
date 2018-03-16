@@ -23,6 +23,7 @@ public class PageDto<T> {
     int totalElements;
     boolean hasElements;
     List<T> elements;
+    // TODO: Add sort related info
 
 
     public PageDto(List<T> elements, int size, double totalNumberOfPages, int currentPage, int currentPageSize, int totalElements) {
