@@ -11,7 +11,6 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
-import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
@@ -19,7 +18,6 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
-import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -29,11 +27,8 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.IdType;
-import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Patient;
-import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.Type;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
@@ -45,7 +40,6 @@ import java.util.stream.Collectors;
 
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.createExtension;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.getCoding;
-import static gov.samhsa.ocp.ocpfis.util.FhirUtil.convertExtensionToCoding;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -143,15 +137,16 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<PatientDto> getPatientsByPractitionerAndRole(String practitioner,
+                                                                String role,
+                                                                Optional<String> searchKey,
+                                                                Optional<String> searchValue,
+                                                                Optional<Boolean> showInactive,
+                                                                Optional<Integer> pageNumber,
+                                                                Optional<Integer> pageSize) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Patient.name());
-
-        boolean firstPage = FhirUtil.checkFirstPage(pageNumber);
-
         List<PatientDto> patients = this.getPatientsByPractitionerAndRole(practitioner, role, searchKey, searchValue);
-
-        //TODO: Pagination logic
-        return new PageDto<>(patients, patients.size(), 1, 1, patients.size(), patients.size());
+        return (PageDto<PatientDto>) PaginationUtil.applyPaginationForCustomArrayList(patients, numberOfPatientsPerPage, pageNumber, false);
     }
 
     public List<PatientDto> getPatientsByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue) {
@@ -163,7 +158,7 @@ public class PatientServiceImpl implements PatientService {
                 .include(CareTeam.INCLUDE_PARTICIPANT)
                 .sort().ascending(CareTeam.RES_ID)
                 .returnBundle(Bundle.class)
-                .limitTo(1000)
+                .count(1000)
                 .execute();
 
         if (bundle != null) {
@@ -186,7 +181,7 @@ public class PatientServiceImpl implements PatientService {
     private boolean filterBySearchKey(Patient patient, Optional<String> searchKey, Optional<String> searchValue) {
         //returning everything if searchKey is not present, change to false later.
         boolean result = true;
-        if(searchKey.isPresent() && searchValue.isPresent()) {
+        if (searchKey.isPresent() && searchValue.isPresent()) {
             if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
                 FhirUtil.checkPatientName(patient, searchValue.get());
             } else if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
@@ -204,7 +199,6 @@ public class PatientServiceImpl implements PatientService {
         mapExtensionFields(patient, patientDto);
         return patientDto;
     }
-
 
 
     private int getPatientsByIdentifier(String system, String value) {

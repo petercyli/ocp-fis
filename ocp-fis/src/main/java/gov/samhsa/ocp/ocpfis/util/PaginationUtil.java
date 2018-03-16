@@ -4,10 +4,13 @@ import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -52,6 +55,47 @@ public final class PaginationUtil {
         }
     }
 
+    public static PageDto<?> applyPaginationForCustomArrayList(List<?> elements,
+                                                               int numberOfElementsPerPage,
+                                                               Optional<Integer> pageNumber,
+                                                               boolean throwExceptionWhenResourceNotFound) {
+        boolean firstPage = isFirstPage(pageNumber);
+        int currentPage = firstPage ? 1 : pageNumber.get(); // Assuming page number starts with 1
+
+        if (elements == null || elements.isEmpty()) {
+            if(throwExceptionWhenResourceNotFound){
+                throw new ResourceNotFoundException("No resources found!");
+            } else {
+                return new PageDto<>(new ArrayList<>(), numberOfElementsPerPage, 0, 0, 0, 0);
+            }
+        }
+
+        int totalElements = elements.size();
+        double totalPages = Math.ceil((double) totalElements / numberOfElementsPerPage);
+
+        // Check validity of the page number
+        if (currentPage > totalPages) {
+            throw new ResourceNotFoundException("No resources were found in the FHIR server for the page number: " + currentPage);
+        }
+
+        int startIndex = --currentPage * numberOfElementsPerPage;
+        int endIndex = (currentPage * numberOfElementsPerPage) - 1;
+        int lastElementIndex = --totalElements;
+
+        // Just to be doubly sure
+        if (startIndex > lastElementIndex) {
+            throw new ResourceNotFoundException("Something is off about the page number you are requesting! ");
+        }
+
+        List<?> currentPageElements;
+        if (endIndex > lastElementIndex) {
+            currentPageElements = elements.subList(startIndex, lastElementIndex);
+        } else {
+            currentPageElements = elements.subList(startIndex, endIndex);
+        }
+        return new PageDto<>(currentPageElements, numberOfElementsPerPage, totalPages, currentPage, currentPageElements.size(), totalElements);
+    }
+
     public static boolean isFirstPage(Optional<Integer> pageNumber) {
         boolean firstPage = true;
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
@@ -61,7 +105,7 @@ public final class PaginationUtil {
     }
 
     public static int getValidPageSize(FisProperties fisProperties, Optional<Integer> pageSize, String resource) {
-        int numberOfResourcesPerPage = 0;
+        int numberOfResourcesPerPage;
 
         switch (resource.toUpperCase()) {
             case "ACTIVITYDEFINITION":
@@ -108,8 +152,6 @@ public final class PaginationUtil {
                 //Get location's page size. Need to find a better way for default case
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
-
-
         }
         return numberOfResourcesPerPage;
     }
