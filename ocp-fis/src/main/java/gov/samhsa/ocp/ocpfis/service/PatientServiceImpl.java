@@ -139,13 +139,9 @@ public class PatientServiceImpl implements PatientService {
     @Override
     public PageDto<PatientDto> getPatientsByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Patient.name());
-
-        boolean firstPage = FhirUtil.checkFirstPage(pageNumber);
-
         List<PatientDto> patients = this.getPatientsByPractitioner(practitioner, searchKey, searchValue);
 
-        //TODO: Pagination logic
-        return new PageDto<>(patients, patients.size(), 1, 1, patients.size(), patients.size());
+        return (PageDto<PatientDto>) PaginationUtil.applyPaginationForCustomArrayList(patients, numberOfPatientsPerPage, pageNumber, false);
     }
 
     @Override
