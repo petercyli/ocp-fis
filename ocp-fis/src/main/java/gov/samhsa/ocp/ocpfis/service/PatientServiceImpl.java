@@ -5,6 +5,7 @@ import ca.uhn.fhir.parser.IParser;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
@@ -388,6 +389,44 @@ public class PatientServiceImpl implements PatientService {
         flag.setAuthor(reference);
 
         return flag;
+    }
+
+    private boolean duplicateCheckForFlag(FlagDto flagDto,String patientId){
+        Bundle flagBundleForPatient=fhirClient.search().forResource(Flag.class)
+                .where(new ReferenceClientParam("subject").hasId(patientId))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        return flagHasSameCodeAndCategory(flagBundleForPatient,flagDto);
+    }
+
+    private boolean flagHasSameCodeAndCategory(Bundle bundle,FlagDto flagDto){
+        List<Flag> duplicateCheckList=new ArrayList<>();
+        if(!bundle.isEmpty()){
+            duplicateCheckList=bundle.getEntry().stream()
+                    .map(flagResource->{
+                        Flag flag= (Flag) flagResource.getResource();
+                        return flag;
+                    })
+                    .filter(flag->{
+                return flag.getCode().getText().equalsIgnoreCase(flagDto.getCode());
+            }).filter(flag-> flag.getStatus().toCode().equalsIgnoreCase(flagDto.getStatus())
+            ).collect(toList());
+        }
+        //Checking while updating flag
+        if(flagDto.getLogicalId()!=null) {
+            if(duplicateCheckList.isEmpty()){
+                return false;
+            }else{
+               List<Flag> flags=duplicateCheckList.stream()
+                       .filter(flag->flagDto.getLogicalId().equalsIgnoreCase(flag.getIdElement().getIdPart())
+                ).collect(toList());
+                return !flags.isEmpty();
+            }
+        }else {
+            //Checking while creating new flag
+            return !duplicateCheckList.isEmpty();
+        }
     }
 
 
