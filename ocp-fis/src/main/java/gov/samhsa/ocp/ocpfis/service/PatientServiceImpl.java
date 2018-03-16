@@ -207,12 +207,16 @@ public class PatientServiceImpl implements PatientService {
             patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
             patientDto.getFlags().forEach(flagDto -> {
-                Flag flag = convertFlagDtoToFlag(patientId, flagDto);
-                if (flagDto.getLogicalId() != null) {
-                    flag.setId(flagDto.getLogicalId());
-                    fhirClient.update().resource(flag).execute();
+                if (duplicateCheckForFlag(flagDto, patientDto.getId())) {
+                    Flag flag = convertFlagDtoToFlag(patientId, flagDto);
+                    if (flagDto.getLogicalId() != null) {
+                        flag.setId(flagDto.getLogicalId());
+                        fhirClient.update().resource(flag).execute();
+                    } else {
+                        fhirClient.create().resource(flag).execute();
+                    }
                 } else {
-                    fhirClient.create().resource(flag).execute();
+                    throw new DuplicateResourceFoundException("Same flag is already present for this patient.");
                 }
             });
 
@@ -391,42 +395,41 @@ public class PatientServiceImpl implements PatientService {
         return flag;
     }
 
-    private boolean duplicateCheckForFlag(FlagDto flagDto,String patientId){
-        IQuery flagBundleForPatientQuery=fhirClient.search().forResource(Flag.class)
+    private boolean duplicateCheckForFlag(FlagDto flagDto, String patientId) {
+        IQuery flagBundleForPatientQuery = fhirClient.search().forResource(Flag.class)
                 .where(new ReferenceClientParam("subject").hasId(patientId));
-        Bundle flagBundleToCoundTotalNumberOfFlag= (Bundle) flagBundleForPatientQuery.returnBundle(Bundle.class).execute();
-        int totalFlagForPatient=flagBundleToCoundTotalNumberOfFlag.getTotal();
-        Bundle flagBundleForPatient= (Bundle) flagBundleForPatientQuery
+        Bundle flagBundleToCoundTotalNumberOfFlag = (Bundle) flagBundleForPatientQuery.returnBundle(Bundle.class).execute();
+        int totalFlagForPatient = flagBundleToCoundTotalNumberOfFlag.getTotal();
+        Bundle flagBundleForPatient = (Bundle) flagBundleForPatientQuery
                 .count(totalFlagForPatient)
                 .returnBundle(Bundle.class)
                 .execute();
-        return flagHasSameCodeAndCategory(flagBundleForPatient,flagDto);
+        return flagHasSameCodeAndCategory(flagBundleForPatient, flagDto);
     }
 
-    private boolean flagHasSameCodeAndCategory(Bundle bundle,FlagDto flagDto){
-        List<Flag> duplicateCheckList=new ArrayList<>();
-        if(!bundle.isEmpty()){
-            duplicateCheckList=bundle.getEntry().stream()
-                    .map(flagResource->{
-                        Flag flag= (Flag) flagResource.getResource();
+    private boolean flagHasSameCodeAndCategory(Bundle bundle, FlagDto flagDto) {
+        List<Flag> duplicateCheckList = new ArrayList<>();
+        if (!bundle.isEmpty()) {
+            duplicateCheckList = bundle.getEntry().stream()
+                    .map(flagResource -> {
+                        Flag flag = (Flag) flagResource.getResource();
                         return flag;
                     })
-                    .filter(flag->{
-                return flag.getCode().getText().equalsIgnoreCase(flagDto.getCode());
-            }).filter(flag-> flag.getStatus().toCode().equalsIgnoreCase(flagDto.getStatus())
-            ).collect(toList());
+                    .filter(flag -> flag.getCode().getText().equalsIgnoreCase(flagDto.getCode()))
+                    .filter(flag -> flag.getStatus().toCode().equalsIgnoreCase(flagDto.getStatus())
+                    ).collect(toList());
         }
         //Checking while updating flag
-        if(flagDto.getLogicalId()!=null) {
-            if(duplicateCheckList.isEmpty()){
+        if (flagDto.getLogicalId() != null) {
+            if (duplicateCheckList.isEmpty()) {
                 return false;
-            }else{
-               List<Flag> flags=duplicateCheckList.stream()
-                       .filter(flag->flagDto.getLogicalId().equalsIgnoreCase(flag.getIdElement().getIdPart())
-                ).collect(toList());
+            } else {
+                List<Flag> flags = duplicateCheckList.stream()
+                        .filter(flag -> flagDto.getLogicalId().equalsIgnoreCase(flag.getIdElement().getIdPart())
+                        ).collect(toList());
                 return !flags.isEmpty();
             }
-        }else {
+        } else {
             //Checking while creating new flag
             return !duplicateCheckList.isEmpty();
         }
