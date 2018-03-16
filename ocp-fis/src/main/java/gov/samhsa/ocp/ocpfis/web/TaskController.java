@@ -64,12 +64,11 @@ public class TaskController {
 
     @GetMapping("/tasks")
     public PageDto<TaskDto> getUpcomingTasksByPractitionerAndRole(@RequestParam(value = "practitioner") String practitioner,
-                                          @RequestParam(value = "role") String role,
                                           @RequestParam(value = "searchKey") Optional<String> searchKey,
                                           @RequestParam(value = "searchValue") Optional<String> searchValue,
                                           @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                           @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return taskService.getUpcomingTasksByPractitionerAndRole(practitioner, role, searchKey, searchValue, pageNumber, pageSize);
+        return taskService.getUpcomingTasksByPractitioner(practitioner, searchKey, searchValue, pageNumber, pageSize);
 
     }
 }

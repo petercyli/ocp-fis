@@ -169,19 +169,19 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public PageDto<TaskDto> getUpcomingTasksByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<TaskDto> getUpcomingTasksByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfTasksPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Task.name());
 
         boolean firstPage = PaginationUtil.isFirstPage(pageNumber);
 
-        List<TaskDto> upcomingTasks = this.getUpcomingTasksByPractitionerAndRole(practitioner, role, searchKey, searchValue);
+        List<TaskDto> upcomingTasks = this.getUpcomingTasksByPractitioner(practitioner, searchKey, searchValue);
 
         //TODO: pagination logic
         return new PageDto<>(upcomingTasks, upcomingTasks.size(), 1, 1, upcomingTasks.size(), upcomingTasks.size());
     }
 
-    private List<TaskDto> getUpcomingTasksByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue) {
-        List<PatientDto> patients = patientService.getPatientsByPractitionerAndRole(practitioner, role, Optional.empty(), Optional.empty());
+    public List<TaskDto> getUpcomingTasksByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue) {
+        List<PatientDto> patients = patientService.getPatientsByPractitioner(practitioner, Optional.empty(), Optional.empty());
 
         List<TaskDto> allTasks = patients.stream()
                 .flatMap(it -> getTasksByPatient(it.getId()).stream())
@@ -201,7 +201,7 @@ public class TaskServiceImpl implements TaskService {
                 finalList.add(upcomingTask);
 
                 filtered.stream().skip(1).forEach(task -> {
-                    if (upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())) {
+                    if (endDateAvailable(upcomingTask) && upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())) {
                         finalList.add(task);
                     }
                 });
@@ -212,6 +212,13 @@ public class TaskServiceImpl implements TaskService {
 
         Collections.sort(finalList);
         return finalList;
+    }
+
+    private boolean endDateAvailable(TaskDto dto) {
+        if(dto.getExecutionPeriod() != null && dto.getExecutionPeriod().getEnd() != null) {
+            return true;
+        }
+        return false;
     }
 
     private void retrieveActivityDefinitionDuration(TaskDto taskDto) {

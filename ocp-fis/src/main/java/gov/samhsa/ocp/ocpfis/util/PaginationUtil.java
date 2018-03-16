@@ -63,7 +63,7 @@ public final class PaginationUtil {
         int currentPage = firstPage ? 1 : pageNumber.get(); // Assuming page number starts with 1
 
         if (elements == null || elements.isEmpty()) {
-            if(throwExceptionWhenResourceNotFound){
+            if (throwExceptionWhenResourceNotFound) {
                 throw new ResourceNotFoundException("No resources found!");
             } else {
                 return new PageDto<>(new ArrayList<>(), numberOfElementsPerPage, 0, 0, 0, 0);
@@ -78,9 +78,9 @@ public final class PaginationUtil {
             throw new ResourceNotFoundException("No resources were found in the FHIR server for the page number: " + currentPage);
         }
 
-        int startIndex = --currentPage * numberOfElementsPerPage;
+        int startIndex = ((currentPage - 1) * numberOfElementsPerPage);
         int endIndex = (currentPage * numberOfElementsPerPage) - 1;
-        int lastElementIndex = --totalElements;
+        int lastElementIndex = totalElements - 1;
 
         // Just to be doubly sure
         if (startIndex > lastElementIndex) {
@@ -89,9 +89,9 @@ public final class PaginationUtil {
 
         List<?> currentPageElements;
         if (endIndex > lastElementIndex) {
-            currentPageElements = elements.subList(startIndex, lastElementIndex);
+            currentPageElements = elements.subList(startIndex, ++lastElementIndex);
         } else {
-            currentPageElements = elements.subList(startIndex, endIndex);
+            currentPageElements = elements.subList(startIndex, ++endIndex);
         }
         return new PageDto<>(currentPageElements, numberOfElementsPerPage, totalPages, currentPage, currentPageElements.size(), totalElements);
     }
