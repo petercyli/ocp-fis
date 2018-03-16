@@ -392,11 +392,14 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private boolean duplicateCheckForFlag(FlagDto flagDto,String patientId){
-        Bundle flagBundleForPatient=fhirClient.search().forResource(Flag.class)
-                .where(new ReferenceClientParam("subject").hasId(patientId))
+        IQuery flagBundleForPatientQuery=fhirClient.search().forResource(Flag.class)
+                .where(new ReferenceClientParam("subject").hasId(patientId));
+        Bundle flagBundleToCoundTotalNumberOfFlag= (Bundle) flagBundleForPatientQuery.returnBundle(Bundle.class).execute();
+        int totalFlagForPatient=flagBundleToCoundTotalNumberOfFlag.getTotal();
+        Bundle flagBundleForPatient= (Bundle) flagBundleForPatientQuery
+                .count(totalFlagForPatient)
                 .returnBundle(Bundle.class)
                 .execute();
-
         return flagHasSameCodeAndCategory(flagBundleForPatient,flagDto);
     }
 
