@@ -66,6 +66,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public PageDto<AppointmentDto> getAppointments(Optional<List<String>> statusList,
+                                                   Optional<String>  patientId,
+                                                   Optional<String>  practitionerId,
                                                    Optional<String> searchKey,
                                                    Optional<String> searchValue,
                                                    Optional<Boolean> showPastAppointments,
@@ -79,62 +81,20 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         IQuery iQuery = fhirClient.search().forResource(Appointment.class);
 
+        if (patientId.isPresent() && patientId.get().equalsIgnoreCase("patientId")) {
+            log.info("Searching Appointments for patientId = " + patientId.get().trim());
+            iQuery.where(new ReferenceClientParam("patient").hasId(patientId.get().trim()));
+        }
+        if (practitionerId.isPresent() && practitionerId.get().equalsIgnoreCase("practitionerId")) {
+            log.info("Searching Appointments for practitionerId = " + practitionerId.get().trim());
+            iQuery.where(new ReferenceClientParam("practitioner").hasId(practitionerId.get().trim()));
+        } else
+
         // Check if there are any additional search criteria
         iQuery = addStatusSearchConditions(iQuery, statusList);
 
         // Additional Search Key and Value
         iQuery = addSearchKeyValueConditions(iQuery, searchKey, searchValue);
-
-        // Past appointments
-        iQuery = addShowPastAppointmentConditions(iQuery, showPastAppointments);
-
-        //Check sort order
-        iQuery = addSortConditions(iQuery, sortByStartTimeAsc);
-
-        firstPageAppointmentBundle = PaginationUtil.getSearchBundleFirstPage(iQuery, numberOfAppointmentsPerPage, Optional.empty());
-
-        if (firstPageAppointmentBundle == null || firstPageAppointmentBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Appointments were found in the FHIR server.");
-        }
-
-        otherPageAppointmentBundle = firstPageAppointmentBundle;
-
-        if (pageNumber.isPresent() && pageNumber.get() > 1 && otherPageAppointmentBundle.getLink(Bundle.LINK_NEXT) != null) {
-            firstPage = false;
-            otherPageAppointmentBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageAppointmentBundle, pageNumber.get(), numberOfAppointmentsPerPage);
-        }
-
-        List<Bundle.BundleEntryComponent> retrievedAppointments = otherPageAppointmentBundle.getEntry();
-
-        List<AppointmentDto> appointmentDtos = retrievedAppointments.stream()
-                .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
-                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource()))).collect(toList());
-
-        double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
-        int currentPage = firstPage ? 1 : pageNumber.get();
-
-        return new PageDto<>(appointmentDtos, numberOfAppointmentsPerPage, totalPages, currentPage, appointmentDtos.size(), otherPageAppointmentBundle.getTotal());
-    }
-
-    @Override
-    public PageDto<AppointmentDto> getAppointmentsByPractitionerAndPatient(String patientId,
-                                                                           String practitionerId,
-                                                                           Optional<List<String>> statusList,
-                                                                           Optional<Boolean> showPastAppointments,
-                                                                           Optional<Boolean> sortByStartTimeAsc,
-                                                                           Optional<Integer> pageNumber,
-                                                                           Optional<Integer> pageSize) {
-        int numberOfAppointmentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Appointment.name());
-        Bundle firstPageAppointmentBundle;
-        Bundle otherPageAppointmentBundle;
-        boolean firstPage = true;
-
-        IQuery iQuery = fhirClient.search().forResource(Appointment.class)
-                .where(new ReferenceClientParam("patient").hasId(patientId.trim()))
-                .where(new ReferenceClientParam("practitioner").hasId(practitionerId.trim()));
-
-        // Check if there are any additional search criteria
-        iQuery = addStatusSearchConditions(iQuery, statusList);
 
         // Past appointments
         iQuery = addShowPastAppointmentConditions(iQuery, showPastAppointments);
@@ -201,13 +161,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         // Check if there are any additional search criteria
-        if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PATIENTID.name())) {
-            log.info("Searching Appointments for " + SearchKeyEnum.AppointmentSearchKey.PATIENTID.name() + " = " + searchValue.get().trim());
-            searchQuery.where(new ReferenceClientParam("patient").hasId(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name())) {
-            log.info("Searching Appointments for " + SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name() + " = " + searchValue.get().trim());
-            searchQuery.where(new ReferenceClientParam("practitioner").hasId(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
+        if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
             log.info("Searching Appointments for " + SearchKeyEnum.AppointmentSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
             searchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else {
