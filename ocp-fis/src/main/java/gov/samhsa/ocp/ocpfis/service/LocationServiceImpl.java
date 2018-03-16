@@ -69,17 +69,8 @@ public class LocationServiceImpl implements LocationService {
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
-        //Check for location status
-        if (statusList.isPresent() && !statusList.get().isEmpty()) {
-            log.info("Searching for locations with the following specific status(es).");
-            statusList.get().forEach(log::info);
-            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
-        } else {
-            log.info("Searching for locations with ALL statuses");
-        }
-
         // Check if there are any additional search criteria
-        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, searchKey, searchValue);
+        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
         firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(locationsSearchQuery, numberOfLocationsPerPage, Optional.empty());
@@ -115,17 +106,8 @@ public class LocationServiceImpl implements LocationService {
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
-        //Check for location status
-        if (statusList.isPresent() && !statusList.get().isEmpty()) {
-            log.info("Searching for location with the following specific status(es) for the given OrganizationID:" + organizationResourceId);
-            statusList.get().forEach(log::info);
-            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
-        } else {
-            log.info("Searching for locations with ALL statuses for the given OrganizationID:" + organizationResourceId);
-        }
-
         // Check if there are any additional search criteria
-        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, searchKey, searchValue);
+        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
         firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(locationsSearchQuery, numberOfLocationsPerPage, Optional.empty());
@@ -257,8 +239,17 @@ public class LocationServiceImpl implements LocationService {
     }
 
 
-    private IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
-        //Check for bad requests
+    private IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue) {
+        // Check for location status
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
+            log.info("Searching for location with the following specific status(es)");
+            statusList.get().forEach(log::info);
+            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
+        } else {
+            log.info("Searching for locations with ALL statuses");
+        }
+
+        // Check for bad requests
         if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
             throw new BadRequestException("Unidentified search key:" + searchKey.get());
         } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
@@ -266,6 +257,7 @@ public class LocationServiceImpl implements LocationService {
             throw new BadRequestException("No search value found for the search key" + searchKey.get());
         }
 
+        // Check searchKey and searchValue
         if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
             log.info("Searching for location " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
             locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
