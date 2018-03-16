@@ -207,7 +207,7 @@ public class PatientServiceImpl implements PatientService {
             patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
             patientDto.getFlags().forEach(flagDto -> {
-                if (duplicateCheckForFlag(flagDto, patientDto.getId())) {
+                if (!duplicateCheckForFlag(flagDto, patientDto.getId())) {
                     Flag flag = convertFlagDtoToFlag(patientId, flagDto);
                     if (flagDto.getLogicalId() != null) {
                         flag.setId(flagDto.getLogicalId());
