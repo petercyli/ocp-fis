@@ -65,7 +65,6 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
-        boolean firstPage = true;
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
@@ -82,18 +81,13 @@ public class LocationServiceImpl implements LocationService {
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
-            // Load the required page
-            firstPage = false;
             otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
-        //Arrange Page related info
+        // Map to DTO
         List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
-        double totalPages = Math.ceil((double) otherPageLocationSearchBundle.getTotal() / numberOfLocationsPerPage);
-        int currentPage = firstPage ? 1 : pageNumber.get();
-
-        return new PageDto<>(locationsList, numberOfLocationsPerPage, totalPages, currentPage, locationsList.size(), otherPageLocationSearchBundle.getTotal());
+        return (PageDto<LocationDto>) PaginationUtil.applyPaginationForSearchBundle(locationsList, otherPageLocationSearchBundle.getTotal(), numberOfLocationsPerPage, pageNumber);
     }
 
     @Override
@@ -102,7 +96,6 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
-        boolean firstPage = true;
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
@@ -122,18 +115,14 @@ public class LocationServiceImpl implements LocationService {
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
-            firstPage = false;
             otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
-        //Arrange Page related info
+        // Map to DTO
         List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
-        double totalPages = Math.ceil((double) otherPageLocationSearchBundle.getTotal() / numberOfLocationsPerPage);
-        int currentPage = firstPage ? 1 : pageNumber.get();
-
-        return new PageDto<>(locationsList, numberOfLocationsPerPage, totalPages, currentPage, locationsList.size(), otherPageLocationSearchBundle.getTotal());
+        return (PageDto<LocationDto>) PaginationUtil.applyPaginationForSearchBundle(locationsList, otherPageLocationSearchBundle.getTotal(), numberOfLocationsPerPage, pageNumber);
     }
 
     @Override
