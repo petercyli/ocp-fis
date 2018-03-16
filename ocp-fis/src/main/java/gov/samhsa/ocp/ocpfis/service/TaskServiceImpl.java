@@ -45,9 +45,8 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
-import static java.util.Optional.empty;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -179,19 +178,19 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public PageDto<TaskDto> getUpcomingTasksByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<TaskDto> getUpcomingTasksByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfTasksPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Task.name());
 
         boolean firstPage = FhirUtil.checkFirstPage(pageNumber);
 
-        List<TaskDto> upcomingTasks = this.getUpcomingTasksByPractitionerAndRole(practitioner, role, searchKey, searchValue);
+        List<TaskDto> upcomingTasks = this.getUpcomingTasksByPractitioner(practitioner, searchKey, searchValue);
 
         //TODO: pagination logic
         return new PageDto<>(upcomingTasks, upcomingTasks.size(), 1, 1, upcomingTasks.size(), upcomingTasks.size());
     }
 
-    public List<TaskDto> getUpcomingTasksByPractitionerAndRole(String practitioner, String role, Optional<String> searchKey, Optional<String> searchValue) {
-        List<PatientDto> patients = patientService.getPatientsByPractitionerAndRole(practitioner, role, null, null);
+    public List<TaskDto> getUpcomingTasksByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue) {
+        List<PatientDto> patients = patientService.getPatientsByPractitioner(practitioner, Optional.empty(), Optional.empty());
 
         List<TaskDto> allTasks = patients.stream()
                 .flatMap(it -> getTasksByPatient(it.getId()).stream())
@@ -211,7 +210,7 @@ public class TaskServiceImpl implements TaskService {
                 finalList.add(upcomingTask);
 
                 filtered.stream().skip(1).forEach(task -> {
-                    if (upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())) {
+                    if (endDateAvailable(upcomingTask) && upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())) {
                         finalList.add(task);
                     }
                 });
@@ -222,6 +221,13 @@ public class TaskServiceImpl implements TaskService {
 
         Collections.sort(finalList);
         return finalList;
+    }
+
+    private boolean endDateAvailable(TaskDto dto) {
+        if(dto.getExecutionPeriod() != null && dto.getExecutionPeriod().getEnd() != null) {
+            return true;
+        }
+        return false;
     }
 
     private void retrieveActivityDefinitionDuration(TaskDto taskDto) {
