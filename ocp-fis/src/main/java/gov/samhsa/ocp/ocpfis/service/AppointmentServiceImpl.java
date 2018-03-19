@@ -66,8 +66,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public PageDto<AppointmentDto> getAppointments(Optional<List<String>> statusList,
-                                                   Optional<String>  patientId,
-                                                   Optional<String>  practitionerId,
+                                                   Optional<String> patientId,
+                                                   Optional<String> practitionerId,
                                                    Optional<String> searchKey,
                                                    Optional<String> searchValue,
                                                    Optional<Boolean> showPastAppointments,
@@ -81,15 +81,14 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         IQuery iQuery = fhirClient.search().forResource(Appointment.class);
 
-        if (patientId.isPresent() && patientId.get().equalsIgnoreCase("patientId")) {
+        if (patientId.isPresent()) {
             log.info("Searching Appointments for patientId = " + patientId.get().trim());
             iQuery.where(new ReferenceClientParam("patient").hasId(patientId.get().trim()));
         }
-        if (practitionerId.isPresent() && practitionerId.get().equalsIgnoreCase("practitionerId")) {
+        if (practitionerId.isPresent()) {
             log.info("Searching Appointments for practitionerId = " + practitionerId.get().trim());
             iQuery.where(new ReferenceClientParam("practitioner").hasId(practitionerId.get().trim()));
-        } else
-
+        }
         // Check if there are any additional search criteria
         iQuery = addStatusSearchConditions(iQuery, statusList);
 
