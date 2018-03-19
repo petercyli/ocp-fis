@@ -39,7 +39,7 @@ public class PatientDto {
     @AdministrativeGenderConstraint
     private String genderCode;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate birthDate;
 
     @RaceConstraint
@@ -58,5 +58,6 @@ public class PatientDto {
     @LanguageConstraint
     private String language;
 
+    private List<FlagDto> flags;
 
 }

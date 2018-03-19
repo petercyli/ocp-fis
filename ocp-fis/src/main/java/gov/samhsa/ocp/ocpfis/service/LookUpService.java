@@ -107,4 +107,8 @@ public interface LookUpService {
     List<ValueSetDto> getProviderRole();
 
     List<ValueSetDto> getProviderSpecialty();
+
+    List<ValueSetDto> getFlagStatus();
+
+    List<ValueSetDto> getFlagCategory();
 }
