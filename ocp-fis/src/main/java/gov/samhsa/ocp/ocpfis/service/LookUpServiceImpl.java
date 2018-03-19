@@ -740,6 +740,30 @@ public class LookUpServiceImpl implements LookUpService {
         return providerSpecialtyList;
     }
 
+    @Override
+    public List<ValueSetDto> getFlagStatus() {
+        List<ValueSetDto> flagStatusList=new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.FLAG_STATUS.getUrlPath(), LookupPathUrls.FLAG_STATUS.getType());
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.FLAG_STATUS.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            flagStatusList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + flagStatusList.size() + " flag statuses.");
+        return flagStatusList;
+    }
+
+    @Override
+    public List<ValueSetDto> getFlagCategory() {
+        List<ValueSetDto> flagCategoryList=new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.FLAG_CATEGORY.getUrlPath(), LookupPathUrls.FLAG_CATEGORY.getType());
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.FLAG_CATEGORY.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            flagCategoryList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + flagCategoryList.size() + " flag statuses.");
+        return flagCategoryList;
+    }
+
     private ValueSet getValueSets(String urlPath, String type) {
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + urlPath;
