@@ -31,6 +31,11 @@ public class OrganizationController {
     @Autowired
     private OrganizationService organizationService;
 
+    @GetMapping("/{organizationId}")
+    public OrganizationDto getOrganization(@PathVariable String organizationId) {
+        return organizationService.getOrganization(organizationId);
+    }
+
     @GetMapping("/search")
     public PageDto<OrganizationDto> searchOrganizations(@RequestParam SearchType searchType, @RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
         return organizationService.searchOrganizations(searchType, searchValue, showInactive, page, size);

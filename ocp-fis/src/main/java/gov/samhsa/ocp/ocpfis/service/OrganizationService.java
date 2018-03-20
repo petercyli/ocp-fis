@@ -10,6 +10,8 @@ import java.util.Optional;
 
 public interface OrganizationService {
 
+    OrganizationDto getOrganization(String organizationId);
+
     PageDto<OrganizationDto> getAllOrganizations(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
 
     PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
