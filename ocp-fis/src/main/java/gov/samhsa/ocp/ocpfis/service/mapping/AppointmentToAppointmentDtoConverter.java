@@ -16,9 +16,8 @@ public class AppointmentToAppointmentDtoConverter {
 
     private static final String PATIENT_ACTOR_REFERENCE = "Patient";
     private static final String DATE_TIME_FORMATTER_PATTERN_DATE = "MM/dd/yyyy";
-    private static final String DATE_TIME_FORMATTER_PATTERN_TIME = "HH:mm";
 
-    public static AppointmentDto map (Appointment appointment){
+    public static AppointmentDto map(Appointment appointment) {
 
         AppointmentDto appointmentDto = new AppointmentDto();
 
@@ -56,20 +55,16 @@ public class AppointmentToAppointmentDtoConverter {
         if (appointment.hasStart()) {
             appointmentDto.setStart(DateUtil.convertDateToLocalDateTime(appointment.getStart()));
             DateTimeFormatter startFormatterDate = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_DATE);
-            String formattedDate = appointmentDto.getStart().format(startFormatterDate); // "MM/dd/yyyy HH:mm"
+            String formattedDate = appointmentDto.getStart().format(startFormatterDate);
             appointmentDto.setAppointmentDate(formattedDate);
 
-            DateTimeFormatter startFormatterTime = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_TIME);
-            String formattedStartTime = appointmentDto.getStart().format(startFormatterTime); // "MM/dd/yyyy HH:mm"
-
-            duration = duration + formattedStartTime;
+            duration = duration + DateUtil.convertLocalDateTimeToHumanReadableFormat(appointmentDto.getStart());
         }
 
         if (appointment.hasEnd()) {
             appointmentDto.setEnd(DateUtil.convertDateToLocalDateTime(appointment.getEnd()));
-            DateTimeFormatter endFormatterTime = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_TIME);
-            String formattedEndTime = appointmentDto.getEnd().format(endFormatterTime); // "HH:mm"
-            duration = duration + " - " + formattedEndTime;
+
+            duration = duration + " - " + DateUtil.convertLocalDateTimeToHumanReadableFormat(appointmentDto.getEnd());
         }
         appointmentDto.setAppointmentDuration(duration);
 
