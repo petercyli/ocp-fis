@@ -35,14 +35,11 @@ public class TaskController {
     }
 
 
-    @GetMapping("/tasks/subtasks/search")
-    public PageDto<TaskDto> getSubTodos(@RequestParam Optional<List<String>> statusList,
-                                        @RequestParam(value = "practitionerId") Optional<String> practitionerId,
-                                        @RequestParam(value = "patientId") Optional<String> patientId,
-                                        @RequestParam(value = "definition") Optional<String> definition,
-                                        @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
-                                        @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return taskService.getSubTodos(statusList, practitionerId, patientId, definition, pageNumber, pageSize);
+    @GetMapping("/tasks/subtasks")
+    public List<TaskDto> getSubTasks(@RequestParam(value = "practitionerId") Optional<String> practitionerId,
+                                     @RequestParam(value = "patientId") Optional<String> patientId,
+                                     @RequestParam(value = "definition") Optional<String> definition) {
+        return taskService.getSubTasks(practitionerId, patientId, definition);
     }
 
 

@@ -11,7 +11,7 @@ public interface TaskService {
 
     PageDto<TaskDto> getTasks(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 
-    PageDto<TaskDto> getSubTodos(Optional<List<String>> statusList, Optional<String> practitionerId, Optional<String> patientId, Optional<String> definition, Optional<Integer> pageNumber, Optional<Integer> pageSize);
+    List<TaskDto> getSubTasks(Optional<String> practitionerId, Optional<String> patientId, Optional<String> definition);
 
     void createTask(TaskDto taskDto);
 
