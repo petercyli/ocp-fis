@@ -103,10 +103,10 @@ public class TaskDto implements Comparable<TaskDto> {
         return 0;
     }
 
-    public void setTaskDue() {
+    public void displayTaskDue() {
         if (dateDiff == 0)
             setTaskDue(TaskDueEnum.DUETODAY);
-        if (dateDiff < 0)
+        if (dateDiff > 0)
             setTaskDue(TaskDueEnum.UPCOMING);
         if (dateDiff < 0)
             setTaskDue(TaskDueEnum.OVERDUE);

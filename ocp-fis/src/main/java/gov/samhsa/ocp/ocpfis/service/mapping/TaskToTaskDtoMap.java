@@ -122,7 +122,7 @@ public class TaskToTaskDtoMap {
             taskDto.getExecutionPeriod().setStart((task.getExecutionPeriod().hasStart()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getStart()) : null);
             taskDto.getExecutionPeriod().setEnd((task.getExecutionPeriod().hasEnd()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getEnd()) : null);
             taskDto.setDateDiff(taskDto.calDateDiff());
-            taskDto.setTaskDue(TaskDueEnum.DUETODAY);
+            taskDto.displayTaskDue();
         }
 
         return taskDto;
