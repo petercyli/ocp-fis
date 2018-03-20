@@ -1,9 +1,11 @@
 package gov.samhsa.ocp.ocpfis.domain;
 
+import java.util.Arrays;
+
 public class SearchKeyEnum {
 
     public enum CommonSearchKey {
-        NAME, IDENTIFIER;
+        NAME, IDENTIFIER
     }
 
     public enum RelatedPersonSearchKey {
@@ -17,11 +19,7 @@ public class SearchKeyEnum {
         NAME, LOGICALID, IDENTIFIERVALUE;
 
         public static boolean contains(String s) {
-            for (LocationSearchKey locationSearchKey : values())
-                if (locationSearchKey.name().equalsIgnoreCase(s)) {
-                    return true;
-                }
-            return false;
+            return Arrays.stream(values()).anyMatch(locationSearchKey -> locationSearchKey.name().equalsIgnoreCase(s));
         }
     }
 
@@ -32,11 +30,7 @@ public class SearchKeyEnum {
         NAME, LOGICALID, IDENTIFIERVALUE;
 
         public static boolean contains(String s) {
-            for (HealthcareServiceSearchKey healthcareServiceSearchKey : values())
-                if (healthcareServiceSearchKey.name().equalsIgnoreCase(s)) {
-                    return true;
-                }
-            return false;
+            return Arrays.stream(values()).anyMatch(healthcareServiceSearchKey -> healthcareServiceSearchKey.name().equalsIgnoreCase(s));
         }
     }
 
@@ -44,14 +38,10 @@ public class SearchKeyEnum {
         /**
          * Appointment be searched based on the following keys
          */
-        LOGICALID, PATIENTID, PRACTITIONERID;
+        LOGICALID;
 
         public static boolean contains(String s) {
-            for (AppointmentSearchKey appointmentSearchKey : values())
-                if (appointmentSearchKey.name().equalsIgnoreCase(s)) {
-                    return true;
-                }
-            return false;
+            return Arrays.stream(values()).anyMatch(appointmentSearchKey -> appointmentSearchKey.name().equalsIgnoreCase(s));
         }
     }
 

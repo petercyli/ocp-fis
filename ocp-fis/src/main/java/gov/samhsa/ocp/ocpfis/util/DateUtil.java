@@ -60,13 +60,13 @@ public class DateUtil {
     public static String convertLocalDateToString(LocalDate date) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
-        if(date != null) {
+        if (date != null) {
             return formatter.format(date);
         }
         return "";
     }
 
-    public static Date convertLocalDateTimeToDate(LocalDateTime dateTime){
+    public static Date convertLocalDateTimeToDate(LocalDateTime dateTime) {
         return Date.from(dateTime.atZone(ZoneId.systemDefault()).toInstant());
     }
 
@@ -77,11 +77,15 @@ public class DateUtil {
      **/
     public static boolean isValidDateRange(Date startDate, Date endDate, boolean equalOK) {
         // false if either value is null
-        if (startDate == null || endDate == null) { return false; }
+        if (startDate == null || endDate == null) {
+            return false;
+        }
 
         if (equalOK) {
             // true if they are equal
-            if (startDate.equals(endDate)) { return true; }
+            if (startDate.equals(endDate)) {
+                return true;
+            }
         }
 
         // true if endDate after startDate
@@ -96,16 +100,44 @@ public class DateUtil {
      **/
     public static boolean isValidDateTimeRange(LocalDateTime startDateTime, LocalDateTime endDateTime, boolean equalOK) {
         // false if either value is null
-        if (startDateTime == null || endDateTime == null) { return false; }
+        if (startDateTime == null || endDateTime == null) {
+            return false;
+        }
 
         if (equalOK) {
             // true if they are equal
-            if (startDateTime.equals(endDateTime)) { return true; }
+            if (startDateTime.equals(endDateTime)) {
+                return true;
+            }
         }
 
         // true if endDateTime after startDateTime
         return endDateTime.isAfter(startDateTime);
 
+    }
+
+    public static String convertLocalDateTimeToHumanReadableFormat(LocalDateTime dateTime) {
+        int hour;
+        String min;
+
+        if (dateTime.getMinute() == 0) {
+            min = ":00";
+        } else if (dateTime.getMinute() < 10) {
+            min = ":0" + dateTime.getMinute();
+        } else min = ":" + dateTime.getMinute();
+
+        if (dateTime.getHour() == 0) {
+            return "00" + min + " AM";
+        }
+        if (dateTime.getHour() < 12) {
+            hour = dateTime.getHour();
+            return hour + min + " AM";
+        }
+        if (dateTime.getHour() == 12) {
+            return "12" + min + " PM";
+        }
+        hour = dateTime.getHour() - 12;
+        return hour + min + " PM";
     }
 
 }
