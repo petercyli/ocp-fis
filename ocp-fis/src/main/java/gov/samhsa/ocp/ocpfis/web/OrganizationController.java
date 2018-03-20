@@ -4,7 +4,6 @@ import gov.samhsa.ocp.ocpfis.service.OrganizationService;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +29,12 @@ public class OrganizationController {
 
     @Autowired
     private OrganizationService organizationService;
+
+    // Todo: Resolve endpoint conflicts with getOrganizationsByPractitioner
+    @GetMapping("all")
+    public PageDto<OrganizationDto> getOrganizations(@RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
+        return organizationService.getAllOrganizations(showInactive, page, size);
+    }
 
     @GetMapping("/{organizationId}")
     public OrganizationDto getOrganization(@PathVariable String organizationId) {
@@ -63,5 +68,4 @@ public class OrganizationController {
     public List<ReferenceDto> getOrganizationsByPractitioner(@RequestParam(value = "practitioner") String practitioner) {
         return organizationService.getOrganizationsByPractitioner(practitioner);
     }
-
 }
