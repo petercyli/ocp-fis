@@ -179,7 +179,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
                 .where(new ReferenceClientParam("organization").hasId( organization))
                 .include(PractitionerRole.INCLUDE_PRACTITIONER)
-                .limitTo(100)
+                .count(Integer.parseInt(fisProperties.getResourceSinglePageLimit()))
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {

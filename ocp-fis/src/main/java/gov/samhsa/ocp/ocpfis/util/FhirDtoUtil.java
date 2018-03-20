@@ -49,11 +49,9 @@ public class FhirDtoUtil {
         ReferenceDto referenceDto = new ReferenceDto();
         referenceDto.setReference(ResourceType.Patient + "/" + patient.getIdElement().getIdPart());
         List<HumanName> names = patient.getName();
-        names.stream().findFirst().ifPresent(it -> {
-                it.getGiven().stream().findFirst().ifPresent(givenName -> {
-                    referenceDto.setDisplay(givenName.toString() + it.getGiven());
-                });
-        });
+        names.stream().findFirst().ifPresent(it -> it.getGiven().stream().findFirst().ifPresent(givenName -> {
+            referenceDto.setDisplay(givenName.toString() + it.getGiven());
+        }));
         return referenceDto;
     }
 
@@ -72,6 +70,16 @@ public class FhirDtoUtil {
 
     public static ValueSetDto convertCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
         return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getCode())).map(valueSet -> {
+            ValueSetDto valueSetDto = new ValueSetDto();
+            valueSetDto.setCode(valueSet.getCode());
+            valueSetDto.setDisplay(valueSet.getDisplay());
+            valueSetDto.setSystem(valueSet.getSystem());
+            return valueSetDto;
+        }).findFirst().orElse(null);
+    }
+
+    public static ValueSetDto convertDisplayCodeToValueSetDto(String code, List<ValueSetDto> valueSetDtos) {
+        return valueSetDtos.stream().filter(lookup -> code.equalsIgnoreCase(lookup.getDisplay().replaceAll("\\s", "").toUpperCase())).map(valueSet -> {
             ValueSetDto valueSetDto = new ValueSetDto();
             valueSetDto.setCode(valueSet.getCode());
             valueSetDto.setDisplay(valueSet.getDisplay());
@@ -165,15 +173,21 @@ public class FhirDtoUtil {
         List<AppointmentParticipantDto> participants = new ArrayList<>();
 
         if (source != null && source.size() > 0) {
-            int numberOfSource = source.size();
-            if (numberOfSource > 0) {
-                source.forEach(member -> {
-                    AppointmentParticipantDto participantDto = new AppointmentParticipantDto();
-                    participantDto.setActorName(member.getActor().getDisplay());
-                    participantDto.setActorReference(member.getActor().getReference());
-                    participants.add(participantDto);
-                });
-            }
+            source.forEach(member -> {
+                AppointmentParticipantDto participantDto = new AppointmentParticipantDto();
+                participantDto.setActorName(member.getActor().getDisplay());
+                participantDto.setActorReference(member.getActor().getReference());
+                if (member.getRequired() != null) {
+                    participantDto.setParticipantRequiredCode(member.getRequired().toCode());
+                }
+                if (member.getStatus() != null) {
+                    participantDto.setParticipationStatusCode(member.getStatus().toCode());
+                }
+                if (member.getType() != null && !member.getType().isEmpty() && !member.getType().get(0).getCoding().isEmpty()) {
+                    participantDto.setParticipationTypeCode(member.getType().get(0).getCoding().get(0).getCode());
+                }
+                participants.add(participantDto);
+            });
         }
         return participants;
     }

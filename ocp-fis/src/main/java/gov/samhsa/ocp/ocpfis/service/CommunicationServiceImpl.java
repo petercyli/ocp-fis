@@ -28,6 +28,7 @@ import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.StringType;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -109,23 +110,33 @@ public class CommunicationServiceImpl implements CommunicationService {
 
             CommunicationDto communicationDto = new CommunicationDto();
 
-
             communicationDto.setLogicalId(communication.getIdElement().getIdPart());
+
+            communicationDto.setNotDone(communication.getNotDone());
 
             if (communication.hasStatus()) {
                 communicationDto.setStatusValue(communication.getStatus().getDisplay());
+                communicationDto.setStatusCode(communication.getStatus().toCode());
             }
 
            if (communication.hasCategory()) {
                 ValueSetDto category = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getCategory());
                 communicationDto.setCategoryValue(category.getDisplay());
-            }
+               communicationDto.setCategoryCode(category.getCode());
+
+           }
 
             if (communication.hasMedium()) {
-                ValueSetDto medium = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getCategory());
+                ValueSetDto medium = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getMedium());
                 communicationDto.setMediumValue(medium.getDisplay());
+                communicationDto.setMediumCode(medium.getCode());
             }
 
+            if (communication.hasNotDoneReason()) {
+                ValueSetDto notDoneReason = FhirDtoUtil.convertCodeableConceptToValueSetDto(communication.getNotDoneReason());
+                communicationDto.setNotDoneReasonValue(notDoneReason.getDisplay());
+                communicationDto.setNotDoneReasonCode(notDoneReason.getCode());
+            }
 
             if (communication.hasRecipient()) {
                 communicationDto.setRecipient(communication.getRecipient().stream().map(recipient -> FhirDtoUtil.convertReferenceToReferenceDto(recipient)).collect(Collectors.toList()));
@@ -136,6 +147,55 @@ public class CommunicationServiceImpl implements CommunicationService {
                             .reference((communication.getSender().getReference() != null && !communication.getSender().getReference().isEmpty()) ? communication.getSender().getReference() : null)
                             .display((communication.getSender().getDisplay()!= null && !communication.getSender().getDisplay().isEmpty()) ? communication.getSender().getDisplay() : null)
                             .build());
+            }
+
+            if (communication.hasSubject()) {
+                communicationDto.setSubject(ReferenceDto.builder()
+                        .reference((communication.getSubject().getReference() != null && !communication.getSubject().getReference().isEmpty()) ? communication.getSubject().getReference() : null)
+                        .display((communication.getSubject().getDisplay()!= null && !communication.getSubject().getDisplay().isEmpty()) ? communication.getSubject().getDisplay() : null)
+                        .build());
+            }
+
+
+            if (communication.hasTopic()) {
+                communicationDto.setTopic(ReferenceDto.builder()
+                                          .reference(FhirDtoUtil.convertReferenceToReferenceDto(communication.getTopic().stream().findAny().get()).getReference())
+                                          .display(FhirDtoUtil.convertReferenceToReferenceDto(communication.getTopic().stream().findAny().get()).getDisplay())
+                                          .build());
+            }
+
+
+            if (communication.hasDefinition()) {
+                communicationDto.setDefinition(ReferenceDto.builder()
+                        .reference(FhirDtoUtil.convertReferenceToReferenceDto(communication.getDefinition().stream().findAny().get()).getReference())
+                        .display(FhirDtoUtil.convertReferenceToReferenceDto(communication.getDefinition().stream().findAny().get()).getDisplay())
+                        .build());
+            }
+
+
+            if (communication.hasContext()) {
+                communicationDto.setContext(ReferenceDto.builder()
+                        .reference((communication.getContext().getReference() != null && !communication.getContext().getReference().isEmpty()) ? communication.getContext().getReference() : null)
+                        .display((communication.getContext().getDisplay()!= null && !communication.getContext().getDisplay().isEmpty()) ? communication.getContext().getDisplay() : null)
+                        .build());
+            }
+
+
+            if (communication.hasNote()) {
+                communicationDto.setNote(communication.getNote().stream().findAny().get().getText());
+            }
+
+
+            if (communication.hasNote()) {
+                communicationDto.setNote(communication.getNote().stream().findAny().get().getText());
+            }
+
+            if (communication.hasPayload()) {
+                try {
+                    communicationDto.setPayloadContent(communication.getPayload().stream().findAny().get().getContentStringType().getValue());
+                } catch (FHIRException e) {
+                    throw new FHIRClientException("FHIR Client returned with an error while load a communication:" + e.getMessage());
+                }
             }
 
             if (communication.hasSent()) {

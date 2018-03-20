@@ -71,6 +71,14 @@ public class TaskServiceImpl implements TaskService {
         this.patientService = patientService;
     }
 
+    private static String createDisplayForEpisodeOfCare(TaskDto dto) {
+        String status = dto.getDefinition() != null ? dto.getDefinition().getDisplay() : "NA";
+        String date = dto.getExecutionPeriod() != null ? DateUtil.convertLocalDateToString(dto.getExecutionPeriod().getStart()) : "NA";
+        String agent = dto.getAgent() != null ? dto.getAgent().getDisplay() : "NA";
+
+        return new StringJoiner("-").add(status).add(date).add(agent).toString();
+    }
+
     @Override
     public PageDto<TaskDto> getTasks(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfTasksPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Task.name());
@@ -127,7 +135,6 @@ public class TaskServiceImpl implements TaskService {
 
         return new PageDto<>(taskDtos, numberOfTasksPerPage, totalPages, currentPage, taskDtos.size(), otherPageTaskBundle.getTotal());
     }
-
 
     @Override
     public void createTask(TaskDto taskDto) {
@@ -207,7 +214,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private boolean endDateAvailable(TaskDto dto) {
-        if(dto.getExecutionPeriod() != null && dto.getExecutionPeriod().getEnd() != null) {
+        if (dto.getExecutionPeriod() != null && dto.getExecutionPeriod().getEnd() != null) {
             return true;
         }
         return false;
@@ -281,8 +288,7 @@ public class TaskServiceImpl implements TaskService {
             taskDto.setLogicalId(task.getIdElement().getIdPart());
             try {
                 taskDto.setDefinition(FhirDtoUtil.convertReferenceToReferenceDto(task.getDefinitionReference()));
-            }
-            catch (FHIRException e) {
+            } catch (FHIRException e) {
                 e.printStackTrace();
             }
 
@@ -291,9 +297,9 @@ public class TaskServiceImpl implements TaskService {
             }
 
             //Setting Status, Intent, Priority
-            taskDto.setStatus(FhirDtoUtil.convertCodeToValueSetDto(task.getStatus().toCode(), lookUpService.getTaskStatus()));
-            taskDto.setIntent(FhirDtoUtil.convertCodeToValueSetDto(task.getIntent().toCode(), lookUpService.getRequestIntent()));
-            taskDto.setPriority(FhirDtoUtil.convertCodeToValueSetDto(task.getPriority().toCode(), lookUpService.getRequestPriority()));
+            taskDto.setStatus(FhirDtoUtil.convertDisplayCodeToValueSetDto(task.getStatus().toCode(), lookUpService.getTaskStatus()));
+            taskDto.setIntent(FhirDtoUtil.convertDisplayCodeToValueSetDto(task.getIntent().toCode(), lookUpService.getRequestIntent()));
+            taskDto.setPriority(FhirDtoUtil.convertDisplayCodeToValueSetDto(task.getPriority().toCode(), lookUpService.getRequestPriority()));
 
             if (task.hasDescription()) {
                 taskDto.setDescription(task.getDescription());
@@ -366,22 +372,16 @@ public class TaskServiceImpl implements TaskService {
                 .returnBundle(Bundle.class).execute();
     }
 
-    public List<ReferenceDto> getRelatedTasks(String patient) {
-        List<ReferenceDto> tasks = new ArrayList<>();
-
-        Bundle bundle = getBundleForPatient(patient);
-
-        if (bundle != null) {
-            List<Bundle.BundleEntryComponent> taskComponents = bundle.getEntry();
-
-            if (taskComponents != null) {
-                tasks = taskComponents.stream()
-                        .map(it -> (Task) it.getResource())
-                        .map(FhirDtoUtil::mapTaskToReferenceDto)
-                        .collect(toList());
-            }
+    public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition) {
+        List<ReferenceDto> tasks = getBundleForPatient(patient).getEntry().stream()
+                .map(Bundle.BundleEntryComponent::getResource)
+                .map(resource -> FhirDtoUtil.mapTaskToReferenceDto((Task) resource))
+                .collect(toList());
+        if (definition.isPresent()) {
+            return tasks.stream()
+                    .filter(referenceDto -> referenceDto.getDisplay().equalsIgnoreCase(definition.get()))
+                    .collect(toList());
         }
-
         return tasks;
     }
 
@@ -398,8 +398,7 @@ public class TaskServiceImpl implements TaskService {
                 try {
                     return task.getDefinitionReference().getReference().equalsIgnoreCase(taskDto.getDefinition().getReference());
 
-                }
-                catch (FHIRException e) {
+                } catch (FHIRException e) {
                     throw new ResourceNotFoundException("No definition reference found in the Server");
                 }
             }).collect(Collectors.toList());
@@ -443,13 +442,4 @@ public class TaskServiceImpl implements TaskService {
 
         return episodeOfCareDtos.stream().findFirst();
     }
-
-    private static String createDisplayForEpisodeOfCare(TaskDto dto) {
-        String status = dto.getDefinition() != null ? dto.getDefinition().getDisplay() : "NA";
-        String date = dto.getExecutionPeriod() != null ? DateUtil.convertLocalDateToString(dto.getExecutionPeriod().getStart()) : "NA";
-        String agent = dto.getAgent() != null ? dto.getAgent().getDisplay() : "NA";
-
-        return new StringJoiner("-").add(status).add(date).add(agent).toString();
-    }
-
 }

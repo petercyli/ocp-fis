@@ -65,21 +65,11 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
-        boolean firstPage = true;
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
-        //Check for location status
-        if (statusList.isPresent() && !statusList.get().isEmpty()) {
-            log.info("Searching for locations with the following specific status(es).");
-            statusList.get().forEach(log::info);
-            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
-        } else {
-            log.info("Searching for locations with ALL statuses");
-        }
-
         // Check if there are any additional search criteria
-        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, searchKey, searchValue);
+        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
         firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(locationsSearchQuery, numberOfLocationsPerPage, Optional.empty());
@@ -91,18 +81,13 @@ public class LocationServiceImpl implements LocationService {
         log.info("FHIR Location(s) bundle retrieved " + firstPageLocationSearchBundle.getTotal() + " location(s) from FHIR server successfully");
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
-            // Load the required page
-            firstPage = false;
             otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
-        //Arrange Page related info
+        // Map to DTO
         List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
-        double totalPages = Math.ceil((double) otherPageLocationSearchBundle.getTotal() / numberOfLocationsPerPage);
-        int currentPage = firstPage ? 1 : pageNumber.get();
-
-        return new PageDto<>(locationsList, numberOfLocationsPerPage, totalPages, currentPage, locationsList.size(), otherPageLocationSearchBundle.getTotal());
+        return (PageDto<LocationDto>) PaginationUtil.applyPaginationForSearchBundle(locationsList, otherPageLocationSearchBundle.getTotal(), numberOfLocationsPerPage, pageNumber);
     }
 
     @Override
@@ -111,21 +96,11 @@ public class LocationServiceImpl implements LocationService {
 
         Bundle firstPageLocationSearchBundle;
         Bundle otherPageLocationSearchBundle;
-        boolean firstPage = true;
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
-        //Check for location status
-        if (statusList.isPresent() && !statusList.get().isEmpty()) {
-            log.info("Searching for location with the following specific status(es) for the given OrganizationID:" + organizationResourceId);
-            statusList.get().forEach(log::info);
-            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
-        } else {
-            log.info("Searching for locations with ALL statuses for the given OrganizationID:" + organizationResourceId);
-        }
-
         // Check if there are any additional search criteria
-        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, searchKey, searchValue);
+        locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
         firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(locationsSearchQuery, numberOfLocationsPerPage, Optional.empty());
@@ -140,18 +115,14 @@ public class LocationServiceImpl implements LocationService {
         otherPageLocationSearchBundle = firstPageLocationSearchBundle;
         if (pageNumber.isPresent() && pageNumber.get() > 1) {
             // Load the required page
-            firstPage = false;
             otherPageLocationSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, otherPageLocationSearchBundle, pageNumber.get(), numberOfLocationsPerPage);
         }
 
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
-        //Arrange Page related info
+        // Map to DTO
         List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
-        double totalPages = Math.ceil((double) otherPageLocationSearchBundle.getTotal() / numberOfLocationsPerPage);
-        int currentPage = firstPage ? 1 : pageNumber.get();
-
-        return new PageDto<>(locationsList, numberOfLocationsPerPage, totalPages, currentPage, locationsList.size(), otherPageLocationSearchBundle.getTotal());
+        return (PageDto<LocationDto>) PaginationUtil.applyPaginationForSearchBundle(locationsList, otherPageLocationSearchBundle.getTotal(), numberOfLocationsPerPage, pageNumber);
     }
 
     @Override
@@ -257,8 +228,17 @@ public class LocationServiceImpl implements LocationService {
     }
 
 
-    private IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
-        //Check for bad requests
+    private IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue) {
+        // Check for location status
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
+            log.info("Searching for location with the following specific status(es)");
+            statusList.get().forEach(log::info);
+            locationsSearchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
+        } else {
+            log.info("Searching for locations with ALL statuses");
+        }
+
+        // Check for bad requests
         if (searchKey.isPresent() && !SearchKeyEnum.LocationSearchKey.contains(searchKey.get())) {
             throw new BadRequestException("Unidentified search key:" + searchKey.get());
         } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
@@ -266,17 +246,18 @@ public class LocationServiceImpl implements LocationService {
             throw new BadRequestException("No search value found for the search key" + searchKey.get());
         }
 
+        // Check searchKey and searchValue
         if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.NAME.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
+            log.info("Searching for location " + SearchKeyEnum.LocationSearchKey.NAME.name() + " = " + searchValue.get().trim());
             locationsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.LOGICALID.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
+            log.info("Searching for location " + SearchKeyEnum.LocationSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
             locationsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name())) {
-            log.info("Searching for " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
+            log.info("Searching for location " + SearchKeyEnum.LocationSearchKey.IDENTIFIERVALUE.name() + " = " + searchValue.get().trim());
             locationsSearchQuery.where(new TokenClientParam("identifier").exactly().code(searchValue.get().trim()));
         } else {
-            log.info("No additional search criteria entered.");
+            log.info("Searching location : No additional search criteria entered.");
         }
         return locationsSearchQuery;
     }

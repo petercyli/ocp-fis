@@ -55,6 +55,16 @@ public final class PaginationUtil {
         }
     }
 
+    public static PageDto<?> applyPaginationForSearchBundle(List<?> elements,
+                                                            int totalElementsInBundle,
+                                                            int numberOfElementsPerPage,
+                                                            Optional<Integer> pageNumber) {
+        boolean firstPage = isFirstPage(pageNumber);
+        double totalPages = Math.ceil((double) totalElementsInBundle / numberOfElementsPerPage);
+        int currentPage = firstPage ? 1 : pageNumber.get();
+        return new PageDto<>(elements, numberOfElementsPerPage, totalPages, currentPage, elements.size(), totalElementsInBundle);
+    }
+
     public static PageDto<?> applyPaginationForCustomArrayList(List<?> elements,
                                                                int numberOfElementsPerPage,
                                                                Optional<Integer> pageNumber,

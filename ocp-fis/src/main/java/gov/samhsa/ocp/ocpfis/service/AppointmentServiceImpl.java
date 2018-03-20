@@ -65,7 +65,15 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public PageDto<AppointmentDto> getAppointments(Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<AppointmentDto> getAppointments(Optional<List<String>> statusList,
+                                                   Optional<String> patientId,
+                                                   Optional<String> practitionerId,
+                                                   Optional<String> searchKey,
+                                                   Optional<String> searchValue,
+                                                   Optional<Boolean> showPastAppointments,
+                                                   Optional<Boolean> sortByStartTimeAsc,
+                                                   Optional<Integer> pageNumber,
+                                                   Optional<Integer> pageSize) {
         int numberOfAppointmentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Appointment.name());
         Bundle firstPageAppointmentBundle;
         Bundle otherPageAppointmentBundle;
@@ -73,8 +81,25 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         IQuery iQuery = fhirClient.search().forResource(Appointment.class);
 
+        if (patientId.isPresent()) {
+            log.info("Searching Appointments for patientId = " + patientId.get().trim());
+            iQuery.where(new ReferenceClientParam("patient").hasId(patientId.get().trim()));
+        }
+        if (practitionerId.isPresent()) {
+            log.info("Searching Appointments for practitionerId = " + practitionerId.get().trim());
+            iQuery.where(new ReferenceClientParam("practitioner").hasId(practitionerId.get().trim()));
+        }
         // Check if there are any additional search criteria
-        iQuery = addAdditionalSearchConditions(iQuery, searchKey, searchValue);
+        iQuery = addStatusSearchConditions(iQuery, statusList);
+
+        // Additional Search Key and Value
+        iQuery = addSearchKeyValueConditions(iQuery, searchKey, searchValue);
+
+        // Past appointments
+        iQuery = addShowPastAppointmentConditions(iQuery, showPastAppointments);
+
+        //Check sort order
+        iQuery = addSortConditions(iQuery, sortByStartTimeAsc);
 
         firstPageAppointmentBundle = PaginationUtil.getSearchBundleFirstPage(iQuery, numberOfAppointmentsPerPage, Optional.empty());
 
@@ -101,7 +126,32 @@ public class AppointmentServiceImpl implements AppointmentService {
         return new PageDto<>(appointmentDtos, numberOfAppointmentsPerPage, totalPages, currentPage, appointmentDtos.size(), otherPageAppointmentBundle.getTotal());
     }
 
-    private IQuery addAdditionalSearchConditions(IQuery searchQuery, Optional<String> searchKey, Optional<String> searchValue) {
+    @Override
+    public void cancelAppointment(String appointmentId) {
+        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, appointment, "Cancel Appointment");
+    }
+
+
+    private IQuery addStatusSearchConditions(IQuery searchQuery,
+                                             Optional<List<String>> statusList) {
+        // Check for appointment status
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
+            log.info("Searching for appointments with the following specific status(es).");
+            statusList.get().forEach(log::info);
+            searchQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
+        } else {
+            log.info("Searching for appointments with ALL statuses");
+        }
+        return searchQuery;
+    }
+
+    private IQuery addSearchKeyValueConditions(IQuery searchQuery,
+                                               Optional<String> searchKey,
+                                               Optional<String> searchValue) {
+        // Check for bad requests
         if (searchKey.isPresent() && !SearchKeyEnum.AppointmentSearchKey.contains(searchKey.get())) {
             throw new BadRequestException("Unidentified search key:" + searchKey.get());
         } else if ((searchKey.isPresent() && !searchValue.isPresent()) ||
@@ -110,26 +160,37 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
 
         // Check if there are any additional search criteria
-        if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PATIENTID.name())) {
-            log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.PATIENTID.name() + " = " + searchValue.get().trim());
-            searchQuery.where(new ReferenceClientParam("patient").hasId(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name())) {
-            log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.PRACTITIONERID.name() + " = " + searchValue.get().trim());
-            searchQuery.where(new ReferenceClientParam("practitioner").hasId(searchValue.get().trim()));
-        } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
-            log.info("Searching for " + SearchKeyEnum.AppointmentSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
+        if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.AppointmentSearchKey.LOGICALID.name())) {
+            log.info("Searching Appointments for " + SearchKeyEnum.AppointmentSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
             searchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
         } else {
-            log.info("No additional search criteria entered.");
+            log.info("Appointments - No additional search criteria entered.");
         }
         return searchQuery;
     }
 
-    @Override
-    public void cancelAppointment(String appointmentId) {
-        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
-        appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
-        fhirClient.update().resource(appointment).execute();
+    private IQuery addShowPastAppointmentConditions(IQuery searchQuery, Optional<Boolean> showPastAppointments) {
+        // showPastAppointments?
+        if (showPastAppointments.isPresent() && !showPastAppointments.get()) {
+            log.info("Search results will NOT include past appointments.");
+            searchQuery.where(Appointment.DATE.afterOrEquals().day(new Date()));
+        } else if (showPastAppointments.isPresent() && showPastAppointments.get()) {
+            log.info("Search results will include ONLY past appointments.");
+            searchQuery.where(Appointment.DATE.before().day(new Date()));
+        } else {
+            log.info("Search results will include past AND upcoming appointments.");
+        }
+        return searchQuery;
+    }
+
+    private IQuery addSortConditions(IQuery searchQuery, Optional<Boolean> sortByStartTimeAsc) {
+        // Currently, appointments can only be sorted by Appointment.DATE ("Appointment date/time.")
+        if (!sortByStartTimeAsc.isPresent() || sortByStartTimeAsc.get()) {
+            searchQuery.sort().ascending(Appointment.DATE);
+        } else if (!sortByStartTimeAsc.get()) {
+            searchQuery.sort().descending(Appointment.DATE);
+        }
+        return searchQuery;
     }
 
     private void validateAppointDtoFromRequest(AppointmentDto appointmentDto) {

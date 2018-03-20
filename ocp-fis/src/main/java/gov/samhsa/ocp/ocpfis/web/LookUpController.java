@@ -318,4 +318,14 @@ public class LookUpController {
 
         return lookUpService.getProviderSpecialty();
     }
+
+    @GetMapping("/flag-status")
+    public List<ValueSetDto> getFlagStatus() {
+        return lookUpService.getFlagStatus();
+    }
+
+    @GetMapping("/flag-category")
+    public List<ValueSetDto> getFlagCategory(){
+        return lookUpService.getFlagCategory();
+    }
 }
