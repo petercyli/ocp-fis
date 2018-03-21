@@ -397,7 +397,7 @@ public class PatientServiceImpl implements PatientService {
         //Set Period
         Period period = new Period();
         period.setStart(java.sql.Date.valueOf(flagDto.getPeriod().getStart()));
-        period.setEnd(java.sql.Date.valueOf(flagDto.getPeriod().getEnd()));
+        period.setEnd((flagDto.getPeriod().getEnd()!=null)? java.sql.Date.valueOf(flagDto.getPeriod().getEnd()):null);
         flag.setPeriod(period);
 
         //Set Author

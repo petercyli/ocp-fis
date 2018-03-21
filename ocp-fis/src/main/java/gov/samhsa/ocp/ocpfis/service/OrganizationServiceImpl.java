@@ -13,6 +13,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.exception.*;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
@@ -70,6 +71,17 @@ public class OrganizationServiceImpl implements OrganizationService {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
+    }
+
+    @Override
+    public OrganizationDto getOrganization(String organizationId) {
+        final Organization retrievedOrganization = fhirClient.read().resource(Organization.class).withId(organizationId).execute();
+        if (retrievedOrganization == null || retrievedOrganization.isEmpty()) {
+            throw new OrganizationNotFoundException("No organizations were found in the FHIR server.");
+        }
+        final OrganizationDto organizationDto = modelMapper.map(retrievedOrganization, OrganizationDto.class);
+        organizationDto.setLogicalId(retrievedOrganization.getIdElement().getIdPart());
+        return organizationDto;
     }
 
     @Override
@@ -194,9 +206,9 @@ public class OrganizationServiceImpl implements OrganizationService {
         String identifier = organizationDto.getIdentifiers().get(0).getValue();
 
         //When there is no duplicate identifier, the organization gets created
-        if(existingNumberOfOrganizations == 0) {
+        if (existingNumberOfOrganizations == 0) {
             //Create Fhir Organization
-            Organization fhirOrganization = modelMapper.map(organizationDto,Organization.class);
+            Organization fhirOrganization = modelMapper.map(organizationDto, Organization.class);
             fhirOrganization.setActive(Boolean.TRUE);
 
             final ValidationResult validationResult = fhirValidator.validateWithResult(fhirOrganization);
@@ -207,8 +219,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
-        }
-        else{
+        } else {
             throw new DuplicateResourceFoundException("Organization with the Identifier " + identifier + " is already present.");
         }
     }
@@ -251,8 +262,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
-        }
-        else {
+        } else {
             throw new DuplicateResourceFoundException("Organization with the Identifier " + organizationId + " is already present.");
         }
     }
@@ -297,8 +307,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         try {
             existingFhirOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
-        }
-        catch (BaseServerResponseException e) {
+        } catch (BaseServerResponseException e) {
             log.error("FHIR Client returned with an error while reading the organization with ID: " + organizationId);
             throw new ResourceNotFoundException("FHIR Client returned with an error while reading the organization:" + e.getMessage());
         }
@@ -310,8 +319,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         try {
             MethodOutcome serverResponse = fhirClient.update().resource(existingFhirOrganization).execute();
             log.info("Inactivated the organization :" + serverResponse.getId().getIdPart());
-        }
-        catch (BaseServerResponseException e) {
+        } catch (BaseServerResponseException e) {
             log.error("Could NOT inactivate organization");
             throw new FHIRClientException("FHIR Client returned with an error while inactivating the organization:" + e.getMessage());
         }
