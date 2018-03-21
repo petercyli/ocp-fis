@@ -6,15 +6,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
@@ -36,8 +28,13 @@ public class PractitionerController {
     }
 
     @GetMapping
-    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam String practitioner) {
-        return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner);
+    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam Optional<String> practitioner, @RequestParam Optional<String> role) {
+        if (practitioner.isPresent()) {
+            return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner.get());
+        } else if (role.isPresent()) {
+            return practitionerService.getPractitionersByRole(role.get());
+        }
+        return null;
     }
 
     @PostMapping
@@ -56,4 +53,6 @@ public class PractitionerController {
     public void updatePractitioner(@PathVariable String practitionerId, @Valid @RequestBody PractitionerDto practitionerDto) {
         practitionerService.updatePractitioner(practitionerId, practitionerDto);
     }
+
+
 }

@@ -12,6 +12,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.*;
 import gov.samhsa.ocp.ocpfis.service.exception.*;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
@@ -196,6 +197,34 @@ public class PractitionerServiceImpl implements PractitionerService {
                         })
                         .collect(toList());
 
+            }
+        }
+
+        return practitioners;
+    }
+
+    @Override
+    public List<ReferenceDto> getPractitionersByRole(String role) {
+        List<ReferenceDto> practitioners = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(CareTeam.class)
+                .include(CareTeam.INCLUDE_PARTICIPANT)
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> components = bundle.getEntry();
+            if (components != null) {
+                practitioners = components.stream()
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
+                        .map(it -> (CareTeam) it.getResource())
+                        .filter(it -> FhirUtil.checkParticipantRole(it.getParticipant(), role))
+                        .flatMap(it -> it.getParticipant().stream())
+                        .map(it -> {
+                            Practitioner practitioner = (Practitioner) it.getMember().getResource();
+                            return FhirDtoUtil.mapPractitionerToReferenceDto(practitioner);
+                        })
+                        .collect(toList());
             }
         }
 
