@@ -183,7 +183,7 @@ public class PatientServiceImpl implements PatientService {
                 patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
                 //Create flag for the patient
-                 patientDto.getFlags().forEach(flagDto -> {
+              patientDto.getFlags().forEach(flagDto -> {
                     Flag flag = convertFlagDtoToFlag(patientId, flagDto);
                     fhirClient.create().resource(flag).execute();
                 });
@@ -460,6 +460,9 @@ public class PatientServiceImpl implements PatientService {
         careTeam.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
         careTeam.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(1)));
 
+        Reference patientReference=new Reference();
+        patientReference.setReference("Patient/"+methodOutcome.getId().getIdPart());
+        careTeam.setSubject(patientReference);
         Reference practitioner=new Reference();
         practitioner.setReference("Practitioner/1961");
         Reference organization=new Reference();
