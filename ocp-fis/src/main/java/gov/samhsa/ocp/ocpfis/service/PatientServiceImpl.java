@@ -416,7 +416,7 @@ public class PatientServiceImpl implements PatientService {
                         return flag;
                     })
                     .filter(flag -> flag.getCode().getText().equalsIgnoreCase(flagDto.getCode()))
-                    .filter(flag -> flag.getStatus().toCode().equalsIgnoreCase(flagDto.getStatus())
+                    .filter(flag -> flag.getCategory().getCoding().get(0).getCode().equalsIgnoreCase(flagDto.getCategory())
                     ).collect(toList());
         }
         //Checking while updating flag
