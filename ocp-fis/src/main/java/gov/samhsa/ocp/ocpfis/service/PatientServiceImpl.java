@@ -28,6 +28,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Extension;
@@ -37,12 +38,17 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.Task;
+import org.hl7.fhir.dstu3.model.codesystems.CareTeamCategory;
+import org.hl7.fhir.dstu3.model.codesystems.TaskPerformerType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -177,10 +183,16 @@ public class PatientServiceImpl implements PatientService {
                 patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
                 //Create flag for the patient
-                patientDto.getFlags().forEach(flagDto -> {
+                 patientDto.getFlags().forEach(flagDto -> {
                     Flag flag = convertFlagDtoToFlag(patientId, flagDto);
                     fhirClient.create().resource(flag).execute();
                 });
+
+                //Create Care Team
+              createCareTeam(patientDto,methodOutcome);
+
+                //Create To-Do task
+                createToDoTask(patientDto,methodOutcome);
             } else {
                 throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
             }
@@ -435,6 +447,58 @@ public class PatientServiceImpl implements PatientService {
         }
     }
 
+    private void createCareTeam(PatientDto patientDto,MethodOutcome methodOutcome){
+        CareTeam careTeam=new CareTeam();
+        //CareTeam Name
+        careTeam.setName("Org"+methodOutcome.getId().getIdPart());
+        CodeableConcept category=new CodeableConcept();
+        category.addCoding().setCode(CareTeamCategory.EPISODE.toCode())
+                .setSystem(CareTeamCategory.EPISODE.getSystem())
+                .setDisplay(CareTeamCategory.EPISODE.getDisplay());
+        careTeam.setCategory(Arrays.asList(category));
+        careTeam.setStatus(CareTeam.CareTeamStatus.ACTIVE);
+        careTeam.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
+        careTeam.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(1)));
+
+        Reference practitioner=new Reference();
+        practitioner.setReference("Practitioner/1961");
+        Reference organization=new Reference();
+        organization.setReference("Organization/1503");
+        careTeam.addParticipant().setMember(practitioner).setOnBehalfOf(organization);
+
+        fhirClient.create().resource(careTeam).execute();
+    }
+
+    private void createToDoTask(PatientDto patientDto, MethodOutcome methodOutcome){
+        Task task=new Task();
+
+        task.setStatus(Task.TaskStatus.READY);
+        task.setPriority(Task.TaskPriority.ASAP);
+        task.setIntent(Task.TaskIntent.PROPOSAL);
+
+        //Start and end date
+        task.getExecutionPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
+        task.getExecutionPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(20)));
+
+        //Performer Type
+        CodeableConcept performerType=new CodeableConcept();
+        performerType.addCoding().setDisplay(TaskPerformerType.REQUESTER.getDisplay())
+                .setCode(TaskPerformerType.REQUESTER.toCode())
+                .setSystem(TaskPerformerType.REQUESTER.getSystem());
+        task.setPerformerType(Arrays.asList(performerType));
+
+        Reference patient=new Reference();
+        patient.setReference("Patient/"+methodOutcome.getId().getIdPart());
+        task.setFor(patient);
+        task.setDescription("To-Do task");
+
+        Reference reference=new Reference();
+        reference.setReference("Practitioner/1961");
+        reference.setDisplay("Robert Johnson");
+        task.setOwner(reference);
+
+        fhirClient.create().resource(task).execute();
+    }
 
 }
 
