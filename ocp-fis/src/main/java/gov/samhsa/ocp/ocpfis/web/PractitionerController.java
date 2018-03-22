@@ -28,13 +28,8 @@ public class PractitionerController {
     }
 
     @GetMapping
-    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam Optional<String> practitioner, @RequestParam Optional<String> role) {
-        if (practitioner.isPresent()) {
-            return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner.get());
-        } else if (role.isPresent()) {
-            return practitionerService.getPractitionersByRole(role.get());
-        }
-        return null;
+    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam String practitioner) {
+        return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner);
     }
 
     @PostMapping
@@ -52,6 +47,11 @@ public class PractitionerController {
     @ResponseStatus(HttpStatus.OK)
     public void updatePractitioner(@PathVariable String practitionerId, @Valid @RequestBody PractitionerDto practitionerDto) {
         practitionerService.updatePractitioner(practitionerId, practitionerDto);
+    }
+
+    @GetMapping("/organization/{organizationId}")
+    public List<PractitionerDto> getPractitionersByOrganizationAndRole(@PathVariable("organizationId") String organization, @RequestParam Optional<String> role) {
+        return practitionerService.getPractitionersByOrganizationAndRole(organization, role);
     }
 
 

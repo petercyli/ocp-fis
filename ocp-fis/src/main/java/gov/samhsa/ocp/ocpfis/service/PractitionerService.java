@@ -22,5 +22,5 @@ PractitionerService {
 
     List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(String practitioner);
 
-    List<ReferenceDto> getPractitionersByRole(String role);
+    List<PractitionerDto> getPractitionersByOrganizationAndRole(String organization, Optional<String> role);
 }

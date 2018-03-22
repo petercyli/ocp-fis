@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
@@ -204,25 +205,31 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     @Override
-    public List<ReferenceDto> getPractitionersByRole(String role) {
-        List<ReferenceDto> practitioners = new ArrayList<>();
+    public List<PractitionerDto> getPractitionersByOrganizationAndRole(String organization, Optional<String> role) {
+        List<PractitionerDto> practitioners = new ArrayList<>();
 
-        Bundle bundle = fhirClient.search().forResource(CareTeam.class)
-                .include(CareTeam.INCLUDE_PARTICIPANT)
+        IQuery query = fhirClient.search().forResource(PractitionerRole.class);
+
+        if (role.isPresent()) {
+            query.where(new TokenClientParam("role").exactly().code(role.get()));
+        }
+
+        Bundle bundle = (Bundle) query.where(new ReferenceClientParam("organization").hasId(organization))
+                .include(new Include("PractitionerRole:practitioner"))
                 .returnBundle(Bundle.class)
+                .limitTo(10000)
                 .execute();
 
         if (bundle != null) {
             List<Bundle.BundleEntryComponent> components = bundle.getEntry();
             if (components != null) {
                 practitioners = components.stream()
-                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
-                        .map(it -> (CareTeam) it.getResource())
-                        .filter(it -> FhirUtil.checkParticipantRole(it.getParticipant(), role))
-                        .flatMap(it -> it.getParticipant().stream())
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
+                        .map(it -> (Practitioner) it.getResource())
                         .map(it -> {
-                            Practitioner practitioner = (Practitioner) it.getMember().getResource();
-                            return FhirDtoUtil.mapPractitionerToReferenceDto(practitioner);
+                            PractitionerDto practitionerDto = modelMapper.map(it, PractitionerDto.class);
+                            practitionerDto.setLogicalId(it.getIdElement().getIdPart());
+                            return practitionerDto;
                         })
                         .collect(toList());
             }
@@ -230,6 +237,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
         return practitioners;
     }
+
 
     @Override
     public void createPractitioner(PractitionerDto practitionerDto) {
@@ -442,5 +450,22 @@ public class PractitionerServiceImpl implements PractitionerService {
                 .findAny()
                 .orElseThrow(PractitionerRoleNotFoundException::new);
     }
+
+    private boolean checkIfParticipantIsCareManager(List<CareTeam.CareTeamParticipantComponent> components, String roleToCheck) {
+        //write logic to check if each participant, if of type Practitioner, is a CareManager or not
+        return components.stream()
+                .map(component -> {
+                    Reference member = component.getMember();
+                    System.out.println("member : "+member.getReference());
+                    String role = "";
+                    if (member.getReference().contains(ResourceType.Practitioner.toString())) {
+                        role = FhirUtil.getRoleFromCodeableConcept(component.getRole());
+                    }
+                    System.out.println("role : "+role);
+                    return role;
+                })
+                .anyMatch(t -> t.contains(roleToCheck));
+    }
+
 
 }
