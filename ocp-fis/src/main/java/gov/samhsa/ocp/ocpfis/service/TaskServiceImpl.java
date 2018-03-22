@@ -396,8 +396,11 @@ public class TaskServiceImpl implements TaskService {
             duplicateCheckList = taskForPatientbundle.getEntry().stream().filter(taskResource -> {
                 Task task = (Task) taskResource.getResource();
                 try {
-                    return task.getDefinitionReference().getReference().equalsIgnoreCase(taskDto.getDefinition().getReference());
-
+                    boolean defCheck = task.getDefinitionReference().getReference().equalsIgnoreCase(taskDto.getDefinition().getReference());
+                    boolean isMainTask = Boolean.TRUE;
+                    if( taskDto.getPartOf() != null  )
+                        isMainTask = Boolean.FALSE;
+                    return isMainTask ? defCheck: Boolean.FALSE;
                 } catch (FHIRException e) {
                     throw new ResourceNotFoundException("No definition reference found in the Server");
                 }

@@ -436,7 +436,7 @@ public class PatientServiceImpl implements PatientService {
         //Set Period
         Period period = new Period();
         period.setStart(java.sql.Date.valueOf(flagDto.getPeriod().getStart()));
-        period.setEnd(java.sql.Date.valueOf(flagDto.getPeriod().getEnd()));
+        period.setEnd((flagDto.getPeriod().getEnd()!=null)? java.sql.Date.valueOf(flagDto.getPeriod().getEnd()):null);
         flag.setPeriod(period);
 
         //Set Author
@@ -478,7 +478,7 @@ public class PatientServiceImpl implements PatientService {
                 List<Flag> flags = duplicateCheckList.stream()
                         .filter(flag -> flagDto.getLogicalId().equalsIgnoreCase(flag.getIdElement().getIdPart())
                         ).collect(toList());
-                return !flags.isEmpty();
+                return flags.isEmpty();
             }
         } else {
             //Checking while creating new flag
