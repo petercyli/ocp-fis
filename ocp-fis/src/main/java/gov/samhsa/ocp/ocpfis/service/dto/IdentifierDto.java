@@ -17,6 +17,7 @@ public class IdentifierDto {
     @NotBlank
     private String system;
     private String oid;
+    private String systemDisplay;
 
     @NotBlank
     private String value;
