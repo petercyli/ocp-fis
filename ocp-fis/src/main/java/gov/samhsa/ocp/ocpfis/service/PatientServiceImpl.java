@@ -150,7 +150,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<PatientDto> getPatientsByPractitioner(Optional<String> practitioner, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Patient.name());
         List<PatientDto> patients = this.getPatientsByPractitioner(practitioner, searchKey, searchValue);
 
@@ -158,11 +158,14 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public List<PatientDto> getPatientsByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue) {
+    public List<PatientDto> getPatientsByPractitioner(Optional<String> practitioner, Optional<String> searchKey, Optional<String> searchValue) {
         List<PatientDto> patients = new ArrayList<>();
 
-        Bundle bundle = fhirClient.search().forResource(CareTeam.class)
-                .where(new ReferenceClientParam("participant").hasId(practitioner))
+        IQuery practitionerQuery = fhirClient.search().forResource(CareTeam.class);
+
+        practitioner.ifPresent(practitionerId->practitionerQuery.where(new ReferenceClientParam("participant").hasId(practitionerId)));
+
+         Bundle bundle= (Bundle) practitionerQuery
                 .include(CareTeam.INCLUDE_PATIENT)
                 .sort().ascending(CareTeam.RES_ID)
                 .returnBundle(Bundle.class)

@@ -68,7 +68,7 @@ public class PatientController {
     }
 
     @GetMapping
-    PageDto<PatientDto> getPatientsByPractitionerAndRole(@RequestParam(value = "practitioner") String practitioner,
+    PageDto<PatientDto> getPatientsByPractitionerAndRole(@RequestParam(value = "practitioner") Optional<String> practitioner,
                                                          @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                          @RequestParam(value = "searchValue") Optional<String> searchValue,
                                                          @RequestParam(value = "showInActive") Optional<Boolean> showInactive,
