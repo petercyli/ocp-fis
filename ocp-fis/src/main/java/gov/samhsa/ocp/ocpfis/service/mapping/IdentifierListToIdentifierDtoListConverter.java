@@ -21,13 +21,11 @@ public class IdentifierListToIdentifierDtoListConverter extends AbstractConverte
                 String systemOid = identifier.getSystem() != null ? identifier.getSystem() : "";
 
                 String systemDisplay;
-                if (systemOid.startsWith(OID_TEXT)) {
+                if (systemOid.startsWith(OID_TEXT) || systemOid.startsWith("http")) {
                     systemDisplay = KnownIdentifierSystemEnum.fromUri(systemOid).getDisplay();
                 } else if (systemOid.startsWith("2.16")) {
                     systemDisplay = KnownIdentifierSystemEnum.fromOid(systemOid).getDisplay();
-                } else if (systemOid.startsWith("http")) {
-                    systemDisplay = KnownIdentifierSystemEnum.fromUri(systemOid).getDisplay();
-                } else {
+                }  else {
                     systemDisplay = systemOid;
                 }
 
