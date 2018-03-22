@@ -177,6 +177,7 @@ public class TaskServiceImpl implements TaskService {
         if (definition.isPresent()) {
             taskDtos = taskDtos.stream()
                     .filter(t -> t.getPartOf() != null && t.getDefinition() != null)
+                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode())|| !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())  || !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
                     .filter(taskDto -> taskDto.getPartOf().getDisplay().equalsIgnoreCase(definition.get())).collect(toList());
         }
 
@@ -184,6 +185,7 @@ public class TaskServiceImpl implements TaskService {
         if (!definition.isPresent()) {
             taskDtos = taskDtos.stream()
                     .filter(t -> t.getDefinition() != null)
+                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode())|| !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())  || !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
                     .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("To-Do"))
                     .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("TODO"))
                     .filter(taskDto -> taskDto.getPartOf() == null)
