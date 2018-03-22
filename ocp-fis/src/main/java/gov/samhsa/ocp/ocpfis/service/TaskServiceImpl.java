@@ -40,14 +40,13 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -79,6 +78,14 @@ public class TaskServiceImpl implements TaskService {
         this.activityDefinitionService = activityDefinitionService;
         this.episodeOfCareService = episodeOfCareService;
         this.careTeamService = careTeamService;
+    }
+
+    private static String createDisplayForEpisodeOfCare(TaskDto dto) {
+        String status = dto.getDefinition() != null ? dto.getDefinition().getDisplay() : "NA";
+        String date = dto.getExecutionPeriod() != null ? DateUtil.convertLocalDateToString(dto.getExecutionPeriod().getStart()) : "NA";
+        String agent = dto.getAgent() != null ? dto.getAgent().getDisplay() : "NA";
+
+        return new StringJoiner("-").add(status).add(date).add(agent).toString();
     }
 
     @Override
@@ -133,7 +140,6 @@ public class TaskServiceImpl implements TaskService {
         return new PageDto<>(taskDtos, numberOfTasksPerPage, totalPages, currentPage, taskDtos.size(), otherPageTaskBundle.getTotal());
     }
 
-
     @Override
     public List<TaskDto> getMainAndSubTasks(Optional<String> practitionerId, Optional<String> patientId, Optional<String> definition, Optional<Boolean> isUpcomingTasks) {
         IQuery iQuery = fhirClient.search().forResource(Task.class);
@@ -151,7 +157,7 @@ public class TaskServiceImpl implements TaskService {
         //query the task and sub-task owned by specific practitioner and for the specific patient
         if (practitionerId.isPresent() && patientId.isPresent()) {
             iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()))
-                  .where(new ReferenceClientParam("patient").hasId(patientId.get()));
+                    .where(new ReferenceClientParam("patient").hasId(patientId.get()));
         }
 
         Bundle firstPageTaskBundle = (Bundle) iQuery
@@ -177,7 +183,8 @@ public class TaskServiceImpl implements TaskService {
         if (definition.isPresent()) {
             taskDtos = taskDtos.stream()
                     .filter(t -> t.getPartOf() != null && t.getDefinition() != null)
-                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode())|| !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())  || !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
+                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
+                            && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
                     .filter(taskDto -> taskDto.getPartOf().getDisplay().equalsIgnoreCase(definition.get())).collect(toList());
         }
 
@@ -185,7 +192,8 @@ public class TaskServiceImpl implements TaskService {
         if (!definition.isPresent()) {
             taskDtos = taskDtos.stream()
                     .filter(t -> t.getDefinition() != null)
-                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode())|| !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())  || !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
+                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
+                            && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
                     .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("To-Do"))
                     .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("TODO"))
                     .filter(taskDto -> taskDto.getPartOf() == null)
@@ -204,7 +212,6 @@ public class TaskServiceImpl implements TaskService {
 
         return taskDtos;
     }
-
 
     @Override
     public void createTask(TaskDto taskDto) {
@@ -499,14 +506,6 @@ public class TaskServiceImpl implements TaskService {
         List<EpisodeOfCareDto> episodeOfCareDtos = episodeOfCareService.getEpisodeOfCares(patient, Optional.of(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE.toCode()));
 
         return episodeOfCareDtos.stream().findFirst();
-    }
-
-    private static String createDisplayForEpisodeOfCare(TaskDto dto) {
-        String status = dto.getDefinition() != null ? dto.getDefinition().getDisplay() : "NA";
-        String date = dto.getExecutionPeriod() != null ? DateUtil.convertLocalDateToString(dto.getExecutionPeriod().getStart()) : "NA";
-        String agent = dto.getAgent() != null ? dto.getAgent().getDisplay() : "NA";
-
-        return new StringJoiner("-").add(status).add(date).add(agent).toString();
     }
 
 }
