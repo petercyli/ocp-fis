@@ -19,8 +19,19 @@ public class IdentifierListToIdentifierDtoListConverter extends AbstractConverte
         if (source != null && source.size() > 0) {
             for (Identifier identifier : source) {
                 String systemOid = identifier.getSystem() != null ? identifier.getSystem() : "";
-                String systemDisplay = KnownIdentifierSystemEnum.fromOid(systemOid).getDisplay();
-                        identifierDtos.add(
+
+                String systemDisplay;
+                if (systemOid.startsWith(OID_TEXT)) {
+                    systemDisplay = KnownIdentifierSystemEnum.fromUri(systemOid).getDisplay();
+                } else if (systemOid.startsWith("2.16")) {
+                    systemDisplay = KnownIdentifierSystemEnum.fromOid(systemOid).getDisplay();
+                } else if (systemOid.startsWith("http")) {
+                    systemDisplay = KnownIdentifierSystemEnum.fromUri(systemOid).getDisplay();
+                } else {
+                    systemDisplay = systemOid;
+                }
+
+                identifierDtos.add(
                         IdentifierDto.builder()
                                 .system(systemOid)
                                 .oid(systemOid.startsWith(OID_TEXT)
