@@ -100,16 +100,19 @@ public class TaskDto implements Comparable<TaskDto> {
         if (getExecutionPeriod() != null && getExecutionPeriod().getEnd() != null) {
             return (int) now.until(getExecutionPeriod().getEnd(), ChronoUnit.DAYS);
         }
-        return 0;
+        // exceptional data where execution period is not available for a task
+        return -100;
     }
 
     public void displayTaskDue() {
         if (dateDiff == 0)
-            setTaskDue(TaskDueEnum.DUETODAY);
-        if (dateDiff > 0)
+            setTaskDue(TaskDueEnum.DUE_TODAY);
+        else if (dateDiff > 0)
             setTaskDue(TaskDueEnum.UPCOMING);
-        if (dateDiff < 0)
-            setTaskDue(TaskDueEnum.OVERDUE);
+        else if (dateDiff < 0 && dateDiff != -100)
+            setTaskDue(TaskDueEnum.OVER_DUE);
+        else if (dateDiff == -100)
+            setTaskDue(TaskDueEnum.DATA_ERROR);
     }
 
 }

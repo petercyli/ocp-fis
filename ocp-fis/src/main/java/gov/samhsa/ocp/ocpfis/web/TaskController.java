@@ -38,8 +38,9 @@ public class TaskController {
     @GetMapping("/tasks/subtasks")
     public List<TaskDto> getSubTasks(@RequestParam(value = "practitionerId") Optional<String> practitionerId,
                                      @RequestParam(value = "patientId") Optional<String> patientId,
-                                     @RequestParam(value = "definition") Optional<String> definition) {
-        return taskService.getSubTasks(practitionerId, patientId, definition);
+                                     @RequestParam(value = "definition") Optional<String> definition,
+                                     @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks) {
+        return taskService.getMainAndSubTasks(practitionerId, patientId, definition, isUpcomingTasks);
     }
 
 
@@ -72,8 +73,10 @@ public class TaskController {
     }
 
     @GetMapping("/tasks")
-    public List<TaskDto> getUpcomingTasks(@RequestParam(value = "practitioner") String practitioner) {
-        return taskService.getUpcomingTasks(practitioner);
+    public List<TaskDto> getTasks(@RequestParam(value = "practitionerId") Optional<String> practitionerId,
+                                     @RequestParam(value = "patientId") Optional<String> patientId,
+                                     @RequestParam(value = "definition") Optional<String> definition,
+                                     @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks) {
+        return taskService.getMainAndSubTasks(practitionerId, patientId, definition, isUpcomingTasks);
     }
-
 }

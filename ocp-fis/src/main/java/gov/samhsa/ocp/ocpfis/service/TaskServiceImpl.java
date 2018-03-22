@@ -7,6 +7,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -134,7 +135,7 @@ public class TaskServiceImpl implements TaskService {
 
 
     @Override
-    public List<TaskDto> getSubTasks(Optional<String> practitionerId, Optional<String> patientId, Optional<String> definition) {
+    public List<TaskDto> getMainAndSubTasks(Optional<String> practitionerId, Optional<String> patientId, Optional<String> definition, Optional<Boolean> isUpcomingTasks) {
         IQuery iQuery = fhirClient.search().forResource(Task.class);
 
         //query the task and sub-task owned by specific practitioner
@@ -155,6 +156,7 @@ public class TaskServiceImpl implements TaskService {
 
         Bundle firstPageTaskBundle = (Bundle) iQuery
                 .returnBundle(Bundle.class)
+                .count(Integer.parseInt(fisProperties.getResourceSinglePageLimit()))
                 .execute();
 
         if (firstPageTaskBundle == null || firstPageTaskBundle.getEntry().isEmpty()) {
@@ -171,21 +173,31 @@ public class TaskServiceImpl implements TaskService {
                 }).collect(toList());
 
 
-        // Filter the general sub-tasks or todosubtasks with the certain activity definition
+        // Filter the general sub-tasks or to-do sub tasks with the certain activity definition
         if (definition.isPresent()) {
             taskDtos = taskDtos.stream()
-                    .filter(t -> t.getPartOf() != null)
+                    .filter(t -> t.getPartOf() != null && t.getDefinition() != null)
                     .filter(taskDto -> taskDto.getPartOf().getDisplay().equalsIgnoreCase(definition.get())).collect(toList());
         }
 
         // Filter the ParentTasks, exclude TodoParent task
         if (!definition.isPresent()) {
             taskDtos = taskDtos.stream()
+                    .filter(t -> t.getDefinition() != null)
+                    .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("To-Do"))
                     .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("TODO"))
                     .filter(taskDto -> taskDto.getPartOf() == null)
                     .collect(toList());
         }
 
+        // Combine the upcoming main tasks for each patient
+        if (isUpcomingTasks.orElse(Boolean.FALSE)) {
+            taskDtos = taskDtos.stream()
+                    .filter(t -> t.getTaskDue() != null
+                            && (t.getTaskDue().name().equalsIgnoreCase(TaskDueEnum.DUE_TODAY.name())
+                            || t.getTaskDue().name().equalsIgnoreCase(TaskDueEnum.UPCOMING.name())))
+                    .collect(toList());
+        }
         taskDtos.sort(Comparator.comparing(o -> o.getDateDiff()));
 
         return taskDtos;
