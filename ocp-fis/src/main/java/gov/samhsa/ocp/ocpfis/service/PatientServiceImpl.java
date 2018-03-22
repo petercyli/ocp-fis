@@ -439,7 +439,7 @@ public class PatientServiceImpl implements PatientService {
                 List<Flag> flags = duplicateCheckList.stream()
                         .filter(flag -> flagDto.getLogicalId().equalsIgnoreCase(flag.getIdElement().getIdPart())
                         ).collect(toList());
-                return !flags.isEmpty();
+                return flags.isEmpty();
             }
         } else {
             //Checking while creating new flag
