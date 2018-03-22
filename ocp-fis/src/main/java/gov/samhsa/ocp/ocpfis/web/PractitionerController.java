@@ -50,8 +50,8 @@ public class PractitionerController {
     }
 
     @GetMapping("/organization/{organizationId}")
-    public List<PractitionerDto> getPractitionersByOrganizationAndRole(@PathVariable("organizationId") String organization, @RequestParam Optional<String> role) {
-        return practitionerService.getPractitionersByOrganizationAndRole(organization, role);
+    public PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(@PathVariable("organizationId") String organization, @RequestParam Optional<String> role,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
+        return practitionerService.getPractitionersByOrganizationAndRole(organization, role, page, size);
     }
 
 
