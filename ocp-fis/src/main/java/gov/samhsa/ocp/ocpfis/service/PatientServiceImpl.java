@@ -464,9 +464,10 @@ public class PatientServiceImpl implements PatientService {
         patientReference.setReference("Patient/"+methodOutcome.getId().getIdPart());
         careTeam.setSubject(patientReference);
         Reference practitioner=new Reference();
-        practitioner.setReference("Practitioner/1961");
+
+        practitioner.setReference("Practitioner/"+patientDto.getPractitionerId().orElse("1961"));
         Reference organization=new Reference();
-        organization.setReference("Organization/1503");
+        organization.setReference("Organization/"+patientDto.getOrganizationId().orElse("1503"));
         careTeam.addParticipant().setMember(practitioner).setOnBehalfOf(organization);
 
         fhirClient.create().resource(careTeam).execute();
@@ -496,8 +497,7 @@ public class PatientServiceImpl implements PatientService {
         task.setDescription("To-Do task");
 
         Reference reference=new Reference();
-        reference.setReference("Practitioner/1961");
-        reference.setDisplay("Robert Johnson");
+        reference.setReference("Practitioner/"+patientDto.getPractitionerId().orElse("1961"));
         task.setOwner(reference);
 
         fhirClient.create().resource(task).execute();
