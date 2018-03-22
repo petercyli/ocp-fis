@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
+import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.modelmapper.AbstractConverter;
@@ -18,12 +19,14 @@ public class IdentifierListToIdentifierDtoListConverter extends AbstractConverte
         if (source != null && source.size() > 0) {
             for (Identifier identifier : source) {
                 String systemOid = identifier.getSystem() != null ? identifier.getSystem() : "";
-                identifierDtos.add(
+                String systemDisplay = KnownIdentifierSystemEnum.fromOid(systemOid).getDisplay();
+                        identifierDtos.add(
                         IdentifierDto.builder()
                                 .system(systemOid)
                                 .oid(systemOid.startsWith(OID_TEXT)
                                         ? systemOid.replace(OID_TEXT, "")
                                         : "")
+                                .systemDisplay(systemDisplay)
                                 .value(identifier.getValue())
                                 .display(identifier.getValue())
                                 .build()
