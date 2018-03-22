@@ -9,6 +9,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.AppointmentToAppointmentDtoConverter;
@@ -62,6 +63,21 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Create
         FhirUtil.createFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
 
+    }
+
+    @Override
+    public void updateAppointment(String appointmentId, AppointmentDto appointmentDto) {
+
+    }
+
+    @Override
+    public List<ParticipantReferenceDto> getAppointmentParticipants(String patientId, Optional<List<String>> roles, Optional<String> appointmentId) {
+        return null;
+    }
+
+    @Override
+    public AppointmentDto getAppointmentById(String appointmentId) {
+        return null;
     }
 
     @Override
