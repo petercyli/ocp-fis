@@ -341,7 +341,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         activityDefinition.setDate( java.sql.Date.valueOf(LocalDate.now()));
         activityDefinition.setPublisher("Organization/"+methodOutcome.getId().getIdPart());
-        activityDefinition.setDescription("To-Do description");
+        activityDefinition.setDescription("To-Do");
 
         Period period=new Period();
         period.setStart(java.sql.Date.valueOf(LocalDate.now()));

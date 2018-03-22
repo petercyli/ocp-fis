@@ -494,7 +494,7 @@ public class PatientServiceImpl implements PatientService {
         Reference patient=new Reference();
         patient.setReference("Patient/"+methodOutcome.getId().getIdPart());
         task.setFor(patient);
-        task.setDescription("To-Do task");
+        task.setDescription("To-Do");
 
         Reference reference=new Reference();
         reference.setReference("Practitioner/"+patientDto.getPractitionerId().orElse("1961"));
