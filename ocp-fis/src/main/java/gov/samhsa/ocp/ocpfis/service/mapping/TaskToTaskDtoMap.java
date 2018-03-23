@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
+import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
@@ -120,6 +121,8 @@ public class TaskToTaskDtoMap {
             taskDto.setExecutionPeriod(periodDto);
             taskDto.getExecutionPeriod().setStart((task.getExecutionPeriod().hasStart()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getStart()) : null);
             taskDto.getExecutionPeriod().setEnd((task.getExecutionPeriod().hasEnd()) ? DateUtil.convertDateToLocalDate(task.getExecutionPeriod().getEnd()) : null);
+            taskDto.setDateDiff(taskDto.calDateDiff());
+            taskDto.displayTaskDue();
         }
 
         return taskDto;

@@ -7,12 +7,18 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+
+import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
+
 
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class TaskDto implements Comparable<TaskDto>  {
+public class TaskDto implements Comparable<TaskDto> {
+    private TaskDueEnum taskDue;
+
     private String logicalId;
 
     //Reference to activity definition
@@ -72,19 +78,41 @@ public class TaskDto implements Comparable<TaskDto>  {
     //managingOrganization - Organization the agent is acting for
     private ReferenceDto organization;
 
+    int dateDiff;
+
     @Override
     public int compareTo(TaskDto taskDto) {
-        if(endDateAvailable(this) && endDateAvailable(taskDto)) {
+        if (endDateAvailable(this) && endDateAvailable(taskDto)) {
             return this.getExecutionPeriod().getEnd().compareTo(taskDto.getExecutionPeriod().getEnd());
         }
         return 0;
     }
 
     private boolean endDateAvailable(TaskDto taskDto) {
-        if(taskDto.getExecutionPeriod() != null && taskDto.getExecutionPeriod().getEnd() != null) {
+        if (taskDto.getExecutionPeriod() != null && taskDto.getExecutionPeriod().getEnd() != null) {
             return true;
         }
         return false;
+    }
+
+    public int calDateDiff() {
+        LocalDate now = LocalDate.now();
+        if (getExecutionPeriod() != null && getExecutionPeriod().getEnd() != null) {
+            return (int) now.until(getExecutionPeriod().getEnd(), ChronoUnit.DAYS);
+        }
+        // exceptional data where execution period is not available for a task
+        return -100;
+    }
+
+    public void displayTaskDue() {
+        if (dateDiff == 0)
+            setTaskDue(TaskDueEnum.DUE_TODAY);
+        else if (dateDiff > 0)
+            setTaskDue(TaskDueEnum.UPCOMING);
+        else if (dateDiff < 0 && dateDiff != -100)
+            setTaskDue(TaskDueEnum.OVER_DUE);
+        else if (dateDiff == -100)
+            setTaskDue(TaskDueEnum.DATA_ERROR);
     }
 
 }
