@@ -39,7 +39,7 @@ public class AppointmentController {
         appointmentService.updateAppointment(appointmentId, appointmentDto);
     }
 
-    @GetMapping("patient/{patientId}/appointmentParticipants")
+    @GetMapping("patients/{patientId}/appointmentParticipants")
     public List<ParticipantReferenceDto> getAppointmentParticipants(@PathVariable String patientId,
                                                                     @RequestParam(value = "roles", required = false) Optional<List<String>> roles,
                                                                     @RequestParam(value = "appointmentId", required = false) Optional<String> appointmentId) {
