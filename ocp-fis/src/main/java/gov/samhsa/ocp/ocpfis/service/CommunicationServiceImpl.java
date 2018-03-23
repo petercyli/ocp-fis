@@ -25,7 +25,7 @@ import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
-import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -139,7 +139,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
 
             if (communication.hasRecipient()) {
-                communicationDto.setRecipient(communication.getRecipient().stream().map(recipient -> FhirDtoUtil.convertReferenceToReferenceDto(recipient)).collect(Collectors.toList()));
+                communicationDto.setRecipient(communication.getRecipient().stream().map(FhirDtoUtil::convertReferenceToReferenceDto).collect(Collectors.toList()));
             }
 
             if (communication.hasSender()) {
@@ -223,13 +223,7 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         if(bundle != null) {
             List<Bundle.BundleEntryComponent> components = bundle.getEntry();
-            for(Bundle.BundleEntryComponent component : components) {
-                Resource resource = component.getResource();
-
-                if(resource instanceof Practitioner || resource instanceof Patient || resource instanceof Practitioner || resource instanceof Organization) {
-                    recipientIds.add(resource.getIdElement().getIdPart());
-                }
-            }
+            recipientIds = components.stream().map(Bundle.BundleEntryComponent::getResource).filter(resource -> resource instanceof Practitioner || resource instanceof Patient || resource instanceof RelatedPerson || resource instanceof Organization).map(resource -> resource.getIdElement().getIdPart()).collect(Collectors.toList());
         }
 
         return recipientIds;
@@ -313,7 +307,7 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         //Set recipients
         if (communicationDto.getRecipient() != null) {
-            communication.setRecipient(communicationDto.getRecipient().stream().map(recipient -> FhirDtoUtil.mapReferenceDtoToReference(recipient)).collect(Collectors.toList()));
+            communication.setRecipient(communicationDto.getRecipient().stream().map(FhirDtoUtil::mapReferenceDtoToReference).collect(Collectors.toList()));
         }
 
         //Set topic

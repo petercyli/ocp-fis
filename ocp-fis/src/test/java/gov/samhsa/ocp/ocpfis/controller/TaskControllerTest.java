@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.controller;
 
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.TaskService;
+import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
 import gov.samhsa.ocp.ocpfis.web.TaskController;
@@ -21,6 +22,7 @@ import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -61,9 +63,8 @@ public class TaskControllerTest {
     public void testGetUpcomingTasks() throws Exception {
         //Arrange
         TaskDto taskDto = createTask();
-        List<TaskDto> taskDtoList = new ArrayList<>();
-        taskDtoList.add(taskDto);
-        Mockito.when(taskService.getUpcomingTasks("234")).thenReturn(taskDtoList);
+        PageDto<TaskDto> taskDtoList = new PageDto<>(Arrays.asList(taskDto), 1, 1, 1, 1, 1);
+        Mockito.when(taskService.getUpcomingTasksByPractitioner("234", Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty())).thenReturn(taskDtoList);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/tasks?practitioner=234");

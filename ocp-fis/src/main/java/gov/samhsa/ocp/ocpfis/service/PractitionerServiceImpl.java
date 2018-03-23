@@ -1,21 +1,39 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
-import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
-import gov.samhsa.ocp.ocpfis.service.dto.*;
-import gov.samhsa.ocp.ocpfis.service.exception.*;
+import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
+import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.PractitionerRoleNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.*;
+import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CareTeam;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.PractitionerRole;
+import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,6 +50,8 @@ import static java.util.stream.Collectors.toList;
 @Slf4j
 public class PractitionerServiceImpl implements PractitionerService {
 
+    public static final String CARE_MANAGER_CODE = "CAREMNGR";
+    public static final String CARE_COORDINATOR_CODE = "171M00000X";
     private final ModelMapper modelMapper;
 
     private final IGenericClient fhirClient;
@@ -103,7 +123,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         boolean firstPage = true;
 
         if (type.equals(PractitionerController.SearchType.name))
-            practitionerIQuery.where(new StringClientParam("name").matches().value(value.trim()));
+            practitionerIQuery.where(new RichStringClientParam("name").contains().value(value.trim()));
 
         if (type.equals(PractitionerController.SearchType.identifier))
             practitionerIQuery.where(new TokenClientParam("identifier").exactly().code(value.trim()));
@@ -173,32 +193,97 @@ public class PractitionerServiceImpl implements PractitionerService {
         return practitioners;
     }
 
-    public List<PractitionerDto> getPractitionersByOrganization(String organization) {
+    public List<PractitionerDto> getPractitionersByOrganization(String organizationId) {
         List<PractitionerDto> practitioners = new ArrayList<>();
 
         Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
-                .where(new ReferenceClientParam("organization").hasId( organization))
+                .where(new ReferenceClientParam("organization").hasId(organizationId))
                 .include(PractitionerRole.INCLUDE_PRACTITIONER)
-                .count(Integer.parseInt(fisProperties.getResourceSinglePageLimit()))
+                .count(fisProperties.getResourceSinglePageLimit())
+                .returnBundle(Bundle.class).execute();
+
+        return getPractitionerDtos(practitioners, bundle);
+    }
+
+    @Override
+    public PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(String organization, Optional<String> role, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Practitioner.name());
+        List<PractitionerDto> practitioners = new ArrayList<>();
+
+        IQuery query = fhirClient.search().forResource(PractitionerRole.class);
+
+        if (role.isPresent()) {
+            if (role.get().equalsIgnoreCase(CARE_MANAGER_CODE)) {
+                query.where(new TokenClientParam("role").exactly().code(role.get()));
+                Bundle bundle = getBundleForPractitioners(organization, query);
+                practitioners = getPractitionerDtos(practitioners, bundle);
+
+            } else if (role.get().equalsIgnoreCase(CARE_COORDINATOR_CODE)) {
+                practitioners = this.getPractitionersForCareCoordinators(role.get());
+
+            }
+        } else {
+            Bundle bundle = getBundleForPractitioners(organization, query);
+            practitioners = getPractitionerDtos(practitioners, bundle);
+
+        }
+
+        return (PageDto<PractitionerDto>) PaginationUtil.applyPaginationForCustomArrayList(practitioners, numberOfPractitionersPerPage, pageNumber, false);
+    }
+
+    private Bundle getBundleForPractitioners(String organization, IQuery query) {
+        return (Bundle) query.where(new ReferenceClientParam("organization").hasId(organization))
+                .include(new Include("PractitionerRole:practitioner"))
+                .returnBundle(Bundle.class)
+                .count(fisProperties.getResourceSinglePageLimit())
+                .execute();
+    }
+
+    private List<PractitionerDto> getPractitionersForCareCoordinators(String role) {
+        List<PractitionerDto> practitioners = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(CareTeam.class)
+                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
+                .where(new TokenClientParam("status").exactly().code("entered-in-error"))
+                .include(CareTeam.INCLUDE_PARTICIPANT)
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> practitionerComponents = bundle.getEntry();
-
-            if (practitionerComponents != null) {
-                practitioners = practitionerComponents.stream()
-                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
-                        .map(it -> (Practitioner) it.getResource())
+            List<Bundle.BundleEntryComponent> components = bundle.getEntry();
+            if (components != null) {
+                practitioners = components.stream()
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
+                        .map(it -> (CareTeam) it.getResource())
+                        .filter(it -> FhirUtil.checkParticipantRole(it.getParticipant(), role))
+                        .flatMap(it -> it.getParticipant().stream())
                         .map(it -> {
-                            PractitionerDto dto = modelMapper.map(it, PractitionerDto.class);
-                            dto.setLogicalId(it.getIdElement().getIdPart());
+                            Practitioner practitioner = (Practitioner) it.getMember().getResource();
+                            PractitionerDto dto = modelMapper.map(practitioner, PractitionerDto.class);
+                            dto.setLogicalId(practitioner.getIdElement().getIdPart());
                             return dto;
                         })
                         .collect(toList());
-
             }
         }
 
+        return practitioners;
+    }
+
+    private List<PractitionerDto> getPractitionerDtos(List<PractitionerDto> practitioners, Bundle bundle) {
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> components = bundle.getEntry();
+            if (components != null) {
+                practitioners = components.stream()
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
+                        .map(it -> (Practitioner) it.getResource())
+                        .map(it -> {
+                            PractitionerDto practitionerDto = modelMapper.map(it, PractitionerDto.class);
+                            practitionerDto.setLogicalId(it.getIdElement().getIdPart());
+                            return practitionerDto;
+                        })
+                        .collect(toList());
+            }
+        }
         return practitioners;
     }
 
@@ -299,7 +384,7 @@ public class PractitionerServiceImpl implements PractitionerService {
             MethodOutcome methodOutcome = fhirClient.update().resource(existingPractitioner)
                     .execute();
 
-           //Assign fhir Practitioner resource id.
+            //Assign fhir Practitioner resource id.
             Reference practitionerReference = new Reference();
             practitionerReference.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
 
@@ -322,12 +407,10 @@ public class PractitionerServiceImpl implements PractitionerService {
                         specialtyCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getSpecialty().get(0), Coding.class));
                         practitionerRole.setSpecialty(Arrays.asList(specialtyCodeableConcept));
                         practitionerRoles.add(practitionerRole);
-                        if(practitionerRoleDto.getLogicalId()!=null)
-                        {
+                        if (practitionerRoleDto.getLogicalId() != null) {
                             practitionerRole.setId(practitionerRoleDto.getLogicalId());
                             fhirClient.update().resource(practitionerRole).execute();
-                        }
-                        else
+                        } else
                             fhirClient.create().resource(practitionerRole).execute();
 
                     }

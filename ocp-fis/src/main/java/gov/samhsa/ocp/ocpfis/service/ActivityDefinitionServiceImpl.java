@@ -2,7 +2,6 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
-import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
@@ -20,6 +19,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -224,7 +224,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
                 .where(new StringClientParam("publisher").matches().value(ResourceType.Organization + "/" + organization))
                 .where(new TokenClientParam("status").exactly().code(String.valueOf(Enumerations.PublicationStatus.ACTIVE).toLowerCase()))
-                .count(Integer.parseInt(fisProperties.getResourceSinglePageLimit()))
+                .count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
@@ -252,7 +252,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         // Check if there are any additional search criteria
         if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.NAME.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            activityDefinitionsSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+            activityDefinitionsSearchQuery.where(new RichStringClientParam("name").contains().value(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name())) {
             log.info("Searching for " + SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
             activityDefinitionsSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));
