@@ -85,7 +85,21 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public AppointmentDto getAppointmentById(String appointmentId) {
-        return null;
+        log.info("Searching for appointmentId: " + appointmentId);
+        Bundle appointmentBundle = fhirClient.search().forResource(Appointment.class)
+                .where(new TokenClientParam("_id").exactly().code(appointmentId.trim()))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (appointmentBundle == null || appointmentBundle.getEntry().isEmpty()) {
+            log.info("No appointment was found for the given appointmentId:" + appointmentId);
+            throw new ResourceNotFoundException("No appointment was found for the given appointment ID:" + appointmentId);
+        }
+
+        log.info("FHIR appointment bundle retrieved from FHIR server successfully for appointment Id:" + appointmentId);
+
+        Bundle.BundleEntryComponent retrievedAppointment = appointmentBundle.getEntry().get(0);
+        return AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource());
     }
 
     @Override
