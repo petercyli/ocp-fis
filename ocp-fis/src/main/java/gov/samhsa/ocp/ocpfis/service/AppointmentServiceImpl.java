@@ -67,7 +67,15 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public void updateAppointment(String appointmentId, AppointmentDto appointmentDto) {
-
+        log.info("Updating an appointmentId: " + appointmentId);
+        //Validate if the request body has all the mandatory fields
+        validateAppointDtoFromRequest(appointmentDto);
+        //Map
+        final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false);
+        //Validate
+        FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Update Appointment");
+        //Update
+        FhirUtil.updateFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
     }
 
     @Override
