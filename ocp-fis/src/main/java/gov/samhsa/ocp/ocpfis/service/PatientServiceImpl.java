@@ -16,6 +16,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -27,6 +28,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -72,6 +74,7 @@ public class PatientServiceImpl implements PatientService {
     public static final String LANGUAGE_CODE = "language";
     public static final String ETHNICITY_CODE = "Ethnicity";
     public static final String GENDER_CODE = "Gender";
+    public static final String TO_DO="To-Do";
 
     private final IGenericClient fhirClient;
     private final IParser iParser;
@@ -520,7 +523,7 @@ public class PatientServiceImpl implements PatientService {
 
         practitioner.setReference("Practitioner/"+patientDto.getPractitionerId().orElse("1961"));
         Reference organization=new Reference();
-        organization.setReference("Organization/"+patientDto.getOrganizationId().orElse("1503"));
+        organization.setReference("Organization/"+patientDto.getOrganizationId().orElse("902"));
         careTeam.addParticipant().setMember(practitioner).setOnBehalfOf(organization);
 
         fhirClient.create().resource(careTeam).execute();
@@ -547,15 +550,30 @@ public class PatientServiceImpl implements PatientService {
         Reference patient=new Reference();
         patient.setReference("Patient/"+methodOutcome.getId().getIdPart());
         task.setFor(patient);
-        task.setDescription("To-Do");
+        task.setDescription(TO_DO);
 
         Reference reference=new Reference();
         reference.setReference("Practitioner/"+patientDto.getPractitionerId().orElse("1961"));
         task.setOwner(reference);
 
+        task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(getRelatedActivityDefinition(patientDto,TO_DO)));
+
         fhirClient.create().resource(task).execute();
     }
 
+    private ReferenceDto getRelatedActivityDefinition(PatientDto patientDto,String definitionDisplay){
+        Bundle bundle=fhirClient.search().forResource(ActivityDefinition.class)
+                .where(new StringClientParam("publisher").matches().value("Organization/"+patientDto.getOrganizationId().orElse("902")))
+                .where(new StringClientParam("description").matches().value(definitionDisplay))
+                .returnBundle(Bundle.class).execute();
+        ReferenceDto referenceDto=new ReferenceDto();
+        bundle.getEntry().stream().findAny().ifPresent(ad->{
+            ActivityDefinition activityDefinition= (ActivityDefinition) ad.getResource();
+            referenceDto.setDisplay((activityDefinition.hasDescription()) ? activityDefinition.getDescription():null);
+            referenceDto.setReference("ActivityDefinition/"+activityDefinition.getIdElement().getIdPart());
+        });
+        return referenceDto;
+    }
 }
 
 
