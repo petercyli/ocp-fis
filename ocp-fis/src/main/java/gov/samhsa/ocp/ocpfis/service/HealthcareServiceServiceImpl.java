@@ -428,7 +428,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     private Bundle getLocationBundle(String organizationResourceId) {
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId.trim()));
 
-        return (Bundle) locationsSearchQuery.count(1000)
+        return (Bundle) locationsSearchQuery.count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();

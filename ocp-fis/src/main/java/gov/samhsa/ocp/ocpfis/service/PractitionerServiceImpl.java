@@ -199,7 +199,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
                 .where(new ReferenceClientParam("organization").hasId(organizationId))
                 .include(PractitionerRole.INCLUDE_PRACTITIONER)
-                .count(Integer.parseInt(fisProperties.getResourceSinglePageLimit()))
+                .count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class).execute();
 
         return getPractitionerDtos(practitioners, bundle);
@@ -235,7 +235,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         return (Bundle) query.where(new ReferenceClientParam("organization").hasId(organization))
                 .include(new Include("PractitionerRole:practitioner"))
                 .returnBundle(Bundle.class)
-                .count(Integer.parseInt(fisProperties.getResourceSinglePageLimit()))
+                .count(fisProperties.getResourceSinglePageLimit())
                 .execute();
     }
 
