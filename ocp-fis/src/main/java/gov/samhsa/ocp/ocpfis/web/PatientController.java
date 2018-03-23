@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -37,22 +36,16 @@ public class PatientController {
     }
 
 
-    @GetMapping
-    public List<PatientDto> getPatients() {
-        return patientService.getPatients();
-    }
-
-
     @GetMapping("/search")
-    public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "value") String value,
-                                                  @RequestParam(value = "type", defaultValue = "name") String type,
+    public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "type", defaultValue = "name") String searchKey,
+                                                  @RequestParam(value = "value") String searchValue,
                                                   @RequestParam(value = "showInactive", defaultValue = "false") Optional<Boolean> showInactive,
                                                   @RequestParam Optional<Integer> page,
                                                   @RequestParam Optional<Integer> size) {
-        if (type == null || !Arrays.stream(SearchType.values()).anyMatch(searchType -> searchType.name().equalsIgnoreCase(type.trim()))) {
+        if (searchKey == null || !Arrays.stream(SearchType.values()).anyMatch(searchType -> searchType.name().equalsIgnoreCase(searchKey.trim()))) {
             throw new BadRequestException("Invalid Type Value. It should be either Name or Identifier");
         }
-        return patientService.getPatientsByValue(value, type, showInactive, page, size);
+        return patientService.getPatientsByValue(searchKey, searchValue, showInactive, page, size);
     }
 
     @PostMapping
@@ -73,4 +66,15 @@ public class PatientController {
     public PatientDto getPatientById(@PathVariable String patientId) {
         return patientService.getPatientById(patientId);
     }
+
+    @GetMapping
+    PageDto<PatientDto> getPatients(@RequestParam(value = "practitioner") Optional<String> practitioner,
+                                                         @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                         @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                         @RequestParam(value = "showInActive") Optional<Boolean> showInactive,
+                                                         @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                         @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+        return patientService.getPatientsByPractitioner(practitioner, searchKey, searchValue, showInactive, pageNumber, pageSize);
+    }
+
 }

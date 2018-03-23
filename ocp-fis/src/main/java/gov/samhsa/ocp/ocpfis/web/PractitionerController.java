@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
@@ -56,4 +57,11 @@ public class PractitionerController {
     public void updatePractitioner(@PathVariable String practitionerId, @Valid @RequestBody PractitionerDto practitionerDto) {
         practitionerService.updatePractitioner(practitionerId, practitionerDto);
     }
+
+    @GetMapping("/organization/{organizationId}")
+    public PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(@PathVariable("organizationId") String organization, @RequestParam Optional<String> role,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
+        return practitionerService.getPractitionersByOrganizationAndRole(organization, role, page, size);
+    }
+
+
 }

@@ -9,6 +9,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -62,6 +63,47 @@ public final class PaginationUtil {
         double totalPages = Math.ceil((double) totalElementsInBundle / numberOfElementsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
         return new PageDto<>(elements, numberOfElementsPerPage, totalPages, currentPage, elements.size(), totalElementsInBundle);
+    }
+
+    public static PageDto<?> applyPaginationForCustomArrayList(List<?> elements,
+                                                               int numberOfElementsPerPage,
+                                                               Optional<Integer> pageNumber,
+                                                               boolean throwExceptionWhenResourceNotFound) {
+        boolean firstPage = isFirstPage(pageNumber);
+        int currentPage = firstPage ? 1 : pageNumber.get(); // Assuming page number starts with 1
+
+        if (elements == null || elements.isEmpty()) {
+            if (throwExceptionWhenResourceNotFound) {
+                throw new ResourceNotFoundException("No resources found!");
+            } else {
+                return new PageDto<>(new ArrayList<>(), numberOfElementsPerPage, 0, 0, 0, 0);
+            }
+        }
+
+        int totalElements = elements.size();
+        double totalPages = Math.ceil((double) totalElements / numberOfElementsPerPage);
+
+        // Check validity of the page number
+        if (currentPage > totalPages) {
+            throw new ResourceNotFoundException("No resources were found in the FHIR server for the page number: " + currentPage);
+        }
+
+        int startIndex = ((currentPage - 1) * numberOfElementsPerPage);
+        int endIndex = (currentPage * numberOfElementsPerPage) - 1;
+        int lastElementIndex = totalElements - 1;
+
+        // Just to be doubly sure
+        if (startIndex > lastElementIndex) {
+            throw new ResourceNotFoundException("Something is off about the page number you are requesting! ");
+        }
+
+        List<?> currentPageElements;
+        if (endIndex > lastElementIndex) {
+            currentPageElements = elements.subList(startIndex, ++lastElementIndex);
+        } else {
+            currentPageElements = elements.subList(startIndex, ++endIndex);
+        }
+        return new PageDto<>(currentPageElements, numberOfElementsPerPage, totalPages, currentPage, currentPageElements.size(), totalElements);
     }
 
     public static boolean isFirstPage(Optional<Integer> pageNumber) {
@@ -120,8 +162,6 @@ public final class PaginationUtil {
                 //Get location's page size. Need to find a better way for default case
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
-
-
         }
         return numberOfResourcesPerPage;
     }
