@@ -459,13 +459,27 @@ public class TaskServiceImpl implements TaskService {
         List<Bundle.BundleEntryComponent> duplicateCheckList = new ArrayList<>();
         if (!taskForPatientbundle.isEmpty()) {
             duplicateCheckList = taskForPatientbundle.getEntry().stream().filter(taskResource -> {
-                Task task = (Task) taskResource.getResource();
-                try {
-                    return task.getDefinitionReference().getReference().equalsIgnoreCase(taskDto.getDefinition().getReference());
+                boolean defCheck = Boolean.FALSE;
+                boolean statusCheck = Boolean.FALSE;
+                boolean isMainTask = Boolean.TRUE;
+                if (taskDto.getPartOf() != null) {
+                    isMainTask = Boolean.FALSE;
+                } else {
+                    Task task = (Task) taskResource.getResource();
+                    try {
+                        if (task.getDefinitionReference() != null) {
+                            defCheck = task.getDefinitionReference().getReference()
+                                    .equalsIgnoreCase(taskDto.getDefinition().getReference());
+                            statusCheck = (task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) ||
+                            task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode()) ||
+                            task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()));
 
-                } catch (FHIRException e) {
-                    throw new ResourceNotFoundException("No definition reference found in the Server");
+                        }
+                    } catch (Exception e) {
+                        defCheck = Boolean.FALSE;
+                    }
                 }
+                return isMainTask ? defCheck && !statusCheck : Boolean.FALSE;
             }).collect(Collectors.toList());
         }
         return !duplicateCheckList.isEmpty();
