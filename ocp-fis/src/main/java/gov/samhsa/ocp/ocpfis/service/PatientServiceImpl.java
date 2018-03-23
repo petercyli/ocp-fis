@@ -169,7 +169,7 @@ public class PatientServiceImpl implements PatientService {
                 .include(CareTeam.INCLUDE_PATIENT)
                 .sort().ascending(CareTeam.RES_ID)
                 .returnBundle(Bundle.class)
-                .count(1000)
+                .count(fisProperties.getResourceSinglePageLimit())
                 .execute();
 
         if (bundle != null) {
