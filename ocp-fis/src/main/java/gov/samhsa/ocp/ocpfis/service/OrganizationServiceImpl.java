@@ -329,8 +329,8 @@ public class OrganizationServiceImpl implements OrganizationService {
     private void createActivityDefinition(MethodOutcome methodOutcome){
         ActivityDefinition activityDefinition=new ActivityDefinition();
         activityDefinition.setVersion(fisProperties.getActivityDefinition().getVersion());
-        activityDefinition.setName("To-Do");
-        activityDefinition.setTitle("To-Do");
+        activityDefinition.setName(TO_DO);
+        activityDefinition.setTitle(TO_DO);
 
         activityDefinition.setStatus(Enumerations.PublicationStatus.ACTIVE);
 
