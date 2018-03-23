@@ -521,9 +521,9 @@ public class PatientServiceImpl implements PatientService {
         careTeam.setSubject(patientReference);
         Reference practitioner=new Reference();
 
-        practitioner.setReference("Practitioner/"+patientDto.getPractitionerId().orElse("1961"));
+        practitioner.setReference("Practitioner/"+patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()));
         Reference organization=new Reference();
-        organization.setReference("Organization/"+patientDto.getOrganizationId().orElse("902"));
+        organization.setReference("Organization/"+patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()));
         careTeam.addParticipant().setMember(practitioner).setOnBehalfOf(organization);
 
         fhirClient.create().resource(careTeam).execute();
@@ -553,7 +553,7 @@ public class PatientServiceImpl implements PatientService {
         task.setDescription(TO_DO);
 
         Reference reference=new Reference();
-        reference.setReference("Practitioner/"+patientDto.getPractitionerId().orElse("1961"));
+        reference.setReference("Practitioner/"+patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()));
         task.setOwner(reference);
 
         task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(getRelatedActivityDefinition(patientDto,TO_DO)));
@@ -563,7 +563,7 @@ public class PatientServiceImpl implements PatientService {
 
     private ReferenceDto getRelatedActivityDefinition(PatientDto patientDto,String definitionDisplay){
         Bundle bundle=fhirClient.search().forResource(ActivityDefinition.class)
-                .where(new StringClientParam("publisher").matches().value("Organization/"+patientDto.getOrganizationId().orElse("902")))
+                .where(new StringClientParam("publisher").matches().value("Organization/"+patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization())))
                 .where(new StringClientParam("description").matches().value(definitionDisplay))
                 .returnBundle(Bundle.class).execute();
         ReferenceDto referenceDto=new ReferenceDto();
