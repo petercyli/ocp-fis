@@ -24,6 +24,12 @@ public class FisProperties {
     private Fhir fhir;
 
     @NotNull
+    private String defaultOrganization;
+
+    @NotNull
+    private String defaultPractitioner;
+
+    @NotNull
     @Min(1)
     @Max(1000)
     private int ResourceSinglePageLimit;

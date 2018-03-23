@@ -13,6 +13,8 @@ ocp-fis:
     clientSocketTimeoutInMs: 768000
     encoding: json
   ResourceSinglePageLimit: 100
+  defaultOrganization: 902
+  defaultPractitioner: 1961
   activityDefinition:
     version: 1.1.0
     pagination:
