@@ -9,11 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class CommunicationReferenceDto {
-
+public class ParticipantReferenceDto {
     private String reference;
-
     private String display;
-
     boolean selected;
 }
