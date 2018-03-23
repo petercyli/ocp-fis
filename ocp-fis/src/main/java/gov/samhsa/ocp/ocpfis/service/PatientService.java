@@ -11,7 +11,7 @@ public interface PatientService {
 
     List<PatientDto> getPatients();
 
-    PageDto<PatientDto> getPatientsByValue(String value, String type, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize);
+    PageDto<PatientDto> getPatientsByValue(String value, String key, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 
     List<PatientDto> getPatientsByPractitioner(Optional<String> practitioner, Optional<String> searchKey, Optional<String> searchValue);
 

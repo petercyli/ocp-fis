@@ -97,7 +97,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(String value, String type, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<PatientDto> getPatientsByValue(String value, String key, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
@@ -109,9 +109,9 @@ public class PatientServiceImpl implements PatientService {
             }
         }
 
-        if (type.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
+        if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
             PatientSearchQuery.where(new StringClientParam("name").matches().value(value.trim()));
-        } else if (type.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
+        } else if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
             PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(value.trim()));
         } else {
             throw new BadRequestException("Invalid Type Values");
