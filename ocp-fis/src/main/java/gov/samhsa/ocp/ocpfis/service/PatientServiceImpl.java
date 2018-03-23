@@ -6,7 +6,6 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
-import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
@@ -26,8 +25,10 @@ import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Extension;
@@ -96,7 +97,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(String value, String type, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<PatientDto> getPatientsByValue(String key, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
@@ -108,9 +109,9 @@ public class PatientServiceImpl implements PatientService {
             }
         }
 
-        if (type.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
-            PatientSearchQuery.where(new StringClientParam("name").matches().value(value.trim()));
-        } else if (type.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
+        if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
+            PatientSearchQuery.where(new RichStringClientParam("name").contains().value(value.trim()));
+        } else if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
             PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(value.trim()));
         } else {
             throw new BadRequestException("Invalid Type Values");
@@ -147,6 +148,70 @@ public class PatientServiceImpl implements PatientService {
 
         return new PageDto<>(patientDtos, numberOfPatientsPerPage, totalPages, currentPage, patientDtos.size(), otherPagePatientSearchBundle.getTotal());
     }
+
+    @Override
+    public PageDto<PatientDto> getPatientsByPractitioner(Optional<String> practitioner, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Patient.name());
+        List<PatientDto> patients = this.getPatientsByPractitioner(practitioner, searchKey, searchValue);
+
+        return (PageDto<PatientDto>) PaginationUtil.applyPaginationForCustomArrayList(patients, numberOfPatientsPerPage, pageNumber, false);
+    }
+
+    @Override
+    public List<PatientDto> getPatientsByPractitioner(Optional<String> practitioner, Optional<String> searchKey, Optional<String> searchValue) {
+        List<PatientDto> patients = new ArrayList<>();
+
+        IQuery practitionerQuery = fhirClient.search().forResource(CareTeam.class);
+
+        practitioner.ifPresent(practitionerId->practitionerQuery.where(new ReferenceClientParam("participant").hasId(practitionerId)));
+
+         Bundle bundle= (Bundle) practitionerQuery
+                .include(CareTeam.INCLUDE_PATIENT)
+                .sort().ascending(CareTeam.RES_ID)
+                .returnBundle(Bundle.class)
+                .count(fisProperties.getResourceSinglePageLimit())
+                .execute();
+
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> components = bundle.getEntry();
+            if (components != null) {
+                patients = components.stream()
+                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Patient))
+                        .map(it -> (Patient) it.getResource())
+                        .filter(it -> filterBySearchKey(it, searchKey, searchValue))
+                        .map(patient -> mapPatientToPatientDto(patient, bundle))
+                        .distinct()
+                        .collect(toList());
+            }
+        }
+        return patients;
+    }
+
+    private boolean filterBySearchKey(Patient patient, Optional<String> searchKey, Optional<String> searchValue) {
+        //returning everything if searchKey is not present, change to false later.
+        boolean result = true;
+        if (searchKey.isPresent() && searchValue.isPresent()) {
+            if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
+                FhirUtil.checkPatientName(patient, searchValue.get());
+            } else if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
+                FhirUtil.checkPatientId(patient, searchValue.get());
+            }
+        }
+        return result;
+    }
+
+    private PatientDto mapPatientToPatientDto(Patient patient, Bundle response) {
+        PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
+        patientDto.setId(patient.getIdElement().getIdPart());
+        if (patient.getGender() != null)
+            patientDto.setGenderCode(patient.getGender().toCode());
+        mapExtensionFields(patient, patientDto);
+        //Getting flags into the patient dto
+        List<FlagDto> flagDtos = getFlagsForEachPatient(response.getEntry(), patient.getIdElement().getIdPart());
+        patientDto.setFlags(flagDtos);
+        return patientDto;
+    }
+
 
     private int getPatientsByIdentifier(String system, String value) {
         log.info("Searching patients with identifier.system : " + system + " and value : " + value);
@@ -264,17 +329,7 @@ public class PatientServiceImpl implements PatientService {
                     .filter(bundleEntryComponent -> bundleEntryComponent.getResource().getResourceType().equals(ResourceType.Patient))  //patient entries
                     .map(bundleEntryComponent -> (Patient) bundleEntryComponent.getResource()) // patient resources
                     .peek(patient -> log.debug(iParser.encodeResourceToString(patient)))
-                    .map(patient -> {
-                        PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
-                        patientDto.setId(patient.getIdElement().getIdPart());
-                        if (patient.getGender() != null)
-                            patientDto.setGenderCode(patient.getGender().toCode());
-                        mapExtensionFields(patient, patientDto);
-                        //Getting flags into the patient dto
-                        List<FlagDto> flagDtos = getFlagsForEachPatient(response.getEntry(), patient.getIdElement().getIdPart());
-                        patientDto.setFlags(flagDtos);
-                        return patientDto;
-                    })
+                    .map(patient -> mapPatientToPatientDto(patient, response))
                     .collect(toList());
         }
         log.info("Total Patients retrieved from Server #" + patientDtos.size());
@@ -345,7 +400,6 @@ public class PatientServiceImpl implements PatientService {
 
         patient.setExtension(extensionList);
     }
-
 
     private void mapExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = patient.getExtension();
@@ -434,8 +488,6 @@ public class PatientServiceImpl implements PatientService {
             return !duplicateCheckList.isEmpty();
         }
     }
-
-
 }
 
 

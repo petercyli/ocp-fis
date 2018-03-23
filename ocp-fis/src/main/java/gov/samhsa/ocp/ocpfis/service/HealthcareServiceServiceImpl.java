@@ -3,7 +3,6 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
-import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
@@ -18,6 +17,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.HealthcareService;
@@ -428,7 +428,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     private Bundle getLocationBundle(String organizationResourceId) {
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId.trim()));
 
-        return (Bundle) locationsSearchQuery.count(1000)
+        return (Bundle) locationsSearchQuery.count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
@@ -583,7 +583,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         // Check if there are any additional search criteria
         if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.NAME.name())) {
             log.info("Searching for healthcare service " + SearchKeyEnum.HealthcareServiceSearchKey.NAME.name() + " = " + searchValue.get().trim());
-            healthcareServicesSearchQuery.where(new StringClientParam("name").matches().value(searchValue.get().trim()));
+            healthcareServicesSearchQuery.where(new RichStringClientParam("name").contains().value(searchValue.get().trim()));
         } else if (searchKey.isPresent() && searchKey.get().equalsIgnoreCase(SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name())) {
             log.info("Searching for healthcare service " + SearchKeyEnum.HealthcareServiceSearchKey.LOGICALID.name() + " = " + searchValue.get().trim());
             healthcareServicesSearchQuery.where(new TokenClientParam("_id").exactly().code(searchValue.get().trim()));

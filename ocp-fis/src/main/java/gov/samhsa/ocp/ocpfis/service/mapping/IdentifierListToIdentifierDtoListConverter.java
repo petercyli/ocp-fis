@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service.mapping;
 
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
+import gov.samhsa.ocp.ocpfis.service.exception.IdentifierSystemNotFoundException;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.modelmapper.AbstractConverter;
 import org.springframework.stereotype.Component;
@@ -20,12 +21,16 @@ public class IdentifierListToIdentifierDtoListConverter extends AbstractConverte
             for (Identifier identifier : source) {
                 String systemOid = identifier.getSystem() != null ? identifier.getSystem() : "";
 
-                String systemDisplay;
-                if (systemOid.startsWith(OID_TEXT) || systemOid.startsWith("http")) {
-                    systemDisplay = KnownIdentifierSystemEnum.fromUri(systemOid).getDisplay();
-                } else if (systemOid.startsWith("2.16")) {
-                    systemDisplay = KnownIdentifierSystemEnum.fromOid(systemOid).getDisplay();
-                }  else {
+                String systemDisplay = null;
+
+                try {
+                    if (systemOid.startsWith(OID_TEXT) || systemOid.startsWith("http")) {
+                        systemDisplay = KnownIdentifierSystemEnum.fromUri(systemOid).getDisplay();
+                    } else if (systemOid.startsWith("2.16")) {
+                        systemDisplay = KnownIdentifierSystemEnum.fromOid(systemOid).getDisplay();
+                    } else
+                        systemDisplay = systemOid;
+                } catch (IdentifierSystemNotFoundException e) {
                     systemDisplay = systemOid;
                 }
 

@@ -73,6 +73,16 @@ public class TaskController {
         return taskService.getRelatedTasks(patient, definition);
     }
 
+    @GetMapping("/tasks/upcoming-task-search")
+    public PageDto<TaskDto> getUpcomingTasksByPractitionerAndRole(@RequestParam(value = "practitioner") String practitioner,
+                                          @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                          @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                          @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                          @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+        return taskService.getUpcomingTasksByPractitioner(practitioner, searchKey, searchValue, pageNumber, pageSize);
+
+    }
+
     @GetMapping("/tasks")
     public List<TaskDto> getTasks(@RequestParam(value = "practitioner") Optional<String> practitioner,
                                      @RequestParam(value = "patient") Optional<String> patient,
