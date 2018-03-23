@@ -4,10 +4,9 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.CareTeamService;
 import gov.samhsa.ocp.ocpfis.service.ParticipantService;
-import gov.samhsa.ocp.ocpfis.service.dto.CommunicationReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantSearchDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -39,9 +38,9 @@ public class ParticipantController {
     }
 
     @GetMapping
-    public List<CommunicationReferenceDto> getCareTeamParticipants(@RequestParam(value = "patient") String patient,
-                                                      @RequestParam(value = "roles", required = false) Optional<List<String>> roles,
-                                                      @RequestParam(value = "communication", required = false) Optional<String> communication)  {
+    public List<ParticipantReferenceDto> getCareTeamParticipants(@RequestParam(value = "patient") String patient,
+                                                                 @RequestParam(value = "roles", required = false) Optional<List<String>> roles,
+                                                                 @RequestParam(value = "communication", required = false) Optional<String> communication)  {
         return careTeamService.getCareTeamParticipants(patient, roles, communication);
     }
 

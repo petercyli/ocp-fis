@@ -34,6 +34,16 @@ public class TaskController {
         return taskService.getTasks(statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
+
+    @GetMapping("/tasks/subtasks")
+    public List<TaskDto> getSubTasks(@RequestParam(value = "practitionerId") Optional<String> practitionerId,
+                                     @RequestParam(value = "patientId") Optional<String> patientId,
+                                     @RequestParam(value = "definition") Optional<String> definition,
+                                     @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks) {
+        return taskService.getMainAndSubTasks(practitionerId, patientId, definition, isUpcomingTasks);
+    }
+
+
     @PostMapping("/tasks")
     @ResponseStatus(HttpStatus.CREATED)
     public void createTask(@Valid @RequestBody TaskDto taskDto) {
@@ -63,8 +73,10 @@ public class TaskController {
     }
 
     @GetMapping("/tasks")
-    public List<TaskDto> getUpcomingTasks(@RequestParam(value = "practitioner") String practitioner) {
-        return taskService.getUpcomingTasks(practitioner);
+    public List<TaskDto> getTasks(@RequestParam(value = "practitionerId") Optional<String> practitionerId,
+                                     @RequestParam(value = "patientId") Optional<String> patientId,
+                                     @RequestParam(value = "definition") Optional<String> definition,
+                                     @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks) {
+        return taskService.getMainAndSubTasks(practitionerId, patientId, definition, isUpcomingTasks);
     }
-
 }
