@@ -141,74 +141,16 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDto> getMainAndSubTasks(Optional<String> practitionerId, Optional<String> patientId, Optional<String> definition, Optional<Boolean> isUpcomingTasks) {
-        IQuery iQuery = fhirClient.search().forResource(Task.class);
+    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks) {
 
-        //query the task and sub-task owned by specific practitioner
-        if (practitionerId.isPresent() && !patientId.isPresent()) {
-            iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()));
-        }
+        // Generate the Query Based on Input Variables
+        IQuery iQuery = getTasksIQuery(practitioner, patient, partOf);
 
-        //query the task and sub-task for the specific patient
-        if (patientId.isPresent() && !practitionerId.isPresent()) {
-            iQuery.where(new ReferenceClientParam("patient").hasId(patientId.get()));
-        }
+        // Fetch Tasks and Map to TaskDtos if available
+        List<TaskDto> taskDtos = getTaskDtos(iQuery);
 
-        //query the task and sub-task owned by specific practitioner and for the specific patient
-        if (practitionerId.isPresent() && patientId.isPresent()) {
-            iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()))
-                    .where(new ReferenceClientParam("patient").hasId(patientId.get()));
-        }
-
-        Bundle firstPageTaskBundle = (Bundle) iQuery
-                .returnBundle(Bundle.class)
-                .count(Integer.parseInt(fisProperties.getResourceSinglePageLimit()))
-                .execute();
-
-        if (firstPageTaskBundle == null || firstPageTaskBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Tasks were found in the FHIR server.");
-        }
-
-        List<Bundle.BundleEntryComponent> retrievedTasks = firstPageTaskBundle.getEntry();
-
-        List<TaskDto> taskDtos = retrievedTasks.stream()
-                .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Task))
-                .map(retrievedTask -> {
-                    Task task = (Task) retrievedTask.getResource();
-                    return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());
-                }).collect(toList());
-
-
-        // Filter the general sub-tasks or to-do sub tasks with the certain activity definition
-        if (definition.isPresent()) {
-            taskDtos = taskDtos.stream()
-                    .filter(t -> t.getPartOf() != null && t.getDefinition() != null)
-                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
-                            && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
-                    .filter(taskDto -> taskDto.getPartOf().getDisplay().equalsIgnoreCase(definition.get())).collect(toList());
-        }
-
-        // Filter the ParentTasks, exclude TodoParent task
-        if (!definition.isPresent()) {
-            taskDtos = taskDtos.stream()
-                    .filter(t -> t.getDefinition() != null)
-                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
-                            && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
-                    .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("To-Do"))
-                    .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("TODO"))
-                    .filter(taskDto -> taskDto.getPartOf() == null)
-                    .collect(toList());
-        }
-
-        // Combine the upcoming main tasks for each patient
-        if (isUpcomingTasks.orElse(Boolean.FALSE)) {
-            taskDtos = taskDtos.stream()
-                    .filter(t -> t.getTaskDue() != null
-                            && (t.getTaskDue().name().equalsIgnoreCase(TaskDueEnum.DUE_TODAY.name())
-                            || t.getTaskDue().name().equalsIgnoreCase(TaskDueEnum.UPCOMING.name())))
-                    .collect(toList());
-        }
-        taskDtos.sort(Comparator.comparing(o -> o.getDateDiff()));
+        //Apply Filters Based on Input Variables
+        taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos);
 
         return taskDtos;
     }
@@ -522,4 +464,94 @@ public class TaskServiceImpl implements TaskService {
         return episodeOfCareDtos.stream().findFirst();
     }
 
+    private List<TaskDto> getTaskDtosBasedOnFilters(Optional<String> definition, Optional<String> parentTaskId, Optional<Boolean> isUpcomingTasks, List<TaskDto> taskDtos) {
+
+        // Filter the general sub-tasks for the given parent task
+        if (parentTaskId.isPresent()) {
+            taskDtos = taskDtos.stream()
+                    .filter(t -> t.getPartOf() != null && t.getDefinition() != null)
+                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
+                            && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode())).collect(toList());
+        } else {
+
+            // Filter the general sub-tasks or to-do sub tasks with the certain activity definition
+            if (definition.isPresent()) {
+                taskDtos = taskDtos.stream()
+                        .filter(t -> t.getPartOf() != null && t.getDefinition() != null)
+                        .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
+                                && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
+                        .filter(taskDto -> taskDto.getPartOf().getDisplay().equalsIgnoreCase(definition.get())).collect(toList());
+            }
+
+
+            // Filter the ParentTasks, exclude TodoParent task
+            if (!definition.isPresent()) {
+                taskDtos = taskDtos.stream()
+                        .filter(t -> t.getDefinition() != null)
+                        .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
+                                && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
+                        .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("To-Do"))
+                        .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("TODO"))
+                        .filter(taskDto -> taskDto.getPartOf() == null)
+                        .collect(toList());
+            }
+
+            // Combine the upcoming main tasks for each patient
+            if (isUpcomingTasks.orElse(Boolean.FALSE)) {
+                taskDtos = taskDtos.stream()
+                        .filter(t -> t.getTaskDue() != null
+                                && (t.getTaskDue().name().equalsIgnoreCase(TaskDueEnum.DUE_TODAY.name())
+                                || t.getTaskDue().name().equalsIgnoreCase(TaskDueEnum.UPCOMING.name())))
+                        .collect(toList());
+            }
+        }
+        taskDtos.sort(Comparator.comparing(o -> o.getDateDiff()));
+        return taskDtos;
+    }
+
+    private IQuery getTasksIQuery(Optional<String> practitionerId, Optional<String> patientId, Optional<String> parentTaskId) {
+        IQuery iQuery = fhirClient.search().forResource(Task.class);
+
+        //Get Sub tasks by parent task id
+        if (parentTaskId.isPresent()) {
+            iQuery.where(new ReferenceClientParam("part-of").hasId(parentTaskId.get()));
+        } else {
+            //query the task and sub-task owned by specific practitioner
+            if (practitionerId.isPresent() && !patientId.isPresent()) {
+                iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()));
+            }
+
+            //query the task and sub-task for the specific patient
+            if (patientId.isPresent() && !practitionerId.isPresent()) {
+                iQuery.where(new ReferenceClientParam("patient").hasId(patientId.get()));
+            }
+
+            //query the task and sub-task owned by specific practitioner and for the specific patient
+            if (practitionerId.isPresent() && patientId.isPresent()) {
+                iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()))
+                        .where(new ReferenceClientParam("patient").hasId(patientId.get()));
+            }
+        }
+        return iQuery;
+    }
+
+    private List<TaskDto> getTaskDtos(IQuery iQuery) {
+        Bundle firstPageTaskBundle = (Bundle) iQuery
+                .returnBundle(Bundle.class)
+                .count(Integer.parseInt(fisProperties.getResourceSinglePageLimit()))
+                .execute();
+
+        if (firstPageTaskBundle == null || firstPageTaskBundle.getEntry().isEmpty()) {
+            throw new ResourceNotFoundException("No Tasks were found in the FHIR server.");
+        }
+
+        List<Bundle.BundleEntryComponent> retrievedTasks = firstPageTaskBundle.getEntry();
+
+        return retrievedTasks.stream()
+                .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Task))
+                .map(retrievedTask -> {
+                    Task task = (Task) retrievedTask.getResource();
+                    return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());
+                }).collect(toList());
+    }
 }
