@@ -104,7 +104,7 @@ public enum LookupPathUrls {
         static final String PARTICIPATION_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/v3-ParticipationType";
         static final String PARTICIPATION_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/participationstatus";
         static final String PARTICIPANT_REQUIRED_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/participantrequired";
-        static final String PROVIDER_ROLE_PATH = "/ValueSet/ocp-provider-role";
+        static final String PROVIDER_ROLE_PATH = "/ValueSet/ocp-practitioner-role";
         static final String PROVIDER_SPECIALTY_PATH = "/ValueSet/ocp-provider-specialty";
         static final String FLAG_STATUS_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/flag-status";
         static final String FLAG_CATEGORY_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/flag-category";

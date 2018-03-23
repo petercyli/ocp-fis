@@ -205,7 +205,8 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     @Override
-    public List<PractitionerDto> getPractitionersByOrganizationAndRole(String organization, Optional<String> role) {
+    public PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(String organization, Optional<String> role,Optional<Integer> pageNumber,Optional<Integer> pageSize) {
+        int numberOfPractitionersPerPage=PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Practitioner.name());
         List<PractitionerDto> practitioners = new ArrayList<>();
 
         IQuery query = fhirClient.search().forResource(PractitionerRole.class);
@@ -235,7 +236,7 @@ public class PractitionerServiceImpl implements PractitionerService {
             }
         }
 
-        return practitioners;
+        return (PageDto<PractitionerDto>) PaginationUtil.applyPaginationForCustomArrayList(practitioners,numberOfPractitionersPerPage,pageNumber,false);
     }
 
 

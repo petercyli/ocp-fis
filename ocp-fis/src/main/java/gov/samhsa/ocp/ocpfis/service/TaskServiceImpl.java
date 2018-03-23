@@ -184,7 +184,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private List<TaskDto> getUpcomingTasksByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue) {
-        List<PatientDto> patients = patientService.getPatientsByPractitioner(practitioner, Optional.empty(), Optional.empty());
+        List<PatientDto> patients = patientService.getPatientsByPractitioner(Optional.ofNullable(practitioner), Optional.empty(), Optional.empty());
 
         List<TaskDto> allTasks = patients.stream()
                 .flatMap(it -> getTasksByPatient(it.getId()).stream())
