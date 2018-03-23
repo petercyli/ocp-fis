@@ -32,6 +32,7 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
  * #L%
  */
 
+// Copy of ca.uhn.fhir.rest.gclient.StringCriterion
 class StringCriterion<A extends IParam> implements ICriterion<A>, ICriterionInternal {
 
 	private String myValue;
