@@ -24,7 +24,7 @@ public class FisProperties {
     private Fhir fhir;
 
     @NotNull
-    private String ResourceSinglePageLimit;
+    private int ResourceSinglePageLimit;
 
     @NotNull
     @Valid
