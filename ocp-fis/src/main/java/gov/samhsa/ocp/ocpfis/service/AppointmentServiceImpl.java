@@ -10,23 +10,34 @@ import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.AppointmentToAppointmentDtoConverter;
+import gov.samhsa.ocp.ocpfis.service.mapping.CareTeamToCareTeamDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AppointmentDtoToAppointmentConverter;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CareTeam;
+import org.hl7.fhir.dstu3.model.HealthcareService;
+import org.hl7.fhir.dstu3.model.Location;
+import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -67,7 +78,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public void updateAppointment(String appointmentId, AppointmentDto appointmentDto) {
-        log.info("Updating an appointmentId: " + appointmentId);
+        log.info("Updating appointmentId: " + appointmentId);
         //Validate if the request body has all the mandatory fields
         validateAppointDtoFromRequest(appointmentDto);
         //Map
@@ -80,7 +91,48 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public List<ParticipantReferenceDto> getAppointmentParticipants(String patientId, Optional<List<String>> roles, Optional<String> appointmentId) {
-        return null;
+        List<ReferenceDto> participantsByRoles = new ArrayList<>();
+        List<ParticipantReferenceDto> participantsSelected = new ArrayList<>();
+
+        Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
+                .where(new ReferenceClientParam("patient").hasId(patientId.trim()))
+                .include(CareTeam.INCLUDE_PARTICIPANT)
+                .returnBundle(Bundle.class).execute();
+
+        if (careTeamBundle != null) {
+            List<Bundle.BundleEntryComponent> retrievedCareTeams = careTeamBundle.getEntry();
+
+            if (retrievedCareTeams != null) {
+                List<CareTeam> careTeams = retrievedCareTeams.stream()
+                        .filter(bundle -> bundle.getResource().getResourceType().equals(ResourceType.CareTeam))
+                        .map(careTeamMember -> (CareTeam) careTeamMember.getResource()).collect(toList());
+
+                participantsByRoles = careTeams.stream()
+                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles).stream()).collect(toList());
+            }
+        }
+
+        //retrieve recipients by Id
+        List<String> recipients = new ArrayList<>();
+
+        if (appointmentId.isPresent()) {
+
+            recipients = getParticipantsByPatientAndAppointmentId(patientId, appointmentId.get().trim());
+
+        }
+
+        for (ReferenceDto participant : participantsByRoles) {
+            ParticipantReferenceDto participantReferenceDto = new ParticipantReferenceDto();
+            participantReferenceDto.setReference(participant.getReference());
+            participantReferenceDto.setDisplay(participant.getDisplay());
+
+            if (recipients.contains(FhirDtoUtil.getIdFromParticipantReferenceDto(participant))) {
+                participantReferenceDto.setSelected(true);
+            }
+            participantsSelected.add(participantReferenceDto);
+        }
+
+        return participantsSelected;
     }
 
     @Override
@@ -265,5 +317,20 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-}
+    public List<String> getParticipantsByPatientAndAppointmentId(String patientId, String appointmentId) {
+        List<String> participantIds = new ArrayList<>();
 
+        Bundle bundle = fhirClient.search().forResource(Appointment.class)
+                .where(new ReferenceClientParam("patient").hasId(patientId))
+                .where(new TokenClientParam("_id").exactly().code(appointmentId))
+                .include(Appointment.INCLUDE_PATIENT)
+                .returnBundle(Bundle.class).execute();
+
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> components = bundle.getEntry();
+            participantIds = components.stream().map(Bundle.BundleEntryComponent::getResource).filter(resource -> resource instanceof Practitioner || resource instanceof Patient || resource instanceof Location || resource instanceof RelatedPerson || resource instanceof HealthcareService).map(resource -> resource.getIdElement().getIdPart()).collect(Collectors.toList());
+        }
+
+        return participantIds;
+    }
+}
