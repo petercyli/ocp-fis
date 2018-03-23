@@ -159,9 +159,8 @@ public final class PaginationUtil {
                         s <= fisProperties.getRelatedPerson().getPagination().getMaxSize()).orElse(fisProperties.getRelatedPerson().getPagination().getDefaultSize());
                 break;
             default:
-                //Get location's page size. Need to find a better way for default case
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
-                        s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
+                        s <= fisProperties.getResourceSinglePageLimit()).orElse(fisProperties.getResourceSinglePageLimit());
         }
         return numberOfResourcesPerPage;
     }

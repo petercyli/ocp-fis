@@ -152,7 +152,7 @@ public class TaskServiceImpl implements TaskService {
 
         Bundle firstPageTaskBundle = (Bundle) iQuery
                 .returnBundle(Bundle.class)
-                .count(Integer.parseInt(fisProperties.getResourceSinglePageLimit()))
+                .count(fisProperties.getResourceSinglePageLimit())
                 .execute();
 
         if (firstPageTaskBundle == null || firstPageTaskBundle.getEntry().isEmpty()) {
