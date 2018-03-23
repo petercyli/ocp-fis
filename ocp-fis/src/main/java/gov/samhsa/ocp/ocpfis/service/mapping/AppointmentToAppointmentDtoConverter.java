@@ -66,6 +66,10 @@ public class AppointmentToAppointmentDtoConverter {
 
             duration = duration + " - " + DateUtil.convertLocalDateTimeToHumanReadableFormat(appointmentDto.getEnd());
         }
+
+        if(appointment.hasCreated()){
+            appointmentDto.setCreated(DateUtil.convertDateToLocalDateTime(appointment.getCreated()));
+        }
         appointmentDto.setAppointmentDuration(duration);
 
         return appointmentDto;

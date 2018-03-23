@@ -34,6 +34,16 @@ public class TaskController {
         return taskService.getTasks(statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
+
+    @GetMapping("/tasks/subtasks")
+    public List<TaskDto> getSubTasks(@RequestParam(value = "practitionerId") Optional<String> practitionerId,
+                                     @RequestParam(value = "patientId") Optional<String> patientId,
+                                     @RequestParam(value = "definition") Optional<String> definition,
+                                     @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks) {
+        return taskService.getMainAndSubTasks(practitionerId, patientId, definition, isUpcomingTasks);
+    }
+
+
     @PostMapping("/tasks")
     @ResponseStatus(HttpStatus.CREATED)
     public void createTask(@Valid @RequestBody TaskDto taskDto) {
@@ -62,9 +72,21 @@ public class TaskController {
         return taskService.getRelatedTasks(patient, definition);
     }
 
-    @GetMapping("/tasks")
-    public List<TaskDto> getUpcomingTasks(@RequestParam(value = "practitioner") String practitioner) {
-        return taskService.getUpcomingTasks(practitioner);
+    @GetMapping("/tasks/upcoming-task-search")
+    public PageDto<TaskDto> getUpcomingTasksByPractitionerAndRole(@RequestParam(value = "practitioner") String practitioner,
+                                          @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                          @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                          @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                          @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+        return taskService.getUpcomingTasksByPractitioner(practitioner, searchKey, searchValue, pageNumber, pageSize);
+
     }
 
+    @GetMapping("/tasks")
+    public List<TaskDto> getTasks(@RequestParam(value = "practitioner") Optional<String> practitioner,
+                                     @RequestParam(value = "patient") Optional<String> patient,
+                                     @RequestParam(value = "definition") Optional<String> definition,
+                                     @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks) {
+        return taskService.getMainAndSubTasks(practitioner, patient, definition, isUpcomingTasks);
+    }
 }

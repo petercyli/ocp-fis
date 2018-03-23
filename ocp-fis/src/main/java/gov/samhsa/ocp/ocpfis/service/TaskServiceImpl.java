@@ -5,11 +5,12 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
-import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
@@ -29,13 +30,13 @@ import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.exceptions.FHIRException;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,39 +44,33 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
 public class TaskServiceImpl implements TaskService {
 
-    private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
-    private final FhirValidator fhirValidator;
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
     private final EpisodeOfCareService episodeOfCareService;
     private final ActivityDefinitionService activityDefinitionService;
-    private final CareTeamService careTeamService;
+    private final PatientService patientService;
 
     @Autowired
-    public TaskServiceImpl(ModelMapper modelMapper,
-                           IGenericClient fhirClient,
-                           FhirValidator fhirValidator,
+    public TaskServiceImpl(IGenericClient fhirClient,
                            LookUpService lookUpService,
                            FisProperties fisProperties,
                            ActivityDefinitionService activityDefinitionService,
                            EpisodeOfCareService episodeOfCareService,
-                           CareTeamService careTeamService) {
-        this.modelMapper = modelMapper;
+                           PatientService patientService) {
         this.fhirClient = fhirClient;
-        this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.activityDefinitionService = activityDefinitionService;
         this.episodeOfCareService = episodeOfCareService;
-        this.careTeamService = careTeamService;
+        this.patientService = patientService;
     }
 
     @Override
@@ -135,6 +130,78 @@ public class TaskServiceImpl implements TaskService {
         return new PageDto<>(taskDtos, numberOfTasksPerPage, totalPages, currentPage, taskDtos.size(), otherPageTaskBundle.getTotal());
     }
 
+    @Override
+    public List<TaskDto> getMainAndSubTasks(Optional<String> practitionerId, Optional<String> patientId, Optional<String> definition, Optional<Boolean> isUpcomingTasks) {
+        IQuery iQuery = fhirClient.search().forResource(Task.class);
+
+        //query the task and sub-task owned by specific practitioner
+        if (practitionerId.isPresent() && !patientId.isPresent()) {
+            iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()));
+        }
+
+        //query the task and sub-task for the specific patient
+        if (patientId.isPresent() && !practitionerId.isPresent()) {
+            iQuery.where(new ReferenceClientParam("patient").hasId(patientId.get()));
+        }
+
+        //query the task and sub-task owned by specific practitioner and for the specific patient
+        if (practitionerId.isPresent() && patientId.isPresent()) {
+            iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()))
+                    .where(new ReferenceClientParam("patient").hasId(patientId.get()));
+        }
+
+        Bundle firstPageTaskBundle = (Bundle) iQuery
+                .returnBundle(Bundle.class)
+                .count(fisProperties.getResourceSinglePageLimit())
+                .execute();
+
+        if (firstPageTaskBundle == null || firstPageTaskBundle.getEntry().isEmpty()) {
+            throw new ResourceNotFoundException("No Tasks were found in the FHIR server.");
+        }
+
+        List<Bundle.BundleEntryComponent> retrievedTasks = firstPageTaskBundle.getEntry();
+
+        List<TaskDto> taskDtos = retrievedTasks.stream()
+                .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Task))
+                .map(retrievedTask -> {
+                    Task task = (Task) retrievedTask.getResource();
+                    return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());
+                }).collect(toList());
+
+
+        // Filter the general sub-tasks or to-do sub tasks with the certain activity definition
+        if (definition.isPresent()) {
+            taskDtos = taskDtos.stream()
+                    .filter(t -> t.getPartOf() != null && t.getDefinition() != null)
+                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
+                            && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
+                    .filter(taskDto -> taskDto.getPartOf().getDisplay().equalsIgnoreCase(definition.get())).collect(toList());
+        }
+
+        // Filter the ParentTasks, exclude TodoParent task
+        if (!definition.isPresent()) {
+            taskDtos = taskDtos.stream()
+                    .filter(t -> t.getDefinition() != null)
+                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
+                            && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
+                    .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("To-Do"))
+                    .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("TODO"))
+                    .filter(taskDto -> taskDto.getPartOf() == null)
+                    .collect(toList());
+        }
+
+        // Combine the upcoming main tasks for each patient
+        if (isUpcomingTasks.orElse(Boolean.FALSE)) {
+            taskDtos = taskDtos.stream()
+                    .filter(t -> t.getTaskDue() != null
+                            && (t.getTaskDue().name().equalsIgnoreCase(TaskDueEnum.DUE_TODAY.name())
+                            || t.getTaskDue().name().equalsIgnoreCase(TaskDueEnum.UPCOMING.name())))
+                    .collect(toList());
+        }
+        taskDtos.sort(Comparator.comparing(o -> o.getDateDiff()));
+
+        return taskDtos;
+    }
 
     @Override
     public void createTask(TaskDto taskDto) {
@@ -175,12 +242,19 @@ public class TaskServiceImpl implements TaskService {
         fhirClient.update().resource(task).execute();
     }
 
-    public List<TaskDto> getUpcomingTasks(String practitioner) {
-        List<ReferenceDto> patients = careTeamService.getPatientsInCareTeamsByPractitioner(practitioner);
+    @Override
+    public PageDto<TaskDto> getUpcomingTasksByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfTasksPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Task.name());
+        List<TaskDto> upcomingTasks = getUpcomingTasksByPractitioner(practitioner, searchKey, searchValue);
+
+        return (PageDto<TaskDto>) PaginationUtil.applyPaginationForCustomArrayList(upcomingTasks, numberOfTasksPerPage, pageNumber, false);
+    }
+
+    private List<TaskDto> getUpcomingTasksByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue) {
+        List<PatientDto> patients = patientService.getPatientsByPractitioner(Optional.ofNullable(practitioner), Optional.empty(), Optional.empty());
 
         List<TaskDto> allTasks = patients.stream()
-                .map(it -> FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Patient))
-                .flatMap(it -> getTasksByPatient(it).stream())
+                .flatMap(it -> getTasksByPatient(it.getId()).stream())
                 .distinct()
                 .collect(toList());
 
@@ -196,16 +270,21 @@ public class TaskServiceImpl implements TaskService {
                 TaskDto upcomingTask = filtered.get(0);
                 finalList.add(upcomingTask);
 
-                filtered.stream().skip(1).forEach(task -> {
-                    if (upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())) {
-                        finalList.add(task);
-                    }
-                });
+                filtered.stream().skip(1).filter(task -> endDateAvailable(upcomingTask) && upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())).forEach(finalList::add);
             }
         }
 
+        //TODO: filter tasks by searchKey/value if present
+
         Collections.sort(finalList);
         return finalList;
+    }
+
+    private boolean endDateAvailable(TaskDto dto) {
+        if (dto.getExecutionPeriod() != null && dto.getExecutionPeriod().getEnd() != null) {
+            return true;
+        }
+        return false;
     }
 
     private void retrieveActivityDefinitionDuration(TaskDto taskDto) {
@@ -217,7 +296,7 @@ public class TaskServiceImpl implements TaskService {
         }
 
         //if start date is available but endDate (due date) is not sent by UI
-        if (startDate != null && endDate == null) {
+        if (endDate == null) {
 
             Reference reference = FhirDtoUtil.mapReferenceDtoToReference(taskDto.getDefinition());
             String activityDefinitionId = FhirDtoUtil.getIdFromReferenceDto(taskDto.getDefinition(), ResourceType.ActivityDefinition);
@@ -335,7 +414,7 @@ public class TaskServiceImpl implements TaskService {
 
     }
 
-    public List<TaskDto> getTasksByPatient(String patient) {
+    private List<TaskDto> getTasksByPatient(String patient) {
         List<TaskDto> tasks = new ArrayList<>();
 
         Bundle bundle = getBundleForPatient(patient);
@@ -382,16 +461,27 @@ public class TaskServiceImpl implements TaskService {
         List<Bundle.BundleEntryComponent> duplicateCheckList = new ArrayList<>();
         if (!taskForPatientbundle.isEmpty()) {
             duplicateCheckList = taskForPatientbundle.getEntry().stream().filter(taskResource -> {
-                Task task = (Task) taskResource.getResource();
-                try {
-                    boolean defCheck = task.getDefinitionReference().getReference().equalsIgnoreCase(taskDto.getDefinition().getReference());
-                    boolean isMainTask = Boolean.TRUE;
-                    if( taskDto.getPartOf() != null  )
-                        isMainTask = Boolean.FALSE;
-                    return isMainTask ? defCheck: Boolean.FALSE;
-                } catch (FHIRException e) {
-                    throw new ResourceNotFoundException("No definition reference found in the Server");
+                boolean defCheck = Boolean.FALSE;
+                boolean statusCheck = Boolean.FALSE;
+                boolean isMainTask = Boolean.TRUE;
+                if (taskDto.getPartOf() != null) {
+                    isMainTask = Boolean.FALSE;
+                } else {
+                    Task task = (Task) taskResource.getResource();
+                    try {
+                        if (task.getDefinitionReference() != null) {
+                            defCheck = task.getDefinitionReference().getReference()
+                                    .equalsIgnoreCase(taskDto.getDefinition().getReference());
+                            statusCheck = (task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) ||
+                            task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode()) ||
+                            task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()));
+
+                        }
+                    } catch (Exception e) {
+                        defCheck = Boolean.FALSE;
+                    }
                 }
+                return isMainTask ? defCheck && !statusCheck : Boolean.FALSE;
             }).collect(Collectors.toList());
         }
         return !duplicateCheckList.isEmpty();
@@ -434,7 +524,7 @@ public class TaskServiceImpl implements TaskService {
         return episodeOfCareDtos.stream().findFirst();
     }
 
-    private static String createDisplayForEpisodeOfCare(TaskDto dto) {
+    private String createDisplayForEpisodeOfCare(TaskDto dto) {
         String status = dto.getDefinition() != null ? dto.getDefinition().getDisplay() : "NA";
         String date = dto.getExecutionPeriod() != null ? DateUtil.convertLocalDateToString(dto.getExecutionPeriod().getStart()) : "NA";
         String agent = dto.getAgent() != null ? dto.getAgent().getDisplay() : "NA";

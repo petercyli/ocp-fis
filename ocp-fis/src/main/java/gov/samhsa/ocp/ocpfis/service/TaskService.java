@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Optional;
@@ -10,6 +11,8 @@ import java.util.Optional;
 public interface TaskService {
 
     PageDto<TaskDto> getTasks(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize);
+
+    List<TaskDto> getMainAndSubTasks(Optional<String> practitionerId, Optional<String> patientId, Optional<String> definition, Optional<Boolean> isUpcomingTasks);
 
     void createTask(TaskDto taskDto);
 
@@ -21,5 +24,9 @@ public interface TaskService {
 
     List<ReferenceDto> getRelatedTasks(String patient,Optional<String> definition);
 
-    List<TaskDto> getUpcomingTasks(String practitioner);
+    PageDto<TaskDto> getUpcomingTasksByPractitioner(@RequestParam(value = "practitioner") String practitioner,
+                                                           @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                           @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                           @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                           @RequestParam(value = "pageSize") Optional<Integer> pageSize);
 }

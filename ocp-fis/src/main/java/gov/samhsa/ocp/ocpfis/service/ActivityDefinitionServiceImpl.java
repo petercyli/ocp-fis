@@ -225,7 +225,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
                 .where(new StringClientParam("publisher").matches().value(ResourceType.Organization + "/" + organization))
                 .where(new TokenClientParam("status").exactly().code(String.valueOf(Enumerations.PublicationStatus.ACTIVE).toLowerCase()))
-                .count(Integer.parseInt(fisProperties.getResourceSinglePageLimit()))
+                .count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
