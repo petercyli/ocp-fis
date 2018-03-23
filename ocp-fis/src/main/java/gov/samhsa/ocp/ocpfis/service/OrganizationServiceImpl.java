@@ -52,6 +52,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -341,7 +342,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         activityDefinition.setDate( java.sql.Date.valueOf(LocalDate.now()));
         activityDefinition.setPublisher("Organization/"+methodOutcome.getId().getIdPart());
-        activityDefinition.setDescription("To-Do");
+        activityDefinition.setDescription(TO_DO);
 
         Period period=new Period();
         period.setStart(java.sql.Date.valueOf(LocalDate.now()));
