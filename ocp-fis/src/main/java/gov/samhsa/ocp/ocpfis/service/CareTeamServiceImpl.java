@@ -9,7 +9,7 @@ import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.CareTeamFieldEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
-import gov.samhsa.ocp.ocpfis.service.dto.CommunicationReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -284,9 +284,9 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public List<CommunicationReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles, Optional<String> communication) {
+    public List<ParticipantReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles, Optional<String> communication) {
         List<ReferenceDto> participantsByRoles = new ArrayList<>();
-        List<CommunicationReferenceDto> participantsSelected = new ArrayList<>();
+        List<ParticipantReferenceDto> participantsSelected = new ArrayList<>();
 
         Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
                 .where(new ReferenceClientParam("patient").hasId("Patient/" + patient))
@@ -317,14 +317,14 @@ public class CareTeamServiceImpl implements CareTeamService {
         }
 
         for (ReferenceDto participant : participantsByRoles) {
-            CommunicationReferenceDto communicationReferenceDto = new CommunicationReferenceDto();
-            communicationReferenceDto.setReference(participant.getReference());
-            communicationReferenceDto.setDisplay(participant.getDisplay());
+            ParticipantReferenceDto participantReferenceDto = new ParticipantReferenceDto();
+            participantReferenceDto.setReference(participant.getReference());
+            participantReferenceDto.setDisplay(participant.getDisplay());
 
             if (recipients.contains(FhirDtoUtil.getIdFromParticipantReferenceDto(participant))) {
-                communicationReferenceDto.setSelected(true);
+                participantReferenceDto.setSelected(true);
             }
-            participantsSelected.add(communicationReferenceDto);
+            participantsSelected.add(participantReferenceDto);
         }
 
         return participantsSelected;
@@ -387,7 +387,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                         .map(it -> (CareTeam) it.getResource())
                         .filter(it -> checkIfParticipantIsCareManager(it.getParticipant()))
                         .map(it -> (Patient) it.getSubject().getResource())
-                        .map(it -> FhirDtoUtil.mapPatientToReferenceDto(it))
+                        .map(FhirDtoUtil::mapPatientToReferenceDto)
                         .collect(toList());
             }
         }

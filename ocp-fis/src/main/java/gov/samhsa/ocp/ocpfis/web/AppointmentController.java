@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.AppointmentService;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,6 +31,24 @@ public class AppointmentController {
     @ResponseStatus(HttpStatus.CREATED)
     public void createAppointment(@Valid @RequestBody AppointmentDto appointmentDto) {
         appointmentService.createAppointment(appointmentDto);
+    }
+
+    @PutMapping("/appointments/{appointmentId}")
+    @ResponseStatus(HttpStatus.OK)
+    public void updateAppointment(@PathVariable String appointmentId, @Valid @RequestBody AppointmentDto appointmentDto) {
+        appointmentService.updateAppointment(appointmentId, appointmentDto);
+    }
+
+    @GetMapping("patients/{patientId}/appointmentParticipants")
+    public List<ParticipantReferenceDto> getAppointmentParticipants(@PathVariable String patientId,
+                                                                    @RequestParam(value = "roles", required = false) Optional<List<String>> roles,
+                                                                    @RequestParam(value = "appointmentId", required = false) Optional<String> appointmentId) {
+        return appointmentService.getAppointmentParticipants(patientId, roles, appointmentId);
+    }
+
+    @GetMapping("appointments/{appointmentId}")
+    public AppointmentDto getAppointmentById(@PathVariable String appointmentId) {
+        return appointmentService.getAppointmentById(appointmentId);
     }
 
     @GetMapping("/appointments/search")
