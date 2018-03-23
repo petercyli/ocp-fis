@@ -97,7 +97,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(String value, String key, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<PatientDto> getPatientsByValue(String key, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
