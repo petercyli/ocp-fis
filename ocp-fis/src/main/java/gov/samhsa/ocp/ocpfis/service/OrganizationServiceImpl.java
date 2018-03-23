@@ -19,28 +19,21 @@ import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Period;
-import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.RelatedArtifact;
-import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Timing;
-import org.hl7.fhir.dstu3.model.codesystems.ActionParticipantType;
 import org.hl7.fhir.dstu3.model.codesystems.DefinitionTopic;
-import org.hl7.fhir.dstu3.model.codesystems.RelatedArtifactType;
-import org.hl7.fhir.dstu3.model.codesystems.Relationship;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -325,8 +318,8 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
     }
 
-    private void createActivityDefinition(MethodOutcome methodOutcome){
-        ActivityDefinition activityDefinition=new ActivityDefinition();
+    private void createActivityDefinition(MethodOutcome methodOutcome) {
+        ActivityDefinition activityDefinition = new ActivityDefinition();
         activityDefinition.setVersion(fisProperties.getActivityDefinition().getVersion());
         activityDefinition.setName(TO_DO);
         activityDefinition.setTitle(TO_DO);
@@ -334,35 +327,35 @@ public class OrganizationServiceImpl implements OrganizationService {
         activityDefinition.setStatus(Enumerations.PublicationStatus.ACTIVE);
 
         activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.ACTIVITYDEFINITION);
-        CodeableConcept topic=new CodeableConcept();
+        CodeableConcept topic = new CodeableConcept();
         topic.addCoding().setCode(DefinitionTopic.TREATMENT.toCode()).setDisplay(DefinitionTopic.TREATMENT.getDisplay())
                 .setSystem(DefinitionTopic.TREATMENT.getSystem());
         activityDefinition.setTopic(Arrays.asList(topic));
 
-        activityDefinition.setDate( java.sql.Date.valueOf(LocalDate.now()));
-        activityDefinition.setPublisher("Organization/"+methodOutcome.getId().getIdPart());
+        activityDefinition.setDate(java.sql.Date.valueOf(LocalDate.now()));
+        activityDefinition.setPublisher("Organization/" + methodOutcome.getId().getIdPart());
         activityDefinition.setDescription(TO_DO);
 
-        Period period=new Period();
+        Period period = new Period();
         period.setStart(java.sql.Date.valueOf(LocalDate.now()));
         period.setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(20)));
         activityDefinition.setEffectivePeriod(period);
 
-        Timing timing=new Timing();
+        Timing timing = new Timing();
         timing.getRepeat().setDurationMax(10);
         timing.getRepeat().setFrequency(1);
         activityDefinition.setTiming(timing);
 
-        CodeableConcept participantRole=new CodeableConcept();
-        ValueSetDto participantRoleValueSet= FhirDtoUtil.convertCodeToValueSetDto("O", lookUpService.getActionParticipantRole());
+        CodeableConcept participantRole = new CodeableConcept();
+        ValueSetDto participantRoleValueSet = FhirDtoUtil.convertCodeToValueSetDto("O", lookUpService.getActionParticipantRole());
         participantRole.addCoding().setCode(participantRoleValueSet.getCode())
-                        .setDisplay(participantRoleValueSet.getDisplay())
-                        .setSystem(participantRoleValueSet.getSystem());
+                .setDisplay(participantRoleValueSet.getDisplay())
+                .setSystem(participantRoleValueSet.getSystem());
         activityDefinition.addParticipant()
                 .setRole(participantRole)
                 .setType(ActivityDefinition.ActivityParticipantType.PRACTITIONER);
 
-        RelatedArtifact relatedArtifact=new RelatedArtifact();
+        RelatedArtifact relatedArtifact = new RelatedArtifact();
         relatedArtifact.setType(RelatedArtifact.RelatedArtifactType.DOCUMENTATION);
         relatedArtifact.setDisplay("To-Do List");
         activityDefinition.setRelatedArtifact(Arrays.asList(relatedArtifact));
