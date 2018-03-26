@@ -75,6 +75,7 @@ public class PatientServiceImpl implements PatientService {
     public static final String ETHNICITY_CODE = "Ethnicity";
     public static final String GENDER_CODE = "Gender";
     public static final String TO_DO = "To-Do";
+    public static final int CARE_TEAM_END_DATE=1;
 
     private final IGenericClient fhirClient;
     private final IParser iParser;
@@ -216,7 +217,7 @@ public class PatientServiceImpl implements PatientService {
         mapExtensionFields(patient, patientDto);
         //Getting flags into the patient dto
         List<FlagDto> flagDtos = getFlagsForEachPatient(response.getEntry(), patient.getIdElement().getIdPart());
-        patientDto.setFlags(flagDtos);
+        patientDto.setFlags(Optional.ofNullable(flagDtos));
         return patientDto;
     }
 
@@ -250,10 +251,10 @@ public class PatientServiceImpl implements PatientService {
                 patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
                 //Create flag for the patient
-                patientDto.getFlags().forEach(flagDto -> {
+                patientDto.getFlags().ifPresent(flags->flags.forEach(flagDto -> {
                     Flag flag = convertFlagDtoToFlag(patientId, flagDto);
                     fhirClient.create().resource(flag).execute();
-                });
+                }));
 
                 //Create Care Team
                 createCareTeam(patientDto, methodOutcome);
@@ -285,7 +286,7 @@ public class PatientServiceImpl implements PatientService {
             Reference patientId = new Reference();
             patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
-            patientDto.getFlags().forEach(flagDto -> {
+            patientDto.getFlags().ifPresent(flags->flags.forEach(flagDto -> {
                 if (!duplicateCheckForFlag(flagDto, patientDto.getId())) {
                     Flag flag = convertFlagDtoToFlag(patientId, flagDto);
                     if (flagDto.getLogicalId() != null) {
@@ -297,7 +298,7 @@ public class PatientServiceImpl implements PatientService {
                 } else {
                     throw new DuplicateResourceFoundException("Same flag is already present for this patient.");
                 }
-            });
+            }));
 
         } else {
             throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
@@ -325,7 +326,7 @@ public class PatientServiceImpl implements PatientService {
 
         //Get Flags for the patient
         List<FlagDto> flagDtos = getFlagsForEachPatient(patientBundle.getEntry(), patientBundleEntry.getResource().getIdElement().getIdPart());
-        patientDto.setFlags(flagDtos);
+        patientDto.setFlags(Optional.ofNullable(flagDtos));
 
         mapExtensionFields(patient, patientDto);
 
@@ -514,7 +515,7 @@ public class PatientServiceImpl implements PatientService {
         careTeam.setCategory(Arrays.asList(category));
         careTeam.setStatus(CareTeam.CareTeamStatus.ACTIVE);
         careTeam.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-        careTeam.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(1)));
+        careTeam.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(CARE_TEAM_END_DATE)));
 
         Reference patientReference = new Reference();
         patientReference.setReference("Patient/" + methodOutcome.getId().getIdPart());
@@ -538,7 +539,7 @@ public class PatientServiceImpl implements PatientService {
 
         //Start and end date
         task.getExecutionPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-        task.getExecutionPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(20)));
+        task.getExecutionPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(fisProperties.getDefaultEndPeriod())));
 
         //Performer Type
         CodeableConcept performerType = new CodeableConcept();
