@@ -50,6 +50,7 @@ import static java.util.stream.Collectors.toList;
 @Service
 @Slf4j
 public class OrganizationServiceImpl implements OrganizationService {
+    public static final int ACTIVITY_DEFINITION_FREQUENCY=1;
 
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
@@ -338,12 +339,12 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         Period period = new Period();
         period.setStart(java.sql.Date.valueOf(LocalDate.now()));
-        period.setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(20)));
+        period.setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(fisProperties.getDefaultEndPeriod())));
         activityDefinition.setEffectivePeriod(period);
 
         Timing timing = new Timing();
-        timing.getRepeat().setDurationMax(10);
-        timing.getRepeat().setFrequency(1);
+        timing.getRepeat().setDurationMax(fisProperties.getDefaultMaxDuration());
+        timing.getRepeat().setFrequency(ACTIVITY_DEFINITION_FREQUENCY);
         activityDefinition.setTiming(timing);
 
         CodeableConcept participantRole = new CodeableConcept();
