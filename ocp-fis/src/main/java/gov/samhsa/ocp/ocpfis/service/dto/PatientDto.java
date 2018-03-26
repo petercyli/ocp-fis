@@ -59,7 +59,7 @@ public class PatientDto {
     @LanguageConstraint
     private String language;
 
-    private List<FlagDto> flags;
+    private Optional<List<FlagDto>> flags;
 
     Optional<String> organizationId;
 
