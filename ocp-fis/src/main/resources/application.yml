@@ -15,6 +15,8 @@ ocp-fis:
   ResourceSinglePageLimit: 100
   defaultOrganization: 902
   defaultPractitioner: 1961
+  defaultEndPeriod: 20
+  defaultMaxDuration: 10
   activityDefinition:
     version: 1.1.0
     pagination:

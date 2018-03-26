@@ -30,6 +30,12 @@ public class FisProperties {
     private String defaultPractitioner;
 
     @NotNull
+    private int defaultEndPeriod;
+
+    @NotNull
+    private int defaultMaxDuration;
+
+    @NotNull
     @Min(1)
     @Max(1000)
     private int ResourceSinglePageLimit;
