@@ -23,7 +23,7 @@ public class ConsentDto {
 
     private LocalDateTime dateTime;
 
-    private String status;
+    private ValueSetDto status;
 
     private boolean generalDesignation;
 
