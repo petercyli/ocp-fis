@@ -1,12 +1,10 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -21,11 +19,7 @@ public class ConsentDto {
 
     private IdentifierDto identifier;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
-    private LocalDate startDate;
-
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
-    private LocalDate endDate;
+    private PeriodDto period;
 
     private LocalDateTime dateTime;
 
@@ -38,6 +32,10 @@ public class ConsentDto {
     private List<ReferenceDto> fromActor;
 
     private List<ReferenceDto> toActor;
+
+    private List<ValueSetDto> category;
+
+    private List<ValueSetDto> purpose;
 
     private String fromGeneralDesignation;
 
