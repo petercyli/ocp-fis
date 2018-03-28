@@ -178,6 +178,7 @@ public class PatientServiceImpl implements PatientService {
                 .include(CareTeam.INCLUDE_PATIENT)
                 .sort().ascending(CareTeam.RES_ID)
                 .returnBundle(Bundle.class)
+                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
                 .count(fisProperties.getResourceSinglePageLimit())
                 .execute();
 
