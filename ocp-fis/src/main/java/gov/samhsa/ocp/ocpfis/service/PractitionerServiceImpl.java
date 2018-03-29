@@ -199,6 +199,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
                 .where(new ReferenceClientParam("organization").hasId(organizationId))
                 .include(PractitionerRole.INCLUDE_PRACTITIONER)
+                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
                 .count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class).execute();
 
@@ -235,6 +236,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         return (Bundle) query.where(new ReferenceClientParam("organization").hasId(organization))
                 .include(new Include("PractitionerRole:practitioner"))
                 .returnBundle(Bundle.class)
+                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
                 .count(fisProperties.getResourceSinglePageLimit())
                 .execute();
     }
@@ -243,9 +245,10 @@ public class PractitionerServiceImpl implements PractitionerService {
         List<PractitionerDto> practitioners = new ArrayList<>();
 
         Bundle bundle = fhirClient.search().forResource(CareTeam.class)
-                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
                 .where(new TokenClientParam("status").exactly().code("entered-in-error"))
                 .include(CareTeam.INCLUDE_PARTICIPANT)
+                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
+                .count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {

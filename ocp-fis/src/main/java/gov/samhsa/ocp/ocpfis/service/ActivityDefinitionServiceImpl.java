@@ -215,7 +215,6 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
         return referenceOrganizationDtos.stream()
                 .flatMap(it -> getActivityDefinitionByOrganization(FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Organization)).stream())
-                .filter(ref-> !ref.getDisplay().replaceAll("[^a-zA-Z]+", "").equalsIgnoreCase("ToDo"))
                 .collect(toList());
     }
 

@@ -49,7 +49,7 @@ public class TaskControllerTest {
         ReferenceDto referenceDto = createReference();
         List<ReferenceDto> referenceDtoList = new ArrayList<>();
         referenceDtoList.add(referenceDto);
-        Mockito.when(taskService.getRelatedTasks("12", Optional.empty())).thenReturn(referenceDtoList);
+        Mockito.when(taskService.getRelatedTasks("12", Optional.empty(),Optional.empty(),Optional.empty())).thenReturn(referenceDtoList);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/tasks/task-references?patient=12");
