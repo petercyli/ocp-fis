@@ -29,7 +29,6 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
-import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
@@ -400,52 +399,62 @@ public class TaskServiceImpl implements TaskService {
                     .filter(referenceDto -> referenceDto.getDisplay().equalsIgnoreCase(definition.get()))
                     .collect(toList());
 
+
             //If TO_DO definition type and TO_DO task is not present.
             if (definition.get().equalsIgnoreCase(TO_DO) && taskReferenceList.isEmpty()) {
-                    Bundle activityDefinitionBundle = fhirClient.search().forResource(ActivityDefinition.class)
-                            .where(new StringClientParam("publisher").matches().value("Organization/"+organization.get()))
-                            .where(new StringClientParam("description").matches().value(TO_DO))
-                            .returnBundle(Bundle.class)
-                            .execute();
+                //Creating To-Do Task
+                Task task = FhirUtil.createToDoTask(patient, practitioner.get(), organization.get(), fhirClient, fisProperties);
 
-                    if (activityDefinitionBundle.isEmpty()) {
-                        FhirUtil.createToDoActivityDefinition(organization.get(), fisProperties, lookUpService, fhirClient);
-                    }
+                Bundle activityDefinitionBundle = fhirClient.search().forResource(ActivityDefinition.class)
+                        .where(new StringClientParam("publisher").matches().value("Organization/" + organization.get()))
+                        .where(new StringClientParam("description").matches().value(TO_DO))
+                        .returnBundle(Bundle.class)
+                        .execute();
 
+                //Create Activity Definition is not present.
+                if (activityDefinitionBundle.getEntry().isEmpty()) {
+                    ActivityDefinition activityDefinition = FhirUtil.createToDoActivityDefinition(organization.get(), fisProperties, lookUpService, fhirClient);
+                    MethodOutcome adOutcome = fhirClient.create().resource(activityDefinition).execute();
+                    ReferenceDto adReference = new ReferenceDto();
+                    adReference.setReference("ActivityDefinition/" + adOutcome.getId().getIdPart());
+                    adReference.setDisplay(TO_DO);
+                    task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(adReference));
+                } else {
+                    task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(organization.get(), definition.get(), fhirClient, fisProperties)));
+                }
 
-                    //Create Care Team
-                    Bundle careTeamBundle = (Bundle) fhirClient.search().forResource(CareTeam.class)
-                            .where(new ReferenceClientParam("patient").hasId(patient))
-                            .where(new ReferenceClientParam("participant").hasId(practitioner.get()))
-                            .prettyPrint()
-                            .execute();
+                //Create Care Team
+                Bundle careTeamBundle = (Bundle) fhirClient.search().forResource(CareTeam.class)
+                        .where(new ReferenceClientParam("patient").hasId(patient))
+                        .where(new ReferenceClientParam("participant").hasId(practitioner.get()))
+                        .prettyPrint()
+                        .execute();
 
-                    if (careTeamBundle.getEntry().isEmpty()) {
+                if (careTeamBundle.getEntry().isEmpty()) {
+                    FhirUtil.createCareTeam(patient, practitioner.get(), organization.get(), fhirClient, fisProperties, lookUpService);
+                } else {
+                    List<Bundle.BundleEntryComponent> filterCareTeamMember = careTeamBundle.getEntry().stream().filter(careTeams -> {
+                        CareTeam careTeam = (CareTeam) careTeams.getResource();
+                        return careTeam.getParticipant().stream().anyMatch(participant -> {
+                            if (participant.hasOnBehalfOf()) {
+                                return participant.getOnBehalfOf().getReference().equalsIgnoreCase(organization.get())
+                                        && careTeam.getName().equalsIgnoreCase("Org/" + organization.get() + practitioner.get() + patient);
+                            }
+                            return false;
+                        });
+                    }).collect(toList());
+
+                    if (filterCareTeamMember.isEmpty())
                         FhirUtil.createCareTeam(patient, practitioner.get(), organization.get(), fhirClient, fisProperties, lookUpService);
-                    } else {
-                        List<Bundle.BundleEntryComponent> filterCareTeamMember = careTeamBundle.getEntry().stream().filter(careTeams -> {
-                            CareTeam careTeam = (CareTeam) careTeams.getResource();
-                            return careTeam.getParticipant().stream().anyMatch(participant -> {
-                                if (participant.hasOnBehalfOf()) {
-                                    return participant.getOnBehalfOf().getReference().equalsIgnoreCase(organization.get())
-                                            && careTeam.getName().equalsIgnoreCase("Org/"+organization.get()+practitioner.get()+patient);
-                                }
-                                return false;
-                            });
-                        }).collect(toList());
-
-                        if (filterCareTeamMember.isEmpty())
-                            FhirUtil.createCareTeam(patient, practitioner.get(), organization.get(), fhirClient, fisProperties, lookUpService);
-                    }
+                }
 
 
-                //Creating TO-Do Task
-                Task task=FhirUtil.createToDoTask(patient, practitioner.get(), organization.get(), fhirClient, fisProperties);
-                MethodOutcome methodOutcome=fhirClient.create().resource(task).execute();
-                ReferenceDto referenceDto=new ReferenceDto();
-                referenceDto.setReference("Task/"+methodOutcome.getId().getIdPart());
+                MethodOutcome methodOutcome = fhirClient.create().resource(task).execute();
+                ReferenceDto referenceDto = new ReferenceDto();
+                referenceDto.setReference("Task/" + methodOutcome.getId().getIdPart());
                 referenceDto.setDisplay(TO_DO);
                 return Arrays.asList(referenceDto);
+
 
             }
 
