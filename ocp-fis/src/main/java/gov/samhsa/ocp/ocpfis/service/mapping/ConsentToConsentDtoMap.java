@@ -9,12 +9,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ConsentToConsentDtoMap extends PropertyMap<Consent, ConsentDto> {
-    private static final String PATIENT_ACTOR_REFERENCE = "Patient";
-    private static final String FROM_ACTOR_REFERENCE = "FromActor";
-    private static final String TO_ACTOR_REFERENCE = "ToActor";
-
-    private static final String DATE_TIME_FORMATTER_PATTERN_DATE = "MM/dd/yyyy";
-
     private final ConsentActorComponentListToReferenceDtoListConverter consentActorComponentListToReferenceDtoListConverter;
     private final ResourceIdToLogicalIdConverter resourceIdToLogicalIdConverter;
 

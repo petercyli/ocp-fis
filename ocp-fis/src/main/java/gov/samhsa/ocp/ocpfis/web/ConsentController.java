@@ -18,7 +18,7 @@ public class ConsentController  {
     public PageDto<ConsentDto> getConsents(@RequestParam(value = "patient") Optional<String> patient,
                                            @RequestParam(value = "fromActor") Optional<String> fromActor,
                                            @RequestParam(value = "toActor") Optional<String> toActor,
-                                           @RequestParam(value = "isGeneralDesignation") Optional<Boolean> generalDesignation,
+                                           @RequestParam(value = "generalDesignation") Optional<Boolean> generalDesignation,
                                            @RequestParam(value = "status") Optional<String> status,
                                            @RequestParam Optional<Integer> pageNumber,
                                            @RequestParam Optional<Integer> pageSize) {

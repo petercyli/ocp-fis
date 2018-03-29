@@ -17,8 +17,6 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -87,8 +85,6 @@ public class ConsentServiceImpl implements ConsentService {
     private IQuery getConsentIQuery(Optional<String> patient, Optional<String> fromActor, Optional<String> toActor, Optional<String> status) {
         IQuery iQuery = fhirClient.search().forResource(Consent.class);
 
-        String dateToday = new SimpleDateFormat("MM/dd/yyyy").format(new Date());
-
         //Get Sub tasks by parent task id
         if (status.isPresent()) {
             iQuery.where(new TokenClientParam("status").exactly().code("active"));
@@ -109,9 +105,6 @@ public class ConsentServiceImpl implements ConsentService {
                       .where(new ReferenceClientParam("patient").hasId(patient.get()));
             }
         }
-       // iQuery.where(new DateClientParam("period").afterOrEquals().second(dateToday))
-       //         .where(new DateClientParam("period").beforeOrEquals().second(dateToday));
-
         return iQuery;
     }
 
