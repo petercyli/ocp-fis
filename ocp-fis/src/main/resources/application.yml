@@ -27,6 +27,9 @@ ocp-fis:
   communication:
     pagination:
       default-size: 20
+  consent:
+    pagination:
+      default-size: 20
   location:
     pagination:
       default-size: 20
