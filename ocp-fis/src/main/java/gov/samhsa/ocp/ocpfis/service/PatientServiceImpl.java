@@ -5,7 +5,6 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
-import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
@@ -15,7 +14,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -28,7 +26,6 @@ import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -41,16 +38,12 @@ import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
-import org.hl7.fhir.dstu3.model.codesystems.CareTeamCategory;
-import org.hl7.fhir.dstu3.model.codesystems.TaskPerformerType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -75,7 +68,6 @@ public class PatientServiceImpl implements PatientService {
     public static final String ETHNICITY_CODE = "Ethnicity";
     public static final String GENDER_CODE = "Gender";
     public static final String TO_DO = "To-Do";
-    public static final int CARE_TEAM_END_DATE=1;
 
     private final IGenericClient fhirClient;
     private final IParser iParser;
@@ -252,16 +244,19 @@ public class PatientServiceImpl implements PatientService {
                 patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
                 //Create flag for the patient
-                patientDto.getFlags().ifPresent(flags->flags.forEach(flagDto -> {
+                patientDto.getFlags().ifPresent(flags -> flags.forEach(flagDto -> {
                     Flag flag = convertFlagDtoToFlag(patientId, flagDto);
                     fhirClient.create().resource(flag).execute();
                 }));
 
                 //Create Care Team
-                createCareTeam(patientDto, methodOutcome);
+                FhirUtil.createCareTeam(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties, lookUpService);
 
                 //Create To-Do task
-                createToDoTask(patientDto, methodOutcome);
+                Task task = FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
+                task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
+
+                fhirClient.create().resource(task).execute();
             } else {
                 throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
             }
@@ -287,7 +282,7 @@ public class PatientServiceImpl implements PatientService {
             Reference patientId = new Reference();
             patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
-            patientDto.getFlags().ifPresent(flags->flags.forEach(flagDto -> {
+            patientDto.getFlags().ifPresent(flags -> flags.forEach(flagDto -> {
                 if (!duplicateCheckForFlag(flagDto, patientDto.getId())) {
                     Flag flag = convertFlagDtoToFlag(patientId, flagDto);
                     if (flagDto.getLogicalId() != null) {
@@ -503,78 +498,6 @@ public class PatientServiceImpl implements PatientService {
             //Checking while creating new flag
             return !duplicateCheckList.isEmpty();
         }
-    }
-
-    private void createCareTeam(PatientDto patientDto, MethodOutcome methodOutcome) {
-        CareTeam careTeam = new CareTeam();
-        //CareTeam Name
-        careTeam.setName("Org" + methodOutcome.getId().getIdPart());
-        CodeableConcept category = new CodeableConcept();
-        category.addCoding().setCode(CareTeamCategory.EPISODE.toCode())
-                .setSystem(CareTeamCategory.EPISODE.getSystem())
-                .setDisplay(CareTeamCategory.EPISODE.getDisplay());
-        careTeam.setCategory(Arrays.asList(category));
-        careTeam.setStatus(CareTeam.CareTeamStatus.ACTIVE);
-        careTeam.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-        careTeam.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(CARE_TEAM_END_DATE)));
-
-        Reference patientReference = new Reference();
-        patientReference.setReference("Patient/" + methodOutcome.getId().getIdPart());
-        careTeam.setSubject(patientReference);
-        Reference practitioner = new Reference();
-
-        practitioner.setReference("Practitioner/" + patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()));
-        Reference organization = new Reference();
-        organization.setReference("Organization/" + patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()));
-        careTeam.addParticipant().setMember(practitioner).setOnBehalfOf(organization);
-
-        fhirClient.create().resource(careTeam).execute();
-    }
-
-    private void createToDoTask(PatientDto patientDto, MethodOutcome methodOutcome) {
-        Task task = new Task();
-
-        task.setStatus(Task.TaskStatus.READY);
-        task.setPriority(Task.TaskPriority.ASAP);
-        task.setIntent(Task.TaskIntent.PROPOSAL);
-
-        //Start and end date
-        task.getExecutionPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-        task.getExecutionPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(fisProperties.getDefaultEndPeriod())));
-
-        //Performer Type
-        CodeableConcept performerType = new CodeableConcept();
-        performerType.addCoding().setDisplay(TaskPerformerType.REQUESTER.getDisplay())
-                .setCode(TaskPerformerType.REQUESTER.toCode())
-                .setSystem(TaskPerformerType.REQUESTER.getSystem());
-        task.setPerformerType(Arrays.asList(performerType));
-
-        Reference patient = new Reference();
-        patient.setReference("Patient/" + methodOutcome.getId().getIdPart());
-        task.setFor(patient);
-        task.setDescription(TO_DO);
-
-        Reference reference = new Reference();
-        reference.setReference("Practitioner/" + patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()));
-        task.setOwner(reference);
-
-        task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(getRelatedActivityDefinition(patientDto, TO_DO)));
-
-        fhirClient.create().resource(task).execute();
-    }
-
-    private ReferenceDto getRelatedActivityDefinition(PatientDto patientDto, String definitionDisplay) {
-        Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
-                .where(new StringClientParam("publisher").matches().value("Organization/" + patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization())))
-                .where(new StringClientParam("description").matches().value(definitionDisplay))
-                .returnBundle(Bundle.class).execute();
-        ReferenceDto referenceDto = new ReferenceDto();
-        bundle.getEntry().stream().findAny().ifPresent(ad -> {
-            ActivityDefinition activityDefinition = (ActivityDefinition) ad.getResource();
-            referenceDto.setDisplay((activityDefinition.hasDescription()) ? activityDefinition.getDescription() : null);
-            referenceDto.setReference("ActivityDefinition/" + activityDefinition.getIdElement().getIdPart());
-        });
-        return referenceDto;
     }
 }
 

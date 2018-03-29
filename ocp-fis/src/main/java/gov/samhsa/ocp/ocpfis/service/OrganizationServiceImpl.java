@@ -12,45 +12,36 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Organization;
-import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
-import org.hl7.fhir.dstu3.model.RelatedArtifact;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.Timing;
-import org.hl7.fhir.dstu3.model.codesystems.DefinitionTopic;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
 public class OrganizationServiceImpl implements OrganizationService {
-    public static final int ACTIVITY_DEFINITION_FREQUENCY=1;
+
 
     private final ModelMapper modelMapper;
     private final IGenericClient fhirClient;
@@ -209,7 +200,8 @@ public class OrganizationServiceImpl implements OrganizationService {
             if (validationResult.isSuccessful()) {
                 MethodOutcome serverResponse = fhirClient.create().resource(fhirOrganization).execute();
                 log.info("Successfully created a new organization :" + serverResponse.getId().getIdPart());
-                createActivityDefinition(serverResponse);
+                ActivityDefinition activityDefinition = FhirUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(), fisProperties, lookUpService, fhirClient);
+                fhirClient.create().resource(activityDefinition).execute();
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
@@ -319,48 +311,4 @@ public class OrganizationServiceImpl implements OrganizationService {
         }
     }
 
-    private void createActivityDefinition(MethodOutcome methodOutcome) {
-        ActivityDefinition activityDefinition = new ActivityDefinition();
-        activityDefinition.setVersion(fisProperties.getActivityDefinition().getVersion());
-        activityDefinition.setName(TO_DO);
-        activityDefinition.setTitle(TO_DO);
-
-        activityDefinition.setStatus(Enumerations.PublicationStatus.ACTIVE);
-
-        activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.ACTIVITYDEFINITION);
-        CodeableConcept topic = new CodeableConcept();
-        topic.addCoding().setCode(DefinitionTopic.TREATMENT.toCode()).setDisplay(DefinitionTopic.TREATMENT.getDisplay())
-                .setSystem(DefinitionTopic.TREATMENT.getSystem());
-        activityDefinition.setTopic(Arrays.asList(topic));
-
-        activityDefinition.setDate(java.sql.Date.valueOf(LocalDate.now()));
-        activityDefinition.setPublisher("Organization/" + methodOutcome.getId().getIdPart());
-        activityDefinition.setDescription(TO_DO);
-
-        Period period = new Period();
-        period.setStart(java.sql.Date.valueOf(LocalDate.now()));
-        period.setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(fisProperties.getDefaultEndPeriod())));
-        activityDefinition.setEffectivePeriod(period);
-
-        Timing timing = new Timing();
-        timing.getRepeat().setDurationMax(fisProperties.getDefaultMaxDuration());
-        timing.getRepeat().setFrequency(ACTIVITY_DEFINITION_FREQUENCY);
-        activityDefinition.setTiming(timing);
-
-        CodeableConcept participantRole = new CodeableConcept();
-        ValueSetDto participantRoleValueSet = FhirDtoUtil.convertCodeToValueSetDto("O", lookUpService.getActionParticipantRole());
-        participantRole.addCoding().setCode(participantRoleValueSet.getCode())
-                .setDisplay(participantRoleValueSet.getDisplay())
-                .setSystem(participantRoleValueSet.getSystem());
-        activityDefinition.addParticipant()
-                .setRole(participantRole)
-                .setType(ActivityDefinition.ActivityParticipantType.PRACTITIONER);
-
-        RelatedArtifact relatedArtifact = new RelatedArtifact();
-        relatedArtifact.setType(RelatedArtifact.RelatedArtifactType.DOCUMENTATION);
-        relatedArtifact.setDisplay("To-Do List");
-        activityDefinition.setRelatedArtifact(Arrays.asList(relatedArtifact));
-
-        fhirClient.create().resource(activityDefinition).execute();
-    }
 }

@@ -4,6 +4,7 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
+import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
@@ -20,9 +21,12 @@ import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TaskDtoToTaskMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Reference;
@@ -35,6 +39,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -43,6 +48,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
+import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
@@ -383,16 +389,77 @@ public class TaskServiceImpl implements TaskService {
                 .returnBundle(Bundle.class).execute();
     }
 
-    public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition) {
+    public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition, Optional<String> practitioner, Optional<String> organization) {
         List<ReferenceDto> tasks = getBundleForPatient(patient).getEntry().stream()
                 .map(Bundle.BundleEntryComponent::getResource)
                 .map(resource -> FhirDtoUtil.mapTaskToReferenceDto((Task) resource))
                 .collect(toList());
         if (definition.isPresent()) {
-            return tasks.stream()
+            List<ReferenceDto> taskReferenceList = tasks.stream()
                     .filter(referenceDto -> referenceDto.getDisplay().equalsIgnoreCase(definition.get()))
                     .collect(toList());
+
+
+            //If TO_DO definition type and TO_DO task is not present.
+            if (definition.get().equalsIgnoreCase(TO_DO) && taskReferenceList.isEmpty()) {
+                //Creating To-Do Task
+                Task task = FhirUtil.createToDoTask(patient, practitioner.get(), organization.get(), fhirClient, fisProperties);
+
+                Bundle activityDefinitionBundle = fhirClient.search().forResource(ActivityDefinition.class)
+                        .where(new StringClientParam("publisher").matches().value("Organization/" + organization.get()))
+                        .where(new StringClientParam("description").matches().value(TO_DO))
+                        .returnBundle(Bundle.class)
+                        .execute();
+
+                //Create Activity Definition is not present.
+                if (activityDefinitionBundle.getEntry().isEmpty()) {
+                    ActivityDefinition activityDefinition = FhirUtil.createToDoActivityDefinition(organization.get(), fisProperties, lookUpService, fhirClient);
+                    MethodOutcome adOutcome = fhirClient.create().resource(activityDefinition).execute();
+                    ReferenceDto adReference = new ReferenceDto();
+                    adReference.setReference("ActivityDefinition/" + adOutcome.getId().getIdPart());
+                    adReference.setDisplay(TO_DO);
+                    task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(adReference));
+                } else {
+                    task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(organization.get(), definition.get(), fhirClient, fisProperties)));
+                }
+
+                //Create Care Team
+                Bundle careTeamBundle = (Bundle) fhirClient.search().forResource(CareTeam.class)
+                        .where(new ReferenceClientParam("patient").hasId(patient))
+                        .where(new ReferenceClientParam("participant").hasId(practitioner.get()))
+                        .prettyPrint()
+                        .execute();
+
+                if (careTeamBundle.getEntry().isEmpty()) {
+                    FhirUtil.createCareTeam(patient, practitioner.get(), organization.get(), fhirClient, fisProperties, lookUpService);
+                } else {
+                    List<Bundle.BundleEntryComponent> filterCareTeamMember = careTeamBundle.getEntry().stream().filter(careTeams -> {
+                        CareTeam careTeam = (CareTeam) careTeams.getResource();
+                        return careTeam.getParticipant().stream().anyMatch(participant -> {
+                            if (participant.hasOnBehalfOf()) {
+                                return participant.getOnBehalfOf().getReference().equalsIgnoreCase(organization.get())
+                                        && careTeam.getName().equalsIgnoreCase("Org/" + organization.get() + practitioner.get() + patient);
+                            }
+                            return false;
+                        });
+                    }).collect(toList());
+
+                    if (filterCareTeamMember.isEmpty())
+                        FhirUtil.createCareTeam(patient, practitioner.get(), organization.get(), fhirClient, fisProperties, lookUpService);
+                }
+
+
+                MethodOutcome methodOutcome = fhirClient.create().resource(task).execute();
+                ReferenceDto referenceDto = new ReferenceDto();
+                referenceDto.setReference("Task/" + methodOutcome.getId().getIdPart());
+                referenceDto.setDisplay(TO_DO);
+                return Arrays.asList(referenceDto);
+
+            }
+
+            return taskReferenceList;
         }
+
         return tasks;
     }
 
@@ -417,8 +484,8 @@ public class TaskServiceImpl implements TaskService {
                             defCheck = task.getDefinitionReference().getReference()
                                     .equalsIgnoreCase(taskDto.getDefinition().getReference());
                             statusCheck = (task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) ||
-                            task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode()) ||
-                            task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()));
+                                    task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode()) ||
+                                    task.getStatus().getDisplay().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()));
 
                         }
                     } catch (Exception e) {

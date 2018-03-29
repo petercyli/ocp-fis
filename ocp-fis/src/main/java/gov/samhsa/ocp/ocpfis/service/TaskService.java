@@ -22,7 +22,7 @@ public interface TaskService {
 
     TaskDto getTaskById(String taskId);
 
-    List<ReferenceDto> getRelatedTasks(String patient,Optional<String> definition);
+    List<ReferenceDto> getRelatedTasks(String patient,Optional<String> definition, Optional<String> practitioner, Optional<String> organization);
 
     PageDto<TaskDto> getUpcomingTasksByPractitioner(@RequestParam(value = "practitioner") String practitioner,
                                                            @RequestParam(value = "searchKey") Optional<String> searchKey,
