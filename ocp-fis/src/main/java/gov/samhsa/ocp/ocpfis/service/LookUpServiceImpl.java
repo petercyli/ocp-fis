@@ -764,6 +764,56 @@ public class LookUpServiceImpl implements LookUpService {
         return flagCategoryList;
     }
 
+    @Override
+    public List<ValueSetDto> getConsentStateCodes() {
+        List<ValueSetDto> consentStateCodeList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.CONSENT_STATE_CODE.getUrlPath(), LookupPathUrls.CONSENT_STATE_CODE.getType());
+        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
+        consentStateCodeList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + consentStateCodeList.size() + " provider role.");
+        return consentStateCodeList;
+    }
+
+    @Override
+    public List<ValueSetDto> getConsentCategory() {
+        List<ValueSetDto> consentCategoryList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.CONSENT_CATEGORY.getUrlPath(), LookupPathUrls.CONSENT_CATEGORY.getType());
+        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
+        consentCategoryList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + consentCategoryList.size() + " provider role.");
+        return consentCategoryList;
+    }
+
+    @Override
+    public List<ValueSetDto> getSecurityRole() {
+        List<ValueSetDto> securityRoleList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.CONSENT_SECURITY_ROLE.getUrlPath(), LookupPathUrls.CONSENT_SECURITY_ROLE.getType());
+        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
+        securityRoleList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + securityRoleList.size() + " provider role.");
+        return securityRoleList;
+    }
+
+    @Override
+    public List<ValueSetDto> getConsentAction() {
+        List<ValueSetDto> consentActionList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.CONSENT_ACTION.getUrlPath(), LookupPathUrls.CONSENT_ACTION.getType());
+        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
+        consentActionList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + consentActionList.size() + " provider role.");
+        return consentActionList;
+    }
+
+    @Override
+    public List<ValueSetDto> getPurposeOfUse() {
+        List<ValueSetDto> purposeOfUseList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.PURPOSE_OF_USE.getUrlPath(), LookupPathUrls.PURPOSE_OF_USE.getType());
+        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
+        purposeOfUseList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + purposeOfUseList.size() + " provider role.");
+        return purposeOfUseList;
+    }
+
     private ValueSet getValueSets(String urlPath, String type) {
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + urlPath;

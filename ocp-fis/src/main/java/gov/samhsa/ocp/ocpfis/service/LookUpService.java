@@ -111,4 +111,14 @@ public interface LookUpService {
     List<ValueSetDto> getFlagStatus();
 
     List<ValueSetDto> getFlagCategory();
+
+    List<ValueSetDto> getConsentStateCodes();
+
+    List<ValueSetDto> getConsentCategory();
+
+    List<ValueSetDto> getSecurityRole();
+
+    List<ValueSetDto> getConsentAction();
+
+    List<ValueSetDto> getPurposeOfUse();
 }
