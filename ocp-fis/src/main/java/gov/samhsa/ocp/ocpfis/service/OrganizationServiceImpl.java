@@ -12,7 +12,6 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
@@ -26,26 +25,17 @@ import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Organization;
-import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
-import org.hl7.fhir.dstu3.model.RelatedArtifact;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.Timing;
-import org.hl7.fhir.dstu3.model.codesystems.DefinitionTopic;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -210,7 +200,8 @@ public class OrganizationServiceImpl implements OrganizationService {
             if (validationResult.isSuccessful()) {
                 MethodOutcome serverResponse = fhirClient.create().resource(fhirOrganization).execute();
                 log.info("Successfully created a new organization :" + serverResponse.getId().getIdPart());
-                FhirUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(),fisProperties,lookUpService,fhirClient);
+                ActivityDefinition activityDefinition = FhirUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(), fisProperties, lookUpService, fhirClient);
+                fhirClient.create().resource(activityDefinition).execute();
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }

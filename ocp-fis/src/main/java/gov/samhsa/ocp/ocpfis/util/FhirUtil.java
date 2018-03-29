@@ -8,7 +8,6 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
-import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
@@ -33,7 +32,6 @@ import org.hl7.fhir.dstu3.model.Type;
 import org.hl7.fhir.dstu3.model.codesystems.CareTeamCategory;
 import org.hl7.fhir.dstu3.model.codesystems.DefinitionTopic;
 import org.hl7.fhir.dstu3.model.codesystems.TaskPerformerType;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -44,8 +42,8 @@ import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 
 @Slf4j
 public class FhirUtil {
-    public static final int ACTIVITY_DEFINITION_FREQUENCY=1;
-    public static final int CARE_TEAM_END_DATE=1;
+    public static final int ACTIVITY_DEFINITION_FREQUENCY = 1;
+    public static final int CARE_TEAM_END_DATE = 1;
     public static final String CARE_MANAGER_CODE = "CAREMNGR";
 
     public static Enumerations.AdministrativeGender getPatientGender(String codeString) {
@@ -140,8 +138,7 @@ public class FhirUtil {
         try {
             MethodOutcome serverResponse = fhirClient.create().resource(fhirResource).execute();
             log.info("Created a new " + fhirResourceName + " : " + serverResponse.getId().getIdPart());
-        }
-        catch (BaseServerResponseException e) {
+        } catch (BaseServerResponseException e) {
             log.error("Could NOT create " + fhirResourceName);
             throw new FHIRClientException("FHIR Client returned with an error while creating the " + fhirResourceName + " : " + e.getMessage());
         }
@@ -151,8 +148,7 @@ public class FhirUtil {
         try {
             MethodOutcome serverResponse = fhirClient.update().resource(fhirResource).execute();
             log.info(actionAndResourceName + " was successful for Id: " + serverResponse.getId().getIdPart());
-        }
-        catch (BaseServerResponseException e) {
+        } catch (BaseServerResponseException e) {
             log.error("Could NOT " + actionAndResourceName + " with Id: " + fhirResource.getIdElement().getIdPart());
             throw new FHIRClientException("FHIR Client returned with an error during" + actionAndResourceName + " : " + e.getMessage());
         }
@@ -189,7 +185,7 @@ public class FhirUtil {
         return coding;
     }
 
-    public static void createToDoActivityDefinition(String referenceOrganization, FisProperties fisProperties, LookUpService lookUpService, IGenericClient fhirClient){
+    public static ActivityDefinition createToDoActivityDefinition(String referenceOrganization, FisProperties fisProperties, LookUpService lookUpService, IGenericClient fhirClient) {
         ActivityDefinition activityDefinition = new ActivityDefinition();
         activityDefinition.setVersion(fisProperties.getActivityDefinition().getVersion());
         activityDefinition.setName(TO_DO);
@@ -231,13 +227,13 @@ public class FhirUtil {
         relatedArtifact.setDisplay("To-Do List");
         activityDefinition.setRelatedArtifact(Arrays.asList(relatedArtifact));
 
-        fhirClient.create().resource(activityDefinition).execute();
+        return activityDefinition;
     }
 
-    public static void createCareTeam(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties,LookUpService lookUpService) {
+    public static void createCareTeam(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties, LookUpService lookUpService) {
         CareTeam careTeam = new CareTeam();
         //CareTeam Name
-        careTeam.setName("Org" + organizationId+practitionerId+patientId);
+        careTeam.setName("Org" + organizationId + practitionerId + patientId);
         CodeableConcept category = new CodeableConcept();
         category.addCoding().setCode(CareTeamCategory.EPISODE.toCode())
                 .setSystem(CareTeamCategory.EPISODE.getSystem())
@@ -255,15 +251,15 @@ public class FhirUtil {
         practitioner.setReference("Practitioner/" + practitionerId);
         Reference organization = new Reference();
         organization.setReference("Organization/" + organizationId);
-        CodeableConcept  codeableConcept=new CodeableConcept();
-        ValueSetDto valueSetDto = FhirDtoUtil.convertCodeToValueSetDto(CARE_MANAGER_CODE,lookUpService.getProviderRole());
+        CodeableConcept codeableConcept = new CodeableConcept();
+        ValueSetDto valueSetDto = FhirDtoUtil.convertCodeToValueSetDto(CARE_MANAGER_CODE, lookUpService.getProviderRole());
         codeableConcept.addCoding().setCode(valueSetDto.getCode()).setDisplay(valueSetDto.getDisplay());
         careTeam.addParticipant().setMember(practitioner).setRole(codeableConcept).setOnBehalfOf(organization);
 
         fhirClient.create().resource(careTeam).execute();
     }
 
-    public static Task createToDoTask(String patientId,String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties) {
+    public static Task createToDoTask(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties) {
         Task task = new Task();
 
         task.setStatus(Task.TaskStatus.READY);
@@ -290,12 +286,10 @@ public class FhirUtil {
         reference.setReference("Practitioner/" + practitionerId);
         task.setOwner(reference);
 
-        task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(organizationId, TO_DO,fhirClient,fisProperties)));
-
         return task;
     }
 
-    private static ReferenceDto getRelatedActivityDefinition(String organizationId, String definitionDisplay,IGenericClient fhirClient, FisProperties fisProperties) {
+    public static ReferenceDto getRelatedActivityDefinition(String organizationId, String definitionDisplay, IGenericClient fhirClient, FisProperties fisProperties) {
         Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
                 .where(new StringClientParam("publisher").matches().value("Organization/" + organizationId))
                 .where(new StringClientParam("description").matches().value(definitionDisplay))

@@ -5,7 +5,6 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
-import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
@@ -15,7 +14,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -28,7 +26,6 @@ import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -41,16 +38,12 @@ import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
-import org.hl7.fhir.dstu3.model.codesystems.CareTeamCategory;
-import org.hl7.fhir.dstu3.model.codesystems.TaskPerformerType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -251,16 +244,18 @@ public class PatientServiceImpl implements PatientService {
                 patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
                 //Create flag for the patient
-                patientDto.getFlags().ifPresent(flags->flags.forEach(flagDto -> {
+                patientDto.getFlags().ifPresent(flags -> flags.forEach(flagDto -> {
                     Flag flag = convertFlagDtoToFlag(patientId, flagDto);
                     fhirClient.create().resource(flag).execute();
                 }));
 
                 //Create Care Team
-                FhirUtil.createCareTeam(methodOutcome.getId().getIdPart(),patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()),fhirClient,fisProperties,lookUpService);
+                FhirUtil.createCareTeam(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties, lookUpService);
 
                 //Create To-Do task
-                Task task= FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(),patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()),patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()) ,fhirClient,fisProperties);
+                Task task = FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
+                task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
+
                 fhirClient.create().resource(task).execute();
             } else {
                 throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
@@ -287,7 +282,7 @@ public class PatientServiceImpl implements PatientService {
             Reference patientId = new Reference();
             patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
-            patientDto.getFlags().ifPresent(flags->flags.forEach(flagDto -> {
+            patientDto.getFlags().ifPresent(flags -> flags.forEach(flagDto -> {
                 if (!duplicateCheckForFlag(flagDto, patientDto.getId())) {
                     Flag flag = convertFlagDtoToFlag(patientId, flagDto);
                     if (flagDto.getLogicalId() != null) {
