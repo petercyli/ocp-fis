@@ -455,7 +455,6 @@ public class TaskServiceImpl implements TaskService {
                 referenceDto.setDisplay(TO_DO);
                 return Arrays.asList(referenceDto);
 
-
             }
 
             return taskReferenceList;
