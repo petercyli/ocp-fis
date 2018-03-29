@@ -54,6 +54,10 @@ public class FisProperties {
 
     @NotNull
     @Valid
+    private Consent consent;
+
+    @NotNull
+    @Valid
     private HealthcareService healthcareService;
 
     @NotNull
@@ -140,6 +144,26 @@ public class FisProperties {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class Communication {
+
+        @Valid
+        private Pagination pagination = new Pagination();
+
+        @Data
+        public static class Pagination {
+            @Min(1)
+            @Max(500)
+            private int defaultSize = 10;
+            @Min(1)
+            @Max(500)
+            private int maxSize = 50;
+        }
+    }
+
+    @Data
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class Consent {
 
         @Valid
         private Pagination pagination = new Pagination();
