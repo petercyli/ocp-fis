@@ -385,6 +385,8 @@ public class TaskServiceImpl implements TaskService {
     private Bundle getBundleForPatient(String patient) {
         return fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
+                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
+                .count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class).execute();
     }
 
@@ -607,6 +609,7 @@ public class TaskServiceImpl implements TaskService {
     private List<TaskDto> getTaskDtos(IQuery iQuery) {
         Bundle firstPageTaskBundle = (Bundle) iQuery
                 .returnBundle(Bundle.class)
+                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
                 .count(fisProperties.getResourceSinglePageLimit())
                 .execute();
 
