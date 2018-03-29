@@ -45,7 +45,12 @@ public enum LookupPathUrls {
     PROVIDER_ROLE("provider role",Constants.PROVIDER_ROLE_PATH),
     PROVIDER_SPECIALTY("provider specialty",Constants.PROVIDER_SPECIALTY_PATH),
     FLAG_STATUS("flag status",Constants.FLAG_STATUS_PATH),
-    FLAG_CATEGORY("flag category",Constants.FLAG_CATEGORY_PATH);
+    FLAG_CATEGORY("flag category",Constants.FLAG_CATEGORY_PATH),
+    CONSENT_STATE_CODE("consent state code",Constants.CONSENT_STATE_PATH),
+    CONSENT_CATEGORY("consent category",Constants.CONSENT_CATEGORY_PATH),
+    CONSENT_SECURITY_ROLE("security role",Constants.CONSENT_SECURITY_ROLE_PATH),
+    CONSENT_ACTION("consent action",Constants.CONSENT_ACTION_PATH),
+    PURPOSE_OF_USE("consent purpose of use",Constants.PURPOSE_OF_USE_PATH);
 
     private final String type;
     private final String urlPath;
@@ -108,5 +113,10 @@ public enum LookupPathUrls {
         static final String PROVIDER_SPECIALTY_PATH = "/ValueSet/ocp-provider-specialty";
         static final String FLAG_STATUS_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/flag-status";
         static final String FLAG_CATEGORY_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/flag-category";
+        static final String CONSENT_STATE_PATH="";
+        static final String CONSENT_CATEGORY_PATH="";
+        static final String CONSENT_SECURITY_ROLE_PATH="";
+        static final String CONSENT_ACTION_PATH="";
+        static final String PURPOSE_OF_USE_PATH="";
     }
 }
