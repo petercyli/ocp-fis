@@ -25,7 +25,7 @@ public enum ParticipantTypeEnum {
 
     public static ParticipantTypeEnum fromCode(String code) {
         return asStream()
-                .filter(participant -> participant.getCode().equals(code))
+                .filter(participant -> participant.getCode().equalsIgnoreCase(code))
                 .findAny()
                 .orElseThrow(() -> new ResourceNotFoundException("Participant type cannot be found with code: " + code));
     }
