@@ -77,6 +77,13 @@ public class ConsentServiceImpl implements ConsentService {
 
     }
 
+    @Override
+    public void createConsent(ConsentDto consentDto) {
+        //Create Consent
+        Consent consent=modelMapper.map(consentDto,Consent.class);
+        fhirClient.create().resource(consent).execute();
+    }
+
     private ConsentDto convertConsentBundleEntryToConsentDto(Bundle.BundleEntryComponent fhirConsentDtoModel) {
         ConsentDto consentDto = modelMapper.map(fhirConsentDtoModel.getResource(), ConsentDto.class);
         return consentDto;

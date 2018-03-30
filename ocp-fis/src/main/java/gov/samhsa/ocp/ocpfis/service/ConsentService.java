@@ -9,4 +9,5 @@ public interface ConsentService {
 
     PageDto<ConsentDto> getConsents(Optional<String> patient, Optional<String> fromActor, Optional<String> status, Optional<Boolean> generalDesignation, Optional<String> toActor, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 
+    void createConsent(ConsentDto consentDto);
 }
