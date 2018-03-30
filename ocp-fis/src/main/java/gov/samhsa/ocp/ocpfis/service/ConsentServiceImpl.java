@@ -8,11 +8,19 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Consent;
+import org.hl7.fhir.dstu3.model.Identifier;
+import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -80,9 +88,54 @@ public class ConsentServiceImpl implements ConsentService {
     @Override
     public void createConsent(ConsentDto consentDto) {
         //Create Consent
-        Consent consent=modelMapper.map(consentDto,Consent.class);
+        Consent consent=new Consent();
+        if(consentDto.getPeriod() !=null){
+            Period period=new Period();
+                period.setStart((consentDto.getPeriod().getStart()!=null)?java.sql.Date.valueOf(consentDto.getPeriod().getStart()):null);
+                period.setEnd((consentDto.getPeriod().getEnd()!=null)?java.sql.Date.valueOf(consentDto.getPeriod().getEnd()):null);
+            consent.setPeriod(period);
+        }
+
+        consent.setPatient(FhirDtoUtil.mapReferenceDtoToReference(consentDto.getPatient()));
+
+        if(!consentDto.getCategory().isEmpty() && consentDto.getCategory() !=null){
+            List<CodeableConcept> categories=consentDto.getCategory().stream()
+                    .map(category->FhirDtoUtil.convertValuesetDtoToCodeableConcept(category))
+                    .collect(Collectors.toList());
+            consent.setCategory(categories);
+        }
+
+        if(!consentDto.getPurpose().isEmpty() && consentDto.getPurpose() !=null){
+            List<Coding> purposes=consentDto.getPurpose().stream().map(purpose->{
+                Coding coding=new Coding();
+                coding.setDisplay((purpose.getDisplay()!=null && !purpose.getDisplay().isEmpty())?purpose.getDisplay():null)
+                        .setCode((purpose.getCode()!=null && !purpose.getCode().isEmpty())?purpose.getCode():null)
+                        .setSystem((purpose.getSystem()!=null && !purpose.getSystem().isEmpty())?purpose.getSystem():null);
+                return coding;
+            }).collect(Collectors.toList());
+
+            consent.setPurpose(purposes);
+        }
+
+        if(consentDto.getStatus() !=null){
+            if(consentDto.getStatus().getCode()!=null){
+                try {
+                    consent.setStatus(Consent.ConsentState.fromCode(consentDto.getStatus().getCode()));
+                } catch (FHIRException e) {
+                   throw new ResourceNotFoundException("Invalid consent status found.");
+                }
+            }
+        }
+
+        if(consentDto.getIdentifier() !=null){
+            Identifier identifier=new Identifier();
+            identifier.setValue(consentDto.getIdentifier().getValue());
+            identifier.setSystem(consentDto.getIdentifier().getSystem());
+        }
+
         fhirClient.create().resource(consent).execute();
     }
+
 
     private ConsentDto convertConsentBundleEntryToConsentDto(Bundle.BundleEntryComponent fhirConsentDtoModel) {
         ConsentDto consentDto = modelMapper.map(fhirConsentDtoModel.getResource(), ConsentDto.class);
