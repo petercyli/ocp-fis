@@ -100,6 +100,8 @@ public interface LookUpService {
 
     List<ValueSetDto> getAppointmentParticipationStatus();
 
+    List<ValueSetDto> getAppointmentParticipantType();
+
     List<ValueSetDto> getAppointmentParticipationType();
 
     List<ValueSetDto> getAppointmentParticipantRequired();

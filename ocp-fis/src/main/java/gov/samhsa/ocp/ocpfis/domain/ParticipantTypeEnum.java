@@ -6,8 +6,6 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 public enum ParticipantTypeEnum {
-    //Communication Participants: Patient, Practitioner, Related Person, Organization
-    //Appointment Participants: Patient, Practitioner, Related Person, Location, Healthcare Service
     practitioner("practitioner", "Practitioner"),
     relatedPerson("relatedPerson", "RelatedPerson"),
     patient("patient", "Patient"),

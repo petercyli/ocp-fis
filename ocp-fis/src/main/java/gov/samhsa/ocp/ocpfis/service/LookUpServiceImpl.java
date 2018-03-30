@@ -699,6 +699,23 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
+    public List<ValueSetDto> getAppointmentParticipantType() {
+        List<ValueSetDto> appointmentParticipantTypeList;
+        final List<String> allowedAppointmentParticipantType = Arrays.asList("practitioner", "relatedPerson", "patient", "location", "healthcareService");
+        List<ParticipantTypeEnum> allParticipantTypeEnums = Arrays.asList(ParticipantTypeEnum.values());
+        List<ParticipantTypeEnum> participantTypeEnums = allParticipantTypeEnums.stream().filter( p -> allowedAppointmentParticipantType.contains(p.getCode())).collect(Collectors.toList());
+
+        appointmentParticipantTypeList = participantTypeEnums.stream().map(object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getName());
+            return temp;
+        }).collect(Collectors.toList());
+        log.info("Found " + appointmentParticipantTypeList.size() + " appointment participant types.");
+        return appointmentParticipantTypeList;
+    }
+
+    @Override
     public List<ValueSetDto> getAppointmentParticipationType() {
         List<ValueSetDto> participationTypeList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.PARTICIPATION_TYPE.getUrlPath(), LookupPathUrls.PARTICIPATION_TYPE.getType());
