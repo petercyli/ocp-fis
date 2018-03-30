@@ -113,10 +113,10 @@ public enum LookupPathUrls {
         static final String PROVIDER_SPECIALTY_PATH = "/ValueSet/ocp-provider-specialty";
         static final String FLAG_STATUS_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/flag-status";
         static final String FLAG_CATEGORY_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/flag-category";
-        static final String CONSENT_STATE_PATH="";
-        static final String CONSENT_CATEGORY_PATH="";
-        static final String CONSENT_SECURITY_ROLE_PATH="";
-        static final String CONSENT_ACTION_PATH="";
-        static final String PURPOSE_OF_USE_PATH="";
+        static final String CONSENT_STATE_PATH="/ValueSet/ocp-practitioner-role";
+        static final String CONSENT_CATEGORY_PATH="/ValueSet/ocp-practitioner-role";
+        static final String CONSENT_SECURITY_ROLE_PATH="/ValueSet/ocp-practitioner-role";
+        static final String CONSENT_ACTION_PATH="/ValueSet/ocp-practitioner-role";
+        static final String PURPOSE_OF_USE_PATH="/ValueSet/ocp-practitioner-role";
     }
 }
