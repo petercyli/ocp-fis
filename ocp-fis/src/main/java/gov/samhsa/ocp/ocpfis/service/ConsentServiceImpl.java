@@ -10,6 +10,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
@@ -98,24 +99,32 @@ public class ConsentServiceImpl implements ConsentService {
     @Override
     public void createConsent(ConsentDto consentDto) {
         //Create Consent
-        Consent consent = consentDtoToConsent(consentDto);
+        if (!isDuplicate(consentDto, Optional.empty())) {
+            Consent consent = consentDtoToConsent(consentDto);
 
-        //Validate
-        FhirUtil.validateFhirResource(fhirValidator, consent, Optional.empty(), ResourceType.Consent.name(), "Create Consent");
+            //Validate
+            FhirUtil.validateFhirResource(fhirValidator, consent, Optional.empty(), ResourceType.Consent.name(), "Create Consent");
 
-        fhirClient.create().resource(consent).execute();
+            fhirClient.create().resource(consent).execute();
+        } else {
+            throw new DuplicateResourceFoundException("This patient already has a general designation consent.");
+        }
     }
 
     @Override
     public void updateConsent(String consentId, ConsentDto consentDto) {
         //Update Consent
-        Consent consent = consentDtoToConsent(consentDto);
-        consent.setId(consentId);
+        if (!isDuplicate(consentDto, Optional.of(consentId))) {
+            Consent consent = consentDtoToConsent(consentDto);
+            consent.setId(consentId);
 
-        //Validate
-        FhirUtil.validateFhirResource(fhirValidator, consent, Optional.of(consentId), ResourceType.Consent.name(), "Update Consent");
+            //Validate
+            FhirUtil.validateFhirResource(fhirValidator, consent, Optional.of(consentId), ResourceType.Consent.name(), "Update Consent");
 
-        fhirClient.update().resource(consent).execute();
+            fhirClient.update().resource(consent).execute();
+        } else {
+            throw new DuplicateResourceFoundException("This patient already has a general designation consent.");
+        }
     }
 
 
@@ -232,6 +241,40 @@ public class ConsentServiceImpl implements ConsentService {
         actor.setReference(FhirDtoUtil.mapReferenceDtoToReference(referenceDto));
         actor.setRole(FhirDtoUtil.convertValuesetDtoToCodeableConcept(securityRoleValueSet));
         return actor;
+    }
+
+    private boolean isDuplicate(ConsentDto consentDto, Optional<String> consentId) {
+        //Duplicate Check For General Designation
+        if (consentDto.isGeneralDesignation()) {
+            Bundle consentBundle = fhirClient.search().forResource(Consent.class).where(new ReferenceClientParam("patient").hasId(consentDto.getPatient().getReference()))
+                    .returnBundle(Bundle.class).execute();
+            boolean checkFromBundle = consentBundle.getEntry().stream().anyMatch(consentBundleEntry -> {
+                Consent consent = (Consent) consentBundleEntry.getResource();
+                List<String> fromActor = getReferenceOfCareTeam(consent, INFORMANT_CODE);
+                List<String> toActor = getReferenceOfCareTeam(consent, INFORMANT_RECIPIENT_CODE);
+
+                if ((fromActor.containsAll(toActor)) && (fromActor.size() == toActor.size()) && !fromActor.isEmpty()) {
+                    if (consentId.isPresent()) {
+                        System.out.println(consent.getIdElement().getIdPart());
+                        return !(consentId.get().equalsIgnoreCase(consent.getIdElement().getIdPart()));
+                    } else {
+                        return true;
+                    }
+                } else {
+                    return false;
+                }
+            });
+
+            return checkFromBundle;
+        }
+        return false;
+    }
+
+    private List<String> getReferenceOfCareTeam(Consent consent, String code) {
+        return consent.getActor().stream().filter(actor -> actor.getRole().getCoding().stream()
+                .anyMatch(role -> role.getCode().equalsIgnoreCase(code)))
+                .map(actor -> actor.getReference().getReference())
+                .collect(Collectors.toList());
     }
 
 }
