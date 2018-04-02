@@ -44,7 +44,7 @@ public class ConsentServiceImpl implements ConsentService {
     }
 
     @Override
-    public PageDto<ConsentDto> getConsents(Optional<String> patient, Optional<String> fromActor, Optional<String> toActor, Optional<Boolean> generalDesignation, Optional<String> status, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<ConsentDto> getConsents(Optional<String> patient, Optional<String> fromActor, Optional<String> toActor, Optional<String> status, Optional<Boolean> generalDesignation, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
         int numberOfConsentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Consent.name());
         Bundle firstPageConsentBundle;
