@@ -12,6 +12,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 
 public class DateRangeDto {
-    DateRangeEnum dateRangeCode;
+    DateRangeEnum value;
     String display;
 }
