@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.web;
 
+import gov.samhsa.ocp.ocpfis.domain.DateRangeEnum;
 import gov.samhsa.ocp.ocpfis.service.TaskService;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -40,8 +41,9 @@ public class TaskController {
                                      @RequestParam(value = "patientId") Optional<String> patientId,
                                      @RequestParam(value = "definition") Optional<String> definition,
                                      @RequestParam(value = "parentTask") Optional<String> parentTask,
-                                     @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks) {
-        return taskService.getMainAndSubTasks(practitionerId, patientId, definition, parentTask, isUpcomingTasks);
+                                     @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks,
+                                     @RequestParam(value = "filterDate") Optional<DateRangeEnum> filterDate) {
+        return taskService.getMainAndSubTasks(practitionerId, patientId, definition, parentTask, isUpcomingTasks, filterDate);
     }
 
 
@@ -70,25 +72,26 @@ public class TaskController {
 
     @GetMapping("/tasks/task-references")
     public List<ReferenceDto> getRelatedTasks(@RequestParam String patient, @RequestParam Optional<String> definition, @RequestParam Optional<String> practitioner, @RequestParam Optional<String> organization) {
-        return taskService.getRelatedTasks(patient, definition, practitioner,organization);
+        return taskService.getRelatedTasks(patient, definition, practitioner, organization);
     }
 
     @GetMapping("/tasks/upcoming-task-search")
     public PageDto<TaskDto> getUpcomingTasksByPractitionerAndRole(@RequestParam(value = "practitioner") String practitioner,
-                                          @RequestParam(value = "searchKey") Optional<String> searchKey,
-                                          @RequestParam(value = "searchValue") Optional<String> searchValue,
-                                          @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
-                                          @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+                                                                  @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                                  @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                                  @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                                  @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
         return taskService.getUpcomingTasksByPractitioner(practitioner, searchKey, searchValue, pageNumber, pageSize);
 
     }
 
     @GetMapping("/tasks")
     public List<TaskDto> getTasks(@RequestParam(value = "practitioner") Optional<String> practitioner,
-                                     @RequestParam(value = "patient") Optional<String> patient,
-                                     @RequestParam(value = "definition") Optional<String> definition,
-                                     @RequestParam(value = "partOf") Optional<String> partOf,
-                                     @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks) {
-        return taskService.getMainAndSubTasks(practitioner, patient, definition, partOf, isUpcomingTasks);
+                                  @RequestParam(value = "patient") Optional<String> patient,
+                                  @RequestParam(value = "definition") Optional<String> definition,
+                                  @RequestParam(value = "partOf") Optional<String> partOf,
+                                  @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks,
+                                  @RequestParam(value = "filterDate") Optional<DateRangeEnum> filterDate) {
+        return taskService.getMainAndSubTasks(practitioner, patient, definition, partOf, isUpcomingTasks, filterDate);
     }
 }
