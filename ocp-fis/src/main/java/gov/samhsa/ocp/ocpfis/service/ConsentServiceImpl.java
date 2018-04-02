@@ -4,16 +4,19 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
-import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Consent;
@@ -25,6 +28,8 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,11 +38,16 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class ConsentServiceImpl implements ConsentService {
+    public static final String INFORMANT_CODE = "101Y00000X";
+    public static final String INFORMANT_RECIPIENT_CODE = "101YA0400X";
 
     private final IGenericClient fhirClient;
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
     private final ModelMapper modelMapper;
+
+    @Autowired
+    private FhirValidator fhirValidator;
 
 
     @Autowired
@@ -88,52 +98,24 @@ public class ConsentServiceImpl implements ConsentService {
     @Override
     public void createConsent(ConsentDto consentDto) {
         //Create Consent
-        Consent consent=new Consent();
-        if(consentDto.getPeriod() !=null){
-            Period period=new Period();
-                period.setStart((consentDto.getPeriod().getStart()!=null)?java.sql.Date.valueOf(consentDto.getPeriod().getStart()):null);
-                period.setEnd((consentDto.getPeriod().getEnd()!=null)?java.sql.Date.valueOf(consentDto.getPeriod().getEnd()):null);
-            consent.setPeriod(period);
-        }
+        Consent consent = consentDtoToConsent(consentDto);
 
-        consent.setPatient(FhirDtoUtil.mapReferenceDtoToReference(consentDto.getPatient()));
-
-        if(!consentDto.getCategory().isEmpty() && consentDto.getCategory() !=null){
-            List<CodeableConcept> categories=consentDto.getCategory().stream()
-                    .map(category->FhirDtoUtil.convertValuesetDtoToCodeableConcept(category))
-                    .collect(Collectors.toList());
-            consent.setCategory(categories);
-        }
-
-        if(!consentDto.getPurpose().isEmpty() && consentDto.getPurpose() !=null){
-            List<Coding> purposes=consentDto.getPurpose().stream().map(purpose->{
-                Coding coding=new Coding();
-                coding.setDisplay((purpose.getDisplay()!=null && !purpose.getDisplay().isEmpty())?purpose.getDisplay():null)
-                        .setCode((purpose.getCode()!=null && !purpose.getCode().isEmpty())?purpose.getCode():null)
-                        .setSystem((purpose.getSystem()!=null && !purpose.getSystem().isEmpty())?purpose.getSystem():null);
-                return coding;
-            }).collect(Collectors.toList());
-
-            consent.setPurpose(purposes);
-        }
-
-        if(consentDto.getStatus() !=null){
-            if(consentDto.getStatus().getCode()!=null){
-                try {
-                    consent.setStatus(Consent.ConsentState.fromCode(consentDto.getStatus().getCode()));
-                } catch (FHIRException e) {
-                   throw new ResourceNotFoundException("Invalid consent status found.");
-                }
-            }
-        }
-
-        if(consentDto.getIdentifier() !=null){
-            Identifier identifier=new Identifier();
-            identifier.setValue(consentDto.getIdentifier().getValue());
-            identifier.setSystem(consentDto.getIdentifier().getSystem());
-        }
+        //Validate
+        FhirUtil.validateFhirResource(fhirValidator, consent, Optional.empty(), ResourceType.Consent.name(), "Create Consent");
 
         fhirClient.create().resource(consent).execute();
+    }
+
+    @Override
+    public void updateConsent(String consentId, ConsentDto consentDto) {
+        //Update Consent
+        Consent consent = consentDtoToConsent(consentDto);
+        consent.setId(consentId);
+
+        //Validate
+        FhirUtil.validateFhirResource(fhirValidator, consent, Optional.of(consentId), ResourceType.Consent.name(), "Update Consent");
+
+        fhirClient.update().resource(consent).execute();
     }
 
 
@@ -162,10 +144,94 @@ public class ConsentServiceImpl implements ConsentService {
             //query the task and sub-task owned by specific practitioner and for the specific patient
             if ((fromActor.isPresent() || toActor.isPresent()) && patient.isPresent()) {
                 iQuery.where(new ReferenceClientParam("actor").hasId(fromActor.get()))
-                      .where(new ReferenceClientParam("patient").hasId(patient.get()));
+                        .where(new ReferenceClientParam("patient").hasId(patient.get()));
             }
         }
         return iQuery;
+    }
+
+    private Consent consentDtoToConsent(ConsentDto consentDto) {
+        Consent consent = new Consent();
+        if (consentDto.getPeriod() != null) {
+            Period period = new Period();
+            period.setStart((consentDto.getPeriod().getStart() != null) ? java.sql.Date.valueOf(consentDto.getPeriod().getStart()) : null);
+            period.setEnd((consentDto.getPeriod().getEnd() != null) ? java.sql.Date.valueOf(consentDto.getPeriod().getEnd()) : null);
+            consent.setPeriod(period);
+        }
+
+        consent.setPatient(FhirDtoUtil.mapReferenceDtoToReference(consentDto.getPatient()));
+
+        if (!consentDto.getCategory().isEmpty() && consentDto.getCategory() != null) {
+            List<CodeableConcept> categories = consentDto.getCategory().stream()
+                    .map(category -> FhirDtoUtil.convertValuesetDtoToCodeableConcept(category))
+                    .collect(Collectors.toList());
+            consent.setCategory(categories);
+        }
+
+        if (consentDto.getDateTime() != null) {
+            consent.setDateTime(java.sql.Date.valueOf(consentDto.getDateTime()));
+        } else {
+            consent.setDateTime(java.sql.Date.valueOf(LocalDate.now()));
+        }
+
+        if (!consentDto.getPurpose().isEmpty() && consentDto.getPurpose() != null) {
+            List<Coding> purposes = consentDto.getPurpose().stream().map(purpose -> {
+                Coding coding = new Coding();
+                coding.setDisplay((purpose.getDisplay() != null && !purpose.getDisplay().isEmpty()) ? purpose.getDisplay() : null)
+                        .setCode((purpose.getCode() != null && !purpose.getCode().isEmpty()) ? purpose.getCode() : null)
+                        .setSystem((purpose.getSystem() != null && !purpose.getSystem().isEmpty()) ? purpose.getSystem() : null);
+                return coding;
+            }).collect(Collectors.toList());
+
+            consent.setPurpose(purposes);
+        }
+
+        if (consentDto.getStatus() != null) {
+            if (consentDto.getStatus().getCode() != null) {
+                try {
+                    consent.setStatus(Consent.ConsentState.fromCode(consentDto.getStatus().getCode()));
+                } catch (FHIRException e) {
+                    throw new ResourceNotFoundException("Invalid consent status found.");
+                }
+            }
+        }
+
+        if (consentDto.getIdentifier() != null) {
+            Identifier identifier = new Identifier();
+            identifier.setValue(consentDto.getIdentifier().getValue());
+            identifier.setSystem(consentDto.getIdentifier().getSystem());
+            consent.setIdentifier(identifier);
+        }
+
+        if (consentDto.isGeneralDesignation()) {
+            Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
+                    .where(new ReferenceClientParam("subject").hasId(consentDto.getPatient().getReference()))
+                    .returnBundle(Bundle.class).execute();
+
+            List<Consent.ConsentActorComponent> actors = new ArrayList<>();
+
+            careTeamBundle.getEntry().forEach(careTeamEntry -> {
+                CareTeam careTeam = (CareTeam) careTeamEntry.getResource();
+                Consent.ConsentActorComponent fromActor = convertCareTeamToActor(careTeam, FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_CODE, lookUpService.getSecurityRole()));
+                actors.add(fromActor);
+                Consent.ConsentActorComponent toActor = convertCareTeamToActor(careTeam, FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_RECIPIENT_CODE, lookUpService.getSecurityRole()));
+                actors.add(toActor);
+                consent.setActor(actors);
+            });
+        }
+
+        return consent;
+
+    }
+
+    private Consent.ConsentActorComponent convertCareTeamToActor(CareTeam careTeam, ValueSetDto securityRoleValueSet) {
+        Consent.ConsentActorComponent actor = new Consent.ConsentActorComponent();
+        ReferenceDto referenceDto = new ReferenceDto();
+        referenceDto.setReference("CareTeam/" + careTeam.getIdElement().getIdPart());
+        referenceDto.setDisplay(careTeam.getName());
+        actor.setReference(FhirDtoUtil.mapReferenceDtoToReference(referenceDto));
+        actor.setRole(FhirDtoUtil.convertValuesetDtoToCodeableConcept(securityRoleValueSet));
+        return actor;
     }
 
 }
