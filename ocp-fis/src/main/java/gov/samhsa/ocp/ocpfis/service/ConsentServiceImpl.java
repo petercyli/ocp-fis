@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 
@@ -108,7 +109,7 @@ public class ConsentServiceImpl implements ConsentService {
                 .returnBundle(Bundle.class).execute();
         if (!associatedCareTeam.getEntry().isEmpty()) {
             if (!isDuplicate(consentDto, Optional.empty())) {
-                Consent consent = consentDtoToConsent(consentDto);
+                Consent consent = consentDtoToConsent(Optional.empty(),consentDto);
 
                 //Validate
                 FhirUtil.validateFhirResource(fhirValidator, consent, Optional.empty(), ResourceType.Consent.name(), "Create Consent");
@@ -126,7 +127,7 @@ public class ConsentServiceImpl implements ConsentService {
     public void updateConsent(String consentId, ConsentDto consentDto) {
         //Update Consent
         if (!isDuplicate(consentDto, Optional.of(consentId))) {
-            Consent consent = consentDtoToConsent(consentDto);
+            Consent consent = consentDtoToConsent(Optional.of(consentId), consentDto);
             consent.setId(consentId);
 
             //Validate
@@ -170,7 +171,7 @@ public class ConsentServiceImpl implements ConsentService {
         return iQuery;
     }
 
-    private Consent consentDtoToConsent(ConsentDto consentDto) {
+    private Consent consentDtoToConsent(Optional<String> consentId,ConsentDto consentDto) {
         Consent consent = new Consent();
         if (consentDto.getPeriod() != null) {
             Period period = new Period();
@@ -216,11 +217,22 @@ public class ConsentServiceImpl implements ConsentService {
             }
         }
 
-        if (consentDto.getIdentifier() != null) {
+        //Setting identifier
+        consentId.ifPresent(id-> {
             Identifier identifier = new Identifier();
-            identifier.setValue(consentDto.getIdentifier().getValue());
-            identifier.setSystem(consentDto.getIdentifier().getSystem());
+            identifier.setValue(UUID.randomUUID().toString());
+            identifier.setSystem(fisProperties.getConsent().getIdentifierSystem());
             consent.setIdentifier(identifier);
+          }
+        );
+
+        if(!consentId.isPresent()) {
+            if (consentDto.getIdentifier() != null) {
+                Identifier identifier = new Identifier();
+                identifier.setValue(consentDto.getIdentifier().getValue());
+                identifier.setSystem(consentDto.getIdentifier().getSystem());
+                consent.setIdentifier(identifier);
+            }
         }
 
         List<Consent.ConsentActorComponent> actors = new ArrayList<>();
