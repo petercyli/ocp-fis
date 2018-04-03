@@ -79,10 +79,6 @@ public class ConsentServiceImpl implements ConsentService {
 
     private ConsentDto convertConsentBundleEntryToConsentDto(Bundle.BundleEntryComponent fhirConsentDtoModel) {
         ConsentDto consentDto = modelMapper.map(fhirConsentDtoModel.getResource(), ConsentDto.class);
-        if (consentDto.isGeneralDesignation()){
-            consentDto.setFromGeneralDesignation(fisProperties.getDefaultFromGeneralDesignation());
-            consentDto.setToGeneralDesignation(fisProperties.getDefaulToGeneralDesignation());
-        }
         return consentDto;
     }
 

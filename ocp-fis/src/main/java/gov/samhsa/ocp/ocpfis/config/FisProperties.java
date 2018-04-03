@@ -35,12 +35,6 @@ public class FisProperties {
     @NotNull
     private int defaultMaxDuration;
 
-    @NotNull
-    private String defaultFromGeneralDesignation;
-
-    @NotNull
-    private String defaulToGeneralDesignation;
-
 
     @NotNull
     @Min(1)
