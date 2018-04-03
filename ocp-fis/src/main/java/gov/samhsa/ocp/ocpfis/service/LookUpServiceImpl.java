@@ -280,8 +280,7 @@ public class LookUpServiceImpl implements LookUpService {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             usCoreRaces = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.debug("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
         }
 
@@ -291,8 +290,7 @@ public class LookUpServiceImpl implements LookUpService {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
                 usCoreRaces = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-            }
-            catch (ResourceNotFoundException e) {
+            } catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-race-category", e);
             }
@@ -311,8 +309,7 @@ public class LookUpServiceImpl implements LookUpService {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             usCoreEthnicities = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.debug("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
         }
 
@@ -322,8 +319,7 @@ public class LookUpServiceImpl implements LookUpService {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
                 usCoreEthnicities = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-            }
-            catch (ResourceNotFoundException e) {
+            } catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-ethnicity-category", e);
             }
@@ -742,7 +738,7 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getFlagStatus() {
-        List<ValueSetDto> flagStatusList=new ArrayList<>();
+        List<ValueSetDto> flagStatusList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.FLAG_STATUS.getUrlPath(), LookupPathUrls.FLAG_STATUS.getType());
         if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.FLAG_STATUS.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
@@ -754,13 +750,13 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getFlagCategory() {
-        List<ValueSetDto> flagCategoryList=new ArrayList<>();
+        List<ValueSetDto> flagCategoryList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.FLAG_CATEGORY.getUrlPath(), LookupPathUrls.FLAG_CATEGORY.getType());
         if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.FLAG_CATEGORY.getType())) {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             flagCategoryList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
-        log.info("Found " + flagCategoryList.size() + " flag statuses.");
+        log.info("Found " + flagCategoryList.size() + " flag category.");
         return flagCategoryList;
     }
 
@@ -768,9 +764,11 @@ public class LookUpServiceImpl implements LookUpService {
     public List<ValueSetDto> getConsentStateCodes() {
         List<ValueSetDto> consentStateCodeList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.CONSENT_STATE_CODE.getUrlPath(), LookupPathUrls.CONSENT_STATE_CODE.getType());
-        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
-        consentStateCodeList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + consentStateCodeList.size() + " provider role.");
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.CONSENT_STATE_CODE.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            consentStateCodeList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + consentStateCodeList.size() + " consent statuses.");
         return consentStateCodeList;
     }
 
@@ -778,9 +776,9 @@ public class LookUpServiceImpl implements LookUpService {
     public List<ValueSetDto> getConsentCategory() {
         List<ValueSetDto> consentCategoryList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.CONSENT_CATEGORY.getUrlPath(), LookupPathUrls.CONSENT_CATEGORY.getType());
-        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
+        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(2).getConcept();
         consentCategoryList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + consentCategoryList.size() + " provider role.");
+        log.info("Found " + consentCategoryList.size() + " consent category.");
         return consentCategoryList;
     }
 
@@ -788,9 +786,11 @@ public class LookUpServiceImpl implements LookUpService {
     public List<ValueSetDto> getSecurityRole() {
         List<ValueSetDto> securityRoleList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.CONSENT_SECURITY_ROLE.getUrlPath(), LookupPathUrls.CONSENT_SECURITY_ROLE.getType());
-        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
-        securityRoleList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + securityRoleList.size() + " provider role.");
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.CONSENT_SECURITY_ROLE.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            securityRoleList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + securityRoleList.size() + " security role.");
         return securityRoleList;
     }
 
@@ -798,9 +798,11 @@ public class LookUpServiceImpl implements LookUpService {
     public List<ValueSetDto> getConsentAction() {
         List<ValueSetDto> consentActionList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.CONSENT_ACTION.getUrlPath(), LookupPathUrls.CONSENT_ACTION.getType());
-        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
-        consentActionList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + consentActionList.size() + " provider role.");
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.CONSENT_ACTION.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            consentActionList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + consentActionList.size() + " consent Action.");
         return consentActionList;
     }
 
@@ -808,9 +810,11 @@ public class LookUpServiceImpl implements LookUpService {
     public List<ValueSetDto> getPurposeOfUse() {
         List<ValueSetDto> purposeOfUseList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.PURPOSE_OF_USE.getUrlPath(), LookupPathUrls.PURPOSE_OF_USE.getType());
-        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
-        purposeOfUseList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + purposeOfUseList.size() + " provider role.");
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.PURPOSE_OF_USE.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            purposeOfUseList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + purposeOfUseList.size() + " purpose of use.");
         return purposeOfUseList;
     }
 
@@ -819,8 +823,7 @@ public class LookUpServiceImpl implements LookUpService {
         String url = fisProperties.getFhir().getServerUrl() + urlPath;
         try {
             response = (ValueSet) fhirClient.search().byUrl(url).execute();
-        }
-        catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
+        } catch (ca.uhn.fhir.rest.server.exceptions.ResourceNotFoundException e) {
             log.error("Query was unsuccessful - Could not find any " + type + " code", e.getMessage());
             throw new ResourceNotFoundException("Query was unsuccessful - Could not find any " + type + " code", e);
         }
