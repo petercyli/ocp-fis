@@ -36,6 +36,13 @@ public class FisProperties {
     private int defaultMaxDuration;
 
     @NotNull
+    private String defaultFromGeneralDesignation;
+
+    @NotNull
+    private String defaulToGeneralDesignation;
+
+
+    @NotNull
     @Min(1)
     @Max(1000)
     private int ResourceSinglePageLimit;

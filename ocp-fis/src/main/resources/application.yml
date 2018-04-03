@@ -17,6 +17,8 @@ ocp-fis:
   defaultPractitioner: 1961
   defaultEndPeriod: 20
   defaultMaxDuration: 10
+  defaultFromGeneralDesignation: OCP CareTeam
+  defaulToGeneralDesignation: OCP CareTeam
   activityDefinition:
     version: 1.1.0
     pagination:
