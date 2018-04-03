@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
+import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
@@ -22,6 +23,7 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Consent;
 import org.hl7.fhir.dstu3.model.Identifier;
+import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -31,6 +33,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -39,8 +42,10 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class ConsentServiceImpl implements ConsentService {
-    public static final String INFORMANT_CODE = "101Y00000X";
-    public static final String INFORMANT_RECIPIENT_CODE = "101YA0400X";
+    public static final String INFORMANT_CODE = "INF";
+    public static final String INFORMANT_RECIPIENT_CODE = "IRCP";
+    public static final String PSEUDO_ORGANIZATION_NAME = "Omnibus Care Plan (SAMHSA)";
+    public static final String PSEUDO_ORGANIZATION_TAX_ID = "530196960";
 
     private final IGenericClient fhirClient;
     private final LookUpService lookUpService;
@@ -99,15 +104,21 @@ public class ConsentServiceImpl implements ConsentService {
     @Override
     public void createConsent(ConsentDto consentDto) {
         //Create Consent
-        if (!isDuplicate(consentDto, Optional.empty())) {
-            Consent consent = consentDtoToConsent(consentDto);
+        Bundle associatedCareTeam = fhirClient.search().forResource(CareTeam.class).where(new ReferenceClientParam("patient").hasId(consentDto.getPatient().getReference()))
+                .returnBundle(Bundle.class).execute();
+        if (!associatedCareTeam.getEntry().isEmpty()) {
+            if (!isDuplicate(consentDto, Optional.empty())) {
+                Consent consent = consentDtoToConsent(consentDto);
 
-            //Validate
-            FhirUtil.validateFhirResource(fhirValidator, consent, Optional.empty(), ResourceType.Consent.name(), "Create Consent");
+                //Validate
+                FhirUtil.validateFhirResource(fhirValidator, consent, Optional.empty(), ResourceType.Consent.name(), "Create Consent");
 
-            fhirClient.create().resource(consent).execute();
+                fhirClient.create().resource(consent).execute();
+            } else {
+                throw new DuplicateResourceFoundException("This patient already has a general designation consent.");
+            }
         } else {
-            throw new DuplicateResourceFoundException("This patient already has a general designation consent.");
+            throw new ResourceNotFoundException("No care team members for this patient.");
         }
     }
 
@@ -212,21 +223,42 @@ public class ConsentServiceImpl implements ConsentService {
             consent.setIdentifier(identifier);
         }
 
+        List<Consent.ConsentActorComponent> actors = new ArrayList<>();
+
+        //Adding psuedo organization
+        Bundle organizationBundle = fhirClient.search().forResource(Organization.class)
+                .where(new TokenClientParam("identifier").exactly().code(PSEUDO_ORGANIZATION_TAX_ID))
+                .where(new StringClientParam("name").matches().value(PSEUDO_ORGANIZATION_NAME))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        organizationBundle.getEntry().stream().findAny().ifPresent(entry -> {
+            Organization organization = (Organization) entry.getResource();
+            ReferenceDto referenceDto = new ReferenceDto();
+            referenceDto.setReference("Organization/" + organization.getIdElement().getIdPart());
+            referenceDto.setDisplay(PSEUDO_ORGANIZATION_NAME);
+            consent.setOrganization(Arrays.asList(FhirDtoUtil.mapReferenceDtoToReference(referenceDto)));
+
+            if (consentDto.isGeneralDesignation()) {
+                Consent.ConsentActorComponent fromActor = new Consent.ConsentActorComponent();
+                fromActor.setReference(FhirDtoUtil.mapReferenceDtoToReference(referenceDto))
+                        .setRole(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_CODE, lookUpService.getSecurityRole())));
+                actors.add(fromActor);
+            }
+        });
+
         if (consentDto.isGeneralDesignation()) {
+            //Adding To careTeams
             Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
                     .where(new ReferenceClientParam("subject").hasId(consentDto.getPatient().getReference()))
                     .returnBundle(Bundle.class).execute();
 
-            List<Consent.ConsentActorComponent> actors = new ArrayList<>();
-
             careTeamBundle.getEntry().forEach(careTeamEntry -> {
                 CareTeam careTeam = (CareTeam) careTeamEntry.getResource();
-                Consent.ConsentActorComponent fromActor = convertCareTeamToActor(careTeam, FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_CODE, lookUpService.getSecurityRole()));
-                actors.add(fromActor);
                 Consent.ConsentActorComponent toActor = convertCareTeamToActor(careTeam, FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_RECIPIENT_CODE, lookUpService.getSecurityRole()));
                 actors.add(toActor);
-                consent.setActor(actors);
             });
+            consent.setActor(actors);
         }
 
         return consent;
@@ -255,7 +287,6 @@ public class ConsentServiceImpl implements ConsentService {
 
                 if ((fromActor.containsAll(toActor)) && (fromActor.size() == toActor.size()) && !fromActor.isEmpty()) {
                     if (consentId.isPresent()) {
-                        System.out.println(consent.getIdElement().getIdPart());
                         return !(consentId.get().equalsIgnoreCase(consent.getIdElement().getIdPart()));
                     } else {
                         return true;
