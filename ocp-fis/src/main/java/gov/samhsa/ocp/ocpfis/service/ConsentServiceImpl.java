@@ -109,7 +109,7 @@ public class ConsentServiceImpl implements ConsentService {
                 .returnBundle(Bundle.class).execute();
         if (!associatedCareTeam.getEntry().isEmpty()) {
             if (!isDuplicate(consentDto, Optional.empty())) {
-                Consent consent = consentDtoToConsent(Optional.empty(),consentDto);
+                Consent consent = consentDtoToConsent(Optional.empty(), consentDto);
 
                 //Validate
                 FhirUtil.validateFhirResource(fhirValidator, consent, Optional.empty(), ResourceType.Consent.name(), "Create Consent");
@@ -171,7 +171,7 @@ public class ConsentServiceImpl implements ConsentService {
         return iQuery;
     }
 
-    private Consent consentDtoToConsent(Optional<String> consentId,ConsentDto consentDto) {
+    private Consent consentDtoToConsent(Optional<String> consentId, ConsentDto consentDto) {
         Consent consent = new Consent();
         if (consentDto.getPeriod() != null) {
             Period period = new Period();
@@ -218,27 +218,23 @@ public class ConsentServiceImpl implements ConsentService {
         }
 
         //Setting identifier
-        if(!consentId.isPresent()) {
+        if (!consentId.isPresent()) {
             Identifier identifier = new Identifier();
             identifier.setValue(UUID.randomUUID().toString());
             identifier.setSystem(fisProperties.getConsent().getIdentifierSystem());
             consent.setIdentifier(identifier);
-        }else if (consentDto.getIdentifier() != null) {
-                Identifier identifier = new Identifier();
-                identifier.setValue(consentDto.getIdentifier().getValue());
-                identifier.setSystem(consentDto.getIdentifier().getSystem());
-                consent.setIdentifier(identifier);
+        } else if (consentDto.getIdentifier() != null) {
+            Identifier identifier = new Identifier();
+            identifier.setValue(consentDto.getIdentifier().getValue());
+            identifier.setSystem(consentDto.getIdentifier().getSystem());
+            consent.setIdentifier(identifier);
         }
 
 
         List<Consent.ConsentActorComponent> actors = new ArrayList<>();
 
-        //Adding psuedo organization
-        Bundle organizationBundle = fhirClient.search().forResource(Organization.class)
-                .where(new TokenClientParam("identifier").exactly().code(PSEUDO_ORGANIZATION_TAX_ID))
-                .where(new StringClientParam("name").matches().value(PSEUDO_ORGANIZATION_NAME))
-                .returnBundle(Bundle.class)
-                .execute();
+        //Getting psuedo organization
+        Bundle organizationBundle = getPseudoOrganization();
 
         organizationBundle.getEntry().stream().findAny().ifPresent(entry -> {
             Organization organization = (Organization) entry.getResource();
@@ -291,13 +287,22 @@ public class ConsentServiceImpl implements ConsentService {
             boolean checkFromBundle = consentBundle.getEntry().stream().anyMatch(consentBundleEntry -> {
                 Consent consent = (Consent) consentBundleEntry.getResource();
                 List<String> fromActor = getReferenceOfCareTeam(consent, INFORMANT_CODE);
-                List<String> toActor = getReferenceOfCareTeam(consent, INFORMANT_RECIPIENT_CODE);
 
-                if ((fromActor.containsAll(toActor)) && (fromActor.size() == toActor.size()) && !fromActor.isEmpty()) {
-                    if (consentId.isPresent()) {
-                        return !(consentId.get().equalsIgnoreCase(consent.getIdElement().getIdPart()));
+                String pseudoOrgRef = getPseudoOrganization().getEntry().stream().findFirst().map(pseudoOrg -> {
+                    Organization organization = (Organization) pseudoOrg.getResource();
+                    return organization.getIdElement().getIdPart();
+                }).get();
+                System.out.println("the org is " + pseudoOrgRef);
+                if ((fromActor.size() == 1)) {
+                    System.out.println(fromActor.stream().findFirst().get());
+                    if (fromActor.stream().findFirst().get().equalsIgnoreCase("Organization/" + pseudoOrgRef)) {
+                        if (consentId.isPresent()) {
+                            return !(consentId.get().equalsIgnoreCase(consent.getIdElement().getIdPart()));
+                        } else {
+                            return true;
+                        }
                     } else {
-                        return true;
+                        return false;
                     }
                 } else {
                     return false;
@@ -314,6 +319,14 @@ public class ConsentServiceImpl implements ConsentService {
                 .anyMatch(role -> role.getCode().equalsIgnoreCase(code)))
                 .map(actor -> actor.getReference().getReference())
                 .collect(Collectors.toList());
+    }
+
+    private Bundle getPseudoOrganization() {
+        return fhirClient.search().forResource(Organization.class)
+                .where(new TokenClientParam("identifier").exactly().code(PSEUDO_ORGANIZATION_TAX_ID))
+                .where(new StringClientParam("name").matches().value(PSEUDO_ORGANIZATION_NAME))
+                .returnBundle(Bundle.class)
+                .execute();
     }
 
 }
