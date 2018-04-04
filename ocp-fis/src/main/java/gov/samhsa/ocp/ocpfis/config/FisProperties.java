@@ -37,6 +37,7 @@ public class FisProperties {
     @NotNull
     private int defaultMaxDuration;
 
+
     @NotNull
     @Min(1)
     @Max(1000)

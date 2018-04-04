@@ -69,14 +69,14 @@ public class ConsentServiceImpl implements ConsentService {
     }
 
     @Override
-    public PageDto<ConsentDto> getConsents(Optional<String> patient, Optional<String> fromActor, Optional<String> toActor, Optional<Boolean> generalDesignation, Optional<String> status, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<ConsentDto> getConsents(Optional<String> patient, Optional<String> practitioner, Optional<String> status, Optional<Boolean> generalDesignation, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
 
         int numberOfConsentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Consent.name());
         Bundle firstPageConsentBundle;
         Bundle otherPageConsentBundle;
 
         // Generate the Query Based on Input Variables
-        IQuery iQuery = getConsentIQuery(patient, fromActor, toActor, status);
+        IQuery iQuery = getConsentIQuery(patient, practitioner, status);
 
         //Apply Filters Based on Input Variables
 
@@ -101,6 +101,27 @@ public class ConsentServiceImpl implements ConsentService {
         return (PageDto<ConsentDto>) PaginationUtil.applyPaginationForSearchBundle(consentDtosList, otherPageConsentBundle.getTotal(), numberOfConsentsPerPage, pageNumber);
 
     }
+
+    @Override
+    public ConsentDto getConsentsById(String consentId) {
+        log.info("Searching for consentId: " + consentId);
+        Bundle consentBundle = fhirClient.search().forResource(Consent.class)
+                .where(new TokenClientParam("_id").exactly().code(consentId.trim()))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (consentBundle == null || consentBundle.getEntry().isEmpty()) {
+            log.info("No consent was found for the given consentId:" + consentId);
+            throw new ResourceNotFoundException("No consent was found for the given consent ID:" + consentId);
+        }
+
+        log.info("FHIR consent bundle retrieved from FHIR server successfully for consent ID:" + consentId);
+
+        Bundle.BundleEntryComponent retrievedConsent = consentBundle.getEntry().get(0);
+        return convertConsentBundleEntryToConsentDto(retrievedConsent);
+    }
+
+
 
     @Override
     public void createConsent(ConsentDto consentDto) {
@@ -142,10 +163,12 @@ public class ConsentServiceImpl implements ConsentService {
 
     private ConsentDto convertConsentBundleEntryToConsentDto(Bundle.BundleEntryComponent fhirConsentDtoModel) {
         ConsentDto consentDto = modelMapper.map(fhirConsentDtoModel.getResource(), ConsentDto.class);
+        consentDto.getFromActor().forEach(member -> { if (member.getDisplay().equalsIgnoreCase("Omnibus Care Plan (SAMHSA)"))
+            consentDto.setGeneralDesignation(true);});
         return consentDto;
     }
 
-    private IQuery getConsentIQuery(Optional<String> patient, Optional<String> fromActor, Optional<String> toActor, Optional<String> status) {
+    private IQuery getConsentIQuery(Optional<String> patient, Optional<String> practitioner, Optional<String> status) {
         IQuery iQuery = fhirClient.search().forResource(Consent.class);
 
         //Get Sub tasks by parent task id
@@ -153,19 +176,23 @@ public class ConsentServiceImpl implements ConsentService {
             iQuery.where(new TokenClientParam("status").exactly().code("active"));
         } else {
             //query the task and sub-task owned by specific practitioner
-            if ((fromActor.isPresent() || toActor.isPresent()) && !patient.isPresent()) {
-                iQuery.where(new ReferenceClientParam("actor").hasId(fromActor.get()));
+            if (practitioner.isPresent()  && !patient.isPresent()) {
+                iQuery.where(new ReferenceClientParam("actor").hasId(practitioner.get()));
             }
 
             //query the task and sub-task for the specific patient
-            if (patient.isPresent() && !fromActor.isPresent() && !toActor.isPresent()) {
+            if (patient.isPresent() && !practitioner.isPresent()) {
                 iQuery.where(new ReferenceClientParam("patient").hasId(patient.get()));
             }
 
             //query the task and sub-task owned by specific practitioner and for the specific patient
-            if ((fromActor.isPresent() || toActor.isPresent()) && patient.isPresent()) {
-                iQuery.where(new ReferenceClientParam("actor").hasId(fromActor.get()))
-                        .where(new ReferenceClientParam("patient").hasId(patient.get()));
+            if (practitioner.isPresent()  && patient.isPresent()) {
+                iQuery.where(new ReferenceClientParam("actor").hasId(practitioner.get()))
+                      .where(new ReferenceClientParam("patient").hasId(patient.get()));
+            }
+
+            if (!practitioner.isPresent()  && !patient.isPresent()) {
+                throw new ResourceNotFoundException("Practitioner or Patient is required to find Consents");
             }
         }
         return iQuery;
