@@ -41,7 +41,7 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<DateRangeDto> getDateRanges() {
-        List<DateRangeDto> dateRanges = Arrays.asList(new DateRangeDto(DateRangeEnum.ONE_DAY, "1 Day"), new DateRangeDto(DateRangeEnum.ONE_WEEK, "1 Week"), new DateRangeDto(DateRangeEnum.ONE_MONTH, "1 Month"));
+        List<DateRangeDto> dateRanges = Arrays.asList(new DateRangeDto(DateRangeEnum.ONE_DAY, "1 Day"), new DateRangeDto(DateRangeEnum.ONE_WEEK, "1 Week"), new DateRangeDto(DateRangeEnum.ONE_MONTH, "1 Month"), new DateRangeDto(DateRangeEnum.ALL, "All"));
         log.info("Found " + dateRanges.size() + " Date Ranges.");
         return dateRanges;
     }

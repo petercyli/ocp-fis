@@ -6,7 +6,8 @@ import java.util.stream.Stream;
 public enum DateRangeEnum {
     ONE_DAY (1),
     ONE_WEEK (7),
-    ONE_MONTH (30);
+    ONE_MONTH (30),
+    ALL (0);
 
     private final int day;
 

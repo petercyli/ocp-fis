@@ -586,20 +586,24 @@ public class TaskServiceImpl implements TaskService {
             }
         }
 
-        if (filterDate.isPresent()){
+        if (filterDate.isPresent()) {
             switch (filterDate.get()) {
                 case ONE_DAY:
                     taskDtos = taskDtos.stream()
-                            .filter(t -> t.getDateDiff() >= 0  && t.getDateDiff() <= filterDate.get().getDay())
+                            .filter(t -> t.getDateDiff() >= 0 && t.getDateDiff() <= filterDate.get().getDay())
                             .collect(toList());
+                    break;
                 case ONE_WEEK:
                     taskDtos = taskDtos.stream()
-                            .filter(t -> t.getDateDiff() >= 0  && t.getDateDiff() <= filterDate.get().getDay())
+                            .filter(t -> t.getDateDiff() >= 0 && t.getDateDiff() <= filterDate.get().getDay())
                             .collect(toList());
+                    break;
                 case ONE_MONTH:
                     taskDtos = taskDtos.stream()
-                            .filter(t -> t.getDateDiff() >= 0  && t.getDateDiff() <= filterDate.get().getDay())
+                            .filter(t -> t.getDateDiff() >= 0 && t.getDateDiff() <= filterDate.get().getDay())
                             .collect(toList());
+                    break;
+                default:
             }
         }
 
