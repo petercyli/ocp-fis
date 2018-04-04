@@ -39,9 +39,9 @@ public class ConsentController  {
         consentService.createConsent(consentDto);
     }
 
-    @PutMapping("/consents/{consentId}")
+    @PutMapping("/consents/{consent}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateConsent(@PathVariable String consentId, @Valid @RequestBody ConsentDto consentDto){
-        consentService.updateConsent(consentId, consentDto);
+    public void updateConsent(@PathVariable String consent, @Valid @RequestBody ConsentDto consentDto){
+        consentService.updateConsent(consent, consentDto);
     }
 }

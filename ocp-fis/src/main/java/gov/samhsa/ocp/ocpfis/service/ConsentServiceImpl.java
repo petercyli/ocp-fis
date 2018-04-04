@@ -292,9 +292,7 @@ public class ConsentServiceImpl implements ConsentService {
                     Organization organization = (Organization) pseudoOrg.getResource();
                     return organization.getIdElement().getIdPart();
                 }).get();
-                System.out.println("the org is " + pseudoOrgRef);
                 if ((fromActor.size() == 1)) {
-                    System.out.println(fromActor.stream().findFirst().get());
                     if (fromActor.stream().findFirst().get().equalsIgnoreCase("Organization/" + pseudoOrgRef)) {
                         if (consentId.isPresent()) {
                             return !(consentId.get().equalsIgnoreCase(consent.getIdElement().getIdPart()));
