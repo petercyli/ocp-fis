@@ -79,6 +79,8 @@ public class ConsentServiceImpl implements ConsentService {
 
     private ConsentDto convertConsentBundleEntryToConsentDto(Bundle.BundleEntryComponent fhirConsentDtoModel) {
         ConsentDto consentDto = modelMapper.map(fhirConsentDtoModel.getResource(), ConsentDto.class);
+        consentDto.getFromActor().forEach(member -> { if (member.getDisplay().equalsIgnoreCase("Omnibus Care Plan (SAMHSA)"))
+            consentDto.setGeneralDesignation(true);});
         return consentDto;
     }
 
@@ -90,7 +92,7 @@ public class ConsentServiceImpl implements ConsentService {
             iQuery.where(new TokenClientParam("status").exactly().code("active"));
         } else {
             //query the task and sub-task owned by specific practitioner
-            if ((fromActor.isPresent() || toActor.isPresent()) && !patient.isPresent()) {
+            if ((fromActor.isPresent() | toActor.isPresent()) && !patient.isPresent()) {
                 iQuery.where(new ReferenceClientParam("actor").hasId(fromActor.get()));
             }
 
@@ -100,7 +102,7 @@ public class ConsentServiceImpl implements ConsentService {
             }
 
             //query the task and sub-task owned by specific practitioner and for the specific patient
-            if ((fromActor.isPresent() || toActor.isPresent()) && patient.isPresent()) {
+            if ((fromActor.isPresent() | toActor.isPresent()) && patient.isPresent()) {
                 iQuery.where(new ReferenceClientParam("actor").hasId(fromActor.get()))
                       .where(new ReferenceClientParam("patient").hasId(patient.get()));
             }
