@@ -34,17 +34,6 @@ public class TaskController {
         return taskService.getTasks(statusList, searchKey, searchValue, pageNumber, pageSize);
     }
 
-
-    @GetMapping("/tasks/subtasks")
-    public List<TaskDto> getSubTasks(@RequestParam(value = "practitionerId") Optional<String> practitionerId,
-                                     @RequestParam(value = "patientId") Optional<String> patientId,
-                                     @RequestParam(value = "definition") Optional<String> definition,
-                                     @RequestParam(value = "parentTask") Optional<String> parentTask,
-                                     @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks) {
-        return taskService.getMainAndSubTasks(practitionerId, patientId, definition, parentTask, isUpcomingTasks);
-    }
-
-
     @PostMapping("/tasks")
     @ResponseStatus(HttpStatus.CREATED)
     public void createTask(@Valid @RequestBody TaskDto taskDto) {
