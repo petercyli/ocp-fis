@@ -16,12 +16,11 @@ public class ConsentController  {
 
     @GetMapping("/consents")
     public PageDto<ConsentDto> getConsents(@RequestParam(value = "patient") Optional<String> patient,
-                                           @RequestParam(value = "fromActor") Optional<String> fromActor,
-                                           @RequestParam(value = "toActor") Optional<String> toActor,
+                                           @RequestParam(value = "practitioner") Optional<String> practitioner,
                                            @RequestParam(value = "status") Optional<String> status,
                                            @RequestParam(value = "generalDesignation") Optional<Boolean> generalDesignation,
                                            @RequestParam Optional<Integer> pageNumber,
                                            @RequestParam Optional<Integer> pageSize) {
-        return consentService.getConsents(patient, fromActor, toActor, status, generalDesignation,pageNumber, pageSize);
+        return consentService.getConsents(patient, practitioner, status, generalDesignation,pageNumber, pageSize);
     }
 }
