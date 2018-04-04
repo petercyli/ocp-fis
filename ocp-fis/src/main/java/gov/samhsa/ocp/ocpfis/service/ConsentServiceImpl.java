@@ -76,7 +76,7 @@ public class ConsentServiceImpl implements ConsentService {
         Bundle otherPageConsentBundle;
 
         // Generate the Query Based on Input Variables
-        IQuery iQuery = getConsentIQuery(patient, practitioner, status);
+        IQuery iQuery = getConsentIQuery(patient, practitioner, status, generalDesignation);
 
         //Apply Filters Based on Input Variables
 
@@ -168,28 +168,40 @@ public class ConsentServiceImpl implements ConsentService {
         return consentDto;
     }
 
-    private IQuery getConsentIQuery(Optional<String> patient, Optional<String> practitioner, Optional<String> status) {
+    private IQuery getConsentIQuery(Optional<String> patient, Optional<String> practitioner, Optional<String> status, Optional<Boolean> generalDesignation) {
         IQuery iQuery = fhirClient.search().forResource(Consent.class);
 
-        //Get Sub tasks by parent task id
+        //Query the status.
         if (status.isPresent()) {
             iQuery.where(new TokenClientParam("status").exactly().code("active"));
         } else {
-            //query the task and sub-task owned by specific practitioner
+            //query with practitoner.
             if (practitioner.isPresent()  && !patient.isPresent()) {
-                iQuery.where(new ReferenceClientParam("actor").hasId(practitioner.get()));
+                iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIds(practitioner.get(),patient)));
             }
 
-            //query the task and sub-task for the specific patient
+            //query with patient.
             if (patient.isPresent() && !practitioner.isPresent()) {
                 iQuery.where(new ReferenceClientParam("patient").hasId(patient.get()));
             }
 
-            //query the task and sub-task owned by specific practitioner and for the specific patient
+            //query with practitioner and patient.
             if (practitioner.isPresent()  && patient.isPresent()) {
-                iQuery.where(new ReferenceClientParam("actor").hasId(practitioner.get()))
+                iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIds(practitioner.get(),patient)))
                       .where(new ReferenceClientParam("patient").hasId(patient.get()));
             }
+
+            //Query with general Designaition.
+            generalDesignation.ifPresent(gd->{
+                if(gd.booleanValue()){
+                  String pseudoOrgId=  getPseudoOrganization().getEntry().stream().findFirst().map(pseudoOrgEntry->{
+                        Organization organization= (Organization) pseudoOrgEntry.getResource();
+                        String id= organization.getIdElement().getIdPart();
+                        return id;
+                    }).get();
+                    iQuery.where(new ReferenceClientParam("actor").hasId(pseudoOrgId));
+                }
+            });
 
             if (!practitioner.isPresent()  && !patient.isPresent()) {
                 throw new ResourceNotFoundException("Practitioner or Patient is required to find Consents");
@@ -293,7 +305,6 @@ public class ConsentServiceImpl implements ConsentService {
         }
 
         return consent;
-
     }
 
     private Consent.ConsentActorComponent convertCareTeamToActor(CareTeam careTeam, ValueSetDto securityRoleValueSet) {
@@ -352,6 +363,23 @@ public class ConsentServiceImpl implements ConsentService {
                 .where(new StringClientParam("name").matches().value(PSEUDO_ORGANIZATION_NAME))
                 .returnBundle(Bundle.class)
                 .execute();
+    }
+
+    private List<String> getCareTeamIds(String practitioner,Optional<String> patient){
+        IQuery careTeamQuery=fhirClient.search().forResource(CareTeam.class)
+                .where(new ReferenceClientParam("participant").hasId(practitioner));
+
+        patient.ifPresent(patientId->
+                careTeamQuery.where(new ReferenceClientParam("patient").hasId(patientId)));
+
+        Bundle careTeamBundle= (Bundle)careTeamQuery.returnBundle(Bundle.class).execute();
+
+        List<String> careTeamIds=careTeamBundle.getEntry().stream().map(careTeamBundleEntry->{
+            CareTeam careTeam= (CareTeam) careTeamBundleEntry.getResource();
+            return careTeam.getIdElement().getIdPart();
+        }).collect(Collectors.toList());
+
+        return careTeamIds;
     }
 
 }
