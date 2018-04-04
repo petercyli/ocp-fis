@@ -68,6 +68,7 @@ public enum LookupPathUrls {
         return urlPath;
     }
 
+    // Todo: Need to clean up unused/unnecessary constant variables and rename PROVIDER_ROLE_PATH to PRACTITIONER_ROLE_PATH and
     private static class Constants{
         static final String STATE_PATH = "/ValueSet/usps-state/";
         static final String IDENTIFIER_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/identifier-type";

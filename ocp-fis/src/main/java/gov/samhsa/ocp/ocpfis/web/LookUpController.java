@@ -295,6 +295,12 @@ public class LookUpController {
         return lookUpService.getAppointmentParticipationStatus();
     }
 
+    @GetMapping("/appointment-participant-types")
+    public List<ValueSetDto> getAppointmentParticipantType() {
+
+        return lookUpService.getAppointmentParticipantType();
+    }
+
     @GetMapping("/appointment-participation-types")
     public List<ValueSetDto> getAppointmentParticipationType() {
 

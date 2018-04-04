@@ -445,7 +445,9 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public List<ValueSetDto> getParticipantTypes() {
         List<ValueSetDto> participantTypeList;
-        List<ParticipantTypeEnum> participantTypeEnums = Arrays.asList(ParticipantTypeEnum.values());
+        final List<String> allowedCareTeamParticipantType = Arrays.asList("practitioner", "relatedPerson", "patient", "organization");
+        List<ParticipantTypeEnum> allParticipantTypeEnums = Arrays.asList(ParticipantTypeEnum.values());
+        List<ParticipantTypeEnum> participantTypeEnums = allParticipantTypeEnums.stream().filter( p -> allowedCareTeamParticipantType.contains(p.getCode())).collect(Collectors.toList());
 
         participantTypeList = participantTypeEnums.stream().map(object -> {
             ValueSetDto temp = new ValueSetDto();
@@ -693,6 +695,23 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
+    public List<ValueSetDto> getAppointmentParticipantType() {
+        List<ValueSetDto> appointmentParticipantTypeList;
+        final List<String> allowedAppointmentParticipantType = Arrays.asList("practitioner", "relatedPerson", "patient", "location", "healthcareService");
+        List<ParticipantTypeEnum> allParticipantTypeEnums = Arrays.asList(ParticipantTypeEnum.values());
+        List<ParticipantTypeEnum> participantTypeEnums = allParticipantTypeEnums.stream().filter( p -> allowedAppointmentParticipantType.contains(p.getCode())).collect(Collectors.toList());
+
+        appointmentParticipantTypeList = participantTypeEnums.stream().map(object -> {
+            ValueSetDto temp = new ValueSetDto();
+            temp.setCode(object.getCode());
+            temp.setDisplay(object.getName());
+            return temp;
+        }).collect(Collectors.toList());
+        log.info("Found " + appointmentParticipantTypeList.size() + " appointment participant types.");
+        return appointmentParticipantTypeList;
+    }
+
+    @Override
     public List<ValueSetDto> getAppointmentParticipationType() {
         List<ValueSetDto> participationTypeList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.PARTICIPATION_TYPE.getUrlPath(), LookupPathUrls.PARTICIPATION_TYPE.getType());
@@ -718,7 +737,7 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getProviderRole() {
-        List<ValueSetDto> providerRoleList = new ArrayList<>();
+        List<ValueSetDto> providerRoleList;
         ValueSet response = getValueSets(LookupPathUrls.PROVIDER_ROLE.getUrlPath(), LookupPathUrls.PROVIDER_ROLE.getType());
         List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
         providerRoleList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
@@ -728,7 +747,7 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getProviderSpecialty() {
-        List<ValueSetDto> providerSpecialtyList = new ArrayList<>();
+        List<ValueSetDto> providerSpecialtyList;
         ValueSet response = getValueSets(LookupPathUrls.PROVIDER_SPECIALTY.getUrlPath(), LookupPathUrls.PROVIDER_SPECIALTY.getType());
         List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
         providerSpecialtyList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());

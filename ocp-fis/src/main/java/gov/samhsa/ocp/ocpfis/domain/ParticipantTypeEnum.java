@@ -6,8 +6,6 @@ import java.util.Arrays;
 import java.util.stream.Stream;
 
 public enum ParticipantTypeEnum {
-    //Communication Participants: Patient, Practitioner, Related Person, Organization
-    //Appointment Participants: Patient, Practitioner, Related Person, Location, Healthcare Service
     practitioner("practitioner", "Practitioner"),
     relatedPerson("relatedPerson", "RelatedPerson"),
     patient("patient", "Patient"),
@@ -25,7 +23,7 @@ public enum ParticipantTypeEnum {
 
     public static ParticipantTypeEnum fromCode(String code) {
         return asStream()
-                .filter(participant -> participant.getCode().equals(code))
+                .filter(participant -> participant.getCode().equalsIgnoreCase(code))
                 .findAny()
                 .orElseThrow(() -> new ResourceNotFoundException("Participant type cannot be found with code: " + code));
     }
