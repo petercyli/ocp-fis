@@ -16,17 +16,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 public final class AppointmentDtoToAppointmentConverter {
-    public static Appointment map(AppointmentDto appointmentDto, boolean isCreate) {
+    public static Appointment map(AppointmentDto appointmentDto, boolean isCreate, Optional<String> logicalId) {
         try {
             Appointment appointment = new Appointment();
 
             //id
             if (isStringNotNullAndNotEmpty(appointmentDto.getLogicalId())) {
                 appointment.setId(appointmentDto.getLogicalId().trim());
-            }
+            } else logicalId.ifPresent(s -> appointment.setId(s.trim()));
 
             //Status
             if (isCreate) {
