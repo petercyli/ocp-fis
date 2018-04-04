@@ -9,21 +9,36 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ConsentToConsentDtoMap extends PropertyMap<Consent, ConsentDto> {
-    private final ConsentActorComponentListToReferenceDtoListConverter consentActorComponentListToReferenceDtoListConverter;
+    private final ConsentActorComponentListToConsenToReferenceDtoListConverter consentActorComponentListToConsenToReferenceDtoListConverter;
+    private final ConsentActorComponentListToConsenFromReferenceDtoListConverter consentActorComponentListToConsenFromReferenceDtoListConverter;
     private final ResourceIdToLogicalIdConverter resourceIdToLogicalIdConverter;
+    private final PeriodToPeriodDtoConverter periodToPeriodDtoConverter;
+    private final CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter;
+    private final IdentifierToIdentifierDtoConverter identifierToIdentifierDtoConverter;
 
     @Autowired
-    public ConsentToConsentDtoMap(ConsentActorComponentListToReferenceDtoListConverter consentActorComponentListToReferenceDtoListConverter,
-                                  ResourceIdToLogicalIdConverter resourceIdToLogicalIdConverter) {
-        this.consentActorComponentListToReferenceDtoListConverter = consentActorComponentListToReferenceDtoListConverter;
+    public ConsentToConsentDtoMap(ConsentActorComponentListToConsenToReferenceDtoListConverter consentActorComponentListToConsenToReferenceDtoListConverter,
+                                  ConsentActorComponentListToConsenFromReferenceDtoListConverter consentActorComponentListToConsenFromReferenceDtoListConverter,
+                                  ResourceIdToLogicalIdConverter resourceIdToLogicalIdConverter,
+                                  PeriodToPeriodDtoConverter periodToPeriodDtoConverter,
+                                  CodeableConceptListToValueSetDtoListConverter CodeableConceptListToValueSetDtoListConverter,
+                                  IdentifierToIdentifierDtoConverter identifierToIdentifierDtoConverter) {
+        this.consentActorComponentListToConsenToReferenceDtoListConverter = consentActorComponentListToConsenToReferenceDtoListConverter;
+        this.consentActorComponentListToConsenFromReferenceDtoListConverter = consentActorComponentListToConsenFromReferenceDtoListConverter;
         this.resourceIdToLogicalIdConverter = resourceIdToLogicalIdConverter;
+        this.periodToPeriodDtoConverter = periodToPeriodDtoConverter;
+        this.codeableConceptListToValueSetDtoListConverter = CodeableConceptListToValueSetDtoListConverter;
+        this.identifierToIdentifierDtoConverter = identifierToIdentifierDtoConverter;
     }
 
     @Override
     protected void configure() {
         using(resourceIdToLogicalIdConverter).map(source).setLogicalId(null);
-        using(consentActorComponentListToReferenceDtoListConverter).map(source.getActor()).setFromActor(null);
-        using(consentActorComponentListToReferenceDtoListConverter).map(source.getActor()).setToActor(null);
+        using(consentActorComponentListToConsenFromReferenceDtoListConverter).map(source.getActor()).setFromActor(null);
+        using(consentActorComponentListToConsenToReferenceDtoListConverter).map(source.getActor()).setToActor(null);
+        using(periodToPeriodDtoConverter).map(source.getPeriod()).setPeriod(null);
+        using(codeableConceptListToValueSetDtoListConverter).map(source.getCategory()).setCategory(null);
+        using(identifierToIdentifierDtoConverter).map(source.getIdentifier()).setIdentifier(null);
     }
 
 }

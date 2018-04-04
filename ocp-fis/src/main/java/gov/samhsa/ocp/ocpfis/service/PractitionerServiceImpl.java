@@ -214,19 +214,16 @@ public class PractitionerServiceImpl implements PractitionerService {
         IQuery query = fhirClient.search().forResource(PractitionerRole.class);
 
         if (role.isPresent()) {
-            if (role.get().equalsIgnoreCase(CARE_MANAGER_CODE)) {
+            if (role.get().equalsIgnoreCase(CARE_COORDINATOR_CODE)) {
+                practitioners = getPractitionersForCareCoordinators(role.get());
+            } else {
                 query.where(new TokenClientParam("role").exactly().code(role.get()));
                 Bundle bundle = getBundleForPractitioners(organization, query);
                 practitioners = getPractitionerDtos(practitioners, bundle);
-
-            } else if (role.get().equalsIgnoreCase(CARE_COORDINATOR_CODE)) {
-                practitioners = this.getPractitionersForCareCoordinators(role.get());
-
             }
         } else {
             Bundle bundle = getBundleForPractitioners(organization, query);
             practitioners = getPractitionerDtos(practitioners, bundle);
-
         }
 
         return (PageDto<PractitionerDto>) PaginationUtil.applyPaginationForCustomArrayList(practitioners, numberOfPractitionersPerPage, pageNumber, false);

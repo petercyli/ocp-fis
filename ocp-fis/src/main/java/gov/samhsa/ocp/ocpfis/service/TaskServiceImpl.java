@@ -402,7 +402,7 @@ public class TaskServiceImpl implements TaskService {
 
 
             //If TO_DO definition type and TO_DO task is not present.
-            if (definition.get().equalsIgnoreCase(TO_DO) && taskReferenceList.isEmpty()) {
+            if (definition.get().equalsIgnoreCase(TO_DO) && taskReferenceList.isEmpty() && practitioner.isPresent() && organization.isPresent()) {
                 //Creating To-Do Task
                 Task task = FhirUtil.createToDoTask(patient, practitioner.get(), organization.get(), fhirClient, fisProperties);
 
@@ -570,8 +570,6 @@ public class TaskServiceImpl implements TaskService {
                         .filter(t -> t.getDefinition() != null)
                         .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
                                 && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
-                        .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("To-Do"))
-                        .filter(t -> !t.getDefinition().getDisplay().equalsIgnoreCase("TODO"))
                         .filter(taskDto -> taskDto.getPartOf() == null)
                         .collect(toList());
             }
