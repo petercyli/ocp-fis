@@ -37,7 +37,4 @@ public class ConsentDto {
 
     private List<ValueSetDto> purpose;
 
-    private String fromGeneralDesignation;
-
-    private String toGeneralDesignation;
 }
