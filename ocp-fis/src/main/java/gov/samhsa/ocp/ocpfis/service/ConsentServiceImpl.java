@@ -77,6 +77,27 @@ public class ConsentServiceImpl implements ConsentService {
 
     }
 
+    @Override
+    public ConsentDto getConsentsById(String consentId) {
+        log.info("Searching for consentId: " + consentId);
+        Bundle consentBundle = fhirClient.search().forResource(Consent.class)
+                .where(new TokenClientParam("_id").exactly().code(consentId.trim()))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (consentBundle == null || consentBundle.getEntry().isEmpty()) {
+            log.info("No consent was found for the given consentId:" + consentId);
+            throw new ResourceNotFoundException("No consent was found for the given consent ID:" + consentId);
+        }
+
+        log.info("FHIR consent bundle retrieved from FHIR server successfully for consent ID:" + consentId);
+
+        Bundle.BundleEntryComponent retrievedConsent = consentBundle.getEntry().get(0);
+        return convertConsentBundleEntryToConsentDto(retrievedConsent);
+    }
+
+
+
     private ConsentDto convertConsentBundleEntryToConsentDto(Bundle.BundleEntryComponent fhirConsentDtoModel) {
         ConsentDto consentDto = modelMapper.map(fhirConsentDtoModel.getResource(), ConsentDto.class);
         consentDto.getFromActor().forEach(member -> { if (member.getDisplay().equalsIgnoreCase("Omnibus Care Plan (SAMHSA)"))
