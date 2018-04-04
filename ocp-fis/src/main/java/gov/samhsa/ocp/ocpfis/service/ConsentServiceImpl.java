@@ -218,22 +218,18 @@ public class ConsentServiceImpl implements ConsentService {
         }
 
         //Setting identifier
-        consentId.ifPresent(id-> {
+        if(!consentId.isPresent()) {
             Identifier identifier = new Identifier();
             identifier.setValue(UUID.randomUUID().toString());
             identifier.setSystem(fisProperties.getConsent().getIdentifierSystem());
             consent.setIdentifier(identifier);
-          }
-        );
-
-        if(!consentId.isPresent()) {
-            if (consentDto.getIdentifier() != null) {
+        }else if (consentDto.getIdentifier() != null) {
                 Identifier identifier = new Identifier();
                 identifier.setValue(consentDto.getIdentifier().getValue());
                 identifier.setSystem(consentDto.getIdentifier().getSystem());
                 consent.setIdentifier(identifier);
-            }
         }
+
 
         List<Consent.ConsentActorComponent> actors = new ArrayList<>();
 
