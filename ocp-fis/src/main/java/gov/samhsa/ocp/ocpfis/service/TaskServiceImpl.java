@@ -157,9 +157,6 @@ public class TaskServiceImpl implements TaskService {
             retrieveActivityDefinitionDuration(taskDto);
             Task task = TaskDtoToTaskMap.map(taskDto);
 
-            //Checking activity definition for enrollment
-            task.setContext(createOrRetrieveEpisodeOfCare(taskDto));
-
             //authoredOn
             task.setAuthoredOn(java.sql.Date.valueOf(LocalDate.now()));
 
@@ -284,7 +281,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition, Optional<String> practitioner, Optional<String> organization) {
-        List<ReferenceDto> tasks = getBundleForPatient(patient).getEntry().stream()
+        List<ReferenceDto> tasks = getBundleForRelatedTask(patient,organization).getEntry().stream()
                 .map(Bundle.BundleEntryComponent::getResource)
                 .map(resource -> FhirDtoUtil.mapTaskToReferenceDto((Task) resource))
                 .collect(toList());
@@ -292,7 +289,6 @@ public class TaskServiceImpl implements TaskService {
             List<ReferenceDto> taskReferenceList = tasks.stream()
                     .filter(referenceDto -> referenceDto.getDisplay().equalsIgnoreCase(definition.get()))
                     .collect(toList());
-
 
             //If TO_DO definition type and TO_DO task is not present.
             if (definition.get().equalsIgnoreCase(TO_DO) && taskReferenceList.isEmpty() && practitioner.isPresent() && organization.isPresent()) {
@@ -317,31 +313,22 @@ public class TaskServiceImpl implements TaskService {
                     task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(organization.get(), definition.get(), fhirClient, fisProperties)));
                 }
 
-                //Create Care Team
-                Bundle careTeamBundle = (Bundle) fhirClient.search().forResource(CareTeam.class)
+                //Look for episode of care
+                Bundle episodeOfCareBundle = (Bundle) fhirClient.search().forResource(EpisodeOfCare.class)
                         .where(new ReferenceClientParam("patient").hasId(patient))
-                        .where(new ReferenceClientParam("participant").hasId(practitioner.get()))
-                        .prettyPrint()
+                        .where(new ReferenceClientParam("organization").hasId("Organization/"+organization.get()))
+                        .where(new ReferenceClientParam("care-manager").hasId(practitioner.get()))
+                        .returnBundle(Bundle.class)
                         .execute();
 
-                if (careTeamBundle.getEntry().isEmpty()) {
-                    FhirUtil.createCareTeam(patient, practitioner.get(), organization.get(), fhirClient, fisProperties, lookUpService);
-                } else {
-                    List<Bundle.BundleEntryComponent> filterCareTeamMember = careTeamBundle.getEntry().stream().filter(careTeams -> {
-                        CareTeam careTeam = (CareTeam) careTeams.getResource();
-                        return careTeam.getParticipant().stream().anyMatch(participant -> {
-                            if (participant.hasOnBehalfOf()) {
-                                return participant.getOnBehalfOf().getReference().equalsIgnoreCase(organization.get())
-                                        && careTeam.getName().equalsIgnoreCase("Org/" + organization.get() + practitioner.get() + patient);
-                            }
-                            return false;
-                        });
-                    }).collect(toList());
-
-                    if (filterCareTeamMember.isEmpty())
-                        FhirUtil.createCareTeam(patient, practitioner.get(), organization.get(), fhirClient, fisProperties, lookUpService);
+                //Create episode of care
+                if (episodeOfCareBundle.getEntry().isEmpty()) {
+                   EpisodeOfCare episodeOfCare= FhirUtil.createEpisodeOfCare(patient, practitioner.get(), organization.get(), fhirClient, fisProperties, lookUpService);
+                   MethodOutcome eocMethodOutcome=fhirClient.create().resource(episodeOfCare).execute();
+                   Reference reference=new Reference();
+                   reference.setReference(ResourceType.EpisodeOfCare+"/"+eocMethodOutcome.getId().getIdPart());
+                   task.setContext(reference);
                 }
-
 
                 MethodOutcome methodOutcome = fhirClient.create().resource(task).execute();
                 ReferenceDto referenceDto = new ReferenceDto();
@@ -430,10 +417,8 @@ public class TaskServiceImpl implements TaskService {
                 MethodOutcome methodOutcome = fhirClient.create().resource(newEpisodeOfCare).execute();
                 contextReference.setReference(ResourceType.EpisodeOfCare + "/" + methodOutcome.getId().getIdPart());
             }
-
             contextReference.setDisplay(createDisplayForEpisodeOfCare(taskDto));
         }
-
         return contextReference;
     }
 
@@ -462,6 +447,15 @@ public class TaskServiceImpl implements TaskService {
                 .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
                 //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
                 .count(fisProperties.getResourceSinglePageLimit())
+                .returnBundle(Bundle.class).execute();
+    }
+
+    private Bundle getBundleForRelatedTask(String patient,Optional<String> organization){
+        IQuery taskQuery =  fhirClient.search().forResource(Task.class)
+                .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient));
+
+        organization.ifPresent(org->taskQuery.where(new ReferenceClientParam("organization").hasId(ResourceType.Organization+"/"+organization)));
+             return (Bundle) taskQuery.count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class).execute();
     }
 
