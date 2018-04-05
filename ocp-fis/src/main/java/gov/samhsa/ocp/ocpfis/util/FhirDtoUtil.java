@@ -184,6 +184,12 @@ public class FhirDtoUtil {
                 }
                 if (member.getType() != null && !member.getType().isEmpty() && !member.getType().get(0).getCoding().isEmpty()) {
                     participantDto.setParticipationTypeCode(member.getType().get(0).getCoding().get(0).getCode());
+                    if(member.getType().get(0).getCoding().get(0).getDisplay() != null && !member.getType().get(0).getCoding().get(0).getDisplay().isEmpty()){
+                        participantDto.setParticipationTypeDisplay(member.getType().get(0).getCoding().get(0).getDisplay());
+                    }
+                    if(member.getType().get(0).getCoding().get(0).getSystem() != null && !member.getType().get(0).getCoding().get(0).getSystem().isEmpty()){
+                        participantDto.setParticipationTypeSystem(member.getType().get(0).getCoding().get(0).getSystem());
+                    }
                 }
                 participants.add(participantDto);
             });
