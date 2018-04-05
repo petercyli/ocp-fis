@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
+import gov.samhsa.ocp.ocpfis.service.dto.DateRangeDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.StatusBooleanValuesDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
@@ -21,6 +22,12 @@ public class LookUpController {
     public LookUpController(LookUpService lookUpService) {
 
         this.lookUpService = lookUpService;
+    }
+
+    @GetMapping("/date-ranges")
+    public List<DateRangeDto> getDateRanges() {
+
+        return lookUpService.getDateRanges();
     }
 
     @GetMapping("/usps-states")
