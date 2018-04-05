@@ -198,85 +198,6 @@ public class TaskServiceImpl implements TaskService {
         return (PageDto<TaskDto>) PaginationUtil.applyPaginationForCustomArrayList(upcomingTasks, numberOfTasksPerPage, pageNumber, false);
     }
 
-    private List<TaskDto> getUpcomingTasksByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue) {
-        List<PatientDto> patients = patientService.getPatientsByPractitioner(Optional.ofNullable(practitioner), Optional.empty(), Optional.empty());
-
-        List<TaskDto> allTasks = patients.stream()
-                .flatMap(it -> getTasksByPatient(it.getId()).stream())
-                .distinct()
-                .collect(toList());
-
-        Map<String, List<TaskDto>> tasksGroupedByPatient = allTasks.stream().collect(groupingBy(x -> x.getBeneficiary().getReference()));
-
-        List<TaskDto> finalList = new ArrayList<>();
-
-        for (Map.Entry<String, List<TaskDto>> entry : tasksGroupedByPatient.entrySet()) {
-            List<TaskDto> filtered = entry.getValue();
-            Collections.sort(filtered);
-
-            if (!filtered.isEmpty()) {
-                TaskDto upcomingTask = filtered.get(0);
-                finalList.add(upcomingTask);
-
-                filtered.stream().skip(1).filter(task -> endDateAvailable(upcomingTask) && upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())).forEach(finalList::add);
-            }
-        }
-
-        //TODO: filter tasks by searchKey/value if present
-
-        Collections.sort(finalList);
-        return finalList;
-    }
-
-    private boolean endDateAvailable(TaskDto dto) {
-        if (dto.getExecutionPeriod() != null && dto.getExecutionPeriod().getEnd() != null) {
-            return true;
-        }
-        return false;
-    }
-
-    private void retrieveActivityDefinitionDuration(TaskDto taskDto) {
-        LocalDate startDate = taskDto.getExecutionPeriod().getStart();
-        LocalDate endDate = taskDto.getExecutionPeriod().getEnd();
-
-        if (startDate == null) {
-            startDate = LocalDate.now();
-        }
-
-        //if start date is available but endDate (due date) is not sent by UI
-        if (endDate == null) {
-
-            Reference reference = FhirDtoUtil.mapReferenceDtoToReference(taskDto.getDefinition());
-            String activityDefinitionId = FhirDtoUtil.getIdFromReferenceDto(taskDto.getDefinition(), ResourceType.ActivityDefinition);
-
-            ActivityDefinitionDto activityDefinition = activityDefinitionService.getActivityDefinitionById(activityDefinitionId);
-
-            float duration = activityDefinition.getTiming().getDurationMax();
-            taskDto.getExecutionPeriod().setEnd(startDate.plusDays((long) duration));
-        }
-    }
-
-    private Reference createOrRetrieveEpisodeOfCare(TaskDto taskDto) {
-        Reference contextReference = new Reference();
-
-        if (taskDto.getDefinition().getDisplay().equalsIgnoreCase("Enrollment")) {
-
-            Optional<EpisodeOfCareDto> episodeOfCare = retrieveEpisodeOfCare(taskDto);
-
-            if (episodeOfCare.isPresent()) {
-                EpisodeOfCareDto dto = episodeOfCare.get();
-                contextReference.setReference(ResourceType.EpisodeOfCare + "/" + dto.getId());
-            } else {
-                EpisodeOfCare newEpisodeOfCare = createEpisodeOfCare(taskDto);
-                MethodOutcome methodOutcome = fhirClient.create().resource(newEpisodeOfCare).execute();
-                contextReference.setReference(ResourceType.EpisodeOfCare + "/" + methodOutcome.getId().getIdPart());
-            }
-
-            contextReference.setDisplay(createDisplayForEpisodeOfCare(taskDto));
-        }
-
-        return contextReference;
-    }
 
     @Override
     public void deactivateTask(String taskId) {
@@ -362,33 +283,6 @@ public class TaskServiceImpl implements TaskService {
 
     }
 
-    private List<TaskDto> getTasksByPatient(String patient) {
-        List<TaskDto> tasks = new ArrayList<>();
-
-        Bundle bundle = getBundleForPatient(patient);
-
-        if (bundle != null) {
-            List<Bundle.BundleEntryComponent> taskComponents = bundle.getEntry();
-
-            if (taskComponents != null) {
-                tasks = taskComponents.stream()
-                        .map(it -> (Task) it.getResource())
-                        .map(it -> TaskToTaskDtoMap.map(it, lookUpService.getTaskPerformerType()))
-                        .collect(toList());
-            }
-        }
-
-        return tasks;
-    }
-
-    private Bundle getBundleForPatient(String patient) {
-        return fhirClient.search().forResource(Task.class)
-                .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
-                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
-                .count(fisProperties.getResourceSinglePageLimit())
-                .returnBundle(Bundle.class).execute();
-    }
-
     public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition, Optional<String> practitioner, Optional<String> organization) {
         List<ReferenceDto> tasks = getBundleForPatient(patient).getEntry().stream()
                 .map(Bundle.BundleEntryComponent::getResource)
@@ -461,6 +355,114 @@ public class TaskServiceImpl implements TaskService {
         }
 
         return tasks;
+    }
+
+    private List<TaskDto> getUpcomingTasksByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue) {
+        List<PatientDto> patients = patientService.getPatientsByPractitioner(Optional.ofNullable(practitioner), Optional.empty(), Optional.empty());
+
+        List<TaskDto> allTasks = patients.stream()
+                .flatMap(it -> getTasksByPatient(it.getId()).stream())
+                .distinct()
+                .collect(toList());
+
+        Map<String, List<TaskDto>> tasksGroupedByPatient = allTasks.stream().collect(groupingBy(x -> x.getBeneficiary().getReference()));
+
+        List<TaskDto> finalList = new ArrayList<>();
+
+        for (Map.Entry<String, List<TaskDto>> entry : tasksGroupedByPatient.entrySet()) {
+            List<TaskDto> filtered = entry.getValue();
+            Collections.sort(filtered);
+
+            if (!filtered.isEmpty()) {
+                TaskDto upcomingTask = filtered.get(0);
+                finalList.add(upcomingTask);
+
+                filtered.stream().skip(1).filter(task -> endDateAvailable(upcomingTask) && upcomingTask.getExecutionPeriod().getEnd().equals(task.getExecutionPeriod().getEnd())).forEach(finalList::add);
+            }
+        }
+
+        //TODO: filter tasks by searchKey/value if present
+
+        Collections.sort(finalList);
+        return finalList;
+    }
+
+    private boolean endDateAvailable(TaskDto dto) {
+        if (dto.getExecutionPeriod() != null && dto.getExecutionPeriod().getEnd() != null) {
+            return true;
+        }
+        return false;
+    }
+
+    private void retrieveActivityDefinitionDuration(TaskDto taskDto) {
+        LocalDate startDate = taskDto.getExecutionPeriod().getStart();
+        LocalDate endDate = taskDto.getExecutionPeriod().getEnd();
+
+        if (startDate == null) {
+            startDate = LocalDate.now();
+        }
+
+        //if start date is available but endDate (due date) is not sent by UI
+        if (endDate == null) {
+
+            Reference reference = FhirDtoUtil.mapReferenceDtoToReference(taskDto.getDefinition());
+            String activityDefinitionId = FhirDtoUtil.getIdFromReferenceDto(taskDto.getDefinition(), ResourceType.ActivityDefinition);
+
+            ActivityDefinitionDto activityDefinition = activityDefinitionService.getActivityDefinitionById(activityDefinitionId);
+
+            float duration = activityDefinition.getTiming().getDurationMax();
+            taskDto.getExecutionPeriod().setEnd(startDate.plusDays((long) duration));
+        }
+    }
+
+    private Reference createOrRetrieveEpisodeOfCare(TaskDto taskDto) {
+        Reference contextReference = new Reference();
+
+        if (taskDto.getDefinition().getDisplay().equalsIgnoreCase("Enrollment")) {
+
+            Optional<EpisodeOfCareDto> episodeOfCare = retrieveEpisodeOfCare(taskDto);
+
+            if (episodeOfCare.isPresent()) {
+                EpisodeOfCareDto dto = episodeOfCare.get();
+                contextReference.setReference(ResourceType.EpisodeOfCare + "/" + dto.getId());
+            } else {
+                EpisodeOfCare newEpisodeOfCare = createEpisodeOfCare(taskDto);
+                MethodOutcome methodOutcome = fhirClient.create().resource(newEpisodeOfCare).execute();
+                contextReference.setReference(ResourceType.EpisodeOfCare + "/" + methodOutcome.getId().getIdPart());
+            }
+
+            contextReference.setDisplay(createDisplayForEpisodeOfCare(taskDto));
+        }
+
+        return contextReference;
+    }
+
+
+    private List<TaskDto> getTasksByPatient(String patient) {
+        List<TaskDto> tasks = new ArrayList<>();
+
+        Bundle bundle = getBundleForPatient(patient);
+
+        if (bundle != null) {
+            List<Bundle.BundleEntryComponent> taskComponents = bundle.getEntry();
+
+            if (taskComponents != null) {
+                tasks = taskComponents.stream()
+                        .map(it -> (Task) it.getResource())
+                        .map(it -> TaskToTaskDtoMap.map(it, lookUpService.getTaskPerformerType()))
+                        .collect(toList());
+            }
+        }
+
+        return tasks;
+    }
+
+    private Bundle getBundleForPatient(String patient) {
+        return fhirClient.search().forResource(Task.class)
+                .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
+                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
+                .count(fisProperties.getResourceSinglePageLimit())
+                .returnBundle(Bundle.class).execute();
     }
 
     private boolean isDuplicate(TaskDto taskDto) {
