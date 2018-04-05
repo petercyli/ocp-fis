@@ -292,7 +292,7 @@ public class FhirUtil {
         return task;
     }
 
-    public static void createEpisodeOfCare(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties, LookUpService lookUpService) {
+    public static EpisodeOfCare createEpisodeOfCare(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties, LookUpService lookUpService) {
         EpisodeOfCare episodeOfCare = new EpisodeOfCare();
         episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
         CodeableConcept codeableConcept = new CodeableConcept();
@@ -312,7 +312,7 @@ public class FhirUtil {
         episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
         episodeOfCare.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(EPISODE_OF_CARE_END_PERIOD)));
 
-        fhirClient.create().resource(episodeOfCare).execute();
+       return episodeOfCare;
     }
 
     public static ReferenceDto getRelatedActivityDefinition(String organizationId, String definitionDisplay, IGenericClient fhirClient, FisProperties fisProperties) {
