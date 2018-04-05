@@ -282,7 +282,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition, Optional<String> practitioner, Optional<String> organization) {
-        List<ReferenceDto> tasks = getBundleForRelatedTask(patient,organization).getEntry().stream()
+        List<ReferenceDto> tasks = getBundleForRelatedTask(patient, organization).getEntry().stream()
                 .map(Bundle.BundleEntryComponent::getResource)
                 .map(resource -> FhirDtoUtil.mapTaskToReferenceDto((Task) resource))
                 .collect(toList());
@@ -451,13 +451,26 @@ public class TaskServiceImpl implements TaskService {
                 .returnBundle(Bundle.class).execute();
     }
 
-    private Bundle getBundleForRelatedTask(String patient,Optional<String> organization){
+    private Bundle getBundleForRelatedTask(String patient, Optional<String> organization){
         IQuery taskQuery =  fhirClient.search().forResource(Task.class)
-                .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient));
+                .where(new ReferenceClientParam("patient").hasId(patient));
+        if(organization.isPresent()){
+            Bundle eocBundle=fhirClient.search().forResource(EpisodeOfCare.class)
+                    .where(new ReferenceClientParam("patient").hasId(patient))
+                    .where(new ReferenceClientParam("organization").hasId("Organization/"+organization.get()))
+                    .returnBundle(Bundle.class)
+                    .execute();
+            List<String> eocIds = eocBundle.getEntry().stream().map(eoc->{
+                EpisodeOfCare episodeOfCare= (EpisodeOfCare) eoc.getResource();
+                return episodeOfCare.getIdElement().getIdPart();
+            }).collect(toList());
 
-        organization.ifPresent(org->taskQuery.where(new ReferenceClientParam("organization").hasId(ResourceType.Organization+"/"+organization)));
-             return (Bundle) taskQuery.count(fisProperties.getResourceSinglePageLimit())
+            taskQuery.where(new ReferenceClientParam("context").hasAnyOfIds(eocIds));
+        }
+
+        Bundle bundle= (Bundle) taskQuery.count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class).execute();
+        return bundle;
     }
 
     private boolean isDuplicate(TaskDto taskDto) {
