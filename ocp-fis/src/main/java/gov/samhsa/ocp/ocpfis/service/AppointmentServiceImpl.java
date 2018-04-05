@@ -66,7 +66,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Validate if the request body has all the mandatory fields
         validateAppointDtoFromRequest(appointmentDto);
         //Map
-        final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, true);
+        final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, true, Optional.empty());
         //Set created Date
         appointment.setCreated(new Date());
         //Validate
@@ -82,7 +82,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Validate if the request body has all the mandatory fields
         validateAppointDtoFromRequest(appointmentDto);
         //Map
-        final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false);
+        final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false, Optional.of(appointmentId));
         //Validate
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Update Appointment");
         //Update
