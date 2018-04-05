@@ -7,6 +7,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.DateRangeEnum;
 import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
@@ -137,7 +138,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks) {
+    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<DateRangeEnum> filterDate) {
 
         // Generate the Query Based on Input Variables
         IQuery iQuery = getTasksIQuery(practitioner, patient, partOf);
@@ -146,7 +147,7 @@ public class TaskServiceImpl implements TaskService {
         List<TaskDto> taskDtos = getTaskDtos(iQuery);
 
         //Apply Filters Based on Input Variables
-        taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos);
+        taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos, filterDate);
 
         return taskDtos;
     }
@@ -543,7 +544,7 @@ public class TaskServiceImpl implements TaskService {
         return new StringJoiner("-").add(status).add(date).add(agent).toString();
     }
 
-    private List<TaskDto> getTaskDtosBasedOnFilters(Optional<String> definition, Optional<String> parentTaskId, Optional<Boolean> isUpcomingTasks, List<TaskDto> taskDtos) {
+    private List<TaskDto> getTaskDtosBasedOnFilters(Optional<String> definition, Optional<String> parentTaskId, Optional<Boolean> isUpcomingTasks, List<TaskDto> taskDtos, Optional<DateRangeEnum> filterDate) {
 
         // Filter the general sub-tasks for the given parent task
         if (parentTaskId.isPresent()) {
@@ -582,7 +583,30 @@ public class TaskServiceImpl implements TaskService {
                         .collect(toList());
             }
         }
+
+        if (filterDate.isPresent()) {
+            switch (filterDate.get()) {
+                case ONE_DAY:
+                    taskDtos = taskDtos.stream()
+                            .filter(t -> t.getDateDiff() >= 0 && t.getDateDiff() <= filterDate.get().getDay())
+                            .collect(toList());
+                    break;
+                case ONE_WEEK:
+                    taskDtos = taskDtos.stream()
+                            .filter(t -> t.getDateDiff() >= 0 && t.getDateDiff() <= filterDate.get().getDay())
+                            .collect(toList());
+                    break;
+                case ONE_MONTH:
+                    taskDtos = taskDtos.stream()
+                            .filter(t -> t.getDateDiff() >= 0 && t.getDateDiff() <= filterDate.get().getDay())
+                            .collect(toList());
+                    break;
+                default:
+            }
+        }
+
         taskDtos.sort(Comparator.comparing(o -> o.getDateDiff()));
+
         return taskDtos;
     }
 

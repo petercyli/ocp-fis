@@ -2,10 +2,12 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.DateRangeEnum;
 import gov.samhsa.ocp.ocpfis.domain.IdentifierTypeEnum;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.LanguageEnum;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
+import gov.samhsa.ocp.ocpfis.service.dto.DateRangeDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LookupPathUrls;
 import gov.samhsa.ocp.ocpfis.service.dto.StatusBooleanValuesDto;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+
 @Service
 @Slf4j
 public class LookUpServiceImpl implements LookUpService {
@@ -35,6 +38,14 @@ public class LookUpServiceImpl implements LookUpService {
         this.fhirClient = fhirClient;
         this.fisProperties = fisProperties;
     }
+
+    @Override
+    public List<DateRangeDto> getDateRanges() {
+        List<DateRangeDto> dateRanges = Arrays.asList(new DateRangeDto(DateRangeEnum.ONE_DAY, "1 Day"), new DateRangeDto(DateRangeEnum.ONE_WEEK, "1 Week"), new DateRangeDto(DateRangeEnum.ONE_MONTH, "1 Month"), new DateRangeDto(DateRangeEnum.ALL, "All"));
+        log.info("Found " + dateRanges.size() + " Date Ranges.");
+        return dateRanges;
+    }
+
 
     @Override
     public List<ValueSetDto> getUspsStates() {
