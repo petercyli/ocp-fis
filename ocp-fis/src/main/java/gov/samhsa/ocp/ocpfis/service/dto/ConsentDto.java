@@ -40,4 +40,6 @@ public class ConsentDto {
     private List<ValueSetDto> category;
 
     private List<ValueSetDto> purpose;
+
+    private List<ValueSetDto> medicalInformation;
 }
