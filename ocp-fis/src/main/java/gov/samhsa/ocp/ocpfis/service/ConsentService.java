@@ -10,4 +10,7 @@ public interface ConsentService {
     PageDto<ConsentDto> getConsents(Optional<String> patient, Optional<String> practitioner, Optional<String> status, Optional<Boolean> generalDesignation, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 
     ConsentDto getConsentsById(String consentId);
+
+    void saveConsent(ConsentDto consentDto);
+
 }

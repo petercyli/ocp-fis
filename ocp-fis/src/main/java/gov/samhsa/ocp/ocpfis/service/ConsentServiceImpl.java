@@ -8,6 +8,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -17,6 +18,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -30,17 +32,21 @@ public class ConsentServiceImpl implements ConsentService {
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
     private final ModelMapper modelMapper;
+    private final ConsentPdfGenerator consentPdfGenerator;
+
 
 
     @Autowired
     public ConsentServiceImpl(ModelMapper modelMapper,
                               IGenericClient fhirClient,
                               LookUpService lookUpService,
-                              FisProperties fisProperties) {
+                              FisProperties fisProperties,
+                              ConsentPdfGenerator consentPdfGenerator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.consentPdfGenerator = consentPdfGenerator;
     }
 
     @Override
@@ -73,6 +79,9 @@ public class ConsentServiceImpl implements ConsentService {
 
         // Map to DTO
         List<ConsentDto> consentDtosList = retrievedConsents.stream().map(this::convertConsentBundleEntryToConsentDto).collect(Collectors.toList());
+
+        //saveConsent(consentDtosList.get(0));
+
         return (PageDto<ConsentDto>) PaginationUtil.applyPaginationForSearchBundle(consentDtosList, otherPageConsentBundle.getTotal(), numberOfConsentsPerPage, pageNumber);
 
     }
@@ -135,4 +144,14 @@ public class ConsentServiceImpl implements ConsentService {
         return iQuery;
     }
 
+    @Override
+    public void saveConsent(ConsentDto consentDto) {
+
+        try {
+            consentPdfGenerator.generateConsentPdf(consentDto);
+        }
+        catch (IOException e) {
+
+        }
+    }
 }
