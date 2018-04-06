@@ -4,6 +4,7 @@ import gov.samhsa.ocp.ocpfis.service.ConsentService;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,8 +40,12 @@ public class ConsentController {
 
     @GetMapping("/consents/{consentId}/pdf")
     public PdfDto createPdf(@PathVariable String consentId) throws IOException {
-        ConsentDto consentDto = consentService.getConsentsById(consentId);
-        byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto);
-        return PdfDto.builder().pdfBytes(pdfBytes).build();
+//        ConsentDto consentDto = consentService.getConsentsById(consentId);
+        byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(
+                ConsentDto.builder()
+                        .logicalId("123123")
+                        .patient(ReferenceDto.builder().display("Test Patient").build())
+                        .build());
+        return new PdfDto(pdfBytes);
     }
 }
