@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
+import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
@@ -26,6 +27,7 @@ import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.codesystems.V3ActReason;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -120,6 +122,42 @@ public class ConsentServiceImpl implements ConsentService {
         Bundle.BundleEntryComponent retrievedConsent = consentBundle.getEntry().get(0);
         return convertConsentBundleEntryToConsentDto(retrievedConsent);
     }
+
+    @Override
+    public GeneralConsentRelatedFieldDto getGeneralConsentRelatedFields(String patient) {
+        GeneralConsentRelatedFieldDto generalConsentRelatedFieldDto=new GeneralConsentRelatedFieldDto();
+
+        //Adding To careTeams
+        Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
+                .where(new ReferenceClientParam("subject").hasId(patient))
+                .returnBundle(Bundle.class).execute();
+
+        if(!careTeamBundle.getEntry().isEmpty()) {
+            List<ReferenceDto> toActors = careTeamBundle.getEntry().stream().map(careTeamEntry -> {
+                CareTeam careTeam = (CareTeam) careTeamEntry.getResource();
+                return convertCareTeamToReferenceDto(careTeam);
+            }).collect(Collectors.toList());
+
+            generalConsentRelatedFieldDto.setToActors(toActors);
+
+            //Adding from careTeams
+            Bundle organizationBundle = getPseudoOrganization();
+
+            organizationBundle.getEntry().stream().findAny().ifPresent(entry -> {
+                Organization organization = (Organization) entry.getResource();
+                ReferenceDto referenceDto = new ReferenceDto();
+                referenceDto.setReference("Organization/" + organization.getIdElement().getIdPart());
+                referenceDto.setDisplay(PSEUDO_ORGANIZATION_NAME);
+                generalConsentRelatedFieldDto.setFromActors(Arrays.asList(referenceDto));
+            });
+
+            generalConsentRelatedFieldDto.setPurposeOfUse(FhirDtoUtil.convertCodeToValueSetDto(V3ActReason.TREAT.toCode(),lookUpService.getPurposeOfUse()));
+
+        }else{
+            throw new ResourceNotFoundException("No care teams are present.");
+        }
+            return generalConsentRelatedFieldDto;
+        }
 
 
 
@@ -315,6 +353,13 @@ public class ConsentServiceImpl implements ConsentService {
         actor.setReference(FhirDtoUtil.mapReferenceDtoToReference(referenceDto));
         actor.setRole(FhirDtoUtil.convertValuesetDtoToCodeableConcept(securityRoleValueSet));
         return actor;
+    }
+
+    private ReferenceDto convertCareTeamToReferenceDto(CareTeam careTeam) {
+        ReferenceDto referenceDto=new ReferenceDto();
+        referenceDto.setReference(careTeam.getIdElement().getIdPart());
+        referenceDto.setDisplay(careTeam.getName());
+        return referenceDto;
     }
 
     private boolean isDuplicate(ConsentDto consentDto, Optional<String> consentId) {
