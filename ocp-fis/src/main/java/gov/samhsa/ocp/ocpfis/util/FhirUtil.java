@@ -20,6 +20,7 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.Enumerations;
+import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Period;
@@ -31,6 +32,7 @@ import org.hl7.fhir.dstu3.model.Timing;
 import org.hl7.fhir.dstu3.model.Type;
 import org.hl7.fhir.dstu3.model.codesystems.CareTeamCategory;
 import org.hl7.fhir.dstu3.model.codesystems.DefinitionTopic;
+import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.dstu3.model.codesystems.TaskPerformerType;
 
 import java.time.LocalDate;
@@ -44,6 +46,7 @@ import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 public class FhirUtil {
     public static final int ACTIVITY_DEFINITION_FREQUENCY = 1;
     public static final int CARE_TEAM_END_DATE = 1;
+    public static final int EPISODE_OF_CARE_END_PERIOD = 1;
     public static final String CARE_MANAGER_CODE = "CAREMNGR";
 
     public static Enumerations.AdministrativeGender getPatientGender(String codeString) {
@@ -287,6 +290,29 @@ public class FhirUtil {
         task.setOwner(reference);
 
         return task;
+    }
+
+    public static EpisodeOfCare createEpisodeOfCare(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties, LookUpService lookUpService) {
+        EpisodeOfCare episodeOfCare = new EpisodeOfCare();
+        episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
+        CodeableConcept codeableConcept = new CodeableConcept();
+        codeableConcept.addCoding().setCode(EpisodeofcareType.HACC.toCode())
+                .setDisplay(EpisodeofcareType.HACC.getDisplay())
+                .setSystem(EpisodeofcareType.HACC.getSystem());
+        episodeOfCare.setType(Arrays.asList(codeableConcept));
+        Reference patient = new Reference();
+        patient.setReference("Patient/" + patientId);
+        episodeOfCare.setPatient(patient);
+        Reference managingOrganization = new Reference();
+        managingOrganization.setReference("Organization/" + organizationId);
+        episodeOfCare.setManagingOrganization(managingOrganization);
+        Reference careManager = new Reference();
+        careManager.setReference("Practitioner/" + practitionerId);
+        episodeOfCare.setCareManager(careManager);
+        episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
+        episodeOfCare.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(EPISODE_OF_CARE_END_PERIOD)));
+
+       return episodeOfCare;
     }
 
     public static ReferenceDto getRelatedActivityDefinition(String organizationId, String definitionDisplay, IGenericClient fhirClient, FisProperties fisProperties) {
