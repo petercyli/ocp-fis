@@ -85,7 +85,7 @@ public enum LookupPathUrls {
         static final String CARE_TEAM_CATEGORY_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-category";
         static final String CARE_TEAM_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/care-team-status";
         static final String CARE_TEAM_REASON_CODE = "/ValueSet/clinical-findings";
-        static final String PARTICIPANT_ROLE_PATH = "/ValueSet/us-core-careteam-provider-roles";
+        static final String PARTICIPANT_ROLE_PATH = "/ValueSet/ocp-careteam-role";
         static final String PUBLICATION_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/publication-status";
         static final String DEFINITION_TOPIC_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/definition-topic";
         static final String RESOURCE_TYPE_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/resource-types";
