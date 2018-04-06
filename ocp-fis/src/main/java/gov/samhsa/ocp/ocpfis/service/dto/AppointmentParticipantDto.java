@@ -12,8 +12,16 @@ import lombok.NoArgsConstructor;
 public class AppointmentParticipantDto {
 
     private String participationTypeCode;
+    private String participationTypeDisplay;
+    private String participationTypeSystem;
+
     private String participantRequiredCode;
+    private String participantRequiredDisplay;
+    private String participantRequiredSystem;
+
     private String participationStatusCode;
+    private String participationStatusDisplay;
+    private String participationStatusSystem;
 
     private String actorReference;
     private String actorName;
