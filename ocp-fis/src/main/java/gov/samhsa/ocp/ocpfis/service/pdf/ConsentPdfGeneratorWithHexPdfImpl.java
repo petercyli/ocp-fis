@@ -1,19 +1,19 @@
 package gov.samhsa.ocp.ocpfis.service.pdf;
 
-import com.google.common.collect.ImmutableMap;
 import gov.samhsa.c2s.common.pdfbox.enhance.pdfbox.util.PdfBoxHandler;
 import gov.samhsa.ocp.ocpfis.config.PdfProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
-import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.PdfConfigMissingException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.text.StrSubstitutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
 import java.awt.*;
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -21,6 +21,13 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
     private static final String DATE_FORMAT_PATTERN = "MMM dd, yyyy";
     private static final String CONSENT_PDF = "consent-pdf";
     private static final String TELECOM_EMAIL = "EMAIL";
+    private  static final String userNameKey = "ATTESTER_FULL_NAME";
+
+    private  static final String CONSENT_TERM = "I, " + userNameKey +", understand that my records are protected under the federal regulations governing Confidentiality of"
+    +" Alcohol and Drug Abuse Patient Records, 42 CFR part 2, and cannot be disclosed without my written"
+    +" permission or as otherwise permitted by 42 CFR part 2. I also understand that I may revoke this consent at any"
+    +" time except to the extent that action has been taken in reliance on it, and that any event this consent expires"
+    +" automatically as follows:";
 
     private static final String NEWLINE_CHARACTER = "\n";
     private static final String NEWLINE_AND_LIST_PREFIX = "\n- ";
@@ -53,6 +60,7 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
     public void drawConsentTitle(HexPDF document, String consentTitle) {
         // Add a main title, centered in shiny colours
         document.title1Style();
+        document.setTextColor(Color.black);
         document.drawText(consentTitle + NEWLINE_CHARACTER, HexPDF.CENTER);
     }
 
@@ -76,7 +84,7 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
     }
 
 
-    private void drawAuthorizeToDiscloseSectionTitle(HexPDF document, ConsentDto consent) {
+    private void drawAuthorizeToDiscloseSectionTitle(HexPDF document, ConsentDto consentDto) {
         Object[][] title = {
                 {"AUTHORIZATION TO DISCLOSE"}
         };
@@ -88,15 +96,41 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
                 HexPDF.LEFT);
         drawAuthorizationSubSectionHeader(document, NEWLINE_CHARACTER + "Authorizes:" + NEWLINE_CHARACTER);
 
-        if (consent.isGeneralDesignation() && consent.getFromActor() != null) {
-            drawTableWithGeneralDesignation(document, "General Designation Consent");
+        if (consentDto.isGeneralDesignation() ) {
+            drawTableWithGeneralDesignation(document, consentDto);
         }
 
+        if (consentDto.getFromActor() != null)
+            drawActorsTable(document, consentDto.getFromActor());
+
         drawAuthorizationSubSectionHeader(document, NEWLINE_CHARACTER + "To disclose to:" + NEWLINE_CHARACTER);
-        if (consent.isGeneralDesignation() && consent.getToActor() != null) {
-            drawTableWithGeneralDesignation(document, "General Designation Consent");
-        }
+
+        if (consentDto.getToActor() != null)
+            drawActorsTable(document, consentDto.getToActor());
+
     }
+
+    private void drawActorsTable(HexPDF document, List<ReferenceDto> actors) {
+
+        Object[][] tableContentsForPractitioners = new Object[actors.size() + 1][2];
+        tableContentsForPractitioners[0][0] = " Name";
+        tableContentsForPractitioners[0][1] = "Reference";
+
+        for (int i = 0; i < actors.size(); i++) {
+            tableContentsForPractitioners[i + 1][0] = actors.get(i).getDisplay();
+            tableContentsForPractitioners[i + 1][1] = actors.get(i).getReference();
+        }
+
+        float[] actorTableColumnWidth = new float[]{240, 240};
+        int[] providerTableColumnAlignment = new int[]{HexPDF.LEFT, HexPDF.LEFT};
+
+        if (actors.size() > 0)
+            document.drawTable(tableContentsForPractitioners,
+                    actorTableColumnWidth,
+                    providerTableColumnAlignment,
+                    HexPDF.LEFT);
+    }
+
 
     private void drawAuthorizationSubSectionHeader(HexPDF document, String header) {
         document.title2Style();
@@ -104,15 +138,17 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
         document.normalStyle();
     }
 
-    private void drawTableWithGeneralDesignation(HexPDF document, String generalDesignation) {
-        float[] GeneralDesignationTableColumnWidth = new float[]{240, 240};
-        int[] GeneralDesignationTableColumnAlignment = new int[]{HexPDF.LEFT, HexPDF.LEFT};
-        Object[][] generalDesignationText = {{generalDesignation, ""}};
+    private void drawTableWithGeneralDesignation(HexPDF document, ConsentDto consentDto) {
+        if (consentDto.isGeneralDesignation()) {
+            float[] GeneralDesignationTableColumnWidth = new float[]{480};
+            int[] GeneralDesignationTableColumnAlignment = new int[]{HexPDF.LEFT};
+            Object[][] generalDesignationText = {{"General Designation Consent"}};
+            document.drawTable(generalDesignationText,
+                    GeneralDesignationTableColumnWidth,
+                    GeneralDesignationTableColumnAlignment,
+                    HexPDF.LEFT);
+        }
 
-        document.drawTable(generalDesignationText,
-                GeneralDesignationTableColumnWidth,
-                GeneralDesignationTableColumnAlignment,
-                HexPDF.LEFT);
     }
 
     @Override
@@ -122,11 +158,8 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
         String consentTitle = getConsentTitle(CONSENT_PDF);
 
         HexPDF document = new HexPDF();
-        // TODO fix content in footer issue the set title: consentTitle
-        document.setFooter(Footer.defaultFooter);
-        // Change center text in footer
-        document.getFooter().setCenterText("");
-//        setPageFooter(document, "");
+
+        setPageFooter(document, "");
 
         // Create the first page
         document.newPage();
@@ -142,21 +175,20 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
         drawPatientInformationSection(document, consent);
 
         drawAuthorizeToDiscloseSectionTitle(document, consent);
-//
-        //drawHealthInformationToBeDisclosedSection(consent);
-//
-        //drawConsentTermsSection(consentTerms, patientDto);
-//
-//        drawEffectiveAndExspireDateSection(document, consent);
 
-//        document.finish("C:\\workspace\\test\\pdf\\test.pdf");
+        drawHealthInformationToBeDisclosedSection(document, consent);
 
+        drawConsentTermsSection(document,consent);
+
+        drawEffectiveAndExspireDateSection(document, consent);
+
+        document.finish("C:\\workspace\\test\\pdf\\test.pdf");
 
         // Get the document
         return document.getDocumentAsBytArray();
     }
 
-    /*private void drawHealthInformationToBeDisclosedSection(ConsentDto consent) {
+    private void drawHealthInformationToBeDisclosedSection(HexPDF document, ConsentDto consentDto) {
         document.drawText(NEWLINE_CHARACTER);
 
         Object[][] title = {
@@ -171,9 +203,8 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
 
         String sensitivityCategoriesLabel = "To SHARE the following medical information:";
         String subLabel = "Sensitivity Categories:";
-        String sensitivityCategories = consent.getCategory().stream()
-                .map(SensitivityCategory::getDisplay)
-                .collect(Collectors.joining(NEWLINE_AND_LIST_PREFIX));
+        String sensitivityCategories = consentDto.getCategory().stream()
+                                       .map(valueSet -> valueSet.getDisplay()).collect(Collectors.joining(NEWLINE_AND_LIST_PREFIX));
 
         String sensitivityCategoriesStr = sensitivityCategoriesLabel
                 .concat(NEWLINE_CHARACTER).concat(subLabel)
@@ -181,9 +212,8 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
 
         String purposeLabel = "To SHARE for the following purpose(s):";
 
-        String purposes = consent.getSharePurposes().stream()
-                .map(Purpose::getDisplay)
-                .collect(Collectors.joining(NEWLINE_AND_LIST_PREFIX));
+        String purposes = consentDto.getPurpose().stream()
+                .map(valueSet -> valueSet.getDisplay()).collect(Collectors.joining(NEWLINE_AND_LIST_PREFIX));
         String purposeOfUseStr = purposeLabel.concat(NEWLINE_AND_LIST_PREFIX).concat(purposes);
 
         Object[][] healthInformationHeaders = {
@@ -196,9 +226,9 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
                 healthInformationTableColumnWidth,
                 healthInformationTableColumnAlignment,
                 HexPDF.LEFT);
-    }*/
+    }
 
-    private void drawConsentTermsSection(HexPDF document, String consentTerms, PatientDto patient) {
+    private void drawConsentTermsSection(HexPDF document, ConsentDto consentDto) {
 
         Object[][] title = {
                 {"CONSENT TERMS"}
@@ -210,10 +240,7 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
                 consentTermsColumnAlignment,
                 HexPDF.LEFT);
 
-        final String userNameKey = "ATTESTER_FULL_NAME";
-        String termsWithAttestedName = StrSubstitutor.replace(consentTerms,
-                ImmutableMap.of(userNameKey, patient.getName().get(0).getFirstName() + patient.getName().get(0).getFirstName()));
-
+        String termsWithAttestedName = CONSENT_TERM.replace(userNameKey, consentDto.getPatient().getDisplay().toUpperCase());
 
         document.drawText(termsWithAttestedName);
     }
