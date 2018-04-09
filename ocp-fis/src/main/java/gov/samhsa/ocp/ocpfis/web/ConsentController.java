@@ -4,12 +4,14 @@ import gov.samhsa.ocp.ocpfis.service.ConsentService;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
@@ -42,12 +44,13 @@ public class ConsentController {
     public PdfDto createPdf(@PathVariable String consentId) throws IOException {
         ConsentDto consentDto = consentService.getConsentsById(consentId);
         byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto);
-
-       // byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(
-        //        ConsentDto.builder()
-        //                .logicalId("123123")
-        //                .patient(ReferenceDto.builder().display("Test Patient").build())
-        //                .build());
         return new PdfDto(pdfBytes);
     }
+
+    @PutMapping("/consents/{consentId}/attestation")
+    @ResponseStatus(HttpStatus.OK)
+    public void attestConsent(@PathVariable String consentId) {
+        consentService.attestConsent(consentId);
+    }
+
 }
