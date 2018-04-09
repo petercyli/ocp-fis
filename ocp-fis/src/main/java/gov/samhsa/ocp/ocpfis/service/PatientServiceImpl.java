@@ -30,6 +30,7 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Flag;
 import org.hl7.fhir.dstu3.model.IdType;
@@ -249,12 +250,16 @@ public class PatientServiceImpl implements PatientService {
                     fhirClient.create().resource(flag).execute();
                 }));
 
-                //Create Care Team
-                FhirUtil.createCareTeam(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties, lookUpService);
+                //Create Episode of care
+                EpisodeOfCare episodeOfCare=FhirUtil.createEpisodeOfCare(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties, lookUpService);
+                MethodOutcome eOCMethodOutcome= fhirClient.create().resource(episodeOfCare).execute();
 
                 //Create To-Do task
                 Task task = FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
                 task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
+                Reference eocReference=new Reference();
+                eocReference.setReference(ResourceType.EpisodeOfCare+"/"+eOCMethodOutcome.getId().getIdPart());
+                task.setContext(eocReference);
 
                 fhirClient.create().resource(task).execute();
             } else {
