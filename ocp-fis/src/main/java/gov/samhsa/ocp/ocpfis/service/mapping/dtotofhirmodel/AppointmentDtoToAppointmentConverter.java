@@ -65,7 +65,7 @@ public final class AppointmentDtoToAppointmentConverter {
 
                     //Participation Type
                     if (isStringNotNullAndNotEmpty(participant.getParticipationTypeCode())) {
-                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirUtil.getCoding(participant.getParticipationTypeCode(), null, null));
+                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirUtil.getCoding(participant.getParticipationTypeCode(), participant.getParticipationTypeDisplay(), participant.getParticipationTypeSystem()));
                         participantModel.setType(Collections.singletonList(codeableConcept));
                     } else if (isCreate) {
                         //By default, add participants as "attender"

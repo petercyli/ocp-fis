@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import gov.samhsa.ocp.ocpfis.service.dto.DateRangeDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
 import gov.samhsa.ocp.ocpfis.service.dto.StatusBooleanValuesDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
@@ -8,6 +9,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface LookUpService {
+    List<DateRangeDto> getDateRanges();
+
     List<ValueSetDto> getUspsStates();
 
     List<ValueSetDto> getIdentifierTypes(Optional<String> resourceType);
@@ -113,4 +116,14 @@ public interface LookUpService {
     List<ValueSetDto> getFlagStatus();
 
     List<ValueSetDto> getFlagCategory();
+
+    List<ValueSetDto> getConsentStateCodes();
+
+    List<ValueSetDto> getConsentCategory();
+
+    List<ValueSetDto> getSecurityRole();
+
+    List<ValueSetDto> getConsentAction();
+
+    List<ValueSetDto> getPurposeOfUse();
 }

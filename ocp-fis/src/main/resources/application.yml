@@ -28,6 +28,7 @@ ocp-fis:
     pagination:
       default-size: 20
   consent:
+    identifier-system: https://bhits.github.io/consent2share/
     pagination:
       default-size: 20
   location:
