@@ -37,4 +37,6 @@ public class ConsentDto {
 
     private List<ValueSetDto> purpose;
 
+    private byte[] sourceAttachment;
+
 }
