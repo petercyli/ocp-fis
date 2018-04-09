@@ -13,4 +13,7 @@ public interface ConsentService {
 
     void saveConsent(ConsentDto consentDto);
 
+    void attestConsent(String consentId);
+
+
 }

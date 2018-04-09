@@ -80,8 +80,6 @@ public class ConsentServiceImpl implements ConsentService {
         // Map to DTO
         List<ConsentDto> consentDtosList = retrievedConsents.stream().map(this::convertConsentBundleEntryToConsentDto).collect(Collectors.toList());
 
-        //saveConsent(consentDtosList.get(0));
-
         return (PageDto<ConsentDto>) PaginationUtil.applyPaginationForSearchBundle(consentDtosList, otherPageConsentBundle.getTotal(), numberOfConsentsPerPage, pageNumber);
 
     }
@@ -143,6 +141,15 @@ public class ConsentServiceImpl implements ConsentService {
         }
         return iQuery;
     }
+
+    @Override
+    public void attestConsent(String consentId){
+        Consent consent = fhirClient.read().resource(Consent.class).withId(consentId.trim()).execute();
+        consent.setStatus(Consent.ConsentState.ACTIVE);
+
+        fhirClient.update().resource(consent).execute();
+    }
+
 
     @Override
     public void saveConsent(ConsentDto consentDto) {
