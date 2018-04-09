@@ -285,9 +285,9 @@ public class ConsentServiceImpl implements ConsentService {
         }
 
         if (consentDto.getStatus() != null) {
-            if (consentDto.getStatus().getCode() != null) {
+            if (consentDto.getStatus() != null) {
                 try {
-                    consent.setStatus(Consent.ConsentState.fromCode(consentDto.getStatus().getCode()));
+                    consent.setStatus(Consent.ConsentState.fromCode(consentDto.getStatus()));
                 } catch (FHIRException e) {
                     throw new ResourceNotFoundException("Invalid consent status found.");
                 }
