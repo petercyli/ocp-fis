@@ -16,6 +16,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -36,6 +37,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,6 +56,8 @@ public class ConsentServiceImpl implements ConsentService {
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
     private final ModelMapper modelMapper;
+    private final ConsentPdfGenerator consentPdfGenerator;
+
 
     @Autowired
     private FhirValidator fhirValidator;
@@ -63,11 +67,13 @@ public class ConsentServiceImpl implements ConsentService {
     public ConsentServiceImpl(ModelMapper modelMapper,
                               IGenericClient fhirClient,
                               LookUpService lookUpService,
-                              FisProperties fisProperties) {
+                              FisProperties fisProperties,
+                              ConsentPdfGenerator consentPdfGenerator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.consentPdfGenerator = consentPdfGenerator;
     }
 
     @Override
@@ -100,6 +106,7 @@ public class ConsentServiceImpl implements ConsentService {
 
         // Map to DTO
         List<ConsentDto> consentDtosList = retrievedConsents.stream().map(this::convertConsentBundleEntryToConsentDto).collect(Collectors.toList());
+
         return (PageDto<ConsentDto>) PaginationUtil.applyPaginationForSearchBundle(consentDtosList, otherPageConsentBundle.getTotal(), numberOfConsentsPerPage, pageNumber);
 
     }
@@ -213,7 +220,7 @@ public class ConsentServiceImpl implements ConsentService {
         if (status.isPresent()) {
             iQuery.where(new TokenClientParam("status").exactly().code("active"));
         } else {
-            //query with practitoner.
+            //query with practitioner.
             if (practitioner.isPresent()  && !patient.isPresent()) {
                 iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIds(practitioner.get(),patient)));
             }
@@ -229,7 +236,7 @@ public class ConsentServiceImpl implements ConsentService {
                       .where(new ReferenceClientParam("patient").hasId(patient.get()));
             }
 
-            //Query with general Designaition.
+            //Query with general designation.
             generalDesignation.ifPresent(gd->{
                 if(gd.booleanValue()){
                   String pseudoOrgId=  getPseudoOrganization().getEntry().stream().findFirst().map(pseudoOrgEntry->{
@@ -248,6 +255,25 @@ public class ConsentServiceImpl implements ConsentService {
         return iQuery;
     }
 
+    @Override
+    public void attestConsent(String consentId){
+        Consent consent = fhirClient.read().resource(Consent.class).withId(consentId.trim()).execute();
+        consent.setStatus(Consent.ConsentState.ACTIVE);
+
+        fhirClient.update().resource(consent).execute();
+    }
+
+
+    @Override
+    public void saveConsent(ConsentDto consentDto) {
+
+        try {
+            consentPdfGenerator.generateConsentPdf(consentDto);
+        }
+        catch (IOException e) {
+
+        }
+    }
     private Consent consentDtoToConsent(Optional<String> consentId, ConsentDto consentDto) {
         Consent consent = new Consent();
         if (consentDto.getPeriod() != null) {

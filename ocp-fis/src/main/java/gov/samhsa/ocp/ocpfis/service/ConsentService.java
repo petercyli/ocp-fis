@@ -17,4 +17,10 @@ public interface ConsentService {
     ConsentDto getConsentsById(String consentId);
 
     GeneralConsentRelatedFieldDto getGeneralConsentRelatedFields(String patient);
+
+    void saveConsent(ConsentDto consentDto);
+
+    void attestConsent(String consentId);
+
+
 }

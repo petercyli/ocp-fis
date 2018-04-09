@@ -52,6 +52,16 @@ ocp-fis:
   careTeam:
     pagination:
       default-size: 20
+  pdf:
+    pdfConfigs:
+      - type: consent-pdf
+        title: Consent to Share My Health Information
+        pdFont: TIMES_ROMAN
+        pdfPageSize: LETTER
+      - type: consent-revocation-pdf
+        title: Revocation of Consent to Share My Health Information
+        pdFont: TIMES_ROMAN
+        pdfPageSize: LETTER
 ---
 # updates configuration for docker environment
 spring.profiles: docker

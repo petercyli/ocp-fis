@@ -42,4 +42,7 @@ public class ConsentDto {
     private List<ValueSetDto> purpose;
 
     private List<ValueSetDto> medicalInformation;
+
+    private byte[] sourceAttachment;
+
 }
