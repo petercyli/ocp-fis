@@ -182,8 +182,6 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
 
         drawEffectiveAndExspireDateSection(document, consent);
 
-        document.finish("C:\\workspace\\test\\pdf\\test.pdf");
-
         // Get the document
         return document.getDocumentAsBytArray();
     }
