@@ -220,7 +220,7 @@ public class ConsentServiceImpl implements ConsentService {
         if (status.isPresent()) {
             iQuery.where(new TokenClientParam("status").exactly().code("active"));
         } else {
-            //query with practitoner.
+            //query with practitioner.
             if (practitioner.isPresent()  && !patient.isPresent()) {
                 iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIds(practitioner.get(),patient)));
             }
@@ -236,7 +236,7 @@ public class ConsentServiceImpl implements ConsentService {
                       .where(new ReferenceClientParam("patient").hasId(patient.get()));
             }
 
-            //Query with general Designaition.
+            //Query with general designation.
             generalDesignation.ifPresent(gd->{
                 if(gd.booleanValue()){
                   String pseudoOrgId=  getPseudoOrganization().getEntry().stream().findFirst().map(pseudoOrgEntry->{
