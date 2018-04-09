@@ -9,6 +9,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
@@ -215,7 +216,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
         if (role.isPresent()) {
             if (role.get().equalsIgnoreCase(CARE_COORDINATOR_CODE)) {
-                practitioners = getPractitionersForCareCoordinators(role.get());
+                practitioners = getPractitionersForCareCoordinators(role.get(), organization);
             } else {
                 query.where(new TokenClientParam("role").exactly().code(role.get()));
                 Bundle bundle = getBundleForPractitioners(organization, query);
@@ -238,29 +239,37 @@ public class PractitionerServiceImpl implements PractitionerService {
                 .execute();
     }
 
-    private List<PractitionerDto> getPractitionersForCareCoordinators(String role) {
+    private List<PractitionerDto> getPractitionersForCareCoordinators(String role, String organization) {
         List<PractitionerDto> practitioners = new ArrayList<>();
 
         Bundle bundle = fhirClient.search().forResource(CareTeam.class)
-                .where(new TokenClientParam("status").exactly().code("entered-in-error"))
-                .include(CareTeam.INCLUDE_PARTICIPANT)
-                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
-                .count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> components = bundle.getEntry();
+            List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundlesComponentIntoSingleList(fhirClient, bundle, fisProperties);
             if (components != null) {
                 practitioners = components.stream()
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
                         .map(it -> (CareTeam) it.getResource())
                         .filter(it -> FhirUtil.checkParticipantRole(it.getParticipant(), role))
                         .flatMap(it -> it.getParticipant().stream())
+                        .filter(it -> {
+                            if (it.hasOnBehalfOf()) {
+                                return (it.getOnBehalfOf().hasReference()) ? it.getOnBehalfOf().getReference()
+                                        .equalsIgnoreCase("Organization/" + organization) : false;
+                            }
+                            return false;
+                        })
                         .map(it -> {
-                            Practitioner practitioner = (Practitioner) it.getMember().getResource();
-                            PractitionerDto dto = modelMapper.map(practitioner, PractitionerDto.class);
-                            dto.setLogicalId(practitioner.getIdElement().getIdPart());
-                            return dto;
+                            PractitionerDto practitionerDto = new PractitionerDto();
+                            if (it.hasMember()) {
+                                NameDto nameDto = new NameDto();
+                                nameDto.setFirstName((it.getMember().hasDisplay()) ? it.getMember().getDisplay().split(" ")[0] : null);
+                                nameDto.setLastName((it.getMember().hasDisplay())? it.getMember().getDisplay().split(" ",2)[1]:null);
+                                practitionerDto.setName(Arrays.asList(nameDto));
+                                practitionerDto.setLogicalId(it.getMember().getReference());
+                            }
+                            return practitionerDto;
                         })
                         .collect(toList());
             }
