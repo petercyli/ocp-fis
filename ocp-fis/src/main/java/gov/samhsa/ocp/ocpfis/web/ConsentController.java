@@ -7,6 +7,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 @RestController
+@Slf4j
 public class ConsentController {
     @Autowired
     private ConsentService consentService;
@@ -65,6 +67,7 @@ public class ConsentController {
     @ResponseStatus(HttpStatus.CREATED)
     public void createConsent(@Valid @RequestBody ConsentDto consentDto) {
         consentService.createConsent(consentDto);
+        log.info("Consent successfully created");
     }
 
     @PutMapping("/consents/{consent}")

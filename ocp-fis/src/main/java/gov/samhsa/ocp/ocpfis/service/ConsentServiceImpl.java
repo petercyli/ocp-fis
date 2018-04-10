@@ -84,7 +84,13 @@ public class ConsentServiceImpl implements ConsentService {
         int numberOfConsentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Consent.name());
         Bundle firstPageConsentBundle;
         Bundle otherPageConsentBundle;
-
+        if (practitioner.isPresent() && patient.isPresent()) {
+            List<String> careTeamIds = getCareTeamIds(practitioner.get(), patient);
+            if(careTeamIds == null || (careTeamIds != null && careTeamIds.isEmpty()))  {
+                log.info("Not a Care Team Member for the patient");
+                throw new ResourceNotFoundException("Not a Care Team Member for the patient");
+            }
+        }
         // Generate the Query Based on Input Variables
         IQuery iQuery = getConsentIQuery(patient, practitioner, status, generalDesignation);
 
