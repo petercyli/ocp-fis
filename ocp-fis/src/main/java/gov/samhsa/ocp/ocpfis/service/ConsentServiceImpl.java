@@ -14,6 +14,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
@@ -188,7 +189,7 @@ public class ConsentServiceImpl implements ConsentService {
                 throw new DuplicateResourceFoundException("This patient already has a general designation consent.");
             }
         } else {
-            throw new ResourceNotFoundException("No care team members for this patient.");
+            throw new PreconditionFailedException("No care team members for this patient.");
         }
     }
 
