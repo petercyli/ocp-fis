@@ -281,7 +281,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition, Optional<String> practitioner, Optional<String> organization) {
-        List<ReferenceDto> tasks = getBundleForRelatedTask(patient, organization).getEntry().stream()
+        List<ReferenceDto> tasks = getBundleForRelatedTask(patient, organization).stream()
                 .map(Bundle.BundleEntryComponent::getResource)
                 .map(resource -> FhirDtoUtil.mapTaskToReferenceDto((Task) resource))
                 .collect(toList());
@@ -450,7 +450,7 @@ public class TaskServiceImpl implements TaskService {
         return bundleEntry;
     }
 
-    private Bundle getBundleForRelatedTask(String patient, Optional<String> organization) {
+    private List<Bundle.BundleEntryComponent> getBundleForRelatedTask(String patient, Optional<String> organization) {
         IQuery taskQuery = fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(patient));
         if (organization.isPresent()) {
@@ -467,9 +467,9 @@ public class TaskServiceImpl implements TaskService {
             taskQuery.where(new ReferenceClientParam("context").hasAnyOfIds(eocIds));
         }
 
-        Bundle bundle = (Bundle) taskQuery.count(fisProperties.getResourceSinglePageLimit())
+        Bundle bundle = (Bundle) taskQuery
                 .returnBundle(Bundle.class).execute();
-        return bundle;
+        return FhirUtil.getAllBundlesComponentIntoSingleList(bundle,fhirClient,fisProperties);
     }
 
     private boolean isDuplicate(TaskDto taskDto) {

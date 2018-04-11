@@ -267,11 +267,10 @@ public class OrganizationServiceImpl implements OrganizationService {
         Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
                 .where(new ReferenceClientParam("practitioner").hasId(ResourceType.Practitioner + "/" + practitioner))
                 .include(PractitionerRole.INCLUDE_ORGANIZATION)
-                .count(fisProperties.getResourceSinglePageLimit())
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> organizationComponents = bundle.getEntry();
+            List<Bundle.BundleEntryComponent> organizationComponents = FhirUtil.getAllBundlesComponentIntoSingleList(bundle,fhirClient,fisProperties);
 
             if (organizationComponents != null) {
                 organizations = organizationComponents.stream()
