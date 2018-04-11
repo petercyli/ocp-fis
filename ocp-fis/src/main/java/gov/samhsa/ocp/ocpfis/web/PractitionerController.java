@@ -36,7 +36,7 @@ public class PractitionerController {
         return practitionerService.searchPractitioners(searchType, searchValue, showInactive, page, size);
     }
 
-    @GetMapping
+    @GetMapping("/practitioner-references")
     public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam String practitioner) {
         return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner);
     }
@@ -58,8 +58,8 @@ public class PractitionerController {
         practitionerService.updatePractitioner(practitionerId, practitionerDto);
     }
 
-    @GetMapping("/organization/{organizationId}")
-    public PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(@PathVariable("organizationId") String organization, @RequestParam Optional<String> role,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
+    @GetMapping
+    public PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(@RequestParam String organization, @RequestParam Optional<String> role,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
         return practitionerService.getPractitionersByOrganizationAndRole(organization, role, page, size);
     }
 
