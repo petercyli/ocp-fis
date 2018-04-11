@@ -27,7 +27,7 @@ public class ConsentDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate dateTime;
 
-    private ValueSetDto status;
+    private String status;
 
     private boolean generalDesignation;
 
@@ -42,4 +42,7 @@ public class ConsentDto {
     private List<ValueSetDto> purpose;
 
     private List<ValueSetDto> medicalInformation;
+
+    private byte[] sourceAttachment;
+
 }

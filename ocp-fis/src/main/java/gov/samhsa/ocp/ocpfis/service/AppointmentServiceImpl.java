@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.CacheControlDirective;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
@@ -191,6 +192,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Check sort order
         iQuery = addSortConditions(iQuery, sortByStartTimeAsc);
 
+        // Disable caching to get latest data
+        iQuery = setNoCacheControlDirective(iQuery);
+
         firstPageAppointmentBundle = PaginationUtil.getSearchBundleFirstPage(iQuery, numberOfAppointmentsPerPage, Optional.empty());
 
         if (firstPageAppointmentBundle == null || firstPageAppointmentBundle.getEntry().isEmpty()) {
@@ -280,6 +284,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         } else if (!sortByStartTimeAsc.get()) {
             searchQuery.sort().descending(Appointment.DATE);
         }
+        return searchQuery;
+    }
+
+    private IQuery setNoCacheControlDirective(IQuery searchQuery) {
+        final CacheControlDirective cacheControlDirective = new CacheControlDirective();
+        cacheControlDirective.setNoCache(true);
+        searchQuery.cacheControl(cacheControlDirective);
         return searchQuery;
     }
 

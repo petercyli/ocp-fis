@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.CacheControlDirective;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
@@ -13,9 +14,11 @@ import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -36,6 +39,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,6 +58,8 @@ public class ConsentServiceImpl implements ConsentService {
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
     private final ModelMapper modelMapper;
+    private final ConsentPdfGenerator consentPdfGenerator;
+
 
     @Autowired
     private FhirValidator fhirValidator;
@@ -63,11 +69,13 @@ public class ConsentServiceImpl implements ConsentService {
     public ConsentServiceImpl(ModelMapper modelMapper,
                               IGenericClient fhirClient,
                               LookUpService lookUpService,
-                              FisProperties fisProperties) {
+                              FisProperties fisProperties,
+                              ConsentPdfGenerator consentPdfGenerator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.consentPdfGenerator = consentPdfGenerator;
     }
 
     @Override
@@ -76,9 +84,18 @@ public class ConsentServiceImpl implements ConsentService {
         int numberOfConsentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Consent.name());
         Bundle firstPageConsentBundle;
         Bundle otherPageConsentBundle;
-
+        if (practitioner.isPresent() && patient.isPresent()) {
+            List<String> careTeamIds = getCareTeamIds(practitioner.get(), patient);
+            if(careTeamIds == null || (careTeamIds != null && careTeamIds.isEmpty()))  {
+                log.info("Not a Care Team Member for the patient");
+                throw new ResourceNotFoundException("Not a Care Team Member for the patient");
+            }
+        }
         // Generate the Query Based on Input Variables
         IQuery iQuery = getConsentIQuery(patient, practitioner, status, generalDesignation);
+
+        // Disable caching to get latest data
+        iQuery = setNoCacheControlDirective(iQuery);
 
         //Apply Filters Based on Input Variables
 
@@ -100,6 +117,7 @@ public class ConsentServiceImpl implements ConsentService {
 
         // Map to DTO
         List<ConsentDto> consentDtosList = retrievedConsents.stream().map(this::convertConsentBundleEntryToConsentDto).collect(Collectors.toList());
+
         return (PageDto<ConsentDto>) PaginationUtil.applyPaginationForSearchBundle(consentDtosList, otherPageConsentBundle.getTotal(), numberOfConsentsPerPage, pageNumber);
 
     }
@@ -125,14 +143,14 @@ public class ConsentServiceImpl implements ConsentService {
 
     @Override
     public GeneralConsentRelatedFieldDto getGeneralConsentRelatedFields(String patient) {
-        GeneralConsentRelatedFieldDto generalConsentRelatedFieldDto=new GeneralConsentRelatedFieldDto();
+        GeneralConsentRelatedFieldDto generalConsentRelatedFieldDto = new GeneralConsentRelatedFieldDto();
 
         //Adding To careTeams
         Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
                 .where(new ReferenceClientParam("subject").hasId(patient))
                 .returnBundle(Bundle.class).execute();
 
-        if(!careTeamBundle.getEntry().isEmpty()) {
+        if (!careTeamBundle.getEntry().isEmpty()) {
             List<ReferenceDto> toActors = careTeamBundle.getEntry().stream().map(careTeamEntry -> {
                 CareTeam careTeam = (CareTeam) careTeamEntry.getResource();
                 return convertCareTeamToReferenceDto(careTeam);
@@ -151,14 +169,13 @@ public class ConsentServiceImpl implements ConsentService {
                 generalConsentRelatedFieldDto.setFromActors(Arrays.asList(referenceDto));
             });
 
-            generalConsentRelatedFieldDto.setPurposeOfUse(FhirDtoUtil.convertCodeToValueSetDto(V3ActReason.TREAT.toCode(),lookUpService.getPurposeOfUse()));
+            generalConsentRelatedFieldDto.setPurposeOfUse(FhirDtoUtil.convertCodeToValueSetDto(V3ActReason.TREAT.toCode(), lookUpService.getPurposeOfUse()));
 
-        }else{
+        } else {
             throw new ResourceNotFoundException("No care teams are present.");
         }
-            return generalConsentRelatedFieldDto;
-        }
-
+        return generalConsentRelatedFieldDto;
+    }
 
 
     @Override
@@ -178,7 +195,7 @@ public class ConsentServiceImpl implements ConsentService {
                 throw new DuplicateResourceFoundException("This patient already has a general designation consent.");
             }
         } else {
-            throw new ResourceNotFoundException("No care team members for this patient.");
+            throw new PreconditionFailedException("No care team members for this patient.");
         }
     }
 
@@ -201,8 +218,10 @@ public class ConsentServiceImpl implements ConsentService {
 
     private ConsentDto convertConsentBundleEntryToConsentDto(Bundle.BundleEntryComponent fhirConsentDtoModel) {
         ConsentDto consentDto = modelMapper.map(fhirConsentDtoModel.getResource(), ConsentDto.class);
-        consentDto.getFromActor().forEach(member -> { if (member.getDisplay().equalsIgnoreCase("Omnibus Care Plan (SAMHSA)"))
-            consentDto.setGeneralDesignation(true);});
+        consentDto.getFromActor().forEach(member -> {
+            if (member.getDisplay().equalsIgnoreCase("Omnibus Care Plan (SAMHSA)"))
+                consentDto.setGeneralDesignation(true);
+        });
         return consentDto;
     }
 
@@ -213,9 +232,9 @@ public class ConsentServiceImpl implements ConsentService {
         if (status.isPresent()) {
             iQuery.where(new TokenClientParam("status").exactly().code("active"));
         } else {
-            //query with practitoner.
-            if (practitioner.isPresent()  && !patient.isPresent()) {
-                iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIds(practitioner.get(),patient)));
+            //query with practitioner.
+            if (practitioner.isPresent() && !patient.isPresent()) {
+                iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIds(practitioner.get(), patient)));
             }
 
             //query with patient.
@@ -224,28 +243,47 @@ public class ConsentServiceImpl implements ConsentService {
             }
 
             //query with practitioner and patient.
-            if (practitioner.isPresent()  && patient.isPresent()) {
-                iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIds(practitioner.get(),patient)))
-                      .where(new ReferenceClientParam("patient").hasId(patient.get()));
+            if (practitioner.isPresent() && patient.isPresent()) {
+                iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIds(practitioner.get(), patient)))
+                        .where(new ReferenceClientParam("patient").hasId(patient.get()));
             }
 
-            //Query with general Designaition.
-            generalDesignation.ifPresent(gd->{
-                if(gd.booleanValue()){
-                  String pseudoOrgId=  getPseudoOrganization().getEntry().stream().findFirst().map(pseudoOrgEntry->{
-                        Organization organization= (Organization) pseudoOrgEntry.getResource();
-                        String id= organization.getIdElement().getIdPart();
+            //Query with general designation.
+            generalDesignation.ifPresent(gd -> {
+                if (gd.booleanValue()) {
+                    String pseudoOrgId = getPseudoOrganization().getEntry().stream().findFirst().map(pseudoOrgEntry -> {
+                        Organization organization = (Organization) pseudoOrgEntry.getResource();
+                        String id = organization.getIdElement().getIdPart();
                         return id;
                     }).get();
                     iQuery.where(new ReferenceClientParam("actor").hasId(pseudoOrgId));
                 }
             });
 
-            if (!practitioner.isPresent()  && !patient.isPresent()) {
+            if (!practitioner.isPresent() && !patient.isPresent()) {
                 throw new ResourceNotFoundException("Practitioner or Patient is required to find Consents");
             }
         }
         return iQuery;
+    }
+
+    @Override
+    public void attestConsent(String consentId) {
+        Consent consent = fhirClient.read().resource(Consent.class).withId(consentId.trim()).execute();
+        consent.setStatus(Consent.ConsentState.ACTIVE);
+
+        fhirClient.update().resource(consent).execute();
+    }
+
+
+    @Override
+    public void saveConsent(ConsentDto consentDto) {
+
+        try {
+            consentPdfGenerator.generateConsentPdf(consentDto);
+        } catch (IOException e) {
+
+        }
     }
 
     private Consent consentDtoToConsent(Optional<String> consentId, ConsentDto consentDto) {
@@ -285,9 +323,9 @@ public class ConsentServiceImpl implements ConsentService {
         }
 
         if (consentDto.getStatus() != null) {
-            if (consentDto.getStatus().getCode() != null) {
+            if (consentDto.getStatus() != null) {
                 try {
-                    consent.setStatus(Consent.ConsentState.fromCode(consentDto.getStatus().getCode()));
+                    consent.setStatus(Consent.ConsentState.fromCode(consentDto.getStatus()));
                 } catch (FHIRException e) {
                     throw new ResourceNotFoundException("Invalid consent status found.");
                 }
@@ -356,7 +394,7 @@ public class ConsentServiceImpl implements ConsentService {
     }
 
     private ReferenceDto convertCareTeamToReferenceDto(CareTeam careTeam) {
-        ReferenceDto referenceDto=new ReferenceDto();
+        ReferenceDto referenceDto = new ReferenceDto();
         referenceDto.setReference(careTeam.getIdElement().getIdPart());
         referenceDto.setDisplay(careTeam.getName());
         return referenceDto;
@@ -410,21 +448,28 @@ public class ConsentServiceImpl implements ConsentService {
                 .execute();
     }
 
-    private List<String> getCareTeamIds(String practitioner,Optional<String> patient){
-        IQuery careTeamQuery=fhirClient.search().forResource(CareTeam.class)
+    private List<String> getCareTeamIds(String practitioner, Optional<String> patient) {
+        IQuery careTeamQuery = fhirClient.search().forResource(CareTeam.class)
                 .where(new ReferenceClientParam("participant").hasId(practitioner));
 
-        patient.ifPresent(patientId->
+        patient.ifPresent(patientId ->
                 careTeamQuery.where(new ReferenceClientParam("patient").hasId(patientId)));
 
-        Bundle careTeamBundle= (Bundle)careTeamQuery.returnBundle(Bundle.class).execute();
+        Bundle careTeamBundle = (Bundle) careTeamQuery.returnBundle(Bundle.class).execute();
 
-        List<String> careTeamIds=careTeamBundle.getEntry().stream().map(careTeamBundleEntry->{
-            CareTeam careTeam= (CareTeam) careTeamBundleEntry.getResource();
+        List<String> careTeamIds = careTeamBundle.getEntry().stream().map(careTeamBundleEntry -> {
+            CareTeam careTeam = (CareTeam) careTeamBundleEntry.getResource();
             return careTeam.getIdElement().getIdPart();
         }).collect(Collectors.toList());
 
         return careTeamIds;
+    }
+
+    private IQuery setNoCacheControlDirective(IQuery searchQuery) {
+        final CacheControlDirective cacheControlDirective = new CacheControlDirective();
+        cacheControlDirective.setNoCache(true);
+        searchQuery.cacheControl(cacheControlDirective);
+        return searchQuery;
     }
 
 }

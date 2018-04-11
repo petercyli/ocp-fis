@@ -5,7 +5,7 @@
 
     <groupId>gov.samhsa.ocp</groupId>
     <artifactId>ocp-fis</artifactId>
-    <version>0.7.0-SNAPSHOT</version>
+    <version>0.8.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>ocp-fis</name>
@@ -28,9 +28,15 @@
         <power-mock.version>1.6.5</power-mock.version>
         <lombok.version>1.16.18</lombok.version>
         <spring-cloud.version>Edgware.SR1</spring-cloud.version>
+        <c2s.common-libraries.version>2.1.0-b197</c2s.common-libraries.version>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>gov.samhsa.c2s</groupId>
+            <artifactId>pdfbox-enhance</artifactId>
+            <version>${c2s.common-libraries.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
