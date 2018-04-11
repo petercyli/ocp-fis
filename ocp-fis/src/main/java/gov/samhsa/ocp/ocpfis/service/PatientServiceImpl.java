@@ -171,13 +171,11 @@ public class PatientServiceImpl implements PatientService {
                 .include(CareTeam.INCLUDE_PATIENT)
                 .sort().ascending(CareTeam.RES_ID)
                 .returnBundle(Bundle.class)
-                //TODO: REMOVE THIS AND FIND A FIX TO RETRIEVE ALL RECORDS. CURRENTLY SYSTEM IS ONLY RETURNING 50 RECORDS
-                .count(fisProperties.getResourceSinglePageLimit())
                 .execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> components = bundle.getEntry();
-            if (components != null) {
+            List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, fhirClient, fisProperties);
+            if (components != null && !components.isEmpty()) {
                 patients = components.stream()
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.Patient))
                         .map(it -> (Patient) it.getResource())
@@ -251,14 +249,14 @@ public class PatientServiceImpl implements PatientService {
                 }));
 
                 //Create Episode of care
-                EpisodeOfCare episodeOfCare=FhirUtil.createEpisodeOfCare(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties, lookUpService);
-                MethodOutcome eOCMethodOutcome= fhirClient.create().resource(episodeOfCare).execute();
+                EpisodeOfCare episodeOfCare = FhirUtil.createEpisodeOfCare(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties, lookUpService);
+                MethodOutcome eOCMethodOutcome = fhirClient.create().resource(episodeOfCare).execute();
 
                 //Create To-Do task
                 Task task = FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
                 task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
-                Reference eocReference=new Reference();
-                eocReference.setReference(ResourceType.EpisodeOfCare+"/"+eOCMethodOutcome.getId().getIdPart());
+                Reference eocReference = new Reference();
+                eocReference.setReference(ResourceType.EpisodeOfCare + "/" + eOCMethodOutcome.getId().getIdPart());
                 task.setContext(eocReference);
 
                 fhirClient.create().resource(task).execute();
