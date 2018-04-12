@@ -37,8 +37,8 @@ public class PractitionerController {
     }
 
     @GetMapping("/practitioner-references")
-    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam String practitioner) {
-        return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner);
+    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam Optional<String> practitioner,@RequestParam Optional<String> organization) {
+        return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner,organization);
     }
 
     @PostMapping

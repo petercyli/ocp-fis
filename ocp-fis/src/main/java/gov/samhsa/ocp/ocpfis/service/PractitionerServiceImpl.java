@@ -33,6 +33,7 @@ import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.StringType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -159,37 +160,65 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     @Override
-    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(String practitioner) {
+    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(Optional<String> practitioner, Optional<String> organization) {
         List<ReferenceDto> organizations = new ArrayList<>();
+        if (organization.isPresent()) {
+            Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+                    .where(new ReferenceClientParam("organization").hasId(organization.get()))
+                    .include(PractitionerRole.INCLUDE_PRACTITIONER)
+                    .returnBundle(Bundle.class).execute();
 
-        Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
-                .where(new ReferenceClientParam("practitioner").hasId(ResourceType.Practitioner + "/" + practitioner))
-                .include(PractitionerRole.INCLUDE_ORGANIZATION)
-                .returnBundle(Bundle.class).execute();
+            if (bundle != null && !bundle.getEntry().isEmpty()) {
+                return FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties)
+                        .stream().filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
+                        .map(it -> {
+                            Practitioner pr = (Practitioner) it.getResource();
+                            ReferenceDto referenceDto = new ReferenceDto();
+                            referenceDto.setReference("Practitioner/" + pr.getIdElement().getIdPart());
+                            pr.getName().stream().findAny().ifPresent(name -> {
+                                String fn = name.getFamily();
+                                StringType ln = name.getGiven().stream().findAny().orElse(null);
+                                referenceDto.setDisplay(fn + " " + ln.toString());
+                            });
+                            return referenceDto;
+                        }).distinct().collect(toList());
 
-        if (bundle != null) {
-            List<Bundle.BundleEntryComponent> practitionerComponents = bundle.getEntry();
 
-            if (practitionerComponents != null) {
-                organizations = practitionerComponents.stream()
-                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.PractitionerRole))
-                        .map(it -> (PractitionerRole) it.getResource())
-                        .map(it -> (Organization) it.getOrganization().getResource())
-                        .map(it -> FhirDtoUtil.mapOrganizationToReferenceDto(it))
-                        .collect(toList());
-
+            } else {
+                throw new ResourceNotFoundException("No Practitioner available for this organization.");
             }
+
+        } else if (practitioner.isPresent() && !organization.isPresent()) {
+            Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+                    .where(new ReferenceClientParam("practitioner").hasId(ResourceType.Practitioner + "/" + practitioner.get()))
+                    .include(PractitionerRole.INCLUDE_ORGANIZATION)
+                    .returnBundle(Bundle.class).execute();
+
+            if (bundle != null) {
+                List<Bundle.BundleEntryComponent> practitionerComponents = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
+
+                if (practitionerComponents != null) {
+                    organizations = practitionerComponents.stream()
+                            .filter(it -> it.getResource().getResourceType().equals(ResourceType.PractitionerRole))
+                            .map(it -> (PractitionerRole) it.getResource())
+                            .map(it -> (Organization) it.getOrganization().getResource())
+                            .map(it -> FhirDtoUtil.mapOrganizationToReferenceDto(it))
+                            .collect(toList());
+
+                }
+            }
+
+            //retrieve practitioners for each of the organizations retrieved above.
+            List<ReferenceDto> practitioners = organizations.stream()
+                    .map(it -> FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Practitioner))
+                    .flatMap(id -> getPractitionersByOrganization(id).stream())
+                    .map(practitionerDto -> FhirDtoUtil.mapPractitionerDtoToReferenceDto(practitionerDto))
+                    .distinct()
+                    .collect(toList());
+
+            return practitioners;
         }
-
-        //retrieve practitioners for each of the organizations retrieved above.
-        List<ReferenceDto> practitioners = organizations.stream()
-                .map(it -> FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Practitioner))
-                .flatMap(id -> getPractitionersByOrganization(id).stream())
-                .map(practitionerDto -> FhirDtoUtil.mapPractitionerDtoToReferenceDto(practitionerDto))
-                .distinct()
-                .collect(toList());
-
-        return practitioners;
+        throw new ResourceNotFoundException("No Practitioner is found for this organization.");
     }
 
     public List<PractitionerDto> getPractitionersByOrganization(String organizationId) {
