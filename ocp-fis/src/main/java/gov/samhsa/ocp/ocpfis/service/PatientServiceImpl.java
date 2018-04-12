@@ -99,10 +99,14 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(String key, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<PatientDto> getPatientsByValue(String key, String value, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
+
+        organization.ifPresent(org -> {
+            PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsInOrganization(org)));
+        });
 
         if (showInactive.isPresent()) {
             if (!showInactive.get()) {
@@ -131,6 +135,13 @@ public class PatientServiceImpl implements PatientService {
                 .execute();
         log.debug("Patients Search Query to FHIR Server: END");
 
+
+        if (showAll.isPresent() && showAll.get()) {
+            List<PatientDto> patientDtos = convertAllBundleToSinglePatientDtoList(firstPagePatientSearchBundle, numberOfPatientsPerPage);
+            return (PageDto<PatientDto>) PaginationUtil.applyPaginationForCustomArrayList(patientDtos, patientDtos.size(), Optional.of(1), false);
+        }
+
+
         if (firstPagePatientSearchBundle == null || firstPagePatientSearchBundle.getEntry().isEmpty()) {
             log.info("No patients were found for the given criteria.");
             return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
@@ -142,7 +153,6 @@ public class PatientServiceImpl implements PatientService {
             firstPage = false;
             otherPagePatientSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPagePatientSearchBundle, page.get(), numberOfPatientsPerPage);
         }
-
         //Arrange Page related info
         List<PatientDto> patientDtos = convertBundleToPatientDtos(otherPagePatientSearchBundle, Boolean.FALSE);
         double totalPages = Math.ceil((double) otherPagePatientSearchBundle.getTotal() / numberOfPatientsPerPage);
@@ -150,6 +160,7 @@ public class PatientServiceImpl implements PatientService {
 
         return new PageDto<>(patientDtos, numberOfPatientsPerPage, totalPages, currentPage, patientDtos.size(), otherPagePatientSearchBundle.getTotal());
     }
+
 
     @Override
     public PageDto<PatientDto> getPatientsByPractitioner(Optional<String> practitioner, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
@@ -174,13 +185,13 @@ public class PatientServiceImpl implements PatientService {
                 .execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, fhirClient, fisProperties);
+            List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
             if (components != null && !components.isEmpty()) {
                 patients = components.stream()
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.Patient))
                         .map(it -> (Patient) it.getResource())
                         .filter(it -> filterBySearchKey(it, searchKey, searchValue))
-                        .map(patient -> mapPatientToPatientDto(patient, bundle))
+                        .map(patient -> mapPatientToPatientDto(patient, bundle.getEntry()))
                         .distinct()
                         .collect(toList());
             }
@@ -201,14 +212,14 @@ public class PatientServiceImpl implements PatientService {
         return result;
     }
 
-    private PatientDto mapPatientToPatientDto(Patient patient, Bundle response) {
+    private PatientDto mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
         PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
         patientDto.setId(patient.getIdElement().getIdPart());
         if (patient.getGender() != null)
             patientDto.setGenderCode(patient.getGender().toCode());
         mapExtensionFields(patient, patientDto);
         //Getting flags into the patient dto
-        List<FlagDto> flagDtos = getFlagsForEachPatient(response.getEntry(), patient.getIdElement().getIdPart());
+        List<FlagDto> flagDtos = getFlagsForEachPatient(response, patient.getIdElement().getIdPart());
         patientDto.setFlags(Optional.ofNullable(flagDtos));
         return patientDto;
     }
@@ -343,7 +354,7 @@ public class PatientServiceImpl implements PatientService {
                     .filter(bundleEntryComponent -> bundleEntryComponent.getResource().getResourceType().equals(ResourceType.Patient))  //patient entries
                     .map(bundleEntryComponent -> (Patient) bundleEntryComponent.getResource()) // patient resources
                     .peek(patient -> log.debug(iParser.encodeResourceToString(patient)))
-                    .map(patient -> mapPatientToPatientDto(patient, response))
+                    .map(patient -> mapPatientToPatientDto(patient, response.getEntry()))
                     .collect(toList());
         }
         log.info("Total Patients retrieved from Server #" + patientDtos.size());
@@ -501,6 +512,28 @@ public class PatientServiceImpl implements PatientService {
             //Checking while creating new flag
             return !duplicateCheckList.isEmpty();
         }
+    }
+
+    private List<String> patientsInOrganization(String org) {
+        Bundle bundle = fhirClient.search().forResource(EpisodeOfCare.class)
+                .where(new ReferenceClientParam("organization").hasId(org))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        return FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(eoc -> {
+            EpisodeOfCare episodeOfCare = (EpisodeOfCare) eoc.getResource();
+            String patient = (episodeOfCare.hasPatient()) ? (episodeOfCare.getPatient().getReference().split("/")[1]) : null;
+            return patient;
+        }).distinct().collect(toList());
+    }
+
+    private List<PatientDto> convertAllBundleToSinglePatientDtoList(Bundle firstPagePatientSearchBundle, int numberOBundlePerPage) {
+        List<Bundle.BundleEntryComponent> bundleEntryComponentList = FhirUtil.getAllBundlesComponentIntoSingleList(firstPagePatientSearchBundle, Optional.ofNullable(numberOBundlePerPage), fhirClient, fisProperties);
+        return bundleEntryComponentList.stream()
+                .filter(bundleEntryComponent -> bundleEntryComponent.getResource().getResourceType().equals(ResourceType.Patient))
+                .map(bundleEntryComponent -> (Patient) bundleEntryComponent.getResource())
+                .map(patient -> mapPatientToPatientDto(patient, bundleEntryComponentList))
+                .collect(toList());
     }
 }
 
