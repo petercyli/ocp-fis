@@ -9,7 +9,6 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
-import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
@@ -27,7 +26,6 @@ import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Organization;
@@ -214,7 +212,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         IQuery query = fhirClient.search().forResource(PractitionerRole.class);
 
         if (role.isPresent()) {
-                query.where(new TokenClientParam("role").exactly().code(role.get()));
+            query.where(new TokenClientParam("role").exactly().code(role.get()));
         }
 
         List<Bundle.BundleEntryComponent> practitionerEntry = getBundleForPractitioners(organization, query);
@@ -224,11 +222,11 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     private List<Bundle.BundleEntryComponent> getBundleForPractitioners(String organization, IQuery query) {
-        Bundle practitionerBundle= (Bundle) query.where(new ReferenceClientParam("organization").hasId(organization))
+        Bundle practitionerBundle = (Bundle) query.where(new ReferenceClientParam("organization").hasId(organization))
                 .include(new Include("PractitionerRole:practitioner"))
                 .returnBundle(Bundle.class)
                 .execute();
-        List<Bundle.BundleEntryComponent> practitionerEntries=FhirUtil.getAllBundlesComponentIntoSingleList(practitionerBundle, fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> practitionerEntries = FhirUtil.getAllBundlesComponentIntoSingleList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
         return practitionerEntries;
     }
 

@@ -52,7 +52,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
             //refactor getPatientsByValue to match other apis
-            PageDto<PatientDto> pageDto = patientService.getPatientsByValue(value, "name", showInActive, page, size);
+            PageDto<PatientDto> pageDto = patientService.getPatientsByValue("name",value, Optional.empty(), showInActive, page, size,Optional.empty());
             participantsDto = convertPatientsToParticipantsDto(pageDto, participantType);
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {

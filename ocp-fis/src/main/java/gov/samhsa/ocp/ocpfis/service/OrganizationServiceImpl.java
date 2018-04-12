@@ -270,7 +270,7 @@ public class OrganizationServiceImpl implements OrganizationService {
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> organizationComponents = FhirUtil.getAllBundlesComponentIntoSingleList(bundle,fhirClient,fisProperties);
+            List<Bundle.BundleEntryComponent> organizationComponents = FhirUtil.getAllBundlesComponentIntoSingleList(bundle,Optional.empty(),fhirClient,fisProperties);
 
             if (organizationComponents != null) {
                 organizations = organizationComponents.stream()

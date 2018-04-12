@@ -446,7 +446,7 @@ public class TaskServiceImpl implements TaskService {
         Bundle bundle = fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
                 .returnBundle(Bundle.class).execute();
-        List<Bundle.BundleEntryComponent> bundleEntry = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> bundleEntry = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
         return bundleEntry;
     }
 
@@ -469,7 +469,7 @@ public class TaskServiceImpl implements TaskService {
 
         Bundle bundle = (Bundle) taskQuery
                 .returnBundle(Bundle.class).execute();
-        return FhirUtil.getAllBundlesComponentIntoSingleList(bundle,fhirClient,fisProperties);
+        return FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
     }
 
     private boolean isDuplicate(TaskDto taskDto) {
@@ -653,7 +653,7 @@ public class TaskServiceImpl implements TaskService {
             throw new ResourceNotFoundException("No Tasks were found in the FHIR server.");
         }
 
-        List<Bundle.BundleEntryComponent> retrievedTasks = FhirUtil.getAllBundlesComponentIntoSingleList(firstPageTaskBundle, fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> retrievedTasks = FhirUtil.getAllBundlesComponentIntoSingleList(firstPageTaskBundle, Optional.empty(), fhirClient, fisProperties);
 
         return retrievedTasks.stream()
                 .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Task))
