@@ -160,12 +160,17 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     @Override
-    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(Optional<String> practitioner, Optional<String> organization) {
+    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(Optional<String> practitioner, Optional<String> organization, Optional<String> role) {
         List<ReferenceDto> organizations = new ArrayList<>();
         if (organization.isPresent()) {
-            Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
-                    .where(new ReferenceClientParam("organization").hasId(organization.get()))
-                    .include(PractitionerRole.INCLUDE_PRACTITIONER)
+            IQuery iQuery = fhirClient.search().forResource(PractitionerRole.class)
+                    .where(new ReferenceClientParam("organization").hasId(organization.get()));
+
+            role.ifPresent(r->{
+                iQuery.where(new TokenClientParam("role").exactly().code(r));
+            });
+
+            Bundle bundle= (Bundle) iQuery.include(PractitionerRole.INCLUDE_PRACTITIONER)
                     .returnBundle(Bundle.class).execute();
 
             if (bundle != null && !bundle.getEntry().isEmpty()) {
@@ -189,9 +194,14 @@ public class PractitionerServiceImpl implements PractitionerService {
             }
 
         } else if (practitioner.isPresent() && !organization.isPresent()) {
-            Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
-                    .where(new ReferenceClientParam("practitioner").hasId(ResourceType.Practitioner + "/" + practitioner.get()))
-                    .include(PractitionerRole.INCLUDE_ORGANIZATION)
+            IQuery iQuery = fhirClient.search().forResource(PractitionerRole.class)
+                    .where(new ReferenceClientParam("practitioner").hasId(ResourceType.Practitioner + "/" + practitioner.get()));
+
+            role.ifPresent(r->{
+                iQuery.where(new TokenClientParam("role").exactly().code(r));
+            });
+
+            Bundle bundle= (Bundle) iQuery.include(PractitionerRole.INCLUDE_ORGANIZATION)
                     .returnBundle(Bundle.class).execute();
 
             if (bundle != null) {

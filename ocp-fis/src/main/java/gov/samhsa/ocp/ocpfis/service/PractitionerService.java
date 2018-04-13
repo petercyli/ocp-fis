@@ -20,7 +20,7 @@ PractitionerService {
 
     PractitionerDto getPractitioner(String practitionerId);
 
-    List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(Optional<String> practitioner,Optional<String> organization);
+    List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(Optional<String> practitioner,Optional<String> organization,Optional<String> role);
 
     PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(String organization, Optional<String> role, Optional<Integer> pageNumber,Optional<Integer> pageSize);
 }
