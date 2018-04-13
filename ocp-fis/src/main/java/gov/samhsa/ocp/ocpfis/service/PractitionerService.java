@@ -12,7 +12,7 @@ public interface
 PractitionerService {
     PageDto<PractitionerDto> getAllPractitioners(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
 
-    PageDto<PractitionerDto> searchPractitioners(PractitionerController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
+    PageDto<PractitionerDto> searchPractitioners(PractitionerController.SearchType searchType, String searchValue, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll);
 
     void createPractitioner(PractitionerDto practitionerDto);
 
