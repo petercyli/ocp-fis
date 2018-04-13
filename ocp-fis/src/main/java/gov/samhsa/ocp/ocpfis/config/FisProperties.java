@@ -96,6 +96,8 @@ public class FisProperties {
         private String clientSocketTimeoutInMs;
         @NotNull
         private EncodingEnum encoding = EncodingEnum.JSON;
+        @NotNull
+        private int defaultResourceBundlePageSize;
 
     }
 

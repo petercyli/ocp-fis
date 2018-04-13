@@ -49,7 +49,6 @@ public class FhirUtil {
     public static final int CARE_TEAM_END_DATE = 1;
     public static final int EPISODE_OF_CARE_END_PERIOD = 1;
     public static final String CARE_MANAGER_CODE = "CAREMNGR";
-    public static final int DEFAULT_FHIR_PAGE_SIZE = 10; //Default FHIR page size.
     public static final int PAGE_NUMBER = 2;
 
     public static Enumerations.AdministrativeGender getPatientGender(String codeString) {
@@ -329,7 +328,7 @@ public class FhirUtil {
 
     public static List<Bundle.BundleEntryComponent> getAllBundlesComponentIntoSingleList(Bundle bundle, Optional<Integer> countSize, IGenericClient fhirClient, FisProperties fisProperties) {
         int pageNumber = PAGE_NUMBER;
-        int pageSize = countSize.orElse(DEFAULT_FHIR_PAGE_SIZE);
+        int pageSize = countSize.orElse(fisProperties.getFhir().getDefaultResourceBundlePageSize());
         Bundle updatedBundle = bundle;
         List<Bundle.BundleEntryComponent> bundleEntryComponents = new ArrayList<>();
         if (!bundle.getEntry().isEmpty()) {
