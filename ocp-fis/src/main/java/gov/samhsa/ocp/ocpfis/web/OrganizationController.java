@@ -42,8 +42,8 @@ public class OrganizationController {
     }
 
     @GetMapping("/search")
-    public PageDto<OrganizationDto> searchOrganizations(@RequestParam SearchType searchType, @RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
-        return organizationService.searchOrganizations(searchType, searchValue, showInactive, page, size);
+    public PageDto<OrganizationDto> searchOrganizations(@RequestParam SearchType searchType, @RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size,Optional<Boolean> showAll) {
+        return organizationService.searchOrganizations(searchType, searchValue, showInactive, page, size, showAll);
     }
 
     @PostMapping

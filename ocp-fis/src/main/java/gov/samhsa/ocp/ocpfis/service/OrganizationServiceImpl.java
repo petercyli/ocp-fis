@@ -119,7 +119,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size,Optional<Boolean> showAll) {
         int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Organization.name());
 
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
@@ -146,6 +146,11 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         firstPageOrganizationSearchBundle = (Bundle) organizationIQuery.count(numberOfOrganizationsPerPage).returnBundle(Bundle.class)
                 .execute();
+
+        if (showAll.isPresent() && showAll.get()) {
+            List<OrganizationDto> organizationDtos = convertAllBundleToSingleOrganizationDtoList(firstPageOrganizationSearchBundle, numberOfOrganizationsPerPage);
+            return (PageDto<OrganizationDto>) PaginationUtil.applyPaginationForCustomArrayList(organizationDtos, organizationDtos.size(), Optional.of(1), false);
+        }
 
         if (firstPageOrganizationSearchBundle == null || firstPageOrganizationSearchBundle.isEmpty() || firstPageOrganizationSearchBundle.getEntry().size() < 1) {
             throw new OrganizationNotFoundException("No organizations were found in the FHIR server.");
@@ -308,6 +313,16 @@ public class OrganizationServiceImpl implements OrganizationService {
             log.error("Could NOT inactivate organization");
             throw new FHIRClientException("FHIR Client returned with an error while inactivating the organization:" + e.getMessage());
         }
+    }
+
+    private List<OrganizationDto> convertAllBundleToSingleOrganizationDtoList(Bundle firstPageOrganizationSearchBundle, int numberOBundlePerPage) {
+        return  FhirUtil.getAllBundlesComponentIntoSingleList(firstPageOrganizationSearchBundle, Optional.ofNullable(numberOBundlePerPage), fhirClient, fisProperties)
+                .stream()
+                .map(retrievedOrganization -> {
+                    OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
+                    organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
+                    return organizationDto;})
+                .collect(toList());
     }
 
 }
