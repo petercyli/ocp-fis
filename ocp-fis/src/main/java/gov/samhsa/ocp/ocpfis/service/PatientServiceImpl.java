@@ -105,7 +105,11 @@ public class PatientServiceImpl implements PatientService {
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
 
         organization.ifPresent(org -> {
-            PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsInOrganization(org)));
+            if(!patientsInOrganization(org).isEmpty()) {
+                PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsInOrganization(org)));
+            }else{
+                throw new ResourceNotFoundException("No Patients were found for given organization.");
+            }
         });
 
         if (showInactive.isPresent()) {
