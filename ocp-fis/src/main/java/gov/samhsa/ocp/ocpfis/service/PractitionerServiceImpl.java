@@ -152,7 +152,7 @@ public class PractitionerServiceImpl implements PractitionerService {
         }
 
             if (firstPagePractitionerSearchBundle == null || firstPagePractitionerSearchBundle.isEmpty() || firstPagePractitionerSearchBundle.getEntry().size() < 1) {
-                throw new PractitionerNotFoundException("No practitioners were found in the FHIR server.");
+                return new PageDto<>(new ArrayList<>(), numberOfPractitionersPerPage, 0, 0, 0, 0);
             }
 
             otherPagePractitionerSearchBundle = firstPagePractitionerSearchBundle;
@@ -198,7 +198,8 @@ public class PractitionerServiceImpl implements PractitionerService {
 
 
             } else {
-                throw new ResourceNotFoundException("No Practitioner available for this organization.");
+                log.info("No Practitioner available for this organization.");
+                return new ArrayList<>();
             }
 
         } else if (practitioner.isPresent() && !organization.isPresent()) {
@@ -236,7 +237,8 @@ public class PractitionerServiceImpl implements PractitionerService {
 
             return practitioners;
         }
-        throw new ResourceNotFoundException("No Practitioner is found for this organization.");
+        log.info("No Practitioner is found for this organization.");
+        return new ArrayList<>();
     }
 
     public List<PractitionerDto> getPractitionersByOrganization(String organizationId) {
