@@ -127,9 +127,13 @@ public class PractitionerServiceImpl implements PractitionerService {
             if (type.equals(PractitionerController.SearchType.identifier))
                 practitionerIQuery.where(new TokenClientParam("identifier").exactly().code(value.trim()));
 
-            organization.ifPresent(org->{
-                practitionerIQuery.where(new TokenClientParam("_id").exactly().codes(practitionersFromOrg(org)));
-            });
+            if(organization.isPresent()){
+                if(!practitionersFromOrg(organization.get()).isEmpty()){
+                    practitionerIQuery.where(new TokenClientParam("_id").exactly().codes(practitionersFromOrg(organization.get())));
+                }else{
+                    return new PageDto<>(new ArrayList<>(), numberOfPractitionersPerPage, 0, 0, 0, 0);
+                }
+            }
 
             if (showInactive.isPresent()) {
                 if (!showInactive.get())
