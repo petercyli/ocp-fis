@@ -4,7 +4,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 
 import java.io.IOException;
-import java.util.Date;
 
 public interface ConsentPdfGenerator {
     String getConsentTitle(String pdfType);

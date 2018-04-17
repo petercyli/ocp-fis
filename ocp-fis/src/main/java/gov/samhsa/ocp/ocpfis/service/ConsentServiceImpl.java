@@ -23,6 +23,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.dstu3.model.Attachment;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -55,6 +56,8 @@ public class ConsentServiceImpl implements ConsentService {
     public static final String INFORMANT_RECIPIENT_CODE = "IRCP";
     public static final String PSEUDO_ORGANIZATION_NAME = "Omnibus Care Plan (SAMHSA)";
     public static final String PSEUDO_ORGANIZATION_TAX_ID = "530196960";
+    public static final String CONTENTTYPE = "application/pdf";
+
 
     private final IGenericClient fhirClient;
     private final LookUpService lookUpService;
@@ -274,6 +277,9 @@ public class ConsentServiceImpl implements ConsentService {
     @Override
     public void attestConsent(String consentId) {
 
+        Consent consent = fhirClient.read().resource(Consent.class).withId(consentId.trim()).execute();
+        consent.setStatus(Consent.ConsentState.ACTIVE);
+
         ConsentDto consentDto = getConsentsById(consentId);
         consentDto.setStatus("Active");
 
@@ -283,20 +289,22 @@ public class ConsentServiceImpl implements ConsentService {
         Boolean operatedByPatient = true;
 
         try {
-
             byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
-            new PdfDto(pdfBytes);
-        }
+            consent.setSource(addAttachment(pdfBytes));
 
-        catch (IOException e) {
-
+        } catch (IOException e) {
             e.printStackTrace();
         }
-
-        Consent consent = fhirClient.read().resource(Consent.class).withId(consentId.trim()).execute();
-        consent.setStatus(Consent.ConsentState.ACTIVE);
+        //consent.getSourceAttachment().getData();
 
         fhirClient.update().resource(consent).execute();
+    }
+
+    private Attachment addAttachment(byte[] pdfBytes) {
+        Attachment attachment = new Attachment();
+        attachment.setContentType(CONTENTTYPE);
+        attachment.setData(pdfBytes);
+        return attachment;
     }
 
 

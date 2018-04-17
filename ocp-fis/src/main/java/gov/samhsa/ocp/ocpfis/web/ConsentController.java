@@ -2,7 +2,6 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.ConsentService;
 import gov.samhsa.ocp.ocpfis.service.PatientService;
-import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -17,8 +16,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -59,7 +56,7 @@ public class ConsentController {
         ConsentDto consentDto = consentService.getConsentsById(consentId);
         String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
         PatientDto patientDto = patientService.getPatientById(patientID);
-        byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto,true);
+        byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto,false);
         return new PdfDto(pdfBytes);
     }
 
