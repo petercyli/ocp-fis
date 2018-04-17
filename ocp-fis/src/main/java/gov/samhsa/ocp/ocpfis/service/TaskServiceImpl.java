@@ -17,7 +17,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TaskDtoToTaskMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
@@ -111,7 +110,7 @@ public class TaskServiceImpl implements TaskService {
                 .execute();
 
         if (firstPageTaskBundle == null || firstPageTaskBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Tasks were found in the FHIR server.");
+            return new PageDto<>(new ArrayList<>(), numberOfTasksPerPage, 0, 0, 0, 0);
         }
 
         otherPageTaskBundle = firstPageTaskBundle;
@@ -650,7 +649,8 @@ public class TaskServiceImpl implements TaskService {
                 .execute();
 
         if (firstPageTaskBundle == null || firstPageTaskBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Tasks were found in the FHIR server.");
+            log.info("No Tasks were found in the FHIR server.");
+            return new ArrayList<>();
         }
 
         List<Bundle.BundleEntryComponent> retrievedTasks = FhirUtil.getAllBundlesComponentIntoSingleList(firstPageTaskBundle, Optional.empty(), fhirClient, fisProperties);
