@@ -284,7 +284,13 @@ public class FhirUtil {
 
         Reference reference = new Reference();
         reference.setReference("Practitioner/" + practitionerId);
-        task.setOwner(reference);
+
+        Task.TaskRequesterComponent taskRequesterComponent=new Task.TaskRequesterComponent();
+        Reference organizationReference=new Reference();
+        organizationReference.setReference("Organization/"+organizationId);
+        taskRequesterComponent.setAgent(reference).setOnBehalfOf(organizationReference);
+
+        task.setRequester(taskRequesterComponent);
 
         return task;
     }
