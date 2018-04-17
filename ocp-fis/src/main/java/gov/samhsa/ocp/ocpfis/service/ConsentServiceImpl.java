@@ -11,6 +11,8 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -60,6 +62,8 @@ public class ConsentServiceImpl implements ConsentService {
     private final ModelMapper modelMapper;
     private final ConsentPdfGenerator consentPdfGenerator;
 
+    @Autowired
+    private PatientService patientService;
 
     @Autowired
     private FhirValidator fhirValidator;
@@ -86,7 +90,7 @@ public class ConsentServiceImpl implements ConsentService {
         Bundle otherPageConsentBundle;
         if (practitioner.isPresent() && patient.isPresent()) {
             List<String> careTeamIds = getCareTeamIds(practitioner.get(), patient);
-            if(careTeamIds == null || (careTeamIds != null && careTeamIds.isEmpty()))  {
+            if (careTeamIds == null || (careTeamIds != null && careTeamIds.isEmpty())) {
                 log.info("Not a Care Team Member for the patient");
                 throw new ResourceNotFoundException("Not a Care Team Member for the patient");
             }
@@ -269,6 +273,26 @@ public class ConsentServiceImpl implements ConsentService {
 
     @Override
     public void attestConsent(String consentId) {
+
+        ConsentDto consentDto = getConsentsById(consentId);
+        consentDto.setStatus("Active");
+
+        String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
+        PatientDto patientDto = patientService.getPatientById(patientID);
+
+        Boolean operatedByPatient = true;
+
+        try {
+
+            byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
+            new PdfDto(pdfBytes);
+        }
+
+        catch (IOException e) {
+
+            e.printStackTrace();
+        }
+
         Consent consent = fhirClient.read().resource(Consent.class).withId(consentId.trim()).execute();
         consent.setStatus(Consent.ConsentState.ACTIVE);
 
@@ -278,12 +302,6 @@ public class ConsentServiceImpl implements ConsentService {
 
     @Override
     public void saveConsent(ConsentDto consentDto) {
-
-        try {
-            consentPdfGenerator.generateConsentPdf(consentDto);
-        } catch (IOException e) {
-
-        }
     }
 
     private Consent consentDtoToConsent(Optional<String> consentId, ConsentDto consentDto) {
