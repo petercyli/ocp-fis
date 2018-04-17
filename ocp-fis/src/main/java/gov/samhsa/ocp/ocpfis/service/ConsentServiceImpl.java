@@ -96,7 +96,7 @@ public class ConsentServiceImpl implements ConsentService {
         firstPageConsentBundle = PaginationUtil.getSearchBundleFirstPage(iQuery, numberOfConsentsPerPage, Optional.empty());
 
         if (firstPageConsentBundle == null || firstPageConsentBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Consents were found in the FHIR server.");
+            return new PageDto<>(new ArrayList<>(), numberOfConsentsPerPage, 0, 0, 0, 0);
         }
 
         log.info("FHIR Consent(s) bundle retrieved " + firstPageConsentBundle.getTotal() + " Consent(s) from FHIR server successfully");

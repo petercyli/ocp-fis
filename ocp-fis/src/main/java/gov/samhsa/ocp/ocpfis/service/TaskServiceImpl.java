@@ -17,7 +17,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TaskDtoToTaskMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
@@ -111,7 +110,7 @@ public class TaskServiceImpl implements TaskService {
                 .execute();
 
         if (firstPageTaskBundle == null || firstPageTaskBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Tasks were found in the FHIR server.");
+            return new PageDto<>(new ArrayList<>(), numberOfTasksPerPage, 0, 0, 0, 0);
         }
 
         otherPageTaskBundle = firstPageTaskBundle;
@@ -137,10 +136,10 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<DateRangeEnum> filterDate) {
+    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<DateRangeEnum> filterDate) {
 
         // Generate the Query Based on Input Variables
-        IQuery iQuery = getTasksIQuery(practitioner, patient, partOf);
+        IQuery iQuery = getTasksIQuery(practitioner, organization,patient, partOf);
 
         // Fetch Tasks and Map to TaskDtos if available
         List<TaskDto> taskDtos = getTaskDtos(iQuery);
@@ -453,19 +452,7 @@ public class TaskServiceImpl implements TaskService {
     private List<Bundle.BundleEntryComponent> getBundleForRelatedTask(String patient, Optional<String> organization) {
         IQuery taskQuery = fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(patient));
-        if (organization.isPresent()) {
-            Bundle eocBundle = fhirClient.search().forResource(EpisodeOfCare.class)
-                    .where(new ReferenceClientParam("patient").hasId(patient))
-                    .where(new ReferenceClientParam("organization").hasId("Organization/" + organization.get()))
-                    .returnBundle(Bundle.class)
-                    .execute();
-            List<String> eocIds = eocBundle.getEntry().stream().map(eoc -> {
-                EpisodeOfCare episodeOfCare = (EpisodeOfCare) eoc.getResource();
-                return episodeOfCare.getIdElement().getIdPart();
-            }).collect(toList());
-
-            taskQuery.where(new ReferenceClientParam("context").hasAnyOfIds(eocIds));
-        }
+        organization.ifPresent(org->taskQuery.where(new ReferenceClientParam("organization").hasId(org)));
 
         Bundle bundle = (Bundle) taskQuery
                 .returnBundle(Bundle.class).execute();
@@ -618,7 +605,7 @@ public class TaskServiceImpl implements TaskService {
         return taskDtos;
     }
 
-    private IQuery getTasksIQuery(Optional<String> practitionerId, Optional<String> patientId, Optional<String> parentTaskId) {
+    private IQuery getTasksIQuery(Optional<String> practitionerId, Optional<String> organization, Optional<String> patientId, Optional<String> parentTaskId) {
         IQuery iQuery = fhirClient.search().forResource(Task.class);
 
         //Get Sub tasks by parent task id
@@ -640,6 +627,8 @@ public class TaskServiceImpl implements TaskService {
                 iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()))
                         .where(new ReferenceClientParam("patient").hasId(patientId.get()));
             }
+
+            organization.ifPresent(org->iQuery.where(new ReferenceClientParam("organization").hasId(org)));
         }
         return iQuery;
     }
@@ -650,7 +639,8 @@ public class TaskServiceImpl implements TaskService {
                 .execute();
 
         if (firstPageTaskBundle == null || firstPageTaskBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Tasks were found in the FHIR server.");
+            log.info("No Tasks were found in the FHIR server.");
+            return new ArrayList<>();
         }
 
         List<Bundle.BundleEntryComponent> retrievedTasks = FhirUtil.getAllBundlesComponentIntoSingleList(firstPageTaskBundle, Optional.empty(), fhirClient, fisProperties);
