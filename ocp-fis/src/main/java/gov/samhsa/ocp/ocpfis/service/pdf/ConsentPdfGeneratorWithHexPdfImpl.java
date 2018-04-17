@@ -3,16 +3,25 @@ package gov.samhsa.ocp.ocpfis.service.pdf;
 import gov.samhsa.c2s.common.pdfbox.enhance.pdfbox.util.PdfBoxHandler;
 import gov.samhsa.ocp.ocpfis.config.PdfProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
+import gov.samhsa.ocp.ocpfis.service.exception.NoDataFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PdfConfigMissingException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.pdfbox.util.Hex;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
 import java.awt.*;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,13 +30,14 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
     private static final String DATE_FORMAT_PATTERN = "MMM dd, yyyy";
     private static final String CONSENT_PDF = "consent-pdf";
     private static final String TELECOM_EMAIL = "EMAIL";
-    private  static final String userNameKey = "ATTESTER_FULL_NAME";
+    private static final String userNameKey = "ATTESTER_FULL_NAME";
+    private static final String SPACE_PATTERN = " ";
 
-    private  static final String CONSENT_TERM = "I, " + userNameKey +", understand that my records are protected under the federal regulations governing Confidentiality of"
-    +" Alcohol and Drug Abuse Patient Records, 42 CFR part 2, and cannot be disclosed without my written"
-    +" permission or as otherwise permitted by 42 CFR part 2. I also understand that I may revoke this consent at any"
-    +" time except to the extent that action has been taken in reliance on it, and that any event this consent expires"
-    +" automatically as follows:";
+    private static final String CONSENT_TERM = "I, " + userNameKey + ", understand that my records are protected under the federal regulations governing Confidentiality of"
+            + " Alcohol and Drug Abuse Patient Records, 42 CFR part 2, and cannot be disclosed without my written"
+            + " permission or as otherwise permitted by 42 CFR part 2. I also understand that I may revoke this consent at any"
+            + " time except to the extent that action has been taken in reliance on it, and that any event this consent expires"
+            + " automatically as follows:";
 
     private static final String NEWLINE_CHARACTER = "\n";
     private static final String NEWLINE_AND_LIST_PREFIX = "\n- ";
@@ -65,13 +75,13 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
     }
 
     @Override
-    public void drawPatientInformationSection(HexPDF document, ConsentDto consentdto) {
+    public void drawPatientInformationSection(HexPDF document, ConsentDto consentdto, PatientDto patientDto) {
         String patientFullName = consentdto.getPatient().getDisplay();
-        //String patientBirthDate = PdfBoxHandler.formatLocalDate(patientDto.getBirthDate(), DATE_FORMAT_PATTERN);
+        String patientBirthDate = PdfBoxHandler.formatLocalDate(patientDto.getBirthDate(), DATE_FORMAT_PATTERN);
 
         Object[][] patientInfo = {
                 {NEWLINE_CHARACTER + "Consent Reference Number: " + consentdto.getLogicalId(), null},
-                {NEWLINE_CHARACTER + "Patient Name: " + patientFullName, NEWLINE_CHARACTER}
+                {NEWLINE_CHARACTER + "Patient Name: " + patientFullName, NEWLINE_CHARACTER + "Patient DOB: " + patientBirthDate}
         };
         float[] patientInfoTableColumnWidth = new float[]{240, 240};
         int[] patientInfoTableColumnAlignment = new int[]{HexPDF.LEFT, HexPDF.LEFT};
@@ -96,7 +106,7 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
                 HexPDF.LEFT);
         drawAuthorizationSubSectionHeader(document, NEWLINE_CHARACTER + "Authorizes:" + NEWLINE_CHARACTER);
 
-        if (consentDto.isGeneralDesignation() ) {
+        if (consentDto.isGeneralDesignation()) {
             drawTableWithGeneralDesignation(document, consentDto);
         }
 
@@ -152,8 +162,8 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
     }
 
     @Override
-    public byte[] generateConsentPdf(ConsentDto consent) throws IOException {
-        Assert.notNull(consent, "Consent is required.");
+    public byte[] generateConsentPdf(ConsentDto consentDto, PatientDto patientDto, Boolean operatedByPatient) throws IOException {
+        Assert.notNull(consentDto, "Consent is required.");
 
         String consentTitle = getConsentTitle(CONSENT_PDF);
 
@@ -172,15 +182,20 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
 
         document.normalStyle();
 
-        drawPatientInformationSection(document, consent);
+        drawPatientInformationSection(document, consentDto, patientDto);
 
-        drawAuthorizeToDiscloseSectionTitle(document, consent);
+        drawAuthorizeToDiscloseSectionTitle(document, consentDto);
 
-        drawHealthInformationToBeDisclosedSection(document, consent);
+        drawHealthInformationToBeDisclosedSection(document, consentDto);
 
-        drawConsentTermsSection(document,consent);
+        drawConsentTermsSection(document, consentDto);
 
-        drawEffectiveAndExspireDateSection(document, consent);
+        drawEffectiveAndExspireDateSection(document, consentDto);
+
+        // Consent signing details
+        if (consentDto.getStatus().equalsIgnoreCase("Active")) {
+            addConsentSigningDetails(document, patientDto, operatedByPatient);
+        }
 
         // Get the document
         return document.getDocumentAsBytArray();
@@ -202,7 +217,7 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
         String sensitivityCategoriesLabel = "To SHARE the following medical information:";
         String subLabel = "Sensitivity Categories:";
         String sensitivityCategories = consentDto.getCategory().stream()
-                                       .map(valueSet -> valueSet.getDisplay()).collect(Collectors.joining(NEWLINE_AND_LIST_PREFIX));
+                .map(valueSet -> valueSet.getDisplay()).collect(Collectors.joining(NEWLINE_AND_LIST_PREFIX));
 
         String sensitivityCategoriesStr = sensitivityCategoriesLabel
                 .concat(NEWLINE_CHARACTER).concat(subLabel)
@@ -260,6 +275,53 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
                 consentDurationTableColumnWidth,
                 consentDurationTableColumnAlignment,
                 HexPDF.LEFT);
+    }
+
+    @Override
+    public void addConsentSigningDetails(HexPDF document, PatientDto patient, Boolean signedByPatient) throws IOException {
+        if (signedByPatient) {
+            // Consent is signed by Patient
+            addPatientSigningDetails(document, patient);
+        }
+    }
+
+    private void addPatientSigningDetails(HexPDF document, PatientDto patient) throws IOException {
+        Date date = new Date();
+        Object[][] signedDetails = {
+                {createSignatureContent(patient, date)}
+        };
+        float[] patientDetailsColumnWidth = new float[]{480};
+        int[] patientDetailsColumnAlignment = new int[]{HexPDF.LEFT};
+
+        document.drawTable(signedDetails,
+                patientDetailsColumnWidth,
+                patientDetailsColumnAlignment,
+                HexPDF.LEFT);
+    }
+
+    private String createSignatureContent(PatientDto patient, Date signedOnDateTime) {
+        String patientFirstName = patient.getName().stream().map(name -> name.getFirstName()).findAny().orElse(null);
+        String patientLastName = patient.getName().stream().map(name -> name.getLastName()).findAny().orElse(null);
+
+        //String patientLastName = Optional.ofNullable(patient.getName().get(0).getLastName()).orElse("");
+        //String patientFirstName = Optional.ofNullable(patient.getName().get(0).getFirstName()).orElse("");
+
+        String patientFullName = patientFirstName.concat(SPACE_PATTERN + patientLastName);
+
+        String email = patient.getTelecoms().stream()
+                .filter(telecomDto -> telecomDto.getSystem().isPresent())
+                .filter(telecomDto -> telecomDto.getSystem().get().equalsIgnoreCase(TELECOM_EMAIL))
+                .map(telecomDto -> telecomDto.getValue().get())
+                .findAny()
+                .orElseThrow(NoDataFoundException::new);
+
+        LocalDate signedDate = signedOnDateTime.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+        final String signedByContent = NEWLINE_CHARACTER + "Signed by: ".concat(patientFullName);
+        final String signedByEmail = "Email: ".concat(email);
+        final String signedOn = "Signed on: ".concat(PdfBoxHandler.formatLocalDate(signedDate, DATE_FORMAT_PATTERN));
+
+        return signedByContent.concat(NEWLINE_CHARACTER).concat(signedByEmail).concat(NEWLINE_CHARACTER).concat(signedOn).concat(NEWLINE_CHARACTER);
     }
 
 }
