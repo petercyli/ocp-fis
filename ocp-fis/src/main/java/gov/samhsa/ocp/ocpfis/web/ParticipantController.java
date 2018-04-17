@@ -31,10 +31,12 @@ public class ParticipantController {
     public PageDto<ParticipantSearchDto> getAllParticipants(@RequestParam(value = "patientId") String patientId,
                                                             @RequestParam(value = "member") ParticipantTypeEnum member,
                                                             @RequestParam(value = "value") String value,
+                                                            @RequestParam(value="organization") Optional<String> organization,
                                                             @RequestParam(value = "showInActive", defaultValue = "false") Optional<Boolean> showInActive,
                                                             @RequestParam(value = "page", required = false) Optional<Integer> page,
-                                                            @RequestParam(value = "size", required = false) Optional<Integer> size) {
-        return participantService.getAllParticipants(patientId, member, value, showInActive, page, size);
+                                                            @RequestParam(value = "size", required = false) Optional<Integer> size,
+                                                            @RequestParam(value="showAll",required=false) Optional<Boolean> showAll) {
+        return participantService.getAllParticipants(patientId, member, value, organization, showInActive, page, size, showAll);
     }
 
     @GetMapping

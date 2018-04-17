@@ -36,6 +36,7 @@ import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.dstu3.model.codesystems.TaskPerformerType;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +49,7 @@ public class FhirUtil {
     public static final int CARE_TEAM_END_DATE = 1;
     public static final int EPISODE_OF_CARE_END_PERIOD = 1;
     public static final String CARE_MANAGER_CODE = "CAREMNGR";
+    public static final int PAGE_NUMBER = 2;
 
     public static Enumerations.AdministrativeGender getPatientGender(String codeString) {
         switch (codeString.toUpperCase()) {
@@ -103,13 +105,8 @@ public class FhirUtil {
 
     public static boolean checkParticipantRole(List<CareTeam.CareTeamParticipantComponent> components, String role) {
         return components.stream()
-                .peek(x -> {
-                    Reference ref = x.getMember();
-                    System.out.println(ref.getReference());
-                })
                 .filter(it -> it.getMember().getReference().contains(ResourceType.Practitioner.toString()))
                 .map(it -> FhirUtil.getRoleFromCodeableConcept(it.getRole()))
-                .peek(x -> System.out.println("role: " + x))
                 .anyMatch(t -> t.contains(role));
     }
 
@@ -312,7 +309,7 @@ public class FhirUtil {
         episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
         episodeOfCare.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(EPISODE_OF_CARE_END_PERIOD)));
 
-       return episodeOfCare;
+        return episodeOfCare;
     }
 
     public static ReferenceDto getRelatedActivityDefinition(String organizationId, String definitionDisplay, IGenericClient fhirClient, FisProperties fisProperties) {
@@ -327,6 +324,31 @@ public class FhirUtil {
             referenceDto.setReference("ActivityDefinition/" + activityDefinition.getIdElement().getIdPart());
         });
         return referenceDto;
+    }
+
+    public static List<Bundle.BundleEntryComponent> getAllBundlesComponentIntoSingleList(Bundle bundle, Optional<Integer> countSize, IGenericClient fhirClient, FisProperties fisProperties) {
+        int pageNumber = PAGE_NUMBER;
+        int pageSize = countSize.orElse(fisProperties.getFhir().getDefaultResourceBundlePageSize());
+        Bundle updatedBundle = bundle;
+        List<Bundle.BundleEntryComponent> bundleEntryComponents = new ArrayList<>();
+        if (!bundle.getEntry().isEmpty()) {
+            bundleEntryComponents.addAll(bundle.getEntry());
+
+            while (updatedBundle.getLink(Bundle.LINK_NEXT) != null) {
+                int offset = ((pageNumber >= 1 ? pageNumber : 1) - 1) * pageSize;
+                String pageUrl = fisProperties.getFhir().getServerUrl()
+                        + "?_getpages=" + bundle.getId()
+                        + "&_getpagesoffset=" + offset
+                        + "&_count=" + pageSize
+                        + "&_bundletype=searchset";
+
+                updatedBundle = fhirClient.search().byUrl(pageUrl).returnBundle(Bundle.class).execute();
+                bundleEntryComponents.addAll(updatedBundle.getEntry());
+                pageNumber++;
+            }
+        }
+        return bundleEntryComponents;
+
     }
 }
 

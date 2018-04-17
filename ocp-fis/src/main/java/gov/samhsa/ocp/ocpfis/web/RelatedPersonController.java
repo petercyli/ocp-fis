@@ -48,8 +48,9 @@ public class RelatedPersonController {
                                                        @RequestParam Optional<String> searchValue,
                                                        @RequestParam Optional<Boolean> showInActive,
                                                        @RequestParam Optional<Integer> pageNumber,
-                                                       @RequestParam Optional<Integer> pageSize) {
-        return relatedPersonService.searchRelatedPersons(patientId, searchKey, searchValue, showInActive, pageNumber, pageSize);
+                                                       @RequestParam Optional<Integer> pageSize,
+                                                       @RequestParam Optional<Boolean> showAll) {
+        return relatedPersonService.searchRelatedPersons(patientId, searchKey, searchValue, showInActive, pageNumber, pageSize,showAll);
     }
 
     @GetMapping("/{relatedPersonId}")
