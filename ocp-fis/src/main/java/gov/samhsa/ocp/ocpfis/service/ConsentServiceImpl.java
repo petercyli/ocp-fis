@@ -11,9 +11,13 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.ConsentPdfGenerationException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.NoDataFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
@@ -21,6 +25,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.dstu3.model.Attachment;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -53,6 +58,9 @@ public class ConsentServiceImpl implements ConsentService {
     public static final String INFORMANT_RECIPIENT_CODE = "IRCP";
     public static final String PSEUDO_ORGANIZATION_NAME = "Omnibus Care Plan (SAMHSA)";
     public static final String PSEUDO_ORGANIZATION_TAX_ID = "530196960";
+    public static final String CONTENTTYPE = "application/pdf";
+    public static final Boolean operatedByPatient = true;
+
 
     private final IGenericClient fhirClient;
     private final LookUpService lookUpService;
@@ -60,6 +68,8 @@ public class ConsentServiceImpl implements ConsentService {
     private final ModelMapper modelMapper;
     private final ConsentPdfGenerator consentPdfGenerator;
 
+    @Autowired
+    private PatientService patientService;
 
     @Autowired
     private FhirValidator fhirValidator;
@@ -212,10 +222,32 @@ public class ConsentServiceImpl implements ConsentService {
 
     private ConsentDto convertConsentBundleEntryToConsentDto(Bundle.BundleEntryComponent fhirConsentDtoModel) {
         ConsentDto consentDto = modelMapper.map(fhirConsentDtoModel.getResource(), ConsentDto.class);
+
         consentDto.getFromActor().forEach(member -> {
             if (member.getDisplay().equalsIgnoreCase("Omnibus Care Plan (SAMHSA)"))
                 consentDto.setGeneralDesignation(true);
         });
+
+        Consent consent = (Consent) fhirConsentDtoModel.getResource();
+
+        try {
+            if (consent.hasSourceAttachment()  && !consentDto.getStatus().equalsIgnoreCase("draft"))
+                consentDto.setSourceAttachment(consent.getSourceAttachment().getData());
+            else
+                if(consentDto.getStatus().equalsIgnoreCase("draft"))
+            {
+                String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
+                PatientDto patientDto = patientService.getPatientById(patientID);
+                log.info("Generating consent PDF");
+                byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
+                consentDto.setSourceAttachment(pdfBytes);
+            }
+
+        } catch (FHIRException |IOException e) {
+            log.error("No Consent document found");
+            throw new NoDataFoundException("No Consent document found");
+        }
+
         return consentDto;
     }
 
@@ -259,22 +291,53 @@ public class ConsentServiceImpl implements ConsentService {
 
     @Override
     public void attestConsent(String consentId) {
+
         Consent consent = fhirClient.read().resource(Consent.class).withId(consentId.trim()).execute();
         consent.setStatus(Consent.ConsentState.ACTIVE);
 
+        ConsentDto consentDto = getConsentsById(consentId);
+        consentDto.setStatus("Active");
+
+        String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
+        PatientDto patientDto = patientService.getPatientById(patientID);
+
+        try {
+            log.info("Updating consent: Generating the attested PDF");
+            byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
+            consent.setSource(addAttachment(pdfBytes));
+
+        } catch (IOException e) {
+            throw new ConsentPdfGenerationException(e);
+        }
+        //consent.getSourceAttachment().getData();
+        log.info("Updating consent: Saving the consent into the FHIR server.");
         fhirClient.update().resource(consent).execute();
+    }
+
+    private Attachment addAttachment(byte[] pdfBytes) {
+        Attachment attachment = new Attachment();
+        attachment.setContentType(CONTENTTYPE);
+        attachment.setData(pdfBytes);
+        return attachment;
     }
 
 
     @Override
-    public void saveConsent(ConsentDto consentDto) {
+    public PdfDto createConsentPdf(String consentId) {
+        ConsentDto consentDto = getConsentsById(consentId);
+        String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
+        PatientDto patientDto = patientService.getPatientById(patientID);
 
         try {
-            consentPdfGenerator.generateConsentPdf(consentDto);
-        } catch (IOException e) {
+            log.info("Generating consent PDF");
+            byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
+            return new PdfDto(pdfBytes);
 
+        } catch (IOException e) {
+            throw new ConsentPdfGenerationException(e);
         }
     }
+
 
     private Consent consentDtoToConsent(Optional<String> consentId, ConsentDto consentDto) {
         Consent consent = new Consent();
