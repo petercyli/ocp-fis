@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
 
 import java.util.Optional;
 
@@ -18,7 +19,7 @@ public interface ConsentService {
 
     GeneralConsentRelatedFieldDto getGeneralConsentRelatedFields(String patient);
 
-    void saveConsent(ConsentDto consentDto);
+    PdfDto createConsentPdf(String consentId);
 
     void attestConsent(String consentId);
 

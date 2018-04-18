@@ -25,7 +25,6 @@
  */
 package gov.samhsa.ocp.ocpfis.service.pdf;
 
-import gov.samhsa.c2s.common.pdfbox.enhance.HexPdf;
 import org.apache.fontbox.util.BoundingBox;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -503,7 +502,7 @@ public class HexPDF extends PDDocument {
             super.save(pdfOutputStream);
             close();
         } catch (IOException var6) {
-            Logger.getLogger(HexPdf.class.getName()).log(Level.SEVERE, (String)null, var6);
+            Logger.getLogger(HexPDF.class.getName()).log(Level.SEVERE, (String)null, var6);
         } finally {
             return pdfOutputStream.toByteArray();
         }
