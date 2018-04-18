@@ -37,16 +37,13 @@ public class PatientController {
 
 
     @GetMapping("/search")
-    public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "type", defaultValue = "name") String searchKey,
-                                                  @RequestParam(value = "value") String searchValue,
+    public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "type", defaultValue = "name") Optional<String> searchKey,
+                                                  @RequestParam(value = "value") Optional<String> searchValue,
                                                   @RequestParam(value="organization") Optional<String> organization,
                                                   @RequestParam(value = "showInactive", defaultValue = "false") Optional<Boolean> showInactive,
                                                   @RequestParam Optional<Integer> page,
                                                   @RequestParam Optional<Integer> size,
                                                   @RequestParam(value="showAll") Optional<Boolean> showAll) {
-        if (searchKey == null || !Arrays.stream(SearchType.values()).anyMatch(searchType -> searchType.name().equalsIgnoreCase(searchKey.trim()))) {
-            throw new BadRequestException("Invalid Type Value. It should be either Name or Identifier");
-        }
         return patientService.getPatientsByValue(searchKey, searchValue, organization, showInactive, page, size,showAll);
     }
 

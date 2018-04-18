@@ -99,7 +99,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(String key, String value, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
+    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
@@ -120,13 +120,17 @@ public class PatientServiceImpl implements PatientService {
             }
         }
 
-        if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
-            PatientSearchQuery.where(new RichStringClientParam("name").contains().value(value.trim()));
-        } else if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
-            PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(value.trim()));
-        } else {
-            throw new BadRequestException("Invalid Type Values");
-        }
+        searchKey.ifPresent(key-> {
+                    if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
+                        if(value.isPresent())
+                            PatientSearchQuery.where(new RichStringClientParam("name").contains().value(value.get().trim()));
+                    } else if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
+                        if(value.isPresent())
+                            PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(value.get().trim()));
+                    } else {
+                        throw new BadRequestException("Invalid Type Values");
+                    }
+                });
 
         Bundle firstPagePatientSearchBundle;
         Bundle otherPagePatientSearchBundle;
