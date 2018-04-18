@@ -30,12 +30,6 @@ public class ConsentController {
     @Autowired
     private ConsentService consentService;
 
-    @Autowired
-    private PatientService patientService;
-
-    @Autowired
-    private ConsentPdfGenerator consentPdfGenerator;
-
     @GetMapping("/consents")
     public PageDto<ConsentDto> getConsents(@RequestParam(value = "patient") Optional<String> patient,
                                            @RequestParam(value = "practitioner") Optional<String> practitioner,
@@ -52,12 +46,8 @@ public class ConsentController {
     }
 
     @GetMapping("/consents/{consentId}/pdf")
-    public PdfDto createPdf(@PathVariable String consentId) throws IOException {
-        ConsentDto consentDto = consentService.getConsentsById(consentId);
-        String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
-        PatientDto patientDto = patientService.getPatientById(patientID);
-        byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto,false);
-        return new PdfDto(pdfBytes);
+    public PdfDto createConsentPdf(@PathVariable String consentId) throws IOException {
+        return consentService.createConsentPdf(consentId);
     }
 
     @PutMapping("/consents/{consentId}/attestation")

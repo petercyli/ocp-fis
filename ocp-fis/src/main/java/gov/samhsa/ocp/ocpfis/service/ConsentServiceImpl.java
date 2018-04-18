@@ -59,6 +59,7 @@ public class ConsentServiceImpl implements ConsentService {
     public static final String PSEUDO_ORGANIZATION_NAME = "Omnibus Care Plan (SAMHSA)";
     public static final String PSEUDO_ORGANIZATION_TAX_ID = "530196960";
     public static final String CONTENTTYPE = "application/pdf";
+    public static final Boolean operatedByPatient = true;
 
 
     private final IGenericClient fhirClient;
@@ -300,8 +301,6 @@ public class ConsentServiceImpl implements ConsentService {
         String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
         PatientDto patientDto = patientService.getPatientById(patientID);
 
-        Boolean operatedByPatient = true;
-
         try {
             log.info("Updating consent: Generating the attested PDF");
             byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
@@ -324,8 +323,21 @@ public class ConsentServiceImpl implements ConsentService {
 
 
     @Override
-    public void saveConsent(ConsentDto consentDto) {
+    public PdfDto createConsentPdf(String consentId) {
+        ConsentDto consentDto = getConsentsById(consentId);
+        String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
+        PatientDto patientDto = patientService.getPatientById(patientID);
+
+        try {
+            log.info("Generating consent PDF");
+            byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
+            return new PdfDto(pdfBytes);
+
+        } catch (IOException e) {
+            throw new ConsentPdfGenerationException(e);
+        }
     }
+
 
     private Consent consentDtoToConsent(Optional<String> consentId, ConsentDto consentDto) {
         Consent consent = new Consent();
