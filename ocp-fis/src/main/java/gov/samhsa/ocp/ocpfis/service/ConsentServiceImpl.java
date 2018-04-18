@@ -15,7 +15,9 @@ import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.ConsentPdfGenerationException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.NoDataFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
@@ -225,10 +227,22 @@ public class ConsentServiceImpl implements ConsentService {
 
     private ConsentDto convertConsentBundleEntryToConsentDto(Bundle.BundleEntryComponent fhirConsentDtoModel) {
         ConsentDto consentDto = modelMapper.map(fhirConsentDtoModel.getResource(), ConsentDto.class);
+
         consentDto.getFromActor().forEach(member -> {
             if (member.getDisplay().equalsIgnoreCase("Omnibus Care Plan (SAMHSA)"))
                 consentDto.setGeneralDesignation(true);
         });
+
+        Consent consent = (Consent) fhirConsentDtoModel.getResource();
+
+        try {
+            if (consent.hasSourceAttachment())
+                consentDto.setSourceAttachment(consent.getSourceAttachment().getData());
+        } catch (FHIRException e) {
+            log.error("No Consent document found");
+            throw new NoDataFoundException("No Consent document found");
+        }
+
         return consentDto;
     }
 
@@ -289,14 +303,15 @@ public class ConsentServiceImpl implements ConsentService {
         Boolean operatedByPatient = true;
 
         try {
+            log.info("Updating consent: Generating the attested PDF");
             byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
             consent.setSource(addAttachment(pdfBytes));
 
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new ConsentPdfGenerationException(e);
         }
         //consent.getSourceAttachment().getData();
-
+        log.info("Updating consent: Saving the consent into the FHIR server.");
         fhirClient.update().resource(consent).execute();
     }
 
