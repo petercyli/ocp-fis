@@ -237,9 +237,19 @@ public class ConsentServiceImpl implements ConsentService {
         Consent consent = (Consent) fhirConsentDtoModel.getResource();
 
         try {
-            if (consent.hasSourceAttachment())
+            if (consent.hasSourceAttachment()  && !consentDto.getStatus().equalsIgnoreCase("draft"))
                 consentDto.setSourceAttachment(consent.getSourceAttachment().getData());
-        } catch (FHIRException e) {
+            else
+                if(consentDto.getStatus().equalsIgnoreCase("draft"))
+            {
+                String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
+                PatientDto patientDto = patientService.getPatientById(patientID);
+                log.info("Generating consent PDF");
+                byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
+                consentDto.setSourceAttachment(pdfBytes);
+            }
+
+        } catch (FHIRException |IOException e) {
             log.error("No Consent document found");
             throw new NoDataFoundException("No Consent document found");
         }
