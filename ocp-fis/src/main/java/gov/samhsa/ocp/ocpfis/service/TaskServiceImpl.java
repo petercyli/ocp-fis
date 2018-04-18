@@ -139,10 +139,24 @@ public class TaskServiceImpl implements TaskService {
     public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<DateRangeEnum> filterDate) {
 
         // Generate the Query Based on Input Variables
-        IQuery iQuery = getTasksIQuery(practitioner, organization,patient, partOf);
+        IQuery ownerIQuery = getTasksIQuery(practitioner, organization, patient, partOf, "owner");
+        IQuery requesterIQuery = getTasksIQuery(practitioner, organization, patient, partOf, "requester");
 
         // Fetch Tasks and Map to TaskDtos if available
-        List<TaskDto> taskDtos = getTaskDtos(iQuery);
+        List<TaskDto> taskList = getTaskDtos(ownerIQuery);
+
+        List<TaskDto> taskListForRequester = getTaskDtos(requesterIQuery);
+        taskList.addAll(taskListForRequester);
+
+        //Add sub task
+        taskList.addAll(getSubTasks(taskList));
+
+        //Add main task
+        if (!getMainTaskIds(taskList).isEmpty()) {
+            taskList.addAll(getTaskDtos(fhirClient.search().forResource(Task.class).where(new TokenClientParam("_id").exactly().codes(getMainTaskIds(taskList)))));
+        }
+
+        List<TaskDto> taskDtos = taskList.stream().distinct().collect(toList());
 
         //Apply Filters Based on Input Variables
         taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos, filterDate);
@@ -452,7 +466,7 @@ public class TaskServiceImpl implements TaskService {
     private List<Bundle.BundleEntryComponent> getBundleForRelatedTask(String patient, Optional<String> organization) {
         IQuery taskQuery = fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(patient));
-        organization.ifPresent(org->taskQuery.where(new ReferenceClientParam("organization").hasId(org)));
+        organization.ifPresent(org -> taskQuery.where(new ReferenceClientParam("organization").hasId(org)));
 
         Bundle bundle = (Bundle) taskQuery
                 .returnBundle(Bundle.class).execute();
@@ -605,7 +619,7 @@ public class TaskServiceImpl implements TaskService {
         return taskDtos;
     }
 
-    private IQuery getTasksIQuery(Optional<String> practitionerId, Optional<String> organization, Optional<String> patientId, Optional<String> parentTaskId) {
+    private IQuery getTasksIQuery(Optional<String> practitionerId, Optional<String> organization, Optional<String> patientId, Optional<String> parentTaskId, String practitionerType) {
         IQuery iQuery = fhirClient.search().forResource(Task.class);
 
         //Get Sub tasks by parent task id
@@ -613,24 +627,37 @@ public class TaskServiceImpl implements TaskService {
             iQuery.where(new ReferenceClientParam("part-of").hasId(parentTaskId.get()));
         } else {
             //query the task and sub-task owned by specific practitioner
-            if (practitionerId.isPresent() && !patientId.isPresent()) {
-                iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()));
-            }
+            practitionerId.ifPresent(pr -> iQuery.where(new ReferenceClientParam(practitionerType).hasId(pr)));
 
             //query the task and sub-task for the specific patient
-            if (patientId.isPresent() && !practitionerId.isPresent()) {
-                iQuery.where(new ReferenceClientParam("patient").hasId(patientId.get()));
-            }
+            patientId.ifPresent(p -> iQuery.where(new ReferenceClientParam("patient").hasId(p)));
 
-            //query the task and sub-task owned by specific practitioner and for the specific patient
-            if (practitionerId.isPresent() && patientId.isPresent()) {
-                iQuery.where(new ReferenceClientParam("owner").hasId(practitionerId.get()))
-                        .where(new ReferenceClientParam("patient").hasId(patientId.get()));
-            }
-
-            organization.ifPresent(org->iQuery.where(new ReferenceClientParam("organization").hasId(org)));
+            //Query the task based on organization
+            organization.ifPresent(org -> iQuery.where(new ReferenceClientParam("organization").hasId(org)));
         }
         return iQuery;
+    }
+
+    private List<String> getMainTaskIds(List<TaskDto> taskDtos) {
+        return taskDtos.stream().filter(taskDto -> (taskDto.getPartOf() != null))
+                .filter(taskDto -> taskDto.getPartOf().getReference() != null)
+                .map(taskDto -> taskDto.getPartOf().getReference().split("/")[1])
+                .distinct()
+                .collect(toList());
+    }
+
+    private List<TaskDto> getSubTasks(List<TaskDto> taskDtos) {
+        List<TaskDto> taskDtoList = new ArrayList<>();
+        if (!getTaskReferences(taskDtos).isEmpty()) {
+            IQuery iQuery = fhirClient.search().forResource(Task.class)
+                    .where(new ReferenceClientParam("part-of").hasAnyOfIds(getTaskReferences(taskDtos)));
+            taskDtoList = getTaskDtos(iQuery);
+        }
+        return taskDtoList;
+    }
+
+    private List<String> getTaskReferences(List<TaskDto> taskDtos) {
+        return taskDtos.stream().map(taskDto -> taskDto.getLogicalId()).collect(toList());
     }
 
     private List<TaskDto> getTaskDtos(IQuery iQuery) {
