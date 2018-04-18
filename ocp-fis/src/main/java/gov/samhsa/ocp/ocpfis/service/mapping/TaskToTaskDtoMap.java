@@ -83,8 +83,8 @@ public class TaskToTaskDtoMap {
         if (task.hasRequester()) {
             if (task.getRequester().hasAgent())
                 taskDto.setAgent(ReferenceDto.builder()
-                        .reference((task.getRequester().getAgent().getReference() != null && !task.getRequester().getAgent().getReference().isEmpty()) ? task.getRequester().getOnBehalfOf().getReference() : null)
-                        .display((task.getRequester().getAgent().getDisplay() != null && !task.getRequester().getAgent().getDisplay().isEmpty()) ? task.getRequester().getOnBehalfOf().getDisplay() : null)
+                        .reference((task.getRequester().getAgent().getReference() != null && !task.getRequester().getAgent().getReference().isEmpty()) ? task.getRequester().getAgent().getReference() : null)
+                        .display((task.getRequester().getAgent().getDisplay() != null && !task.getRequester().getAgent().getDisplay().isEmpty()) ? task.getRequester().getAgent().getDisplay() : null)
                         .build());
         }
 
