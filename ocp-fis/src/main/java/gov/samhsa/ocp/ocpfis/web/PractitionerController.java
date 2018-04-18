@@ -32,13 +32,13 @@ public class PractitionerController {
     private PractitionerService practitionerService;
 
     @GetMapping("/search")
-    public PageDto<PractitionerDto> searchPractitioners(@RequestParam SearchType searchType, @RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
-        return practitionerService.searchPractitioners(searchType, searchValue, showInactive, page, size);
+    public PageDto<PractitionerDto> searchPractitioners(@RequestParam SearchType searchType, @RequestParam String searchValue,Optional<String> organization, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size,Optional<Boolean> showAll) {
+        return practitionerService.searchPractitioners(searchType, searchValue, organization, showInactive, page, size,showAll);
     }
 
-    @GetMapping
-    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam String practitioner) {
-        return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner);
+    @GetMapping("/practitioner-references")
+    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam Optional<String> practitioner,@RequestParam Optional<String> organization, @RequestParam Optional<String> role) {
+        return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner,organization,role);
     }
 
     @PostMapping
@@ -58,8 +58,8 @@ public class PractitionerController {
         practitionerService.updatePractitioner(practitionerId, practitionerDto);
     }
 
-    @GetMapping("/organization/{organizationId}")
-    public PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(@PathVariable("organizationId") String organization, @RequestParam Optional<String> role,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
+    @GetMapping
+    public PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(@RequestParam String organization, @RequestParam Optional<String> role,@RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size) {
         return practitionerService.getPractitionersByOrganizationAndRole(organization, role, page, size);
     }
 

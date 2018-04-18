@@ -64,7 +64,7 @@ public class RelatedPersonControllerTest {
         Integer pageNumber = 1;
         Integer pageSize = 10;
         //faced an issue passing actual values of searchKey and searchValue
-        Mockito.when(relatedPersonService.searchRelatedPersons(eq("1965"), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class))).thenReturn(pageDto);
+        Mockito.when(relatedPersonService.searchRelatedPersons(eq("1965"), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class),Mockito.any(Optional.class))).thenReturn(pageDto);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/related-persons/search?patientId=1965&showInactive=true&pageNumber=1&pageSize=10");

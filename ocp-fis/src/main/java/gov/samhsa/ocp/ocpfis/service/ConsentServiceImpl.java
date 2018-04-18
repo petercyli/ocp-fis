@@ -94,13 +94,7 @@ public class ConsentServiceImpl implements ConsentService {
         int numberOfConsentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Consent.name());
         Bundle firstPageConsentBundle;
         Bundle otherPageConsentBundle;
-        if (practitioner.isPresent() && patient.isPresent()) {
-            List<String> careTeamIds = getCareTeamIds(practitioner.get(), patient);
-            if (careTeamIds == null || (careTeamIds != null && careTeamIds.isEmpty())) {
-                log.info("Not a Care Team Member for the patient");
-                throw new ResourceNotFoundException("Not a Care Team Member for the patient");
-            }
-        }
+
         // Generate the Query Based on Input Variables
         IQuery iQuery = getConsentIQuery(patient, practitioner, status, generalDesignation);
 
@@ -112,7 +106,7 @@ public class ConsentServiceImpl implements ConsentService {
         firstPageConsentBundle = PaginationUtil.getSearchBundleFirstPage(iQuery, numberOfConsentsPerPage, Optional.empty());
 
         if (firstPageConsentBundle == null || firstPageConsentBundle.getEntry().isEmpty()) {
-            throw new ResourceNotFoundException("No Consents were found in the FHIR server.");
+            return new PageDto<>(new ArrayList<>(), numberOfConsentsPerPage, 0, 0, 0, 0);
         }
 
         log.info("FHIR Consent(s) bundle retrieved " + firstPageConsentBundle.getTotal() + " Consent(s) from FHIR server successfully");
@@ -265,20 +259,16 @@ public class ConsentServiceImpl implements ConsentService {
             iQuery.where(new TokenClientParam("status").exactly().code("active"));
         } else {
             //query with practitioner.
-            if (practitioner.isPresent() && !patient.isPresent()) {
-                iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIds(practitioner.get(), patient)));
-            }
+            practitioner.ifPresent(pr->{
+                if(!getCareTeamIdsFromPractitioner(pr).isEmpty()) {
+                    iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIdsFromPractitioner(pr)));
+                }else{
+                    throw new ResourceNotFoundException("Care Team Member cannot be found for the practitioner");
+                }
+            });
 
             //query with patient.
-            if (patient.isPresent() && !practitioner.isPresent()) {
-                iQuery.where(new ReferenceClientParam("patient").hasId(patient.get()));
-            }
-
-            //query with practitioner and patient.
-            if (practitioner.isPresent() && patient.isPresent()) {
-                iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIds(practitioner.get(), patient)))
-                        .where(new ReferenceClientParam("patient").hasId(patient.get()));
-            }
+            patient.ifPresent(pt-> iQuery.where(new ReferenceClientParam("patient").hasId(pt)));
 
             //Query with general designation.
             generalDesignation.ifPresent(gd -> {
@@ -511,12 +501,9 @@ public class ConsentServiceImpl implements ConsentService {
                 .execute();
     }
 
-    private List<String> getCareTeamIds(String practitioner, Optional<String> patient) {
+    private List<String> getCareTeamIdsFromPractitioner(String practitioner) {
         IQuery careTeamQuery = fhirClient.search().forResource(CareTeam.class)
                 .where(new ReferenceClientParam("participant").hasId(practitioner));
-
-        patient.ifPresent(patientId ->
-                careTeamQuery.where(new ReferenceClientParam("patient").hasId(patientId)));
 
         Bundle careTeamBundle = (Bundle) careTeamQuery.returnBundle(Bundle.class).execute();
 

@@ -16,6 +16,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.RelatedPersonToRelatedPersonDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.RelatedPersonDtoToRelatedPersonConverter;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
@@ -30,6 +31,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -47,7 +50,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     @Override
-    public PageDto<RelatedPersonDto> searchRelatedPersons(String patientId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<RelatedPersonDto> searchRelatedPersons(String patientId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize, Optional<Boolean> showAll) {
         int numberPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.RelatedPerson.name());
 
         IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class).where(new ReferenceClientParam("patient").hasId("Patient/" + patientId));
@@ -68,6 +71,11 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
         firstPageBundle = (Bundle) relatedPersonIQuery.count(numberPerPage).returnBundle(Bundle.class).execute();
 
+        if (showAll.isPresent() && showAll.get()) {
+            List<RelatedPersonDto> patientDtos = convertAllBundleToSingleRelatedPersonDtoList(firstPageBundle, numberPerPage);
+            return (PageDto<RelatedPersonDto>) PaginationUtil.applyPaginationForCustomArrayList(patientDtos, patientDtos.size(), Optional.of(1), false);
+        }
+
         if (firstPageBundle == null || firstPageBundle.getEntry().isEmpty()) {
             log.info("No RelatedPerson was found for the given criteria");
             return new PageDto<>(new ArrayList<>(), numberPerPage, 0, 0, 0, 0);
@@ -83,7 +91,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
         List<Bundle.BundleEntryComponent> relatedPersons = otherPageBundle.getEntry();
 
-        List<RelatedPersonDto> relatedPersonList = relatedPersons.stream().map(this::convertToRelatedPerson).collect(Collectors.toList());
+        List<RelatedPersonDto> relatedPersonList = relatedPersons.stream().map(this::convertToRelatedPerson).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageBundle.getTotal() / numberPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
@@ -166,6 +174,12 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
     private RelatedPersonDto convertToRelatedPerson(Bundle.BundleEntryComponent bundleEntryComponent) {
         return RelatedPersonToRelatedPersonDtoConverter.map((RelatedPerson) bundleEntryComponent.getResource());
+    }
+
+    private List<RelatedPersonDto> convertAllBundleToSingleRelatedPersonDtoList(Bundle firstPageSearchBundle, int numberOBundlePerPage) {
+        return  FhirUtil.getAllBundlesComponentIntoSingleList(firstPageSearchBundle, Optional.ofNullable(numberOBundlePerPage), fhirClient, fisProperties)
+                .stream().map(this::convertToRelatedPerson)
+                .collect(toList());
     }
 
 }

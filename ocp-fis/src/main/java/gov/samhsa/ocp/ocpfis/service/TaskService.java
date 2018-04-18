@@ -13,7 +13,7 @@ public interface TaskService {
 
     PageDto<TaskDto> getTasks(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 
-    List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<DateRangeEnum> filterDate);
+    List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<DateRangeEnum> filterDate);
 
     void createTask(TaskDto taskDto);
 

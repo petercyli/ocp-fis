@@ -37,26 +37,26 @@ public class ParticipantServiceImpl implements ParticipantService {
         this.relatedPersonService = relatedPersonService;
     }
 
-    public PageDto<ParticipantSearchDto> getAllParticipants(String patientId, ParticipantTypeEnum participantType, String value, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size) {
+    public PageDto<ParticipantSearchDto> getAllParticipants(String patientId, ParticipantTypeEnum participantType, String value, Optional<String> organization, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         final String typeCode = participantType.getCode();
 
         PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
 
         if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
-            PageDto<PractitionerDto> pageDto = practitionerService.searchPractitioners(PractitionerController.SearchType.name, value, showInActive, page, size);
+            PageDto<PractitionerDto> pageDto = practitionerService.searchPractitioners(PractitionerController.SearchType.name, value, organization,showInActive, page, size, showAll);
             participantsDto = convertPractitionersToParticipantsDto(pageDto, participantType);
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.organization.getCode())) {
-            PageDto<OrganizationDto> pageDto = organizationService.searchOrganizations(OrganizationController.SearchType.name, value, showInActive, page, size);
+            PageDto<OrganizationDto> pageDto = organizationService.searchOrganizations(OrganizationController.SearchType.name, value, showInActive, page, size,showAll);
             participantsDto = convertOrganizationsToParticipantsDto(pageDto, participantType);
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
             //refactor getPatientsByValue to match other apis
-            PageDto<PatientDto> pageDto = patientService.getPatientsByValue(value, "name", showInActive, page, size);
+            PageDto<PatientDto> pageDto = patientService.getPatientsByValue("name",value,organization, showInActive, page, size, showAll);
             participantsDto = convertPatientsToParticipantsDto(pageDto, participantType);
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
-            PageDto<RelatedPersonDto> pageDto = relatedPersonService.searchRelatedPersons(patientId, Optional.of("name"), Optional.of(value), showInActive, page, size);
+            PageDto<RelatedPersonDto> pageDto = relatedPersonService.searchRelatedPersons(patientId, Optional.of("name"), Optional.of(value), showInActive, page, size,showAll);
             participantsDto = convertRelatedPersonsToParticipantsDto(pageDto, participantType);
         }
 

@@ -14,7 +14,7 @@ public interface OrganizationService {
 
     PageDto<OrganizationDto> getAllOrganizations(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
 
-    PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
+    PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType searchType, String searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll);
 
     void createOrganization(OrganizationDto organizationDto);
 
