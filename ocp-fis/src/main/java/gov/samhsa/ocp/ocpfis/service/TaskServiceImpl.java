@@ -100,6 +100,8 @@ public class TaskServiceImpl implements TaskService {
             iQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         }
 
+        iQuery = FhirUtil.setNoCacheControlDirective(iQuery);
+
         Bundle firstPageTaskBundle;
         Bundle otherPageTaskBundle;
         boolean firstPage = true;
@@ -218,10 +220,14 @@ public class TaskServiceImpl implements TaskService {
 
     @Override
     public TaskDto getTaskById(String taskId) {
-        Bundle taskBundle = fhirClient.search().forResource(Task.class)
+
+        IQuery taskQuery = fhirClient.search().forResource(Task.class)
                 .where(new TokenClientParam("_id").exactly().code(taskId))
-                .include(Task.INCLUDE_CONTEXT)
-                .returnBundle(Bundle.class)
+                .include(Task.INCLUDE_CONTEXT);
+
+        taskQuery = FhirUtil.setNoCacheControlDirective(taskQuery);
+
+        Bundle taskBundle = (Bundle) taskQuery.returnBundle(Bundle.class)
                 .execute();
 
         TaskDto taskDto = new TaskDto();
@@ -308,9 +314,11 @@ public class TaskServiceImpl implements TaskService {
                 //Creating To-Do Task
                 Task task = FhirUtil.createToDoTask(patient, practitioner.get(), organization.get(), fhirClient, fisProperties);
 
-                Bundle activityDefinitionBundle = fhirClient.search().forResource(ActivityDefinition.class)
+                IQuery activityDefinitionQuery = fhirClient.search().forResource(ActivityDefinition.class)
                         .where(new StringClientParam("publisher").matches().value("Organization/" + organization.get()))
-                        .where(new StringClientParam("description").matches().value(TO_DO))
+                        .where(new StringClientParam("description").matches().value(TO_DO));
+
+                Bundle activityDefinitionBundle = (Bundle) FhirUtil.setNoCacheControlDirective(activityDefinitionQuery)
                         .returnBundle(Bundle.class)
                         .execute();
 
@@ -327,10 +335,13 @@ public class TaskServiceImpl implements TaskService {
                 }
 
                 //Look for episode of care
-                Bundle episodeOfCareBundle = (Bundle) fhirClient.search().forResource(EpisodeOfCare.class)
+                IQuery episodeOfCareQuery = fhirClient.search().forResource(EpisodeOfCare.class)
                         .where(new ReferenceClientParam("patient").hasId(patient))
                         .where(new ReferenceClientParam("organization").hasId("Organization/" + organization.get()))
-                        .where(new ReferenceClientParam("care-manager").hasId(practitioner.get()))
+                        .where(new ReferenceClientParam("care-manager").hasId(practitioner.get()));
+
+
+                Bundle episodeOfCareBundle = (Bundle) FhirUtil.setNoCacheControlDirective(episodeOfCareQuery)
                         .returnBundle(Bundle.class)
                         .execute();
 
@@ -468,20 +479,25 @@ public class TaskServiceImpl implements TaskService {
                 .where(new ReferenceClientParam("patient").hasId(patient));
         organization.ifPresent(org -> taskQuery.where(new ReferenceClientParam("organization").hasId(org)));
 
-        Bundle bundle = (Bundle) taskQuery
-                .returnBundle(Bundle.class).execute();
+        IQuery taskQueryNoCache = FhirUtil.setNoCacheControlDirective(taskQuery);
+
+        Bundle bundle = (Bundle) taskQueryNoCache
+                .returnBundle(Bundle.class)
+                .execute();
         return FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
     }
 
     private boolean isDuplicate(TaskDto taskDto) {
-        Bundle taskForPatientbundle = fhirClient.search().forResource(Task.class)
-                .where(new ReferenceClientParam("patient").hasId(taskDto.getBeneficiary().getReference()))
+        IQuery taskForPatientQuery = fhirClient.search().forResource(Task.class)
+                .where(new ReferenceClientParam("patient").hasId(taskDto.getBeneficiary().getReference()));
+
+        Bundle taskForPatientBundle = (Bundle) FhirUtil.setNoCacheControlDirective(taskForPatientQuery)
                 .returnBundle(Bundle.class)
                 .execute();
 
         List<Bundle.BundleEntryComponent> duplicateCheckList = new ArrayList<>();
-        if (!taskForPatientbundle.isEmpty()) {
-            duplicateCheckList = taskForPatientbundle.getEntry().stream().filter(taskResource -> {
+        if (!taskForPatientBundle.isEmpty()) {
+            duplicateCheckList = taskForPatientBundle.getEntry().stream().filter(taskResource -> {
                 boolean defCheck = Boolean.FALSE;
                 boolean statusCheck = Boolean.FALSE;
                 boolean isMainTask = Boolean.TRUE;
@@ -635,7 +651,10 @@ public class TaskServiceImpl implements TaskService {
             //Query the task based on organization
             organization.ifPresent(org -> iQuery.where(new ReferenceClientParam("organization").hasId(org)));
         }
-        return iQuery;
+
+        IQuery iQueryNoCache = FhirUtil.setNoCacheControlDirective(iQuery);
+
+        return iQueryNoCache;
     }
 
     private List<String> getMainTaskIds(List<TaskDto> taskDtos) {
