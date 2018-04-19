@@ -1,7 +1,9 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import ca.uhn.fhir.rest.api.CacheControlDirective;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
@@ -152,6 +154,13 @@ public class FhirUtil {
             log.error("Could NOT " + actionAndResourceName + " with Id: " + fhirResource.getIdElement().getIdPart());
             throw new FHIRClientException("FHIR Client returned with an error during" + actionAndResourceName + " : " + e.getMessage());
         }
+    }
+
+    public static IQuery setNoCacheControlDirective(IQuery searchQuery) {
+        final CacheControlDirective cacheControlDirective = new CacheControlDirective();
+        cacheControlDirective.setNoCache(true);
+        searchQuery.cacheControl(cacheControlDirective);
+        return searchQuery;
     }
 
     public static String getRoleFromCodeableConcept(CodeableConcept codeableConcept) {
