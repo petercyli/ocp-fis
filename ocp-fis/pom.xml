@@ -28,15 +28,10 @@
         <power-mock.version>1.6.5</power-mock.version>
         <lombok.version>1.16.18</lombok.version>
         <spring-cloud.version>Edgware.SR1</spring-cloud.version>
-        <c2s.common-libraries.version>2.1.0-b197</c2s.common-libraries.version>
+        <pdfbox.version>2.0.4</pdfbox.version>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>gov.samhsa.c2s</groupId>
-            <artifactId>pdfbox-enhance</artifactId>
-            <version>${c2s.common-libraries.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -122,6 +117,12 @@
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jdk8</artifactId>
+        </dependency>
+        <!-- PDF Box -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>${pdfbox.version}</version>
         </dependency>
     </dependencies>
 
