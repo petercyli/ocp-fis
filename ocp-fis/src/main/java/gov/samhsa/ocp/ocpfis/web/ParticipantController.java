@@ -30,7 +30,7 @@ public class ParticipantController {
     @GetMapping("/search")
     public PageDto<ParticipantSearchDto> getAllParticipants(@RequestParam(value = "patientId") String patientId,
                                                             @RequestParam(value = "member") ParticipantTypeEnum member,
-                                                            @RequestParam(value = "value") String value,
+                                                            @RequestParam(value = "value") Optional<String> value,
                                                             @RequestParam(value="organization") Optional<String> organization,
                                                             @RequestParam(value = "showInActive", defaultValue = "false") Optional<Boolean> showInActive,
                                                             @RequestParam(value = "page", required = false) Optional<Integer> page,
