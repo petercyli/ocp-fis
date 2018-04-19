@@ -163,6 +163,11 @@ public class FhirUtil {
         return searchQuery;
     }
 
+    public static IQuery searchNoCache(IGenericClient fhirClient, Class resourceType){
+        IQuery iQuery = fhirClient.search().forResource(resourceType);
+        return setNoCacheControlDirective(iQuery);
+    }
+
     public static String getRoleFromCodeableConcept(CodeableConcept codeableConcept) {
         Optional<Coding> codingRoleCode = codeableConcept.getCoding().stream().findFirst();
         return codingRoleCode.isPresent() ? codingRoleCode.get().getCode() : "";
