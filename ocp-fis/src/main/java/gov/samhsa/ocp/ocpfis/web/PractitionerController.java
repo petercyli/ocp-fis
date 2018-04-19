@@ -32,7 +32,7 @@ public class PractitionerController {
     private PractitionerService practitionerService;
 
     @GetMapping("/search")
-    public PageDto<PractitionerDto> searchPractitioners(@RequestParam SearchType searchType, @RequestParam String searchValue,Optional<String> organization, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size,Optional<Boolean> showAll) {
+    public PageDto<PractitionerDto> searchPractitioners(@RequestParam Optional<SearchType> searchType, @RequestParam Optional<String> searchValue,Optional<String> organization, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size,Optional<Boolean> showAll) {
         return practitionerService.searchPractitioners(searchType, searchValue, organization, showInactive, page, size,showAll);
     }
 
