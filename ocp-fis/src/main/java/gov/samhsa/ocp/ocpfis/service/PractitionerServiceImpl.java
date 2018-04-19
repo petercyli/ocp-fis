@@ -294,7 +294,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                             PractitionerDto practitionerDto = modelMapper.map(it, PractitionerDto.class);
                             practitionerDto.setLogicalId(it.getIdElement().getIdPart());
                             return practitionerDto;
-                        })
+                        }).distinct()
                         .collect(toList());
             }
         }
