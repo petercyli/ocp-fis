@@ -353,17 +353,10 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getLanguages() {
-        //Use temporary list of enums
-        //list to be provided by eversolve
         List<ValueSetDto> languageList;
-        List<LanguageEnum> languageEnums = Arrays.asList(LanguageEnum.values());
-
-        languageList = languageEnums.stream().map(object -> {
-            ValueSetDto temp = new ValueSetDto();
-            temp.setCode(object.getCode());
-            temp.setDisplay(object.getName());
-            return temp;
-        }).collect(Collectors.toList());
+        ValueSet response = getValueSets(LookupPathUrls.SIMPLE_LANGUAGE.getUrlPath(), LookupPathUrls.SIMPLE_LANGUAGE.getType());
+        List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
+        languageList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
         log.info("Found " + languageList.size() + " languages.");
         return languageList;
     }
