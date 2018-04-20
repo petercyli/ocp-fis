@@ -8,10 +8,13 @@ import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Period;
+import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -88,6 +91,11 @@ public class CareTeamDtoToCareTeamConverter {
 
 
         careTeam.setParticipant(participantsList);
+
+        //managingOrganization
+        Reference reference = new Reference();
+        reference.setReference(ResourceType.Organization + "/" + careTeamDto.getManagingOrganization());
+        careTeam.setManagingOrganization(Arrays.asList(reference));
 
         return careTeam;
     }
