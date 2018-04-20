@@ -47,4 +47,13 @@ public class CareTeamController {
     public CareTeamDto getCareTeamById(@PathVariable String careTeamId) {
         return careTeamService.getCareTeamById(careTeamId);
     }
+
+    @GetMapping
+    public PageDto<CareTeamDto> getCareTeamsByPatientAndOrganization(@RequestParam String patient,
+                                                      @RequestParam Optional<String> organization,
+                                                      @RequestParam Optional<List<String>> status,
+                                                      @RequestParam Optional<Integer> pageNumber,
+                                                      @RequestParam Optional<Integer> pageSize) {
+        return careTeamService.getCareTeamsByPatientAndOrganization(patient, organization, status, pageNumber, pageSize);
+    }
 }
