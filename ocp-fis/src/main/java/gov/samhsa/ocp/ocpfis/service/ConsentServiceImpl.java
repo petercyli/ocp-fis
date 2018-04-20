@@ -1,6 +1,5 @@
 package gov.samhsa.ocp.ocpfis.service;
 
-import ca.uhn.fhir.rest.api.CacheControlDirective;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
@@ -99,7 +98,7 @@ public class ConsentServiceImpl implements ConsentService {
         IQuery iQuery = getConsentIQuery(patient, practitioner, status, generalDesignation);
 
         // Disable caching to get latest data
-        iQuery = setNoCacheControlDirective(iQuery);
+        iQuery = FhirUtil.setNoCacheControlDirective(iQuery);
 
         //Apply Filters Based on Input Variables
 
@@ -129,10 +128,13 @@ public class ConsentServiceImpl implements ConsentService {
     @Override
     public ConsentDto getConsentsById(String consentId) {
         log.info("Searching for consentId: " + consentId);
-        Bundle consentBundle = fhirClient.search().forResource(Consent.class)
-                .where(new TokenClientParam("_id").exactly().code(consentId.trim()))
-                .returnBundle(Bundle.class)
-                .execute();
+        IQuery consentQuery = fhirClient.search().forResource(Consent.class)
+                .where(new TokenClientParam("_id").exactly().code(consentId.trim()));
+
+        consentQuery = FhirUtil.setNoCacheControlDirective(consentQuery);
+
+        Bundle consentBundle = (Bundle) consentQuery.returnBundle(Bundle.class)
+                                        .execute();
 
         if (consentBundle == null || consentBundle.getEntry().isEmpty()) {
             log.info("No consent was found for the given consentId:" + consentId);
@@ -231,11 +233,9 @@ public class ConsentServiceImpl implements ConsentService {
         Consent consent = (Consent) fhirConsentDtoModel.getResource();
 
         try {
-            if (consent.hasSourceAttachment()  && !consentDto.getStatus().equalsIgnoreCase("draft"))
+            if (consent.hasSourceAttachment() && !consentDto.getStatus().equalsIgnoreCase("draft"))
                 consentDto.setSourceAttachment(consent.getSourceAttachment().getData());
-            else
-                if(consentDto.getStatus().equalsIgnoreCase("draft"))
-            {
+            else if (consentDto.getStatus().equalsIgnoreCase("draft")) {
                 String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
                 PatientDto patientDto = patientService.getPatientById(patientID);
                 log.info("Generating consent PDF");
@@ -243,7 +243,7 @@ public class ConsentServiceImpl implements ConsentService {
                 consentDto.setSourceAttachment(pdfBytes);
             }
 
-        } catch (FHIRException |IOException e) {
+        } catch (FHIRException | IOException e) {
             log.error("No Consent document found");
             throw new NoDataFoundException("No Consent document found");
         }
@@ -259,16 +259,16 @@ public class ConsentServiceImpl implements ConsentService {
             iQuery.where(new TokenClientParam("status").exactly().code("active"));
         } else {
             //query with practitioner.
-            practitioner.ifPresent(pr->{
-                if(!getCareTeamIdsFromPractitioner(pr).isEmpty()) {
+            practitioner.ifPresent(pr -> {
+                if (!getCareTeamIdsFromPractitioner(pr).isEmpty()) {
                     iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIdsFromPractitioner(pr)));
-                }else{
+                } else {
                     throw new ResourceNotFoundException("Care Team Member cannot be found for the practitioner");
                 }
             });
 
             //query with patient.
-            patient.ifPresent(pt-> iQuery.where(new ReferenceClientParam("patient").hasId(pt)));
+            patient.ifPresent(pt -> iQuery.where(new ReferenceClientParam("patient").hasId(pt)));
 
             //Query with general designation.
             generalDesignation.ifPresent(gd -> {
@@ -513,13 +513,6 @@ public class ConsentServiceImpl implements ConsentService {
         }).collect(Collectors.toList());
 
         return careTeamIds;
-    }
-
-    private IQuery setNoCacheControlDirective(IQuery searchQuery) {
-        final CacheControlDirective cacheControlDirective = new CacheControlDirective();
-        cacheControlDirective.setNoCache(true);
-        searchQuery.cacheControl(cacheControlDirective);
-        return searchQuery;
     }
 
 }
