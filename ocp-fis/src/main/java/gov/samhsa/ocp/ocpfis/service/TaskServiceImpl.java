@@ -163,6 +163,10 @@ public class TaskServiceImpl implements TaskService {
         //Apply Filters Based on Input Variables
         taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos, filterDate);
 
+        TaskDto toDoTaskDto = getToDoTaskDto(practitioner, patient, organization, definition);
+
+        taskDtos.add(toDoTaskDto);
+
         return taskDtos;
     }
 
@@ -697,5 +701,16 @@ public class TaskServiceImpl implements TaskService {
                     Task task = (Task) retrievedTask.getResource();
                     return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());
                 }).collect(toList());
+    }
+
+    private TaskDto getToDoTaskDto(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition) {
+        List<ReferenceDto> referenceDtos = getRelatedTasks(patient.get(), definition, practitioner, organization);
+
+        //always present
+        ReferenceDto referenceDto = referenceDtos.stream().findFirst().get();
+
+        String taskId = FhirDtoUtil.getIdFromReferenceDto(referenceDto, ResourceType.Task);
+
+        return getTaskById(taskId);
     }
 }
