@@ -25,6 +25,7 @@ import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Enumerations;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.RelatedArtifact;
 import org.hl7.fhir.dstu3.model.RelatedArtifact.RelatedArtifactType;
 import org.hl7.fhir.dstu3.model.ResourceType;
@@ -125,6 +126,11 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
         Bundle.BundleEntryComponent component = bundle.getEntry().get(0);
         return convertActivityDefinitionBundleEntryToActivityDefinitionDto(component);
+    }
+
+    @Override
+    public void deleteResource(String resource, String value) {
+        fhirClient.delete().resourceConditionalByType(resource).where(new TokenClientParam("_id").exactly().code(value)).execute();
     }
 
 

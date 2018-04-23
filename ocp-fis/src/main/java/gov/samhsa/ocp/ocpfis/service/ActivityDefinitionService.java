@@ -16,4 +16,6 @@ public interface ActivityDefinitionService {
     List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner);
 
     ActivityDefinitionDto getActivityDefinitionById(String id);
+
+    void deleteResource(String resource,String value);
 }

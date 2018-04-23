@@ -5,6 +5,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,5 +40,10 @@ public class ActivityDefinitionController {
     @GetMapping("/activity-definitions")
     public List<ReferenceDto> getActivityDefinitionsByPractitioner(@RequestParam(value = "practitioner") String practitioner) {
         return activityDefinitionService.getActivityDefinitionsByPractitioner(practitioner);
+    }
+
+    @DeleteMapping("/delete/{resource}/{value}")
+    public void delete(@PathVariable String resource, @PathVariable String value){
+         activityDefinitionService.deleteResource(resource,value);
     }
 }
