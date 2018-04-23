@@ -119,19 +119,22 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public PageDto<OrganizationDto> searchOrganizations(OrganizationController.SearchType type, String value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size,Optional<Boolean> showAll) {
+    public PageDto<OrganizationDto> searchOrganizations(Optional<OrganizationController.SearchType> type, Optional<String> value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size,Optional<Boolean> showAll) {
         int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Organization.name());
 
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
 
-        if (type.equals(OrganizationController.SearchType.name))
-            organizationIQuery.where(new RichStringClientParam("name").contains().value(value.trim()));
+        type.ifPresent(t->{
+            if (t.equals(OrganizationController.SearchType.name))
+                value.ifPresent(v->organizationIQuery.where(new RichStringClientParam("name").contains().value(v.trim())));
 
-        if (type.equals(OrganizationController.SearchType.identifier))
-            organizationIQuery.where(new TokenClientParam("identifier").exactly().code(value));
+            if (t.equals(OrganizationController.SearchType.identifier))
+                value.ifPresent(v->organizationIQuery.where(new TokenClientParam("identifier").exactly().code(v)));
 
-        if (type.equals(OrganizationController.SearchType.logicalId))
-            organizationIQuery.where(new TokenClientParam("_id").exactly().code(value));
+            if (t.equals(OrganizationController.SearchType.logicalId))
+                value.ifPresent(v->organizationIQuery.where(new TokenClientParam("_id").exactly().code(v)));
+            }
+        );
 
         if (showInactive.isPresent()) {
             if (!showInactive.get())

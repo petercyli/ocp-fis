@@ -102,6 +102,9 @@ public class CareTeamToCareTeamDtoConverter {
 
         careTeamDto.setParticipants(participantDtos);
 
+        //managingOrganization
+        careTeam.getManagingOrganization().stream().findFirst().ifPresent(x -> careTeamDto.setManagingOrganization(x.getReference()));
+
         return careTeamDto;
     }
 

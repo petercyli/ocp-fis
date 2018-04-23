@@ -1,6 +1,5 @@
 package gov.samhsa.ocp.ocpfis.service;
 
-import ca.uhn.fhir.rest.api.CacheControlDirective;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
@@ -95,7 +94,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<ReferenceDto> participantsByRoles = new ArrayList<>();
         List<ParticipantReferenceDto> participantsSelected = new ArrayList<>();
 
-        Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
+        Bundle careTeamBundle = (Bundle) FhirUtil.searchNoCache(fhirClient,CareTeam.class)
                 .where(new ReferenceClientParam("patient").hasId(patientId.trim()))
                 .include(CareTeam.INCLUDE_PARTICIPANT)
                 .returnBundle(Bundle.class).execute();
@@ -139,7 +138,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public AppointmentDto getAppointmentById(String appointmentId) {
         log.info("Searching for appointmentId: " + appointmentId);
-        Bundle appointmentBundle = fhirClient.search().forResource(Appointment.class)
+
+        Bundle appointmentBundle = (Bundle) FhirUtil.searchNoCache(fhirClient, Appointment.class)
                 .where(new TokenClientParam("_id").exactly().code(appointmentId.trim()))
                 .returnBundle(Bundle.class)
                 .execute();
@@ -170,7 +170,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Bundle otherPageAppointmentBundle;
         boolean firstPage = true;
 
-        IQuery iQuery = fhirClient.search().forResource(Appointment.class);
+        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class);
 
         if (patientId.isPresent()) {
             log.info("Searching Appointments for patientId = " + patientId.get().trim());
@@ -191,9 +191,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         //Check sort order
         iQuery = addSortConditions(iQuery, sortByStartTimeAsc);
-
-        // Disable caching to get latest data
-        iQuery = setNoCacheControlDirective(iQuery);
 
         firstPageAppointmentBundle = PaginationUtil.getSearchBundleFirstPage(iQuery, numberOfAppointmentsPerPage, Optional.empty());
 
@@ -287,13 +284,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         return searchQuery;
     }
 
-    private IQuery setNoCacheControlDirective(IQuery searchQuery) {
-        final CacheControlDirective cacheControlDirective = new CacheControlDirective();
-        cacheControlDirective.setNoCache(true);
-        searchQuery.cacheControl(cacheControlDirective);
-        return searchQuery;
-    }
-
     private void validateAppointDtoFromRequest(AppointmentDto appointmentDto) {
         log.info("Validating appointment request DTO");
         String missingFields = "";
@@ -331,7 +321,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     public List<String> getParticipantsByPatientAndAppointmentId(String patientId, String appointmentId) {
         List<String> participantIds = new ArrayList<>();
 
-        Bundle bundle = fhirClient.search().forResource(Appointment.class)
+        Bundle bundle = (Bundle) FhirUtil.searchNoCache(fhirClient,Appointment.class)
                 .where(new ReferenceClientParam("patient").hasId(patientId))
                 .where(new TokenClientParam("_id").exactly().code(appointmentId))
                 .include(Appointment.INCLUDE_PATIENT)

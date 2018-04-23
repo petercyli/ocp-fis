@@ -21,4 +21,6 @@ public interface CareTeamService {
     List<ParticipantReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles, Optional<String> communication);
 
     List<ReferenceDto> getPatientsInCareTeamsByPractitioner(String practitioner);
+
+    PageDto<CareTeamDto> getCareTeamsByPatientAndOrganization(String patient, Optional<String> organization, Optional<List<String>> status, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 }

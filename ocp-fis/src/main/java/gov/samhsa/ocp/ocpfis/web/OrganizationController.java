@@ -42,7 +42,7 @@ public class OrganizationController {
     }
 
     @GetMapping("/search")
-    public PageDto<OrganizationDto> searchOrganizations(@RequestParam SearchType searchType, @RequestParam String searchValue, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size,Optional<Boolean> showAll) {
+    public PageDto<OrganizationDto> searchOrganizations(@RequestParam Optional<SearchType> searchType, @RequestParam Optional<String> searchValue, @RequestParam Optional<Boolean> showInactive, @RequestParam Optional<Integer> page, @RequestParam Optional<Integer> size, Optional<Boolean> showAll) {
         return organizationService.searchOrganizations(searchType, searchValue, showInactive, page, size, showAll);
     }
 
