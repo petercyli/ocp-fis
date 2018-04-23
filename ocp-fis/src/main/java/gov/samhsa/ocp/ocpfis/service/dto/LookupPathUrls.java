@@ -82,7 +82,7 @@ public enum LookupPathUrls {
         static final String TELECOM_USE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/contact-point-use";
         static final String TELECOM_SYSTEM_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/contact-point-system";
         static final String PRACTITIONER_ROLE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/practitioner-role";
-        static final String BIRTH_SEX_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/us/core/ValueSet/us-core-birthsex";
+        static final String BIRTH_SEX_PATH = "/ValueSet/us-core-birthsex";
         static final String HEALTHCARE_SERVICE_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-type";
         static final String HEALTHCARE_SERVICE_CATEGORY_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/service-category";
         static final String HEALTHCARE_SERVICE_SPECIALITY_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/c80-practice-codes";
