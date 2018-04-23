@@ -346,7 +346,7 @@ public class LookUpServiceImpl implements LookUpService {
         ValueSet response = getValueSets(LookupPathUrls.BIRTH_SEX.getUrlPath(), LookupPathUrls.BIRTH_SEX.getType());
         List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
         birthSexList= valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + birthSexList.size() + " languages.");
+        log.info("Found " + birthSexList.size() + " birth sex.");
         return birthSexList;
 
     }
