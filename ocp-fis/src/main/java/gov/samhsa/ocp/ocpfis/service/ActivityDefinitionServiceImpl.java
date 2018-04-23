@@ -129,12 +129,6 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     }
 
     @Override
-    public void deleteResource(String resource, String value) {
-        fhirClient.delete().resourceConditionalByType(resource).where(new TokenClientParam("_id").exactly().code(value)).execute();
-    }
-
-
-    @Override
     public void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId) {
         if (!isDuplicate(activityDefinitionDto, organizationId)) {
             ActivityDefinition activityDefinition = new ActivityDefinition();

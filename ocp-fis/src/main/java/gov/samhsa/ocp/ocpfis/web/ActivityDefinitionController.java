@@ -41,9 +41,4 @@ public class ActivityDefinitionController {
     public List<ReferenceDto> getActivityDefinitionsByPractitioner(@RequestParam(value = "practitioner") String practitioner) {
         return activityDefinitionService.getActivityDefinitionsByPractitioner(practitioner);
     }
-
-    @DeleteMapping("/delete/{resource}/{value}")
-    public void delete(@PathVariable String resource, @PathVariable String value){
-         activityDefinitionService.deleteResource(resource,value);
-    }
 }
