@@ -83,7 +83,7 @@ public class LocationController {
         return locationService.getChildLocation(locationId);
     }
 
-    @PostMapping("/organization/{organizationId}/location")
+    @PostMapping("/organization/{organizationId}/locations")
     @ResponseStatus(HttpStatus.CREATED)
     public void createLocation(@PathVariable String organizationId,
                                @Valid @RequestBody LocationDto locationDto) {
@@ -91,7 +91,7 @@ public class LocationController {
 
     }
 
-    @PutMapping("/organization/{organizationId}/location/{locationId}")
+    @PutMapping("/organization/{organizationId}/locations/{locationId}")
     @ResponseStatus(HttpStatus.OK)
     public void updateLocation(@PathVariable String organizationId,
                                @PathVariable String locationId,
@@ -100,7 +100,7 @@ public class LocationController {
 
     }
 
-    @PutMapping("/location/{locationId}/inactive")
+    @PutMapping("/locations/{locationId}/inactive")
     @ResponseStatus(HttpStatus.OK)
     public void inactivateLocation(@PathVariable String locationId) {
         locationService.inactivateLocation(locationId);
