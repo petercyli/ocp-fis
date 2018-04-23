@@ -8,6 +8,6 @@ import java.util.Optional;
 
 public interface ParticipantService {
 
-    PageDto<ParticipantSearchDto> getAllParticipants(String patientId, ParticipantTypeEnum participantType, String value, Optional<String> organization, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll);
+    PageDto<ParticipantSearchDto> getAllParticipants(String patientId, ParticipantTypeEnum participantType, Optional<String> value, Optional<String> organization, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll);
 
 }

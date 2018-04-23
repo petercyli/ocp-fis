@@ -16,7 +16,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
-import gov.samhsa.ocp.ocpfis.service.exception.PractitionerNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PractitionerRoleNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
@@ -116,59 +115,61 @@ public class PractitionerServiceImpl implements PractitionerService {
 
 
     @Override
-    public PageDto<PractitionerDto> searchPractitioners(PractitionerController.SearchType type, String value, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
+    public PageDto<PractitionerDto> searchPractitioners(Optional<PractitionerController.SearchType> type, Optional<String> value, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Practitioner.name());
-            IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
-            boolean firstPage = true;
+        IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
+        boolean firstPage = true;
+        type.ifPresent(t -> {
+                    if (t.equals(PractitionerController.SearchType.name))
+                        value.ifPresent(v -> practitionerIQuery.where(new RichStringClientParam("name").contains().value(v.trim())));
 
-            if (type.equals(PractitionerController.SearchType.name))
-                practitionerIQuery.where(new RichStringClientParam("name").contains().value(value.trim()));
-
-            if (type.equals(PractitionerController.SearchType.identifier))
-                practitionerIQuery.where(new TokenClientParam("identifier").exactly().code(value.trim()));
-
-            if(organization.isPresent()){
-                if(!practitionersFromOrg(organization.get()).isEmpty()){
-                    practitionerIQuery.where(new TokenClientParam("_id").exactly().codes(practitionersFromOrg(organization.get())));
-                }else{
-                    return new PageDto<>(new ArrayList<>(), numberOfPractitionersPerPage, 0, 0, 0, 0);
+                    if (t.equals(PractitionerController.SearchType.identifier))
+                        value.ifPresent(v -> practitionerIQuery.where(new TokenClientParam("identifier").exactly().code(v.trim())));
                 }
-            }
+        );
 
-            if (showInactive.isPresent()) {
-                if (!showInactive.get())
-                    practitionerIQuery.where(new TokenClientParam("active").exactly().code("true"));
+        if (organization.isPresent()) {
+            if (!practitionersFromOrg(organization.get()).isEmpty()) {
+                practitionerIQuery.where(new TokenClientParam("_id").exactly().codes(practitionersFromOrg(organization.get())));
             } else {
-                practitionerIQuery.where(new TokenClientParam("active").exactly().code("true"));
+                return new PageDto<>(new ArrayList<>(), numberOfPractitionersPerPage, 0, 0, 0, 0);
             }
+        }
 
-            Bundle firstPagePractitionerSearchBundle;
-            Bundle otherPagePractitionerSearchBundle;
+        if (showInactive.isPresent()) {
+            if (!showInactive.get())
+                practitionerIQuery.where(new TokenClientParam("active").exactly().code("true"));
+        } else {
+            practitionerIQuery.where(new TokenClientParam("active").exactly().code("true"));
+        }
 
-            firstPagePractitionerSearchBundle = (Bundle) practitionerIQuery.count(numberOfPractitionersPerPage)
-                    .revInclude(PractitionerRole.INCLUDE_PRACTITIONER)
-                    .returnBundle(Bundle.class)
-                    .execute();
+        Bundle firstPagePractitionerSearchBundle;
+        Bundle otherPagePractitionerSearchBundle;
+
+        firstPagePractitionerSearchBundle = (Bundle) practitionerIQuery.count(numberOfPractitionersPerPage)
+                .revInclude(PractitionerRole.INCLUDE_PRACTITIONER)
+                .returnBundle(Bundle.class)
+                .execute();
 
         if (showAll.isPresent() && showAll.get()) {
             List<PractitionerDto> patientDtos = convertAllBundleToSinglePractitionerDtoList(firstPagePractitionerSearchBundle, numberOfPractitionersPerPage);
             return (PageDto<PractitionerDto>) PaginationUtil.applyPaginationForCustomArrayList(patientDtos, patientDtos.size(), Optional.of(1), false);
         }
 
-            if (firstPagePractitionerSearchBundle == null || firstPagePractitionerSearchBundle.isEmpty() || firstPagePractitionerSearchBundle.getEntry().size() < 1) {
-                return new PageDto<>(new ArrayList<>(), numberOfPractitionersPerPage, 0, 0, 0, 0);
-            }
+        if (firstPagePractitionerSearchBundle == null || firstPagePractitionerSearchBundle.isEmpty() || firstPagePractitionerSearchBundle.getEntry().size() < 1) {
+            return new PageDto<>(new ArrayList<>(), numberOfPractitionersPerPage, 0, 0, 0, 0);
+        }
 
-            otherPagePractitionerSearchBundle = firstPagePractitionerSearchBundle;
+        otherPagePractitionerSearchBundle = firstPagePractitionerSearchBundle;
 
-            if (page.isPresent() && page.get() > 1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
-                firstPage = false;
-                otherPagePractitionerSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
-            }
+        if (page.isPresent() && page.get() > 1 && otherPagePractitionerSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
+            firstPage = false;
+            otherPagePractitionerSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPagePractitionerSearchBundle, page.get(), numberOfPractitionersPerPage);
+        }
 
-            List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerSearchBundle.getEntry();
+        List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerSearchBundle.getEntry();
 
-            return practitionersInPage(retrievedPractitioners, otherPagePractitionerSearchBundle, numberOfPractitionersPerPage, firstPage, page);
+        return practitionersInPage(retrievedPractitioners, otherPagePractitionerSearchBundle, numberOfPractitionersPerPage, firstPage, page);
     }
 
     @Override
@@ -178,11 +179,11 @@ public class PractitionerServiceImpl implements PractitionerService {
             IQuery iQuery = fhirClient.search().forResource(PractitionerRole.class)
                     .where(new ReferenceClientParam("organization").hasId(organization.get()));
 
-            role.ifPresent(r->{
+            role.ifPresent(r -> {
                 iQuery.where(new TokenClientParam("role").exactly().code(r));
             });
 
-            Bundle bundle= (Bundle) iQuery.include(PractitionerRole.INCLUDE_PRACTITIONER)
+            Bundle bundle = (Bundle) iQuery.include(PractitionerRole.INCLUDE_PRACTITIONER)
                     .returnBundle(Bundle.class).execute();
 
             if (bundle != null && !bundle.getEntry().isEmpty()) {
@@ -210,11 +211,11 @@ public class PractitionerServiceImpl implements PractitionerService {
             IQuery iQuery = fhirClient.search().forResource(PractitionerRole.class)
                     .where(new ReferenceClientParam("practitioner").hasId(ResourceType.Practitioner + "/" + practitioner.get()));
 
-            role.ifPresent(r->{
+            role.ifPresent(r -> {
                 iQuery.where(new TokenClientParam("role").exactly().code(r));
             });
 
-            Bundle bundle= (Bundle) iQuery.include(PractitionerRole.INCLUDE_ORGANIZATION)
+            Bundle bundle = (Bundle) iQuery.include(PractitionerRole.INCLUDE_ORGANIZATION)
                     .returnBundle(Bundle.class).execute();
 
             if (bundle != null) {
@@ -294,7 +295,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                             PractitionerDto practitionerDto = modelMapper.map(it, PractitionerDto.class);
                             practitionerDto.setLogicalId(it.getIdElement().getIdPart());
                             return practitionerDto;
-                        })
+                        }).distinct()
                         .collect(toList());
             }
         }
@@ -464,7 +465,7 @@ public class PractitionerServiceImpl implements PractitionerService {
     private PageDto<PractitionerDto> practitionersInPage(List<Bundle.BundleEntryComponent> retrievedPractitioners, Bundle otherPagePractitionerBundle, int numberOfPractitionersPerPage, boolean firstPage, Optional<Integer> page) {
         List<PractitionerDto> practitionersList = retrievedPractitioners.stream()
                 .filter(retrievedPractitionerAndPractitionerRoles -> retrievedPractitionerAndPractitionerRoles.getResource().getResourceType().equals(ResourceType.Practitioner))
-                .map(retrievedPractitioner -> covertEntryComponentToPractitioner(retrievedPractitioner,retrievedPractitioners))
+                .map(retrievedPractitioner -> covertEntryComponentToPractitioner(retrievedPractitioner, retrievedPractitioners))
                 .collect(toList());
 
         double totalPages = Math.ceil((double) otherPagePractitionerBundle.getTotal() / numberOfPractitionersPerPage);
@@ -503,25 +504,25 @@ public class PractitionerServiceImpl implements PractitionerService {
                 .orElseThrow(PractitionerRoleNotFoundException::new);
     }
 
-    private List<String> practitionersFromOrg(String org){
-        Bundle bundle=fhirClient.search().forResource(PractitionerRole.class)
-                .where(new ReferenceClientParam("organization").hasId("Organization/"+org))
+    private List<String> practitionersFromOrg(String org) {
+        Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+                .where(new ReferenceClientParam("organization").hasId("Organization/" + org))
                 .returnBundle(Bundle.class)
                 .execute();
-        return FhirUtil.getAllBundlesComponentIntoSingleList(bundle,Optional.empty(),fhirClient,fisProperties)
-                .stream().map(pr->{
-                   PractitionerRole practitionerRole= (PractitionerRole) pr.getResource();
-                   return practitionerRole.getPractitioner().getReference().split("/")[1];
+        return FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties)
+                .stream().map(pr -> {
+                    PractitionerRole practitionerRole = (PractitionerRole) pr.getResource();
+                    return practitionerRole.getPractitioner().getReference().split("/")[1];
                 }).collect(toList());
     }
 
-    private List<PractitionerDto> convertAllBundleToSinglePractitionerDtoList(Bundle firstPageSearchBundle, int numberOfBundlePerPage){
-       List<Bundle.BundleEntryComponent> bundleEntryComponents= FhirUtil.getAllBundlesComponentIntoSingleList(firstPageSearchBundle,Optional.ofNullable(numberOfBundlePerPage),fhirClient,fisProperties);
-        return   bundleEntryComponents.stream().filter(pr -> pr.getResource().getResourceType().equals(ResourceType.Practitioner))
-                .map(prac->this.covertEntryComponentToPractitioner(prac,bundleEntryComponents)).collect(toList());
+    private List<PractitionerDto> convertAllBundleToSinglePractitionerDtoList(Bundle firstPageSearchBundle, int numberOfBundlePerPage) {
+        List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundlesComponentIntoSingleList(firstPageSearchBundle, Optional.ofNullable(numberOfBundlePerPage), fhirClient, fisProperties);
+        return bundleEntryComponents.stream().filter(pr -> pr.getResource().getResourceType().equals(ResourceType.Practitioner))
+                .map(prac -> this.covertEntryComponentToPractitioner(prac, bundleEntryComponents)).collect(toList());
     }
 
-    private PractitionerDto covertEntryComponentToPractitioner(Bundle.BundleEntryComponent practitionerComponent, List<Bundle.BundleEntryComponent> practitionerAndPractitionerRoleList){
+    private PractitionerDto covertEntryComponentToPractitioner(Bundle.BundleEntryComponent practitionerComponent, List<Bundle.BundleEntryComponent> practitionerAndPractitionerRoleList) {
         PractitionerDto practitionerDto = modelMapper.map(practitionerComponent.getResource(), PractitionerDto.class);
         practitionerDto.setLogicalId(practitionerComponent.getResource().getIdElement().getIdPart());
         //Getting practitioner role into practitioner dto
