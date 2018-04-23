@@ -9,9 +9,9 @@ import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.CareTeamFieldEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
@@ -137,9 +137,14 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         List<Bundle.BundleEntryComponent> retrievedCareTeamMembers = otherPageCareTeamBundle.getEntry();
 
+        List<CareTeam> careTeams =  retrievedCareTeamMembers
+                .stream()
+                .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.CareTeam))
+                .map(retrievedCareTeamMember -> (CareTeam) retrievedCareTeamMember.getResource())
+                .collect(toList());
 
-        List<CareTeamDto> careTeamDtos = retrievedCareTeamMembers.stream().filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.CareTeam)).map(retrievedCareTeamMember -> {
-            CareTeam careTeam = (CareTeam) retrievedCareTeamMember.getResource();
+        List<CareTeamDto> careTeamDtos = careTeams.stream().map(careTeam -> {
+
             CareTeamDto careTeamDto = new CareTeamDto();
             careTeamDto.setId(careTeam.getIdElement().getIdPart());
             careTeamDto.setName((careTeam.getName() != null && !careTeam.getName().isEmpty()) ? careTeam.getName() : null);
@@ -345,27 +350,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         CareTeam careTeam = (CareTeam) careTeamBundle.getEntry().get(0).getResource();
 
-        final CareTeamDto careTeamDto = CareTeamToCareTeamDtoConverter.map(careTeam);
-
-        if (careTeamDto.getStatusCode() != null) {
-            careTeamDto.setStatusDisplay((FhirDtoUtil.getDisplayForCode(careTeamDto.getStatusCode(), Optional.ofNullable(lookUpService.getCareTeamStatuses()))).orElse(null));
-        }
-
-        if (careTeamDto.getCategoryCode() != null) {
-            careTeamDto.setCategoryDisplay((FhirDtoUtil.getDisplayForCode(careTeamDto.getCategoryCode(), Optional.ofNullable(lookUpService.getCareTeamCategories()))).orElse(null));
-        }
-
-        if (careTeamDto.getReasonCode() != null) {
-            careTeamDto.setReasonDisplay((FhirDtoUtil.getDisplayForCode(careTeamDto.getReasonCode(), Optional.ofNullable(lookUpService.getCareTeamReasons()))).orElse(null));
-        }
-
-        for (ParticipantDto dto : careTeamDto.getParticipants()) {
-            if (dto.getRoleCode() != null) {
-                dto.setRoleDisplay((FhirDtoUtil.getDisplayForCode(dto.getRoleCode(), Optional.ofNullable(lookUpService.getParticipantRoles()))).orElse(null));
-            }
-        }
-
-        return careTeamDto;
+        return convertCareTeamToCareTeamDto(careTeam);
     }
 
     @Override
@@ -395,6 +380,67 @@ public class CareTeamServiceImpl implements CareTeamService {
         return patients;
     }
 
+    public PageDto<CareTeamDto> getCareTeamsByPatientAndOrganization(String patient, Optional<String> organization, Optional<List<String>> status, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfCareTeamsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.CareTeam.name());
+
+        IQuery iQuery = fhirClient.search().forResource(CareTeam.class)
+                .where(new ReferenceClientParam("patient").hasId(patient))
+                .include(CareTeam.INCLUDE_SUBJECT)
+                .include(CareTeam.INCLUDE_PARTICIPANT);
+
+        if (status.isPresent() && !status.get().isEmpty()) {
+            iQuery.where(new TokenClientParam("status").exactly().codes(status.get()));
+        }
+
+        Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
+
+        List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
+
+        List<CareTeam> careTeams = components.stream()
+                    .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
+                    .map(it -> (CareTeam) it.getResource())
+                    .filter(it -> {
+                        if(organization.isPresent()) {
+                            List<Reference> managingOrganizations = it.getManagingOrganization();
+                            return managingOrganizations.stream().anyMatch(managingOrganization -> managingOrganization.getReference().contains(organization.get()));
+                        } else {
+                            //do not filter
+                            return true;
+                        }
+                    })
+                    .collect(toList());
+
+        List<CareTeamDto> careTeamDtos = careTeams.stream()
+                .map(it -> convertCareTeamToCareTeamDto(it))
+                .collect(toList());
+
+        return (PageDto<CareTeamDto>) PaginationUtil.applyPaginationForCustomArrayList(careTeamDtos, numberOfCareTeamsPerPage, pageNumber, false);
+    }
+
+    private CareTeamDto convertCareTeamToCareTeamDto(CareTeam careTeam) {
+        final CareTeamDto careTeamDto = CareTeamToCareTeamDtoConverter.map(careTeam);
+
+        if (careTeamDto.getStatusCode() != null) {
+            careTeamDto.setStatusDisplay((FhirDtoUtil.getDisplayForCode(careTeamDto.getStatusCode(), Optional.ofNullable(lookUpService.getCareTeamStatuses()))).orElse(null));
+        }
+
+        if (careTeamDto.getCategoryCode() != null) {
+            careTeamDto.setCategoryDisplay((FhirDtoUtil.getDisplayForCode(careTeamDto.getCategoryCode(), Optional.ofNullable(lookUpService.getCareTeamCategories()))).orElse(null));
+        }
+
+        if (careTeamDto.getReasonCode() != null) {
+            careTeamDto.setReasonDisplay((FhirDtoUtil.getDisplayForCode(careTeamDto.getReasonCode(), Optional.ofNullable(lookUpService.getCareTeamReasons()))).orElse(null));
+        }
+
+        for (ParticipantDto dto : careTeamDto.getParticipants()) {
+            if (dto.getRoleCode() != null) {
+                dto.setRoleDisplay((FhirDtoUtil.getDisplayForCode(dto.getRoleCode(), Optional.ofNullable(lookUpService.getParticipantRoles()))).orElse(null));
+            }
+        }
+
+        return careTeamDto;
+    }
+
     private boolean checkIfParticipantIsCareManager(List<CareTeam.CareTeamParticipantComponent> components) {
         //write logic to check if each participant, if of type Practitioner, is a CareManager or not
         return components.stream()
@@ -408,7 +454,6 @@ public class CareTeamServiceImpl implements CareTeamService {
                 })
                 .anyMatch(t -> t.contains(CAREMANAGER_ROLE));
     }
-
 
     private void checkForDuplicates(CareTeamDto careTeamDto) {
         Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
