@@ -138,7 +138,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<DateRangeEnum> filterDate) {
+    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<Boolean> isTodoList, Optional<DateRangeEnum> filterDate) {
 
         // Generate the Query Based on Input Variables
         IQuery ownerIQuery = getTasksIQuery(practitioner, organization, patient, partOf, "owner");
@@ -163,7 +163,7 @@ public class TaskServiceImpl implements TaskService {
         //Apply Filters Based on Input Variables
         taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos, filterDate);
 
-        if(patient.isPresent()) {
+        if(patient.isPresent() && !isTodoList.isPresent()) {
             TaskDto toDoTaskDto = getToDoTaskDto(practitioner, patient, organization, definition);
             taskDtos.add(toDoTaskDto);
         }
