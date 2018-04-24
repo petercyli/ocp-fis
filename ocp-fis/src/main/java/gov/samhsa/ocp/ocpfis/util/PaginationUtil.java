@@ -13,6 +13,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static ca.uhn.fhir.rest.api.Constants.PARAM_COUNT;
+import static ca.uhn.fhir.rest.api.Constants.PARAM_PAGINGACTION;
+import static ca.uhn.fhir.rest.api.Constants.PARAM_PAGINGOFFSET;
+
 @Slf4j
 public final class PaginationUtil {
 
@@ -41,9 +45,9 @@ public final class PaginationUtil {
             }
 
             String pageUrl = fisProperties.getFhir().getServerUrl()
-                    + "?_getpages=" + SearchBundle.getId()
-                    + "&_getpagesoffset=" + offset
-                    + "&_count=" + pageSize
+                    + "?" + PARAM_PAGINGACTION + "=" + SearchBundle.getId()
+                    + "?" + PARAM_PAGINGOFFSET + "=" + offset
+                    + "?" + PARAM_COUNT + "=" + pageSize
                     + "&_bundletype=searchset";
 
             // Load the required page
