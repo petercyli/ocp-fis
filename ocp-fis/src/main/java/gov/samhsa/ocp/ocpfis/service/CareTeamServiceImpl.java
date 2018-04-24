@@ -103,6 +103,9 @@ public class CareTeamServiceImpl implements CareTeamService {
         int numberOfCareTeamMembersPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.CareTeam.name());
         IQuery iQuery = fhirClient.search().forResource(CareTeam.class);
 
+        //Set Sort order
+        iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
+
         //Check for patient
         if (searchType.equalsIgnoreCase("patientId"))
             iQuery.where(new ReferenceClientParam("patient").hasId("Patient/" + searchValue));
