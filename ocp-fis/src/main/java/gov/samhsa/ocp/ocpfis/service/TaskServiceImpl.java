@@ -163,9 +163,10 @@ public class TaskServiceImpl implements TaskService {
         //Apply Filters Based on Input Variables
         taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos, filterDate);
 
-        TaskDto toDoTaskDto = getToDoTaskDto(practitioner, patient, organization, definition);
-
-        taskDtos.add(toDoTaskDto);
+        if(patient.isPresent()) {
+            TaskDto toDoTaskDto = getToDoTaskDto(practitioner, patient, organization, definition);
+            taskDtos.add(toDoTaskDto);
+        }
 
         return taskDtos;
     }
