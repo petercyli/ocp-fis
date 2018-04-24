@@ -306,6 +306,10 @@ public class TaskServiceImpl implements TaskService {
 
     public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition, Optional<String> practitioner, Optional<String> organization) {
         List<ReferenceDto> tasks = getBundleForRelatedTask(patient, organization).stream()
+                .filter(task->{
+                    Task mainTask= (Task) task.getResource();
+                    return !mainTask.hasPartOf();
+                })
                 .map(Bundle.BundleEntryComponent::getResource)
                 .map(resource -> FhirDtoUtil.mapTaskToReferenceDto((Task) resource))
                 .collect(toList());
