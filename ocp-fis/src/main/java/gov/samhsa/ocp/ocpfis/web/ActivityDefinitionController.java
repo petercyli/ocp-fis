@@ -34,6 +34,11 @@ public class ActivityDefinitionController {
         activityDefinitionService.updateActivityDefinition(activityDefinitionDto, organizationId, activityDefinitionId);
     }
 
+    @GetMapping("/activity-definitions/{activityDefinitionId}")
+    public ActivityDefinitionDto getActivityDefinitionById(@PathVariable String activityDefinitionId) {
+        return activityDefinitionService.getActivityDefinitionById(activityDefinitionId);
+    }
+
     @GetMapping("/organizations/{organizationId}/activity-definitions")
     public PageDto<ActivityDefinitionDto> getAllActivityDefinitionsByOrganization(@PathVariable String organizationId,
                                                                                  @RequestParam(value = "searchKey") Optional<String> searchKey,
