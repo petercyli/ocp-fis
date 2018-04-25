@@ -23,6 +23,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Attachment;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -30,9 +31,12 @@ import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Consent;
+import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Period;
+import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.codesystems.V3ActReason;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -219,6 +223,42 @@ public class ConsentServiceImpl implements ConsentService {
         } else {
             throw new DuplicateResourceFoundException("This patient already has a general designation consent.");
         }
+    }
+
+    @Override
+    public List<ReferenceDto> getActors(String name, Optional<List<String>> actorsAlreadyAssigned){
+        //Get Actors
+        Bundle organizationBundle= fhirClient.search().forResource(Organization.class).where(new RichStringClientParam("name").matches().value(name))
+                .returnBundle(Bundle.class)
+                .elementsSubset("id","resourceType","name")
+                .execute();
+        Bundle practitionerBundle=fhirClient.search().forResource(Practitioner.class).where(new RichStringClientParam("name").matches().value(name))
+                .returnBundle(Bundle.class)
+                .elementsSubset("id","resourceType","name")
+                .execute();
+        List<Bundle.BundleEntryComponent> organizationBundleEntryList=FhirUtil.getAllBundlesComponentIntoSingleList(organizationBundle,Optional.empty(),fhirClient,fisProperties);
+
+
+        List<Bundle.BundleEntryComponent> practitionerBundleEntryList=FhirUtil.getAllBundlesComponentIntoSingleList(practitionerBundle,Optional.empty(),fhirClient,fisProperties);
+        List<ReferenceDto> referenceDtoList=practitionerBundleEntryList.stream().map(pr->{
+            ReferenceDto referenceDto=new ReferenceDto();
+            Practitioner practitioner= (Practitioner) pr.getResource();
+            referenceDto.setReference("Practitioner/"+practitioner.getIdElement().getIdPart());
+            practitioner.getName().stream().findAny().ifPresent(humanName -> {
+                referenceDto.setDisplay(humanName.getGiven().stream().findAny().get()+" "+humanName.getFamily());
+            });
+            return referenceDto;
+        }).collect(Collectors.toList());
+
+       referenceDtoList.addAll(organizationBundleEntryList.stream().map(org->{
+           ReferenceDto referenceDto=new ReferenceDto();
+           Organization organization= (Organization) org.getResource();
+           referenceDto.setReference("Organization/"+organization.getIdElement().getIdPart());
+           referenceDto.setDisplay(organization.getName());
+           return referenceDto;
+       }).collect(Collectors.toList()));
+
+       return referenceDtoList;
     }
 
 

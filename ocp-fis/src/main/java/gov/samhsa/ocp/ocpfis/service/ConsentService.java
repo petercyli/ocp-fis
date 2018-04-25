@@ -4,7 +4,9 @@ import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface ConsentService {
@@ -23,5 +25,5 @@ public interface ConsentService {
 
     void attestConsent(String consentId);
 
-
+    List<ReferenceDto> getActors(String name, Optional<List<String>> actorsAlreadyAssigned);
 }
