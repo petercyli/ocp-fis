@@ -82,8 +82,12 @@ public class ActivityDefinitionDtoToActivityDefinitionConverter {
         //Period
         if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("active")) {
             if (activityDefinitionDto.getEffectivePeriod() != null) {
-                if (activityDefinitionDto.getEffectivePeriod().getStart() != null)
+                if (activityDefinitionDto.getEffectivePeriod().getStart() != null) {
                     activityDefinition.getEffectivePeriod().setStart((java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getStart())));
+                }
+                if (activityDefinitionDto.getEffectivePeriod().getEnd() != null) {
+                    activityDefinition.getEffectivePeriod().setEnd((java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getEnd())));
+                }
             } else {
                 activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
             }
