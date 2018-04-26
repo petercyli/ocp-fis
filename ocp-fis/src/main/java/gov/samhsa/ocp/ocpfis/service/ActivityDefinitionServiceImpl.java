@@ -133,6 +133,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     public void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId) {
         if (!isDuplicate(activityDefinitionDto, organizationId)) {
             String version = fisProperties.getActivityDefinition().getVersion();
+            setTopicDisplay(activityDefinitionDto);
 
             ActivityDefinition activityDefinition = ActivityDefinitionDtoToActivityDefinitionConverter.map(activityDefinitionDto, organizationId, version);
 
@@ -252,6 +253,9 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             log.error("FHIR Exception when setting Duration and Frequency", e);
         }
 
+        //topic
+        tempActivityDefinitionDto.setTopic(FhirDtoUtil.convertCodeableConceptListToValuesetDto(activityDefinition.getTopic()));
+
         //date
         tempActivityDefinitionDto.setDate(DateUtil.convertDateToString(activityDefinition.getDate()));
 
@@ -297,6 +301,17 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             }).collect(toList());
         }
         return !duplicateCheckList.isEmpty();
+
+    }
+
+    private void setTopicDisplay(ActivityDefinitionDto activityDefinitionDto) {
+        if(activityDefinitionDto.getTopic() != null) {
+            Optional<String> topicDisplay = FhirDtoUtil.getDisplayForCode(activityDefinitionDto.getTopic().getCode(), lookUpService.getDefinitionTopic());
+
+            if(topicDisplay.isPresent()) {
+                activityDefinitionDto.getTopic().setDisplay(topicDisplay.get());
+            }
+        }
 
     }
 
