@@ -61,7 +61,13 @@ public class ActivityDefinitionDtoToActivityDefinitionConverter {
                 .setDisplay(activityDefinitionDto.getActionParticipantRole().getDisplay())
                 .setSystem(activityDefinitionDto.getActionParticipantRole().getSystem());
 
-        activityDefinition.addParticipant().setRole(actionParticipantRole).setType(ActivityDefinition.ActivityParticipantType.valueOf(activityDefinitionDto.getActionParticipantType().getCode().toUpperCase()));
+        String participantType = activityDefinitionDto.getActionParticipantType().getCode();
+
+        if(participantType != null) {
+            participantType = participantType.replace("-", "").toUpperCase();
+        }
+
+        activityDefinition.addParticipant().setRole(actionParticipantRole).setType(ActivityDefinition.ActivityParticipantType.valueOf(participantType));
 
         //Topic
         CodeableConcept topic = new CodeableConcept();
