@@ -13,6 +13,7 @@ import org.hl7.fhir.exceptions.FHIRException;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class ActivityDefinitionDtoToActivityDefinitionConverter {
@@ -28,11 +29,7 @@ public class ActivityDefinitionDtoToActivityDefinitionConverter {
 
         activityDefinition.setVersion(version);
         activityDefinition.setStatus(Enumerations.PublicationStatus.valueOf(activityDefinitionDto.getStatus().getCode().toUpperCase()));
-        try {
-            activityDefinition.setDate(DateUtil.convertStringToDate(activityDefinitionDto.getDate()));
-        } catch (ParseException e) {
-            throw new BadRequestException("Invalid date was given.");
-        }
+        activityDefinition.setDate(new Date());
         activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.valueOf(activityDefinitionDto.getKind().getCode().toUpperCase()));
         activityDefinition.setPublisher("Organization/" + organizationId);
 

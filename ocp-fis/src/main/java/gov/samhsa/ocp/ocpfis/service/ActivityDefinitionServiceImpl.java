@@ -251,6 +251,10 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         } catch (FHIRException e) {
             log.error("FHIR Exception when setting Duration and Frequency", e);
         }
+
+        //date
+        tempActivityDefinitionDto.setDate(DateUtil.convertDateToString(activityDefinition.getDate()));
+
         return tempActivityDefinitionDto;
     }
 
