@@ -157,14 +157,13 @@ public class FhirDtoUtil {
         return codeableConcept;
     }
 
-    public static Optional<String> getDisplayForCode(String code, Optional<List<ValueSetDto>> lookupValueSets) {
+    public static Optional<String> getDisplayForCode(String code, List<ValueSetDto> lookupValueSets) {
         Optional<String> lookupDisplay = Optional.empty();
-        if (lookupValueSets.isPresent()) {
-            lookupDisplay = lookupValueSets.get().stream()
-                    .filter(lookupValue -> code.equalsIgnoreCase(lookupValue.getCode()))
-                    .map(ValueSetDto::getDisplay).findFirst();
 
-        }
+        lookupDisplay = lookupValueSets.stream()
+                .filter(lookupValue -> code.equalsIgnoreCase(lookupValue.getCode()))
+                .map(ValueSetDto::getDisplay).findFirst();
+
         return lookupDisplay;
     }
 
