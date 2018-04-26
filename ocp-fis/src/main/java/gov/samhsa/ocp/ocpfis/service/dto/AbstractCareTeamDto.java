@@ -13,11 +13,13 @@ import java.util.Set;
 
 @Data
 @AllArgsConstructor
-public class AbstractProviderDto {
+public class AbstractCareTeamDto {
     public enum ProviderType{
         PRACTITIONER, ORGANIZATION;
     }
     protected String id;
+
+    protected String display;
 
     @Valid
     @NotEmpty
