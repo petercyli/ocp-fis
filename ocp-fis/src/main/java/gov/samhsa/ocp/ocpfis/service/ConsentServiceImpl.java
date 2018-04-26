@@ -238,7 +238,6 @@ public class ConsentServiceImpl implements ConsentService {
                 .execute();
         List<Bundle.BundleEntryComponent> organizationBundleEntryList=FhirUtil.getAllBundlesComponentIntoSingleList(organizationBundle,Optional.empty(),fhirClient,fisProperties);
 
-
         List<Bundle.BundleEntryComponent> practitionerBundleEntryList=FhirUtil.getAllBundlesComponentIntoSingleList(practitionerBundle,Optional.empty(),fhirClient,fisProperties);
         List<ReferenceDto> referenceDtoList=practitionerBundleEntryList.stream().map(pr->{
             ReferenceDto referenceDto=new ReferenceDto();
@@ -257,6 +256,8 @@ public class ConsentServiceImpl implements ConsentService {
            referenceDto.setDisplay(organization.getName());
            return referenceDto;
        }).collect(Collectors.toList()));
+
+       actorsAlreadyAssigned.ifPresent(actorsAlreadyPresent->referenceDtoList.removeIf(referenceDto -> actorsAlreadyPresent.contains(referenceDto.getReference())));
 
        return referenceDtoList;
     }
