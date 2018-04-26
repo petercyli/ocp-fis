@@ -78,7 +78,7 @@ public class ConsentController {
     }
 
     @GetMapping("/actors")
-    public List<ReferenceDto> getActors(@RequestParam String name, @RequestParam Optional<List<String>> actorsAlreadyAssigned){
-        return consentService.getActors(name,actorsAlreadyAssigned);
+    public PageDto<ReferenceDto> getActors(@RequestParam String name, @RequestParam Optional<List<String>> actorsAlreadyAssigned, @RequestParam Optional<Integer> pageNumber, @RequestParam Optional<Integer> pageSize){
+        return consentService.getActors(name,actorsAlreadyAssigned, pageNumber, pageSize);
     }
 }

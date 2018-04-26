@@ -25,5 +25,5 @@ public interface ConsentService {
 
     void attestConsent(String consentId);
 
-    List<ReferenceDto> getActors(String name, Optional<List<String>> actorsAlreadyAssigned);
+    PageDto<ReferenceDto> getActors(String name, Optional<List<String>> actorsAlreadyAssigned,Optional<Integer> pageNumber, Optional<Integer> pageSize);
 }
