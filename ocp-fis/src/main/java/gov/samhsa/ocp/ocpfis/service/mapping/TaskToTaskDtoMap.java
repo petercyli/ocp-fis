@@ -52,7 +52,7 @@ public class TaskToTaskDtoMap {
         if (task.getPerformerType() != null) {
             task.getPerformerType().stream().findFirst().ifPresent(performerType -> performerType.getCoding().stream().findFirst().ifPresent(coding -> {
                 performerTypeDto.setCode((coding.getCode() != null && !coding.getCode().isEmpty()) ? coding.getCode() : null);
-                performerTypeDto.setDisplay((FhirDtoUtil.getDisplayForCode(coding.getCode(), Optional.ofNullable(taskPerformerTypes))).orElse(null));
+                performerTypeDto.setDisplay((FhirDtoUtil.getDisplayForCode(coding.getCode(), taskPerformerTypes)).orElse(null));
             }));
 
             taskDto.setPerformerType(performerTypeDto);
