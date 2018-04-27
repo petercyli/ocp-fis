@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import gov.samhsa.ocp.ocpfis.service.dto.AbstractCareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -25,5 +26,5 @@ public interface ConsentService {
 
     void attestConsent(String consentId);
 
-    PageDto<ReferenceDto> getActors(String name, Optional<List<String>> actorsAlreadyAssigned,Optional<Integer> pageNumber, Optional<Integer> pageSize);
+    PageDto<AbstractCareTeamDto> getActors(String name, Optional<List<String>> actorsAlreadyAssigned, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 }

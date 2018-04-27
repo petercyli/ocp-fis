@@ -7,12 +7,16 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.service.dto.AbstractCareTeamDto;
+import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
+import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ConsentPdfGenerationException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -38,6 +42,7 @@ import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.codesystems.ContactPointSystem;
 import org.hl7.fhir.dstu3.model.codesystems.V3ActReason;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
@@ -233,42 +238,79 @@ public class ConsentServiceImpl implements ConsentService {
     }
 
     @Override
-    public PageDto<ReferenceDto> getActors(String name, Optional<List<String>> actorsAlreadyAssigned, Optional<Integer> pageNumber, Optional<Integer> pageSize){
+    public PageDto<AbstractCareTeamDto> getActors(String name, Optional<List<String>> actorsAlreadyAssigned, Optional<Integer> pageNumber, Optional<Integer> pageSize){
         int numberOfActorsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Consent.name());
 
         //Get Actors
         Bundle organizationBundle= fhirClient.search().forResource(Organization.class).where(new RichStringClientParam("name").matches().value(name))
                 .returnBundle(Bundle.class)
-                .elementsSubset("id","resourceType","name")
+                .elementsSubset("id","resourceType","name","identifier","telecom","address")
                 .execute();
         Bundle practitionerBundle=fhirClient.search().forResource(Practitioner.class).where(new RichStringClientParam("name").matches().value(name))
                 .returnBundle(Bundle.class)
-                .elementsSubset("id","resourceType","name")
+                .elementsSubset("id","resourceType","name","identifier","telecom","address")
                 .execute();
         List<Bundle.BundleEntryComponent> organizationBundleEntryList=FhirUtil.getAllBundlesComponentIntoSingleList(organizationBundle,Optional.empty(),fhirClient,fisProperties);
 
         List<Bundle.BundleEntryComponent> practitionerBundleEntryList=FhirUtil.getAllBundlesComponentIntoSingleList(practitionerBundle,Optional.empty(),fhirClient,fisProperties);
-        List<ReferenceDto> referenceDtoList=practitionerBundleEntryList.stream().map(pr->{
-            ReferenceDto referenceDto=new ReferenceDto();
+        List<AbstractCareTeamDto> abstractCareTeamDtoList=practitionerBundleEntryList.stream().map(pr->{
+            AbstractCareTeamDto abstractCareTeamDto=new AbstractCareTeamDto();
             Practitioner practitioner= (Practitioner) pr.getResource();
-            referenceDto.setReference("Practitioner/"+practitioner.getIdElement().getIdPart());
+            abstractCareTeamDto.setId(practitioner.getIdElement().getIdPart());
             practitioner.getName().stream().findAny().ifPresent(humanName -> {
-                referenceDto.setDisplay(humanName.getGiven().stream().findAny().get()+" "+humanName.getFamily());
+                abstractCareTeamDto.setDisplay(humanName.getGiven().stream().findAny().get()+" "+humanName.getFamily());
             });
-            return referenceDto;
+            return abstractCareTeamDto;
         }).collect(Collectors.toList());
 
-       referenceDtoList.addAll(organizationBundleEntryList.stream().map(org->{
-           ReferenceDto referenceDto=new ReferenceDto();
+       abstractCareTeamDtoList.addAll(organizationBundleEntryList.stream().map(org->{
+           AbstractCareTeamDto abstractCareTeamDto=new AbstractCareTeamDto();
            Organization organization= (Organization) org.getResource();
-           referenceDto.setReference("Organization/"+organization.getIdElement().getIdPart());
-           referenceDto.setDisplay(organization.getName());
-           return referenceDto;
+           abstractCareTeamDto.setId(organization.getIdElement().getIdPart());
+           abstractCareTeamDto.setDisplay(organization.getName());
+
+           List<IdentifierDto> identifierDtos=organization.getIdentifier().stream().map(identifier -> {
+               IdentifierDto identifierDto=new IdentifierDto();
+               identifierDto.setSystem(identifier.hasSystem()? identifier.getSystem() : null);
+               identifierDto.setValue(identifier.hasValue() ? identifier.getValue() :null);
+               return identifierDto;
+           }).collect(Collectors.toList());
+           abstractCareTeamDto.setIdentifiers(identifierDtos);
+
+           organization.getAddress().stream().findAny().ifPresent(address->{
+               AddressDto addressDto=new AddressDto();
+               if(address.hasLine()){
+                   if(address.getLine().get(0)!=null)
+                    addressDto.setLine1(address.getLine().get(0).toString());
+                   if (address.getLine().get(1) != null)
+                       addressDto.setLine2(address.getLine().get(1).toString());
+               }
+
+               if(address.hasCity())
+                    addressDto.setCity(address.getCity());
+               if(address.hasCountry())
+                 addressDto.setCountryCode(address.getCountry());
+               if(address.hasPostalCode())
+                addressDto.setPostalCode(address.getPostalCode());
+               if(address.hasState())
+                   addressDto.setStateCode(address.getState());
+               abstractCareTeamDto.setAddress(addressDto);
+           });
+
+           organization.getTelecom().stream()
+                   .filter(telecom->telecom.getSystem().getDefinition().equalsIgnoreCase(ContactPointSystem.PHONE.toString()))
+                   .findAny().ifPresent(phone->abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
+
+           organization.getTelecom().stream().filter(telecom->telecom.getSystem().getDefinition().equalsIgnoreCase(ContactPointSystem.EMAIL.toString()))
+                   .findAny().ifPresent(email->abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
+
+           return abstractCareTeamDto;
        }).collect(Collectors.toList()));
 
-       actorsAlreadyAssigned.ifPresent(actorsAlreadyPresent->referenceDtoList.removeIf(referenceDto -> actorsAlreadyPresent.contains(referenceDto.getReference())));
 
-       return (PageDto<ReferenceDto>) PaginationUtil.applyPaginationForCustomArrayList(referenceDtoList,numberOfActorsPerPage,pageNumber,false);
+       actorsAlreadyAssigned.ifPresent(actorsAlreadyPresent->abstractCareTeamDtoList.removeIf(abstractCareTeamDto -> actorsAlreadyPresent.contains(abstractCareTeamDto.getId())));
+
+       return (PageDto<AbstractCareTeamDto>) PaginationUtil.applyPaginationForCustomArrayList(abstractCareTeamDtoList,numberOfActorsPerPage,pageNumber,false);
     }
 
 

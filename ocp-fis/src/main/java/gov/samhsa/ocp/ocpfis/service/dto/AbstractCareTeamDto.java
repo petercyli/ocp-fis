@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.Valid;
@@ -13,6 +14,7 @@ import java.util.Set;
 
 @Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class AbstractCareTeamDto {
     public enum ProviderType{
         PRACTITIONER, ORGANIZATION;

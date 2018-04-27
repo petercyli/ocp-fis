@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.ConsentService;
 import gov.samhsa.ocp.ocpfis.service.PatientService;
+import gov.samhsa.ocp.ocpfis.service.dto.AbstractCareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -78,7 +79,7 @@ public class ConsentController {
     }
 
     @GetMapping("/actors")
-    public PageDto<ReferenceDto> getActors(@RequestParam String name, @RequestParam Optional<List<String>> actorsAlreadyAssigned, @RequestParam Optional<Integer> pageNumber, @RequestParam Optional<Integer> pageSize){
+    public PageDto<AbstractCareTeamDto> getActors(@RequestParam String name, @RequestParam Optional<List<String>> actorsAlreadyAssigned, @RequestParam Optional<Integer> pageNumber, @RequestParam Optional<Integer> pageSize){
         return consentService.getActors(name,actorsAlreadyAssigned, pageNumber, pageSize);
     }
 }
