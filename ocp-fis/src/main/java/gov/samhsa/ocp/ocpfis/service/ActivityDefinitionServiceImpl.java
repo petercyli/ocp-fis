@@ -146,6 +146,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     @Override
     public void updateActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId, String activityDefinitionId) {
         String version = fisProperties.getActivityDefinition().getVersion();
+        setTopicDisplay(activityDefinitionDto);
 
         ActivityDefinition activityDefinition = ActivityDefinitionDtoToActivityDefinitionConverter.map(activityDefinitionDto, organizationId, version);
         activityDefinition.setId(activityDefinitionId);
