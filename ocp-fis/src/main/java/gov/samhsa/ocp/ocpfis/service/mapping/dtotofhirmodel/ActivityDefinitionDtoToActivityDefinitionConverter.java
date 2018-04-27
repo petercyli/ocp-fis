@@ -13,6 +13,7 @@ import org.hl7.fhir.exceptions.FHIRException;
 import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 public class ActivityDefinitionDtoToActivityDefinitionConverter {
@@ -28,11 +29,7 @@ public class ActivityDefinitionDtoToActivityDefinitionConverter {
 
         activityDefinition.setVersion(version);
         activityDefinition.setStatus(Enumerations.PublicationStatus.valueOf(activityDefinitionDto.getStatus().getCode().toUpperCase()));
-        try {
-            activityDefinition.setDate(DateUtil.convertStringToDate(activityDefinitionDto.getDate()));
-        } catch (ParseException e) {
-            throw new BadRequestException("Invalid date was given.");
-        }
+        activityDefinition.setDate(new Date());
         activityDefinition.setKind(ActivityDefinition.ActivityDefinitionKind.valueOf(activityDefinitionDto.getKind().getCode().toUpperCase()));
         activityDefinition.setPublisher("Organization/" + organizationId);
 
@@ -61,7 +58,13 @@ public class ActivityDefinitionDtoToActivityDefinitionConverter {
                 .setDisplay(activityDefinitionDto.getActionParticipantRole().getDisplay())
                 .setSystem(activityDefinitionDto.getActionParticipantRole().getSystem());
 
-        activityDefinition.addParticipant().setRole(actionParticipantRole).setType(ActivityDefinition.ActivityParticipantType.valueOf(activityDefinitionDto.getActionParticipantType().getCode().toUpperCase()));
+        String participantType = activityDefinitionDto.getActionParticipantType().getCode();
+
+        if(participantType != null) {
+            participantType = participantType.replace("-", "").toUpperCase();
+        }
+
+        activityDefinition.addParticipant().setRole(actionParticipantRole).setType(ActivityDefinition.ActivityParticipantType.valueOf(participantType));
 
         //Topic
         CodeableConcept topic = new CodeableConcept();
@@ -76,8 +79,12 @@ public class ActivityDefinitionDtoToActivityDefinitionConverter {
         //Period
         if (activityDefinitionDto.getStatus().getCode().equalsIgnoreCase("active")) {
             if (activityDefinitionDto.getEffectivePeriod() != null) {
-                if (activityDefinitionDto.getEffectivePeriod().getStart() != null)
+                if (activityDefinitionDto.getEffectivePeriod().getStart() != null) {
                     activityDefinition.getEffectivePeriod().setStart((java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getStart())));
+                }
+                if (activityDefinitionDto.getEffectivePeriod().getEnd() != null) {
+                    activityDefinition.getEffectivePeriod().setEnd((java.sql.Date.valueOf(activityDefinitionDto.getEffectivePeriod().getEnd())));
+                }
             } else {
                 activityDefinition.getEffectivePeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
             }
