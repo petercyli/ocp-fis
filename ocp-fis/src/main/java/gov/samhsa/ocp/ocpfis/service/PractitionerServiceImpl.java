@@ -49,8 +49,6 @@ import static java.util.stream.Collectors.toList;
 @Slf4j
 public class PractitionerServiceImpl implements PractitionerService {
 
-    public static final String CARE_MANAGER_CODE = "CAREMNGR";
-    public static final String CARE_COORDINATOR_CODE = "171M00000X";
     private final ModelMapper modelMapper;
 
     private final IGenericClient fhirClient;
