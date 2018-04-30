@@ -16,31 +16,30 @@ import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ConsentPdfGenerationException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.NoDataFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
-import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.Attachment;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Consent;
-import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Practitioner;
-import org.hl7.fhir.dstu3.model.Resource;
+import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.codesystems.ContactPointSystem;
 import org.hl7.fhir.dstu3.model.codesystems.V3ActReason;
@@ -49,10 +48,10 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -143,7 +142,7 @@ public class ConsentServiceImpl implements ConsentService {
         consentQuery = FhirUtil.setNoCacheControlDirective(consentQuery);
 
         Bundle consentBundle = (Bundle) consentQuery.returnBundle(Bundle.class)
-                                        .execute();
+                .execute();
 
         if (consentBundle == null || consentBundle.getEntry().isEmpty()) {
             log.info("No consent was found for the given consentId:" + consentId);
@@ -198,7 +197,7 @@ public class ConsentServiceImpl implements ConsentService {
         //Create Consent
         Bundle associatedCareTeam = fhirClient.search().forResource(CareTeam.class).where(new ReferenceClientParam("patient").hasId(consentDto.getPatient().getReference()))
                 .returnBundle(Bundle.class).execute();
-        if(consentDto.isGeneralDesignation()) {
+        if (consentDto.isGeneralDesignation()) {
             if (!associatedCareTeam.getEntry().isEmpty()) {
                 if (!isDuplicate(consentDto, Optional.empty())) {
                     Consent consent = consentDtoToConsent(Optional.empty(), consentDto);
@@ -212,10 +211,10 @@ public class ConsentServiceImpl implements ConsentService {
             } else {
                 throw new PreconditionFailedException("No care team members for this patient.");
             }
-        }else{
-            Consent consent=consentDtoToConsent(Optional.empty(),consentDto);
+        } else {
+            Consent consent = consentDtoToConsent(Optional.empty(), consentDto);
             //Validate
-            FhirUtil.validateFhirResource(fhirValidator,consent,Optional.empty(),ResourceType.Consent.name(),"Create Consent");
+            FhirUtil.validateFhirResource(fhirValidator, consent, Optional.empty(), ResourceType.Consent.name(), "Create Consent");
 
             fhirClient.create().resource(consent).execute();
         }
@@ -238,79 +237,128 @@ public class ConsentServiceImpl implements ConsentService {
     }
 
     @Override
-    public PageDto<AbstractCareTeamDto> getActors(String name, Optional<List<String>> actorsAlreadyAssigned, Optional<Integer> pageNumber, Optional<Integer> pageSize){
+    public PageDto<AbstractCareTeamDto> getActors(Optional<String> patientId, Optional<String> name, Optional<String> actorType, Optional<List<String>> actorsAlreadyAssigned, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfActorsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Consent.name());
 
         //Get Actors
-        Bundle organizationBundle= fhirClient.search().forResource(Organization.class).where(new RichStringClientParam("name").matches().value(name))
+        Bundle organizationBundle = fhirClient.search().forResource(Organization.class)
+                .where(new TokenClientParam("_id").exactly().codes(getCareTeamParticipantIdsFromPatient(patientId)))
+                .where(new RichStringClientParam("name").matches().value(name.orElse("")))
                 .returnBundle(Bundle.class)
-                .elementsSubset("id","resourceType","name","identifier","telecom","address")
+                .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
                 .execute();
-        Bundle practitionerBundle=fhirClient.search().forResource(Practitioner.class).where(new RichStringClientParam("name").matches().value(name))
-                .returnBundle(Bundle.class)
-                .elementsSubset("id","resourceType","name","identifier","telecom","address")
-                .execute();
-        List<Bundle.BundleEntryComponent> organizationBundleEntryList=FhirUtil.getAllBundlesComponentIntoSingleList(organizationBundle,Optional.empty(),fhirClient,fisProperties);
 
-        List<Bundle.BundleEntryComponent> practitionerBundleEntryList=FhirUtil.getAllBundlesComponentIntoSingleList(practitionerBundle,Optional.empty(),fhirClient,fisProperties);
-        List<AbstractCareTeamDto> abstractCareTeamDtoList=practitionerBundleEntryList.stream().map(pr->{
-            AbstractCareTeamDto abstractCareTeamDto=new AbstractCareTeamDto();
-            Practitioner practitioner= (Practitioner) pr.getResource();
+        Bundle practitionerBundle = fhirClient.search().forResource(Practitioner.class)
+                .where(new TokenClientParam("_id").exactly().codes(getCareTeamParticipantIdsFromPatient(patientId)))
+                .where(new RichStringClientParam("name").matches().value(name.orElse("")))
+                .returnBundle(Bundle.class)
+                .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
+                .execute();
+
+        Bundle relatedBundle = fhirClient.search().forResource(RelatedPerson.class)
+                .where(new TokenClientParam("_id").exactly().codes(getCareTeamParticipantIdsFromPatient(patientId)))
+                .where(new RichStringClientParam("name").matches().value(name.orElse("")))
+                .returnBundle(Bundle.class)
+                .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
+                .execute();
+
+
+        List<Bundle.BundleEntryComponent> organizationBundleEntryList = FhirUtil.getAllBundlesComponentIntoSingleList(organizationBundle, Optional.empty(), fhirClient, fisProperties);
+
+        List<Bundle.BundleEntryComponent> practitionerBundleEntryList = FhirUtil.getAllBundlesComponentIntoSingleList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
+
+        List<Bundle.BundleEntryComponent> relatedPersonBundleEntryList = FhirUtil.getAllBundlesComponentIntoSingleList(relatedBundle, Optional.empty(), fhirClient, fisProperties);
+
+        //Adding practitoner
+        List<AbstractCareTeamDto> abstractCareTeamDtoList = practitionerBundleEntryList.stream().map(pr -> {
+            AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
+            Practitioner practitioner = (Practitioner) pr.getResource();
             abstractCareTeamDto.setId(practitioner.getIdElement().getIdPart());
             practitioner.getName().stream().findAny().ifPresent(humanName -> {
-                abstractCareTeamDto.setDisplay(humanName.getGiven().stream().findAny().get()+" "+humanName.getFamily());
+                abstractCareTeamDto.setDisplay(humanName.getGiven().stream().findAny().get() + " " + humanName.getFamily());
             });
+
+            abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.PRACTITIONER);
+            List<IdentifierDto> identifierDtos = practitioner.getIdentifier().stream()
+                    .map(identifier -> covertIdentifierToIdentifierDto(identifier))
+                    .collect(Collectors.toList());
+            abstractCareTeamDto.setIdentifiers(identifierDtos);
+
+            practitioner.getAddress().stream().findAny().ifPresent(address -> {
+                        AddressDto addressDto = convertAddressToAddressDto(address);
+                        abstractCareTeamDto.setAddress(addressDto);
+                    }
+            );
+            practitioner.getTelecom().stream()
+                    .filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString()))
+                    .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
+
+            practitioner.getTelecom().stream().filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString()))
+                    .findAny().ifPresent(email -> abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
             return abstractCareTeamDto;
-        }).collect(Collectors.toList());
+        }).distinct().collect(Collectors.toList());
 
-       abstractCareTeamDtoList.addAll(organizationBundleEntryList.stream().map(org->{
-           AbstractCareTeamDto abstractCareTeamDto=new AbstractCareTeamDto();
-           Organization organization= (Organization) org.getResource();
-           abstractCareTeamDto.setId(organization.getIdElement().getIdPart());
-           abstractCareTeamDto.setDisplay(organization.getName());
+        //Adding organization
+        abstractCareTeamDtoList.addAll(organizationBundleEntryList.stream().map(org -> {
+            AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
+            Organization organization = (Organization) org.getResource();
+            abstractCareTeamDto.setId(organization.getIdElement().getIdPart());
+            abstractCareTeamDto.setDisplay(organization.getName());
+            abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.ORGANIZATION);
+            List<IdentifierDto> identifierDtos = organization.getIdentifier().stream()
+                    .map(identifier -> covertIdentifierToIdentifierDto(identifier))
+                    .collect(Collectors.toList());
+            abstractCareTeamDto.setIdentifiers(identifierDtos);
 
-           List<IdentifierDto> identifierDtos=organization.getIdentifier().stream().map(identifier -> {
-               IdentifierDto identifierDto=new IdentifierDto();
-               identifierDto.setSystem(identifier.hasSystem()? identifier.getSystem() : null);
-               identifierDto.setValue(identifier.hasValue() ? identifier.getValue() :null);
-               return identifierDto;
-           }).collect(Collectors.toList());
-           abstractCareTeamDto.setIdentifiers(identifierDtos);
+            organization.getAddress().stream().findAny().ifPresent(address -> {
+                AddressDto addressDto = convertAddressToAddressDto(address);
+                abstractCareTeamDto.setAddress(addressDto);
+            });
 
-           organization.getAddress().stream().findAny().ifPresent(address->{
-               AddressDto addressDto=new AddressDto();
-               if(address.hasLine()){
-                   if(address.getLine().get(0)!=null)
-                    addressDto.setLine1(address.getLine().get(0).toString());
-                   if (address.getLine().get(1) != null)
-                       addressDto.setLine2(address.getLine().get(1).toString());
-               }
+            organization.getTelecom().stream()
+                    .filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString()))
+                    .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
 
-               if(address.hasCity())
-                    addressDto.setCity(address.getCity());
-               if(address.hasCountry())
-                 addressDto.setCountryCode(address.getCountry());
-               if(address.hasPostalCode())
-                addressDto.setPostalCode(address.getPostalCode());
-               if(address.hasState())
-                   addressDto.setStateCode(address.getState());
-               abstractCareTeamDto.setAddress(addressDto);
-           });
+            organization.getTelecom().stream().filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString()))
+                    .findAny().ifPresent(email -> abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
 
-           organization.getTelecom().stream()
-                   .filter(telecom->telecom.getSystem().getDefinition().equalsIgnoreCase(ContactPointSystem.PHONE.toString()))
-                   .findAny().ifPresent(phone->abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
+            return abstractCareTeamDto;
+        }).distinct().collect(Collectors.toList()));
 
-           organization.getTelecom().stream().filter(telecom->telecom.getSystem().getDefinition().equalsIgnoreCase(ContactPointSystem.EMAIL.toString()))
-                   .findAny().ifPresent(email->abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
+        //Adding relatedPerson
+        abstractCareTeamDtoList.addAll(relatedPersonBundleEntryList.stream().map(rp -> {
+            AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
+            RelatedPerson relatedPerson = (RelatedPerson) rp.getResource();
+            abstractCareTeamDto.setId(relatedPerson.getIdElement().getIdPart());
 
-           return abstractCareTeamDto;
-       }).collect(Collectors.toList()));
+            abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.RELATEDPERSON);
+            relatedPerson.getName().stream().findAny().ifPresent(humanName -> {
+                abstractCareTeamDto.setDisplay(humanName.getGiven().stream().findAny().get() + " " + humanName.getFamily());
+            });
 
+            List<IdentifierDto> identifierDtos = relatedPerson.getIdentifier().stream()
+                    .map(identifier -> covertIdentifierToIdentifierDto(identifier))
+                    .collect(Collectors.toList());
+            abstractCareTeamDto.setIdentifiers(identifierDtos);
 
-       actorsAlreadyAssigned.ifPresent(actorsAlreadyPresent->abstractCareTeamDtoList.removeIf(abstractCareTeamDto -> actorsAlreadyPresent.contains(abstractCareTeamDto.getId())));
+            relatedPerson.getAddress().stream().findAny().ifPresent(address -> {
+                        AddressDto addressDto = convertAddressToAddressDto(address);
+                        abstractCareTeamDto.setAddress(addressDto);
+                    }
+            );
+            relatedPerson.getTelecom().stream()
+                    .filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString()))
+                    .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
 
-       return (PageDto<AbstractCareTeamDto>) PaginationUtil.applyPaginationForCustomArrayList(abstractCareTeamDtoList,numberOfActorsPerPage,pageNumber,false);
+            relatedPerson.getTelecom().stream().filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString()))
+                    .findAny().ifPresent(email -> abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
+            return abstractCareTeamDto;
+        }).distinct().collect(Collectors.toList()));
+
+        actorType.ifPresent(type -> abstractCareTeamDtoList.removeIf(actors -> !actors.getCareTeamType().toString().equalsIgnoreCase(type)));
+        actorsAlreadyAssigned.ifPresent(actorsAlreadyPresent -> abstractCareTeamDtoList.removeIf(abstractCareTeamDto -> actorsAlreadyPresent.contains(abstractCareTeamDto.getId())));
+
+        return (PageDto<AbstractCareTeamDto>) PaginationUtil.applyPaginationForCustomArrayList(abstractCareTeamDtoList, numberOfActorsPerPage, pageNumber, false);
     }
 
 
@@ -524,22 +572,22 @@ public class ConsentServiceImpl implements ConsentService {
             });
             consent.setActor(actors);
         } else {
-           List<Consent.ConsentActorComponent> fromActors = consentDto.getFromActor().stream().map(fromActor->{
-                Consent.ConsentActorComponent from= new Consent.ConsentActorComponent();
+            List<Consent.ConsentActorComponent> fromActors = consentDto.getFromActor().stream().map(fromActor -> {
+                Consent.ConsentActorComponent from = new Consent.ConsentActorComponent();
                 from.setReference(FhirDtoUtil.mapReferenceDtoToReference(fromActor)).setRole(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_CODE, lookUpService.getSecurityRole())));
                 return from;
             }).collect(Collectors.toList());
 
-           List<Consent.ConsentActorComponent> toActors=consentDto.getToActor().stream().map(toActor->{
-               Consent.ConsentActorComponent to=new Consent.ConsentActorComponent();
-               to.setReference(FhirDtoUtil.mapReferenceDtoToReference(toActor)).setRole(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_RECIPIENT_CODE, lookUpService.getSecurityRole())));
+            List<Consent.ConsentActorComponent> toActors = consentDto.getToActor().stream().map(toActor -> {
+                Consent.ConsentActorComponent to = new Consent.ConsentActorComponent();
+                to.setReference(FhirDtoUtil.mapReferenceDtoToReference(toActor)).setRole(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_RECIPIENT_CODE, lookUpService.getSecurityRole())));
                 return to;
-           }).collect(Collectors.toList());
+            }).collect(Collectors.toList());
 
-           //Adding toActors to the fromActors.
-           fromActors.addAll(toActors);
+            //Adding toActors to the fromActors.
+            fromActors.addAll(toActors);
 
-           consent.setActor(fromActors);
+            consent.setActor(fromActors);
         }
 
         return consent;
@@ -623,6 +671,50 @@ public class ConsentServiceImpl implements ConsentService {
         }).collect(Collectors.toList());
 
         return careTeamIds;
+    }
+
+    private List<String> getCareTeamParticipantIdsFromPatient(Optional<String> patientId) {
+        List<String> participantIds = new ArrayList<>();
+        if (patientId.isPresent()) {
+            Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class).where(new ReferenceClientParam("patient").hasId(patientId.get()))
+                    .returnBundle(Bundle.class)
+                    .elementsSubset("participant")
+                    .execute();
+            participantIds = careTeamBundle.getEntry().stream().flatMap(careTeam -> {
+                CareTeam ct = (CareTeam) careTeam.getResource();
+                return ct.getParticipant().stream().map(par -> {
+                    String references = par.getMember().getReference().split("/")[1];
+                    return references;
+                });
+            }).collect(Collectors.toList());
+        }
+        return participantIds;
+    }
+
+    private AddressDto convertAddressToAddressDto(Address address) {
+        AddressDto addressDto = new AddressDto();
+        if (address.hasLine()) {
+            if (address.hasLine()) {
+                address.getLine().stream().findAny().ifPresent(line -> addressDto.setLine1(line.getValue()));
+            }
+        }
+
+        if (address.hasCity())
+            addressDto.setCity(address.getCity());
+        if (address.hasCountry())
+            addressDto.setCountryCode(address.getCountry());
+        if (address.hasPostalCode())
+            addressDto.setPostalCode(address.getPostalCode());
+        if (address.hasState())
+            addressDto.setStateCode(address.getState());
+        return addressDto;
+    }
+
+    private IdentifierDto covertIdentifierToIdentifierDto(Identifier identifier) {
+        IdentifierDto identifierDto = new IdentifierDto();
+        identifierDto.setSystem(identifier.hasSystem() ? identifier.getSystem() : null);
+        identifierDto.setValue(identifier.hasValue() ? identifier.getValue() : null);
+        return identifierDto;
     }
 
 }
