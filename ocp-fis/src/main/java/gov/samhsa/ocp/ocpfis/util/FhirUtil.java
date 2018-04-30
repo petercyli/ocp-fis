@@ -399,9 +399,9 @@ public class FhirUtil {
 
     }
 
-    public static List<AbstractCareTeamDto> getOrganizationActors(Optional<String> patientId, Optional<String> name, Optional<String> organizationId, IGenericClient fhirClient, FisProperties fisProperties){
+    public static List<AbstractCareTeamDto> getOrganizationActors(Optional<String> patientId, Optional<String> name, Optional<String> organizationId, Optional<List<String>> careTeams, IGenericClient fhirClient, FisProperties fisProperties){
         Bundle organizationBundle = fhirClient.search().forResource(Organization.class)
-                .where(new TokenClientParam("_id").exactly().codes(participantIds(organizationId,patientId,fhirClient)))
+                .where(new TokenClientParam("_id").exactly().codes(participantIds(organizationId,patientId, careTeams, fhirClient)))
                 .where(new RichStringClientParam("name").matches().value(name.orElse("")))
                 .returnBundle(Bundle.class)
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
@@ -424,20 +424,29 @@ public class FhirUtil {
                 abstractCareTeamDto.setAddress(addressDto);
             });
 
-            organization.getTelecom().stream()
-                    .filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString()))
-                    .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
+            if(organization.hasTelecom()) {
+                organization.getTelecom().stream()
+                        .filter(telecom -> {
+                            if(telecom.hasSystem())
+                                return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString());
+                             return false;
+                        })
+                        .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
 
-            organization.getTelecom().stream().filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString()))
-                    .findAny().ifPresent(email -> abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
-
+                organization.getTelecom().stream().filter(telecom -> {
+                    if(telecom.hasSystem())
+                        return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString());
+                    return false;
+                })
+                        .findAny().ifPresent(email -> abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
+            }
             return abstractCareTeamDto;
         }).distinct().collect(Collectors.toList());
     }
 
-    public static List<AbstractCareTeamDto> getPractitionerActors(Optional<String> patientId, Optional<String> name, Optional<String> practitionerId, IGenericClient fhirClient, FisProperties fisProperties){
+    public static List<AbstractCareTeamDto> getPractitionerActors(Optional<String> patientId, Optional<String> name, Optional<String> practitionerId, Optional<List<String>> careTeams, IGenericClient fhirClient, FisProperties fisProperties){
         Bundle practitionerBundle = fhirClient.search().forResource(Practitioner.class)
-                .where(new TokenClientParam("_id").exactly().codes(participantIds(practitionerId,patientId,fhirClient)))
+                .where(new TokenClientParam("_id").exactly().codes(participantIds(practitionerId,patientId, careTeams, fhirClient)))
                 .where(new RichStringClientParam("name").matches().value(name.orElse("")))
                 .returnBundle(Bundle.class)
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
@@ -464,21 +473,33 @@ public class FhirUtil {
                         abstractCareTeamDto.setAddress(addressDto);
                     }
             );
-            practitioner.getTelecom().stream()
-                    .filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString()))
-                    .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
 
-            practitioner.getTelecom().stream().filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString()))
-                    .findAny().ifPresent(email -> abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
-            return abstractCareTeamDto;
+            if(practitioner.hasTelecom()) {
+                practitioner.getTelecom().stream()
+                        .filter(telecom -> {
+                            if(telecom.hasSystem())
+                                return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString());
+                            return false;
+                        })
+                        .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
+
+                practitioner.getTelecom().stream().filter(telecom -> {
+                    if(telecom.hasSystem())
+                        return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString());
+                    return false;
+                })
+                        .findAny().ifPresent(email -> abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
+            }
+                return abstractCareTeamDto;
+
         }).distinct().collect(Collectors.toList());
     }
 
 
-    public static List<AbstractCareTeamDto> getRelatedPersonActors(Optional<String> patientId, Optional<String> name, Optional<String> relatedPersonId, IGenericClient fhirClient, FisProperties fisProperties){
+    public static List<AbstractCareTeamDto> getRelatedPersonActors(Optional<String> patientId, Optional<String> name, Optional<String> relatedPersonId, Optional<List<String>> careTeams, IGenericClient fhirClient, FisProperties fisProperties){
 
         Bundle relatedBundle = fhirClient.search().forResource(RelatedPerson.class)
-                .where(new TokenClientParam("_id").exactly().codes(participantIds(relatedPersonId,patientId,fhirClient)))
+                .where(new TokenClientParam("_id").exactly().codes(participantIds(relatedPersonId,patientId, careTeams, fhirClient)))
                 .where(new RichStringClientParam("name").matches().value(name.orElse("")))
                 .returnBundle(Bundle.class)
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
@@ -506,12 +527,23 @@ public class FhirUtil {
                         abstractCareTeamDto.setAddress(addressDto);
                     }
             );
-            relatedPerson.getTelecom().stream()
-                    .filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString()))
-                    .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
 
-            relatedPerson.getTelecom().stream().filter(telecom -> telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString()))
-                    .findAny().ifPresent(email -> abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
+            if(relatedPerson.hasTelecom()) {
+                relatedPerson.getTelecom().stream()
+                        .filter(telecom -> {
+                            if(telecom.hasSystem())
+                                return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString());
+                            return false;
+                        })
+                        .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
+
+                relatedPerson.getTelecom().stream().filter(telecom -> {
+                    if(telecom.hasSystem())
+                        return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString());
+                    return false;
+                })
+                        .findAny().ifPresent(email -> abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
+            }
             return abstractCareTeamDto;
         }).distinct().collect(Collectors.toList());
     }
@@ -561,14 +593,23 @@ public class FhirUtil {
         return identifierDto;
     }
 
-    public static List<String> participantIds(Optional<String> participantId,Optional<String> patientId, IGenericClient fhirClient){
+    public static List<String> participantIds(Optional<String> participantId,Optional<String> patientId, Optional<List<String>> careTeams, IGenericClient fhirClient){
         List<String> participantIds=new ArrayList<>();
         if(participantId.isPresent()){
             participantIds=Arrays.asList(participantId.get());
+        }else if(careTeams.isPresent()) {
+            participantIds=getParticipantIdFromCareTeam(careTeams,fhirClient);
         }else{
             participantIds=getCareTeamParticipantIdsFromPatient(patientId,fhirClient);
         }
         return participantIds;
+    }
+
+    public static List<String> getParticipantIdFromCareTeam(Optional<List<String>> careTeams,IGenericClient fhirClient){
+        Bundle bundle= fhirClient.search().forResource(CareTeam.class).where(new TokenClientParam("_id").exactly().codes(careTeams.get())).returnBundle(Bundle.class).execute();
+
+       return bundle.getEntry().stream().map(ct-> (CareTeam) ct.getResource()).flatMap(ct->ct.getParticipant().stream().map(par->par.getMember().getReference().split("/")[1])).distinct().collect(Collectors.toList());
+
     }
 }
 
