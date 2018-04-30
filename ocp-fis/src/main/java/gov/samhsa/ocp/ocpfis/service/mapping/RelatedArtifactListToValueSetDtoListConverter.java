@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
+import gov.samhsa.ocp.ocpfis.service.dto.RelatedArtifactDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.hl7.fhir.dstu3.model.RelatedArtifact;
 import org.modelmapper.AbstractConverter;
@@ -10,23 +11,26 @@ import java.util.List;
 
 
 @Component
-public class RelatedArtifactListToValueSetDtoListConverter extends AbstractConverter<List<RelatedArtifact>, List<ValueSetDto>> {
+public class RelatedArtifactListToValueSetDtoListConverter extends AbstractConverter<List<RelatedArtifact>, List<RelatedArtifactDto>> {
 
     @Override
-    protected List<ValueSetDto> convert(List<RelatedArtifact> source) {
-        ValueSetDto valueSetDto = new ValueSetDto();
-        List<ValueSetDto> valueSetDtos = new ArrayList<>();
+    protected List<RelatedArtifactDto> convert(List<RelatedArtifact> source) {
+        RelatedArtifactDto dto = new RelatedArtifactDto();
+        List<RelatedArtifactDto> dtos = new ArrayList<>();
 
         if (!source.isEmpty()) {
             int sourceSize = source.size();
             if (sourceSize > 0) {
                 source.forEach(coding -> {
-                    valueSetDto.setCode(coding.getType().toCode());
-                    valueSetDtos.add(valueSetDto);
+                    dto.setType(coding.getType().toCode());
+                    dto.setDisplay(coding.getDisplay());
+                    dto.setCitation(coding.getCitation());
+                    dto.setUrl(coding.getUrl());
+                    dtos.add(dto);
                 });
             }
         }
-        return valueSetDtos;
+        return dtos;
 
     }
 

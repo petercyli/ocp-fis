@@ -13,6 +13,8 @@ public interface ActivityDefinitionService {
 
     void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto,String organizationId);
 
+    void updateActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId, String activityDefinitionId);
+
     List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner);
 
     ActivityDefinitionDto getActivityDefinitionById(String id);

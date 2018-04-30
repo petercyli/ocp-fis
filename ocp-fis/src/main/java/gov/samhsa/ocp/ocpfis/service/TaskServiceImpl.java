@@ -138,7 +138,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<DateRangeEnum> filterDate) {
+    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<Boolean> isTodoList, Optional<DateRangeEnum> filterDate) {
 
         // Generate the Query Based on Input Variables
         IQuery ownerIQuery = getTasksIQuery(practitioner, organization, patient, partOf, "owner");
@@ -162,6 +162,11 @@ public class TaskServiceImpl implements TaskService {
 
         //Apply Filters Based on Input Variables
         taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos, filterDate);
+
+        if(patient.isPresent() && !isTodoList.isPresent()) {
+            TaskDto toDoTaskDto = getToDoTaskDto(practitioner, patient, organization, definition);
+            taskDtos.add(toDoTaskDto);
+        }
 
         return taskDtos;
     }
@@ -301,6 +306,10 @@ public class TaskServiceImpl implements TaskService {
 
     public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition, Optional<String> practitioner, Optional<String> organization) {
         List<ReferenceDto> tasks = getBundleForRelatedTask(patient, organization).stream()
+                .filter(task->{
+                    Task mainTask= (Task) task.getResource();
+                    return !mainTask.hasPartOf();
+                })
                 .map(Bundle.BundleEntryComponent::getResource)
                 .map(resource -> FhirDtoUtil.mapTaskToReferenceDto((Task) resource))
                 .collect(toList());
@@ -697,5 +706,16 @@ public class TaskServiceImpl implements TaskService {
                     Task task = (Task) retrievedTask.getResource();
                     return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());
                 }).collect(toList());
+    }
+
+    private TaskDto getToDoTaskDto(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition) {
+        List<ReferenceDto> referenceDtos = getRelatedTasks(patient.get(), definition, practitioner, organization);
+
+        //always present
+        ReferenceDto referenceDto = referenceDtos.stream().findFirst().get();
+
+        String taskId = FhirDtoUtil.getIdFromReferenceDto(referenceDto, ResourceType.Task);
+
+        return getTaskById(taskId);
     }
 }

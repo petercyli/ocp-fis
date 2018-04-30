@@ -342,12 +342,12 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getUSCoreBirthSex() {
-        List<ValueSetDto> usCoreBirthsexes;
+        List<ValueSetDto> birthSexList;
         ValueSet response = getValueSets(LookupPathUrls.BIRTH_SEX.getUrlPath(), LookupPathUrls.BIRTH_SEX.getType());
-        List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-        usCoreBirthsexes = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + usCoreBirthsexes.size() + " US Core birth sex codes.");
-        return usCoreBirthsexes;
+        List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
+        birthSexList= valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + birthSexList.size() + " birth sex.");
+        return birthSexList;
 
     }
 

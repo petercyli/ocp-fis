@@ -5,9 +5,11 @@ import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,9 +24,19 @@ public class ActivityDefinitionController {
     @Autowired
     private ActivityDefinitionService activityDefinitionService;
 
-    @PostMapping("/organization/{organizationId}/activity-definitions")
+    @PostMapping("/organizations/{organizationId}/activity-definitions")
     public void createActivityDefinition(@PathVariable String organizationId, @RequestBody ActivityDefinitionDto activityDefinitionDto) {
         activityDefinitionService.createActivityDefinition(activityDefinitionDto, organizationId);
+    }
+
+    @PutMapping("/organizations/{organizationId}/activity-definitions/{activityDefinitionId}")
+    public void updateActivityDefinition(@PathVariable String organizationId, @PathVariable String activityDefinitionId, @RequestBody ActivityDefinitionDto activityDefinitionDto) {
+        activityDefinitionService.updateActivityDefinition(activityDefinitionDto, organizationId, activityDefinitionId);
+    }
+
+    @GetMapping("/activity-definitions/{activityDefinitionId}")
+    public ActivityDefinitionDto getActivityDefinitionById(@PathVariable String activityDefinitionId) {
+        return activityDefinitionService.getActivityDefinitionById(activityDefinitionId);
     }
 
     @GetMapping("/organizations/{organizationId}/activity-definitions")

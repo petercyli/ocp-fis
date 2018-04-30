@@ -64,7 +64,7 @@ public class HealthcareServiceController {
     }
 
 
-    @PostMapping("/organization/{organizationId}/healthcare-service")
+    @PostMapping("/organization/{organizationId}/healthcare-services")
     @ResponseStatus(HttpStatus.CREATED)
     public void createHealthcareService(@PathVariable String organizationId,
                                         @Valid @RequestBody HealthcareServiceDto healthcareServiceDto) {
@@ -72,7 +72,7 @@ public class HealthcareServiceController {
 
     }
 
-    @PutMapping("/organization/{organizationId}/healthcare-service/{healthcareServiceId}")
+    @PutMapping("/organization/{organizationId}/healthcare-services/{healthcareServiceId}")
     @ResponseStatus(HttpStatus.OK)
     public void updateHealthcareService(@PathVariable String organizationId,
                                         @PathVariable String healthcareServiceId,
