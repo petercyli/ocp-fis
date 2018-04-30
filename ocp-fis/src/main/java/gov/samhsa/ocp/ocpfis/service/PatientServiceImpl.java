@@ -434,17 +434,20 @@ public class PatientServiceImpl implements PatientService {
     private void mapExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = patient.getExtension();
 
-        extensionList.stream().map(FhirUtil::convertExtensionToCoding).filter(Optional::isPresent).map(Optional::get).forEach(coding -> {
-            if (coding.getSystem().contains(RACE_CODE)) {
-                patientDto.setRace(coding.getCode());
-            } else if (coding.getSystem().contains(LANGUAGE_CODE)) {
-                patientDto.setLanguage(coding.getCode());
-            } else if (coding.getSystem().contains(ETHNICITY_CODE)) {
-                patientDto.setEthnicity(coding.getCode());
-            } else if (coding.getSystem().contains(GENDER_CODE)) {
-                patientDto.setBirthSex(coding.getCode());
-            }
-        });
+        extensionList.stream().map(extension -> (CodeableConcept)extension.getValue())
+                .forEach(codeableConcept -> {
+                    codeableConcept.getCoding().stream().findFirst().ifPresent(coding->{
+                        if (coding.getSystem().contains(CODING_SYSTEM_RACE)) {
+                            patientDto.setRace(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreRace()).getDisplay());
+                        } else if (coding.getSystem().contains(CODING_SYSTEM_LANGUAGE)) {
+                            patientDto.setLanguage(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getLanguages()).getDisplay());
+                        } else if (coding.getSystem().contains(CODING_SYSTEM_ETHNICITY)) {
+                            patientDto.setEthnicity(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreEthnicity()).getDisplay());
+                        } else if (coding.getSystem().contains(CODING_SYSTEM_BIRTHSEX)) {
+                            patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreBirthSex()).getDisplay());
+                        }
+                    });
+                });
     }
 
     private Flag convertFlagDtoToFlag(Reference patientId, FlagDto flagDto) {
