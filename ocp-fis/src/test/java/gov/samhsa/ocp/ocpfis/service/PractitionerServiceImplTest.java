@@ -16,6 +16,7 @@ import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -59,6 +60,7 @@ public class PractitionerServiceImplTest {
 
 
     @Test
+    @Ignore
     public void testGetAllPractitioners() {
         //Arrange
         final String practitioner = "Practitioner";
