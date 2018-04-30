@@ -38,7 +38,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -47,6 +46,7 @@ import java.util.Optional;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
+import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
 import static java.util.stream.Collectors.groupingBy;
@@ -99,6 +99,9 @@ public class TaskServiceImpl implements TaskService {
         if (statusList.isPresent() && !statusList.get().isEmpty()) {
             iQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
         }
+
+        //Set Sort order
+        iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
 
         iQuery = FhirUtil.setNoCacheControlDirective(iQuery);
 
@@ -349,6 +352,8 @@ public class TaskServiceImpl implements TaskService {
                         .where(new ReferenceClientParam("organization").hasId("Organization/" + organization.get()))
                         .where(new ReferenceClientParam("care-manager").hasId(practitioner.get()));
 
+                //Set Sort order
+                episodeOfCareQuery = FhirUtil.setLastUpdatedTimeSortOrder(episodeOfCareQuery, true);
 
                 Bundle episodeOfCareBundle = (Bundle) FhirUtil.setNoCacheControlDirective(episodeOfCareQuery)
                         .returnBundle(Bundle.class)
@@ -367,7 +372,7 @@ public class TaskServiceImpl implements TaskService {
                 ReferenceDto referenceDto = new ReferenceDto();
                 referenceDto.setReference("Task/" + methodOutcome.getId().getIdPart());
                 referenceDto.setDisplay(TO_DO);
-                return Arrays.asList(referenceDto);
+                return Collections.singletonList(referenceDto);
 
             }
 
@@ -408,10 +413,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private boolean endDateAvailable(TaskDto dto) {
-        if (dto.getExecutionPeriod() != null && dto.getExecutionPeriod().getEnd() != null) {
-            return true;
-        }
-        return false;
+        return dto.getExecutionPeriod() != null && dto.getExecutionPeriod().getEnd() != null;
     }
 
     private void retrieveActivityDefinitionDuration(TaskDto taskDto) {
@@ -462,14 +464,11 @@ public class TaskServiceImpl implements TaskService {
         List<Bundle.BundleEntryComponent> bundleEntry = getBundleForPatient(patient);
 
         if (bundleEntry != null && !bundleEntry.isEmpty()) {
-            List<Bundle.BundleEntryComponent> taskComponents = bundleEntry;
 
-            if (taskComponents != null) {
-                tasks = taskComponents.stream()
-                        .map(it -> (Task) it.getResource())
-                        .map(it -> TaskToTaskDtoMap.map(it, lookUpService.getTaskPerformerType()))
-                        .collect(toList());
-            }
+            tasks = bundleEntry.stream()
+                    .map(it -> (Task) it.getResource())
+                    .map(it -> TaskToTaskDtoMap.map(it, lookUpService.getTaskPerformerType()))
+                    .collect(toList());
         }
 
         return tasks;
@@ -479,8 +478,7 @@ public class TaskServiceImpl implements TaskService {
         Bundle bundle = fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
                 .returnBundle(Bundle.class).execute();
-        List<Bundle.BundleEntryComponent> bundleEntry = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
-        return bundleEntry;
+        return FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
     }
 
     private List<Bundle.BundleEntryComponent> getBundleForRelatedTask(String patient, Optional<String> organization) {
@@ -639,13 +637,13 @@ public class TaskServiceImpl implements TaskService {
             }
         }
 
-        taskDtos.sort(Comparator.comparing(o -> o.getDateDiff()));
+        taskDtos.sort(Comparator.comparing(TaskDto::getDateDiff));
 
         return taskDtos;
     }
 
     private IQuery getTasksIQuery(Optional<String> practitionerId, Optional<String> organization, Optional<String> patientId, Optional<String> parentTaskId, String practitionerType) {
-        IQuery iQuery = fhirClient.search().forResource(Task.class);
+        IQuery iQuery = fhirClient.search().forResource(Task.class).sort().descending(PARAM_LASTUPDATED);
 
         //Get Sub tasks by parent task id
         if (parentTaskId.isPresent()) {
@@ -685,7 +683,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private List<String> getTaskReferences(List<TaskDto> taskDtos) {
-        return taskDtos.stream().map(taskDto -> taskDto.getLogicalId()).collect(toList());
+        return taskDtos.stream().map(TaskDto::getLogicalId).collect(toList());
     }
 
     private List<TaskDto> getTaskDtos(IQuery iQuery) {
@@ -701,7 +699,7 @@ public class TaskServiceImpl implements TaskService {
         List<Bundle.BundleEntryComponent> retrievedTasks = FhirUtil.getAllBundlesComponentIntoSingleList(firstPageTaskBundle, Optional.empty(), fhirClient, fisProperties);
 
         return retrievedTasks.stream()
-                .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Task))
+                .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Task))
                 .map(retrievedTask -> {
                     Task task = (Task) retrievedTask.getResource();
                     return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());

@@ -67,6 +67,9 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
         IQuery healthcareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class);
 
+        //Set Sort order
+        healthcareServicesSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(healthcareServicesSearchQuery, true);
+
         //Check for healthcare service status
         if (statusList.isPresent() && statusList.get().size() == 1) {
             log.info("Searching for healthcare service with the following specific status" + statusList.get().get(0));
@@ -123,6 +126,9 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         Map<String, String> locationNameMap = new HashMap<>();
 
         IQuery healthcareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
+
+        //Set Sort order
+        healthcareServicesSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(healthcareServicesSearchQuery, true);
 
         //Check for healthcare service status
         if (statusList.isPresent() && statusList.get().size() == 1) {
@@ -182,6 +188,9 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         IQuery healthcareServiceQuery = fhirClient.search().forResource(HealthcareService.class)
                 .where(new ReferenceClientParam("organization").hasId(organizationResourceId))
                 .where(new ReferenceClientParam("location").hasId(locationId));
+
+        //Set Sort order
+        healthcareServiceQuery = FhirUtil.setLastUpdatedTimeSortOrder(healthcareServiceQuery, true);
 
         //Check for healthcare service status
         if (statusList.isPresent() && statusList.get().size() == 1) {

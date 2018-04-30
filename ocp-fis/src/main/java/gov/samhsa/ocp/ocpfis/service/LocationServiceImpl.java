@@ -68,6 +68,9 @@ public class LocationServiceImpl implements LocationService {
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
+        //Set Sort order
+        locationsSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(locationsSearchQuery, true);
+
         // Check if there are any additional search criteria
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
 
@@ -99,6 +102,9 @@ public class LocationServiceImpl implements LocationService {
         Bundle otherPageLocationSearchBundle;
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
+
+        //Set Sort order
+        locationsSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(locationsSearchQuery, true);
 
         // Check if there are any additional search criteria
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
