@@ -19,6 +19,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.ActivityDefinitionDtoToActivityDefinitionConverter;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
@@ -79,6 +80,9 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         boolean firstPage = true;
 
         IQuery activityDefinitionsSearchQuery = fhirClient.search().forResource(ActivityDefinition.class).where(new StringClientParam("publisher").matches().value("Organization/" + organizationResourceId));
+
+        //Set Sort order
+        activityDefinitionsSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(activityDefinitionsSearchQuery, true);
 
         // Check if there are any additional search criteria
         activityDefinitionsSearchQuery = addAdditionalSearchConditions(activityDefinitionsSearchQuery, searchKey, searchValue);

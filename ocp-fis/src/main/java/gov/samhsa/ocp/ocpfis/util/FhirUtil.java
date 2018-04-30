@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 
 @Slf4j
@@ -163,10 +164,25 @@ public class FhirUtil {
         return searchQuery;
     }
 
-    public static IQuery searchNoCache(IGenericClient fhirClient, Class resourceType){
-        IQuery iQuery = fhirClient.search().forResource(resourceType);
+    public static IQuery searchNoCache(IGenericClient fhirClient, Class resourceType, Optional<Boolean> sortByLastUpdatedTimeDesc){
+        IQuery iQuery;
+        if(sortByLastUpdatedTimeDesc.isPresent() && sortByLastUpdatedTimeDesc.get()){
+            iQuery = fhirClient.search().forResource(resourceType).sort().descending(PARAM_LASTUPDATED);
+        } else {
+            iQuery = fhirClient.search().forResource(resourceType);
+        }
         return setNoCacheControlDirective(iQuery);
     }
+
+    public static IQuery setLastUpdatedTimeSortOrder(IQuery searchQuery, Boolean isDescending){
+        if(isDescending){
+            searchQuery.sort().descending(PARAM_LASTUPDATED);
+        } else {
+            searchQuery.sort().ascending(PARAM_LASTUPDATED);
+        }
+        return searchQuery;
+    }
+
 
     public static String getRoleFromCodeableConcept(CodeableConcept codeableConcept) {
         Optional<Coding> codingRoleCode = codeableConcept.getCoding().stream().findFirst();

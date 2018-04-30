@@ -9,6 +9,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.mapping.EpisodeOfCareToEpisodeOfCareDtoMapper;
+import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
@@ -46,6 +47,9 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
 
         IQuery iQuery = fhirClient.search().forResource(EpisodeOfCare.class).where(new ReferenceClientParam("patient").hasId("Patient/" + patient));
 
+        //Set Sort order
+        iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
+
         if (status.isPresent()) {
             iQuery.where(new TokenClientParam("status").exactly().code(status.get().trim()));
         }
@@ -73,14 +77,16 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
         IQuery iQuery = fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
                 .include(Task.INCLUDE_CONTEXT);
+        //Set Sort order
+        iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
 
         Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> eocCompoents = bundle.getEntry();
+            List<Bundle.BundleEntryComponent> eocComponents = bundle.getEntry();
 
-            if (eocCompoents != null) {
-                referenceDtos = eocCompoents.stream()
+            if (eocComponents != null) {
+                referenceDtos = eocComponents.stream()
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.Task))
                         .map(it -> (Task) it.getResource())
                         .filter(task -> task.hasContext())

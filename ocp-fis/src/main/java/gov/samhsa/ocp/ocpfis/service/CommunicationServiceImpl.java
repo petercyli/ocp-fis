@@ -68,6 +68,9 @@ public class CommunicationServiceImpl implements CommunicationService {
         int numberOfCommunicationsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Communication.name());
         IQuery iQuery = fhirClient.search().forResource(Communication.class);
 
+        //Set Sort order
+        iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
+
         //Check for Patient
         if (searchKey.equalsIgnoreCase("patientId"))
             iQuery.where(new ReferenceClientParam("patient").hasId(searchValue));
