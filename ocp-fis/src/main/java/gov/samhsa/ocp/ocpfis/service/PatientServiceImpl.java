@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.createExtension;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.getCoding;
 import static java.util.stream.Collectors.toList;
@@ -92,6 +93,7 @@ public class PatientServiceImpl implements PatientService {
         Bundle response = fhirClient.search()
                 .forResource(Patient.class)
                 .returnBundle(Bundle.class)
+                .sort().descending(PARAM_LASTUPDATED)
                 .encodedJson()
                 .execute();
         log.debug("Patients Query to FHIR Server: END");
@@ -102,7 +104,7 @@ public class PatientServiceImpl implements PatientService {
     public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
-        IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class);
+        IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class).sort().descending(PARAM_LASTUPDATED);
 
         if(organization.isPresent()){
             if(!patientsInOrganization(organization.get()).isEmpty()) {
@@ -111,7 +113,7 @@ public class PatientServiceImpl implements PatientService {
                 log.info("No Patients were found for given organization.");
                 return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
             }
-        };
+        }
 
         if (showInactive.isPresent()) {
             if (!showInactive.get()) {
@@ -122,11 +124,9 @@ public class PatientServiceImpl implements PatientService {
 
         searchKey.ifPresent(key-> {
                     if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
-                        if(value.isPresent())
-                            PatientSearchQuery.where(new RichStringClientParam("name").contains().value(value.get().trim()));
+                        value.ifPresent(s -> PatientSearchQuery.where(new RichStringClientParam("name").contains().value(s.trim())));
                     } else if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
-                        if(value.isPresent())
-                            PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(value.get().trim()));
+                        value.ifPresent(s -> PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(s.trim())));
                     } else {
                         throw new BadRequestException("Invalid Type Values");
                     }
@@ -210,15 +210,14 @@ public class PatientServiceImpl implements PatientService {
 
     private boolean filterBySearchKey(Patient patient, Optional<String> searchKey, Optional<String> searchValue) {
         //returning everything if searchKey is not present, change to false later.
-        boolean result = true;
         if (searchKey.isPresent() && searchValue.isPresent()) {
             if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
-                FhirUtil.checkPatientName(patient, searchValue.get());
+                return FhirUtil.checkPatientName(patient, searchValue.get());
             } else if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
-                FhirUtil.checkPatientId(patient, searchValue.get());
+                return FhirUtil.checkPatientId(patient, searchValue.get());
             }
         }
-        return result;
+        return true;
     }
 
     private PatientDto mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
@@ -237,7 +236,7 @@ public class PatientServiceImpl implements PatientService {
     private int getPatientsByIdentifier(String system, String value) {
         log.info("Searching patients with identifier.system : " + system + " and value : " + value);
         IQuery searchQuery = fhirClient.search().forResource(Patient.class)
-                .where(Patient.IDENTIFIER.exactly().systemAndIdentifier(system, value));
+                .where(Patient.IDENTIFIER.exactly().systemAndIdentifier(system, value)).sort().descending(PARAM_LASTUPDATED);
         Bundle searchBundle = (Bundle) searchQuery.returnBundle(Bundle.class).execute();
         return searchBundle.getTotal();
     }
@@ -372,10 +371,7 @@ public class PatientServiceImpl implements PatientService {
 
     private List<FlagDto> getFlagsForEachPatient(List<Bundle.BundleEntryComponent> patientAndAllReferenceBundle, String patientId) {
         return patientAndAllReferenceBundle.stream().filter(patientWithAllReference -> patientWithAllReference.getResource().getResourceType().equals(ResourceType.Flag))
-                .map(flagBundle -> {
-                    Flag flag = (Flag) flagBundle.getResource();
-                    return flag;
-                })
+                .map(flagBundle -> (Flag) flagBundle.getResource())
                 .filter(flag -> flag.getSubject().getReference().equalsIgnoreCase("Patient/" + patientId))
                 .map(flag -> {
                     FlagDto flagDto = modelMapper.map(flag, FlagDto.class);
@@ -499,10 +495,7 @@ public class PatientServiceImpl implements PatientService {
         List<Flag> duplicateCheckList = new ArrayList<>();
         if (!bundle.isEmpty()) {
             duplicateCheckList = bundle.getEntry().stream()
-                    .map(flagResource -> {
-                        Flag flag = (Flag) flagResource.getResource();
-                        return flag;
-                    })
+                    .map(flagResource -> (Flag) flagResource.getResource())
                     .filter(flag -> flag.getCode().getText().equalsIgnoreCase(flagDto.getCode()))
                     .filter(flag -> flag.getCategory().getCoding().get(0).getCode().equalsIgnoreCase(flagDto.getCategory())
                     ).collect(toList());
@@ -527,17 +520,17 @@ public class PatientServiceImpl implements PatientService {
         Bundle bundle = fhirClient.search().forResource(EpisodeOfCare.class)
                 .where(new ReferenceClientParam("organization").hasId(org))
                 .returnBundle(Bundle.class)
+                .sort().descending(PARAM_LASTUPDATED)
                 .execute();
 
         return FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(eoc -> {
             EpisodeOfCare episodeOfCare = (EpisodeOfCare) eoc.getResource();
-            String patient = (episodeOfCare.hasPatient()) ? (episodeOfCare.getPatient().getReference().split("/")[1]) : null;
-            return patient;
+            return (episodeOfCare.hasPatient()) ? (episodeOfCare.getPatient().getReference().split("/")[1]) : null;
         }).distinct().collect(toList());
     }
 
     private List<PatientDto> convertAllBundleToSinglePatientDtoList(Bundle firstPagePatientSearchBundle, int numberOBundlePerPage) {
-        List<Bundle.BundleEntryComponent> bundleEntryComponentList = FhirUtil.getAllBundlesComponentIntoSingleList(firstPagePatientSearchBundle, Optional.ofNullable(numberOBundlePerPage), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> bundleEntryComponentList = FhirUtil.getAllBundlesComponentIntoSingleList(firstPagePatientSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties);
         return bundleEntryComponentList.stream()
                 .filter(bundleEntryComponent -> bundleEntryComponent.getResource().getResourceType().equals(ResourceType.Patient))
                 .map(bundleEntryComponent -> (Patient) bundleEntryComponent.getResource())
