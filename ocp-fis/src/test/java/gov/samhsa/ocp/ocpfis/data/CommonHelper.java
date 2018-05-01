@@ -3,9 +3,14 @@ package gov.samhsa.ocp.ocpfis.data;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class CommonHelper {
@@ -40,5 +45,19 @@ public class CommonHelper {
         dto.setSystem(system);
         dto.setValue(cellValue);
         return Arrays.asList(dto);
+    }
+
+    public static Map<String, String> getLookup(String url) {
+        RestTemplate rt = new RestTemplate();
+        ResponseEntity<ValueSetDto[]> foo = rt.getForEntity(url, ValueSetDto[].class);
+
+        ValueSetDto[] dtos = foo.getBody();
+
+        Map<String, String> mapOfLookup = new HashMap<>();
+
+        for(ValueSetDto dto : dtos) {
+            mapOfLookup.put(dto.getDisplay(), dto.getCode());
+        }
+        return mapOfLookup;
     }
 }
