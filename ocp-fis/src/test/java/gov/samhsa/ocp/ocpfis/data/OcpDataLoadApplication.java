@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.data;
 
 import gov.samhsa.ocp.ocpfis.data.model.organization.Element;
 import gov.samhsa.ocp.ocpfis.data.model.organization.TempOrganizationDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -83,6 +84,9 @@ public class OcpDataLoadApplication {
         Sheet appointments = workbook.getSheet("Appointments");
         AppointmentsHelper.process(appointments, mapOfPatients, mapOfPractitioners);
         log.info("Populated appointments");
+
+        workbook.close();
+        log.info("Workbook closed");
     }
 
     private static Map<String, String> retrieveOrganizations() {
