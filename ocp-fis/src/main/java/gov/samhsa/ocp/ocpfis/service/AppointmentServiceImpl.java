@@ -170,7 +170,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Bundle otherPageAppointmentBundle;
         boolean firstPage = true;
 
-        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.of(Boolean.TRUE));
+        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
 
         if (patientId.isPresent()) {
             log.info("Searching Appointments for patientId = " + patientId.get().trim());
@@ -318,7 +318,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         }
     }
 
-    public List<String> getParticipantsByPatientAndAppointmentId(String patientId, String appointmentId) {
+    private List<String> getParticipantsByPatientAndAppointmentId(String patientId, String appointmentId) {
         List<String> participantIds = new ArrayList<>();
 
         Bundle bundle = (Bundle) FhirUtil.searchNoCache(fhirClient,Appointment.class, Optional.empty())
