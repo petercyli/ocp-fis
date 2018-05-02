@@ -36,9 +36,13 @@ public class DetailedConsentDto {
 
     private List<AbstractCareTeamDto> fromPractitionerActors;
 
+    private List<AbstractCareTeamDto> fromRelatedPersons;
+
     private List<AbstractCareTeamDto> toOrganizationActors;
 
     private List<AbstractCareTeamDto> toPractitionerActors;
+
+    private List<AbstractCareTeamDto> toRelatedPersons;
 
     private List<ReferenceDto> toCareTeams;
 
