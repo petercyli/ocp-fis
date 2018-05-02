@@ -46,15 +46,12 @@ public class AppointmentToAppointmentDtoConverter {
                 participantDtos.forEach(
                         participant -> {
                             if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationTypeCode().equalsIgnoreCase("AUT")) {
-                                //Author
                                 appointmentDto.setCanCancel(true);
                             }
-                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) &&
-                                    (
-                                            participant.getParticipationStatusCode().equalsIgnoreCase("tentative") ||
-                                                    participant.getParticipationStatusCode().equalsIgnoreCase("needs-action")
-                                    )) {
+                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && !participant.getParticipationStatusCode().equalsIgnoreCase("accepted")) {
                                 appointmentDto.setCanAccept(true);
+                            }
+                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && !participant.getParticipationStatusCode().equalsIgnoreCase("declined")) {
                                 appointmentDto.setCanDecline(true);
                             }
                         }
