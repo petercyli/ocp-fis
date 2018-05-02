@@ -25,11 +25,14 @@ public class CommonHelper {
         String [] elements = cellValue.split("\\|");
         System.out.println("size of elements" + elements.length);
         AddressDto dto = new AddressDto();
-        dto.setLine1(elements[0]);
-        dto.setCity(elements[1]);
-        dto.setStateCode(elements[2]);
-        dto.setPostalCode(elements[3]);
-        dto.setCountryCode(elements[4]);
+
+        if(elements.length == 5) {
+            dto.setLine1(elements[0]);
+            dto.setCity(elements[1]);
+            dto.setStateCode(elements[2]);
+            dto.setPostalCode(elements[3]);
+            dto.setCountryCode(elements[4]);
+        }
 
         return Arrays.asList(dto);
     }
