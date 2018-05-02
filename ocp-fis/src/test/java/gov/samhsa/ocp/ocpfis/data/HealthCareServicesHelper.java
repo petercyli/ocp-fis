@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.data;
 
+import gov.samhsa.ocp.ocpfis.data.model.healthcareservice.TempHealthCareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
@@ -8,6 +9,8 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.springframework.http.HttpEntity;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,12 +31,12 @@ public class HealthCareServicesHelper {
         Map<String, String> specialityLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-specialities");
         Map<String, String> referralLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-referral-methods");
 
-        List<HealthcareServiceDto> healthCareServiceDtos = new ArrayList<>();
+        List<TempHealthCareServiceDto> healthCareServiceDtos = new ArrayList<>();
 
         for (Row row : healthCareServices) {
             if (rowNum > 0) {
                 int j = 0;
-                HealthcareServiceDto dto = new HealthcareServiceDto();
+                TempHealthCareServiceDto dto = new TempHealthCareServiceDto();
                 for (Cell cell : row) {
                     String cellValue = new DataFormatter().formatCellValue(cell);
 
@@ -57,6 +60,7 @@ public class HealthCareServicesHelper {
 
                         ValueSetDto valueSetDto = new ValueSetDto();
                         valueSetDto.setCode(typeLookups.get(cellValue.trim()));
+                        valueSetDto.setSystem("http://hl7.org/fhir/service-type");
                         dto.setType(Arrays.asList(valueSetDto));
                     } else if (j == 5) {
                         //speciality
@@ -85,7 +89,16 @@ public class HealthCareServicesHelper {
             rowNum++;
         }
 
-        healthCareServiceDtos.forEach(healthcareServiceDto -> log.info("healthcareServiceDto : " + healthcareServiceDto));
+        RestTemplate rt = new RestTemplate();
+
+        healthCareServiceDtos.forEach(healthcareServiceDto -> {
+            log.info("healthcareServiceDto : " + healthcareServiceDto);
+            HttpEntity<TempHealthCareServiceDto> request = new HttpEntity<>(healthcareServiceDto);
+
+            rt.postForObject("http://localhost:8444/organization/" + healthcareServiceDto.getOrganizationId() + "/healthcare-services", request, TempHealthCareServiceDto.class);
+        });
+
+
     }
 
 }
