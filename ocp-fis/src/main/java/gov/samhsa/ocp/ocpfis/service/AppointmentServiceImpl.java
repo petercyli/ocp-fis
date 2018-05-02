@@ -32,6 +32,7 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -223,6 +224,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public void cancelAppointment(String appointmentId) {
         Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        //Cancel
         appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
         //Update the resource
         FhirUtil.updateFhirResource(fhirClient, appointment, "Cancel Appointment");
@@ -230,17 +232,32 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public void acceptAppointment(String appointmentId, String actorReference) {
-
+        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        //Accept
+        appointment = setParticipantAction(appointment, actorReference, "ACCEPT");
+        appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, appointment, "Accept Appointment");
     }
 
     @Override
     public void declineAppointment(String appointmentId, String actorReference) {
-
+        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        //Decline
+        appointment = setParticipantAction(appointment, actorReference, "DECLINE");
+        appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, appointment, "Decline Appointment");
     }
 
     @Override
     public void tentativelyAcceptAppointment(String appointmentId, String actorReference) {
-
+        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        //Tentatively Accept
+        appointment = setParticipantAction(appointment, actorReference, "TENTATIVE");
+        appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, appointment, "TentativelyAccept Appointment");
     }
 
 
@@ -354,7 +371,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private Appointment setAppointmentStatusBasedOnParticipantActions(Appointment apt) {
-        //Call this function only when Accept/Declining an appointment
+        //Call this function only when Accepting/TentativelyAccepting/Declining an appointment
         AppointmentDto aptDto = AppointmentToAppointmentDtoConverter.map(apt, Optional.empty());
 
         if (aptDto.getStatusCode().trim().equalsIgnoreCase("proposed")) {
@@ -376,5 +393,31 @@ public class AppointmentServiceImpl implements AppointmentService {
         } //else do nothing
         return apt;
     }
+
+    private Appointment setParticipantAction(Appointment apt, String actorReference, String actionInUpperCase) {
+        List<org.hl7.fhir.dstu3.model.Appointment.AppointmentParticipantComponent> participantList = apt.getParticipant();
+        try {
+            for (org.hl7.fhir.dstu3.model.Appointment.AppointmentParticipantComponent temp : participantList) {
+                if (temp.getActor().getReference().equalsIgnoreCase(actorReference)) {
+                    switch (actionInUpperCase) {
+                        case "ACCEPT":
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode("accepted"));
+                        case "DECLINE":
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode("declined"));
+                        case "TENTATIVE":
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode("tentative"));
+                        default:
+                            log.error("Unidentified action by the participant.");
+                    }
+                }
+            }
+        }
+        catch (FHIRException e) {
+            log.error("Unable to convert from the givenParticipation Status Code");
+            throw new BadRequestException("Unable to convert from the givenParticipation Status Code ", e);
+        }
+        return apt;
+    }
+
 
 }
