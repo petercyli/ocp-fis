@@ -94,7 +94,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<ReferenceDto> participantsByRoles = new ArrayList<>();
         List<ParticipantReferenceDto> participantsSelected = new ArrayList<>();
 
-        Bundle careTeamBundle = (Bundle) FhirUtil.searchNoCache(fhirClient,CareTeam.class, Optional.empty())
+        Bundle careTeamBundle = (Bundle) FhirUtil.searchNoCache(fhirClient, CareTeam.class, Optional.empty())
                 .where(new ReferenceClientParam("patient").hasId(patientId.trim()))
                 .include(CareTeam.INCLUDE_PARTICIPANT)
                 .returnBundle(Bundle.class).execute();
@@ -152,11 +152,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("FHIR appointment bundle retrieved from FHIR server successfully for appointment Id:" + appointmentId);
 
         Bundle.BundleEntryComponent retrievedAppointment = appointmentBundle.getEntry().get(0);
-        return AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource());
+        return AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.empty());
     }
 
     @Override
     public PageDto<AppointmentDto> getAppointments(Optional<List<String>> statusList,
+                                                   Optional<String> requesterReference,
                                                    Optional<String> patientId,
                                                    Optional<String> practitionerId,
                                                    Optional<String> searchKey,
@@ -209,7 +210,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         List<AppointmentDto> appointmentDtos = retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
-                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource()))).collect(toList());
+                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), requesterReference))).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
@@ -321,7 +322,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private List<String> getParticipantsByPatientAndAppointmentId(String patientId, String appointmentId) {
         List<String> participantIds = new ArrayList<>();
 
-        Bundle bundle = (Bundle) FhirUtil.searchNoCache(fhirClient,Appointment.class, Optional.empty())
+        Bundle bundle = (Bundle) FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty())
                 .where(new ReferenceClientParam("patient").hasId(patientId))
                 .where(new TokenClientParam("_id").exactly().code(appointmentId))
                 .include(Appointment.INCLUDE_PATIENT)
