@@ -40,5 +40,6 @@ public class AppointmentDto {
     private boolean canCancel;
     private boolean canAccept;
     private boolean canDecline;
+    private boolean canTentativelyAccept;
 
 }

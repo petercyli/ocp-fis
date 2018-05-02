@@ -50,8 +50,14 @@ public class AppointmentToAppointmentDtoConverter {
                             }
                             if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && !participant.getParticipationStatusCode().equalsIgnoreCase("accepted")) {
                                 appointmentDto.setCanAccept(true);
+                                appointmentDto.setCanTentativelyAccept(true);
                             }
                             if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && !participant.getParticipationStatusCode().equalsIgnoreCase("declined")) {
+                                appointmentDto.setCanDecline(true);
+                                appointmentDto.setCanTentativelyAccept(true);
+                            }
+                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && !participant.getParticipationStatusCode().equalsIgnoreCase("tentative")) {
+                                appointmentDto.setCanAccept(true);
                                 appointmentDto.setCanDecline(true);
                             }
                         }
