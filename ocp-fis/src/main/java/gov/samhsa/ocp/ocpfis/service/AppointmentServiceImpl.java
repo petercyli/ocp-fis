@@ -8,6 +8,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
+import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -335,4 +336,29 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         return participantIds;
     }
+
+    private Appointment setAppointmentStatusBasedOnParticipantActions(Appointment apt) {
+        //Call this function only when Accept/Declining an appointment
+        AppointmentDto aptDto = AppointmentToAppointmentDtoConverter.map(apt, Optional.empty());
+
+        if (aptDto.getStatusCode().trim().equalsIgnoreCase("proposed")) {
+            List<AppointmentParticipantDto> participantList = aptDto.getParticipant();
+            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase("needs-action") &&
+                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase("required"))) {
+                apt.setStatus(Appointment.AppointmentStatus.PENDING);
+            }
+        } else if (aptDto.getStatusCode().trim().equalsIgnoreCase("pending")) {
+            List<AppointmentParticipantDto> participantList = aptDto.getParticipant();
+            boolean allParticipantsHaveResponded = true;
+            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase("needs-action") &&
+                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase("required"))) {
+                allParticipantsHaveResponded = false;
+            }
+            if (allParticipantsHaveResponded) {
+                apt.setStatus(Appointment.AppointmentStatus.BOOKED);
+            }
+        } //else do nothing
+        return apt;
+    }
+
 }
