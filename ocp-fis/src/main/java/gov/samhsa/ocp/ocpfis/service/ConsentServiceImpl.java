@@ -573,6 +573,12 @@ public class ConsentServiceImpl implements ConsentService {
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
+        List<AbstractCareTeamDto> fromRelatedPersons = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("RelatedPerson"))
+                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/","")), Optional.empty(), fhirClient,fisProperties)
+                        .stream().findAny().get()
+                ).collect(Collectors.toList());
+
+
         List<AbstractCareTeamDto> toOrganizationActors = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("Organization"))
                 .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/","")), Optional.empty(), fhirClient,fisProperties)
                         .stream().findAny().get()
@@ -582,6 +588,12 @@ public class ConsentServiceImpl implements ConsentService {
                 .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/","")), Optional.empty(), fhirClient,fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
+
+        List<AbstractCareTeamDto> toRelatedPersons = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("RelatedPerson"))
+                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/","")), Optional.empty(), fhirClient,fisProperties)
+                        .stream().findAny().get()
+                ).collect(Collectors.toList());
+
 
         List<ReferenceDto> toCareTeams = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("CareTeam")).collect(Collectors.toList());
 
@@ -598,8 +610,10 @@ public class ConsentServiceImpl implements ConsentService {
                 .patient(consentDto.getPatient())
                 .fromOrganizationActors(fromOrganizationActors)
                 .fromPractitionerActors(fromPractitionerActors)
+                .fromRelatedPersons(fromRelatedPersons)
                 .toOrganizationActors(toOrganizationActors)
                 .toPractitionerActors(toPractitionerActors)
+                .toRelatedPersons(toRelatedPersons)
                 .toCareTeams(toCareTeams)
                 .category(consentDto.getCategory())
                 .purpose(consentDto.getPurpose())

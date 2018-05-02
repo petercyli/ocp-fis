@@ -153,6 +153,9 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
         if (detailedConsent.getFromPractitionerActors() != null)
             drawActorsTable(document, detailedConsent.getFromPractitionerActors());
 
+        if (detailedConsent.getFromRelatedPersons() != null)
+            drawActorsTable(document, detailedConsent.getFromRelatedPersons());
+
         drawAuthorizationSubSectionHeader(document, NEWLINE_CHARACTER + "To disclose to:" + NEWLINE_CHARACTER);
 
         if (detailedConsent.getToOrganizationActors() != null)
@@ -160,6 +163,9 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
 
         if (detailedConsent.getToPractitionerActors() != null)
             drawActorsTable(document, detailedConsent.getToPractitionerActors());
+
+        if (detailedConsent.getToRelatedPersons() != null)
+            drawActorsTable(document, detailedConsent.getToRelatedPersons());
 
         if (detailedConsent.getToCareTeams() != null)
             drawCareTeamTable(document, detailedConsent.getToCareTeams());
@@ -188,7 +194,6 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
 
     private void drawActorsTable(HexPDF document, List<AbstractCareTeamDto> actors) {
 
-
         Object[][] tableContentsForPractitioners = new Object[actors.size() + 1][5];
         tableContentsForPractitioners[0][0] = "Name";
         tableContentsForPractitioners[0][1] = "Id";
@@ -200,7 +205,7 @@ public class ConsentPdfGeneratorWithHexPdfImpl implements ConsentPdfGenerator {
         for (int i = 0; i < actors.size(); i++) {
             tableContentsForPractitioners[i + 1][0] = actors.get(i).getDisplay();
             tableContentsForPractitioners[i + 1][1] = actors.get(i).getId();
-            tableContentsForPractitioners[i + 1][2] = actors.get(i).getIdentifiers().get(0).getValue();
+            tableContentsForPractitioners[i + 1][2] = actors.get(i).getIdentifiers().get(0).getSystemDisplay().concat(": ").concat(actors.get(i).getIdentifiers().get(0).getValue());
             tableContentsForPractitioners[i + 1][3] = composeAddress(actors.get(i).getAddress());
             tableContentsForPractitioners[i + 1][4] = actors.get(i).getPhoneNumber().orElse("");
         }
