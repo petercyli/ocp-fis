@@ -9,6 +9,7 @@ import org.hl7.fhir.dstu3.model.Appointment;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.stream.Collectors.toList;
 
@@ -17,7 +18,7 @@ public class AppointmentToAppointmentDtoConverter {
     private static final String PATIENT_ACTOR_REFERENCE = "Patient";
     private static final String DATE_TIME_FORMATTER_PATTERN_DATE = "MM/dd/yyyy";
 
-    public static AppointmentDto map(Appointment appointment) {
+    public static AppointmentDto map(Appointment appointment, Optional<String> requesterReference) {
 
         AppointmentDto appointmentDto = new AppointmentDto();
 
@@ -39,6 +40,26 @@ public class AppointmentToAppointmentDtoConverter {
         if (appointment.hasParticipant()) {
             List<AppointmentParticipantDto> participantDtos = FhirDtoUtil.convertAppointmentParticipantListToAppointmentParticipantDtoList(appointment.getParticipant());
             appointmentDto.setParticipant(participantDtos);
+
+            if (requesterReference.isPresent()) {
+                String reference = requesterReference.get();
+                participantDtos.forEach(
+                        participant -> {
+                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationTypeCode().equalsIgnoreCase("AUT")) {
+                                //Author
+                                appointmentDto.setCanCancel(true);
+                            }
+                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) &&
+                                    (
+                                            participant.getParticipationStatusCode().equalsIgnoreCase("tentative") ||
+                                                    participant.getParticipationStatusCode().equalsIgnoreCase("needs-action")
+                                    )) {
+                                appointmentDto.setCanAccept(true);
+                                appointmentDto.setCanDecline(true);
+                            }
+                        }
+                );
+            }
         }
 
         if (!appointmentDto.getParticipant().isEmpty()) {
@@ -67,7 +88,7 @@ public class AppointmentToAppointmentDtoConverter {
             duration = duration + " - " + DateUtil.convertLocalDateTimeToHumanReadableFormat(appointmentDto.getEnd());
         }
 
-        if(appointment.hasCreated()){
+        if (appointment.hasCreated()) {
             appointmentDto.setCreated(DateUtil.convertDateToLocalDateTime(appointment.getCreated()));
         }
         appointmentDto.setAppointmentDuration(duration);
