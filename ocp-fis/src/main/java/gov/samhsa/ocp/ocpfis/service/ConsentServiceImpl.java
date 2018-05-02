@@ -583,6 +583,8 @@ public class ConsentServiceImpl implements ConsentService {
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
+        List<ReferenceDto> toCareTeams = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("CareTeam")).collect(Collectors.toList());
+
         DetailedConsentDto detailedConsentDto = new DetailedConsentDto();
 
         return detailedConsentDto.builder()
@@ -598,12 +600,12 @@ public class ConsentServiceImpl implements ConsentService {
                 .fromPractitionerActors(fromPractitionerActors)
                 .toOrganizationActors(toOrganizationActors)
                 .toPractitionerActors(toPractitionerActors)
+                .toCareTeams(toCareTeams)
                 .category(consentDto.getCategory())
                 .purpose(consentDto.getPurpose())
                 .medicalInformation(consentDto.getMedicalInformation())
                 .sourceAttachment(consentDto.getSourceAttachment())
                 .build();
-
     }
 
 

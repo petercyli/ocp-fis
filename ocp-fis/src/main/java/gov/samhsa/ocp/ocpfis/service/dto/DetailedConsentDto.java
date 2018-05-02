@@ -40,6 +40,8 @@ public class DetailedConsentDto {
 
     private List<AbstractCareTeamDto> toPractitionerActors;
 
+    private List<ReferenceDto> toCareTeams;
+
     private List<ValueSetDto> category;
 
     private List<ValueSetDto> purpose;
