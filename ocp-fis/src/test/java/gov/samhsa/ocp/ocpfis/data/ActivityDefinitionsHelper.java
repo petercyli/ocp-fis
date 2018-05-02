@@ -1,12 +1,23 @@
 package gov.samhsa.ocp.ocpfis.data;
 
+import gov.samhsa.ocp.ocpfis.data.model.activitydefinition.TempActivityDefinitionDto;
+import gov.samhsa.ocp.ocpfis.data.model.activitydefinition.TempPeriodDto;
+import gov.samhsa.ocp.ocpfis.data.model.activitydefinition.TempTimingDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
+import gov.samhsa.ocp.ocpfis.service.dto.TimingDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.springframework.http.HttpEntity;
+import org.springframework.web.client.RestTemplate;
+import sun.misc.FloatingDecimal;
 
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,12 +30,19 @@ public class ActivityDefinitionsHelper {
 
         int rowNum=0;
 
-        List<ActivityDefinitionDto> activityDefinitoinDto=new ArrayList<>();
+        Map<String, ValueSetDto> publicationStatusLookups = CommonHelper.getLookupValueSet("http://localhost:8444/lookups/publication-status");
+        Map<String,ValueSetDto> topicLookups=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/definition-topic");
+        Map<String,ValueSetDto> actionParticipantTypeLookups=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/action-participant-type");
+        Map<String,ValueSetDto> actionParticipantRoleLookups=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/action-participant-role");
+        Map<String,ValueSetDto> actionResourceTypeLookups= CommonHelper.getLookupValueSet("http://localhost:8444/lookups/resource-type");
+
+        List<TempActivityDefinitionDto> activityDefinitionDtos=new ArrayList<>();
 
         for(Row row: activityDefinitions){
             if(rowNum>0){
                 int j=0;
-                ActivityDefinitionDto dto=new ActivityDefinitionDto();
+                TempActivityDefinitionDto dto=new TempActivityDefinitionDto();
+                TempPeriodDto periodDto=new TempPeriodDto();
                 for(Cell cell: row){
                     String cellValue=new DataFormatter().formatCellValue(cell);
 
@@ -37,10 +55,42 @@ public class ActivityDefinitionsHelper {
                     } else if(j==3){
                         dto.setTitle(cellValue);
                     } else if(j==4){
-
+                        dto.setStatus(publicationStatusLookups.get(cellValue));
+                    } else if(j==5){
+                        dto.setDate(String.valueOf(cellValue));
+                    } else if(j==6){
+                        dto.setDescription(cellValue);
+                    } else if(j==7){
+                       periodDto.setStart(String.valueOf(cellValue));
+                    } else if(j==8){
+                        periodDto.setEnd(String.valueOf(cellValue));
+                        dto.setEffectivePeriod(periodDto);
+                    } else if(j==9){
+                        dto.setTopic(topicLookups.get(cellValue));
+                    } else if(j==10){
+                        dto.setKind(actionResourceTypeLookups.get(cellValue));
+                    } else if(j==11){
+                        dto.setActionParticipantType(actionParticipantTypeLookups.get(cellValue));
+                    }else if(j==12){
+                        dto.setActionParticipantRole(actionParticipantRoleLookups.get(cellValue));
+                    }else if(j==13){
+                        TempTimingDto timingDto =new TempTimingDto();
+                        timingDto.setDurationMax(cellValue);
+                        dto.setTiming(timingDto);
                     }
+
+                    j++;
                 }
+                activityDefinitionDtos.add(dto);
             }
+            rowNum++;
         }
+        RestTemplate rt=new RestTemplate();
+
+        activityDefinitionDtos.stream().filter(activityDef->!activityDef.getPublisher().split("/")[1].equalsIgnoreCase("null")).forEach(activityDefinitionDto->{
+            log.info("activityDefinitionDto : "+activityDefinitionDto);
+            HttpEntity<TempActivityDefinitionDto> request=new HttpEntity<>(activityDefinitionDto);
+            rt.postForObject("http://localhost:8444/organizations/"+activityDefinitionDto.getPublisher().split("/")[1]+"/activity-definitions",request,TempActivityDefinitionDto.class);
+        });
     }
 }
