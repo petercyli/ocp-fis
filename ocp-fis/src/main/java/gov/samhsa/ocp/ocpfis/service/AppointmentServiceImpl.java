@@ -227,6 +227,21 @@ public class AppointmentServiceImpl implements AppointmentService {
         FhirUtil.updateFhirResource(fhirClient, appointment, "Cancel Appointment");
     }
 
+    @Override
+    public void acceptAppointment(String appointmentId, String actorReference) {
+
+    }
+
+    @Override
+    public void declineAppointment(String appointmentId, String actorReference) {
+
+    }
+
+    @Override
+    public void tentativelyAcceptAppointment(String appointmentId, String actorReference) {
+
+    }
+
 
     private IQuery addStatusSearchConditions(IQuery searchQuery,
                                              Optional<List<String>> statusList) {

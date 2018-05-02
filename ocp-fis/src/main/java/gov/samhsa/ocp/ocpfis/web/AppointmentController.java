@@ -71,4 +71,25 @@ public class AppointmentController {
         appointmentService.cancelAppointment(appointmentId);
     }
 
+    @PutMapping("/appointments/{appointmentId}/accept")
+    @ResponseStatus(HttpStatus.OK)
+    public void acceptAppointment(@PathVariable String appointmentId,
+                                  @RequestParam(value = "actorReference") String actorReference) {
+        appointmentService.acceptAppointment(appointmentId, actorReference);
+    }
+
+    @PutMapping("/appointments/{appointmentId}/decline")
+    @ResponseStatus(HttpStatus.OK)
+    public void declineAppointment(@PathVariable String appointmentId,
+                                  @RequestParam(value = "actorReference") String actorReference) {
+        appointmentService.declineAppointment(appointmentId, actorReference);
+    }
+
+    @PutMapping("/appointments/{appointmentId}/tentative")
+    @ResponseStatus(HttpStatus.OK)
+    public void tentativelyAcceptAppointment(@PathVariable String appointmentId,
+                                   @RequestParam(value = "actorReference") String actorReference) {
+        appointmentService.tentativelyAcceptAppointment(appointmentId, actorReference);
+    }
+
 }

@@ -14,4 +14,7 @@ public interface AppointmentService {
     List<ParticipantReferenceDto> getAppointmentParticipants(String patientId, Optional<List<String>> roles, Optional<String> appointmentId);
     AppointmentDto getAppointmentById(String appointmentId);
     void cancelAppointment(String appointmentId);
+    void acceptAppointment(String appointmentId, String actorReference);
+    void declineAppointment(String appointmentId, String actorReference);
+    void tentativelyAcceptAppointment(String appointmentId, String actorReference);
 }
