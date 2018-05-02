@@ -60,4 +60,18 @@ public class CommonHelper {
         }
         return mapOfLookup;
     }
+
+     public static Map<String, ValueSetDto> getLookupValueSet(String url){
+        RestTemplate rt=new RestTemplate();
+        ResponseEntity<ValueSetDto[]> foo=rt.getForEntity(url,ValueSetDto[].class);
+
+        ValueSetDto[] dtos=foo.getBody();
+
+        Map<String,ValueSetDto> mapOfLookupValueSet=new HashMap<>();
+
+        for(ValueSetDto valueSetDto: dtos){
+            mapOfLookupValueSet.put(valueSetDto.getDisplay(),valueSetDto);
+        }
+        return mapOfLookupValueSet;
+     }
 }
