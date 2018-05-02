@@ -13,6 +13,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
+import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.AppointmentToAppointmentDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.CareTeamToCareTeamDtoConverter;
@@ -306,7 +307,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String missingFields = "";
 
         if (appointmentDto == null) {
-            throw new BadRequestException("AppointmentDto is NULL!!");
+            throw new PreconditionFailedException("AppointmentDto is NULL!!");
         }
 
         if (FhirUtil.isStringNullOrEmpty(appointmentDto.getTypeCode())) {
@@ -327,11 +328,11 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         if (missingFields.length() > 0) {
             missingFields = missingFields.substring(0, (missingFields.length() - 2)) + ".";
-            throw new BadRequestException("The following required fields are missing in the appointmentDto: " + missingFields);
+            throw new PreconditionFailedException("The following required fields are missing in the appointmentDto: " + missingFields);
         }
 
         if (!DateUtil.isValidDateTimeRange(appointmentDto.getStart(), appointmentDto.getEnd(), false)) {
-            throw new BadRequestException("Appointment EndDateTime is before StartDateTime");
+            throw new PreconditionFailedException("Appointment EndDateTime is before StartDateTime");
         }
     }
 
