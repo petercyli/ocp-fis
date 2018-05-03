@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
+import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,12 @@ import java.util.Optional;
 
 @Slf4j
 public final class AppointmentDtoToAppointmentConverter {
+    private static final String ACCEPTED_PARTICIPATION_STATUS = "accepted";
+    private static final String NEEDS_ACTION_PARTICIPATION_STATUS = "needs-action";
+    private static final String PROPOSED_APPOINTMENT_STATUS = "proposed";
+    private static final String REQUIRED = "required";
+    private static final String INFORMATION_ONLY = "information-only";
+
     public static Appointment map(AppointmentDto appointmentDto, boolean isCreate, Optional<String> logicalId) {
         try {
             Appointment appointment = new Appointment();
@@ -31,7 +38,7 @@ public final class AppointmentDtoToAppointmentConverter {
 
             //Status
             if (isCreate) {
-                appointment.setStatus(Appointment.AppointmentStatus.fromCode("proposed"));
+                appointment.setStatus(Appointment.AppointmentStatus.fromCode(PROPOSED_APPOINTMENT_STATUS));
             } else if (isStringNotNullAndNotEmpty(appointmentDto.getStatusCode())) {
                 Appointment.AppointmentStatus status = Appointment.AppointmentStatus.fromCode(appointmentDto.getStatusCode().trim());
                 appointment.setStatus(status);
@@ -57,7 +64,7 @@ public final class AppointmentDtoToAppointmentConverter {
 
             //Participants
             if (appointmentDto.getParticipant() == null || appointmentDto.getParticipant().isEmpty()) {
-                throw new BadRequestException("An appointment cannot be without its participant(s).");
+                throw new PreconditionFailedException("An appointment cannot be without its participant(s).");
             } else {
                 List<Appointment.AppointmentParticipantComponent> participantList = new ArrayList<>();
                 for (AppointmentParticipantDto participant : appointmentDto.getParticipant()) {
@@ -75,12 +82,12 @@ public final class AppointmentDtoToAppointmentConverter {
 
                     //Participation Status
                     if(isCreate){
-                        participantModel.setStatus(Appointment.ParticipationStatus.fromCode("needs-action"));
+                        participantModel.setStatus(Appointment.ParticipationStatus.fromCode(NEEDS_ACTION_PARTICIPATION_STATUS));
                     } else if (isStringNotNullAndNotEmpty(participant.getParticipationStatusCode())) {
                         Appointment.ParticipationStatus status = Appointment.ParticipationStatus.fromCode(participant.getParticipationStatusCode().trim());
                         participantModel.setStatus(status);
                     } else {
-                        participantModel.setStatus(Appointment.ParticipationStatus.fromCode("needs-action"));
+                        participantModel.setStatus(Appointment.ParticipationStatus.fromCode(NEEDS_ACTION_PARTICIPATION_STATUS));
                     }
 
                     //Actor
@@ -112,7 +119,7 @@ public final class AppointmentDtoToAppointmentConverter {
                     creatorParticipantModel.setType(Collections.singletonList(codeableConcept));
 
                     //Participation Status
-                    creatorParticipantModel.setStatus(Appointment.ParticipationStatus.fromCode("accepted"));
+                    creatorParticipantModel.setStatus(Appointment.ParticipationStatus.fromCode(ACCEPTED_PARTICIPATION_STATUS));
 
                     //Participant Required
                     creatorParticipantModel.setRequired(getRequiredBasedOnParticipantReference(appointmentDto.getCreatorReference()));
@@ -147,9 +154,9 @@ public final class AppointmentDtoToAppointmentConverter {
         List<String> infoOnlyResources = Arrays.asList(ResourceType.HealthcareService.name().toUpperCase(), ResourceType.Location.name().toUpperCase());
 
         if (requiredResources.contains(resourceType.toUpperCase())) {
-            return Appointment.ParticipantRequired.fromCode("required");
+            return Appointment.ParticipantRequired.fromCode(REQUIRED);
         } else if (infoOnlyResources.contains(resourceType.toUpperCase())) {
-            return Appointment.ParticipantRequired.fromCode("information-only");
+            return Appointment.ParticipantRequired.fromCode(INFORMATION_ONLY);
         }
         return null;
     }
