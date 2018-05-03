@@ -13,6 +13,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.hl7.fhir.dstu3.model.codesystems.ContactPointSystem;
 import org.hl7.fhir.dstu3.model.codesystems.ContactPointUse;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
@@ -47,51 +48,65 @@ public class PatientsHelper {
                     if (j == 0) {
                         nameDto.setFirstName(cellValue);
                     }
-                    if (j == 1) {
+                    else if (j == 1) {
                         nameDto.setLastName(cellValue);
                         dto.setName(Arrays.asList(nameDto));
                     }
-                    if (j == 2) {
+                    else if (j == 2) {
                         dto.setBirthDate(cellValue);
                     }
-                    if (j == 3) {
+                    else if (j == 3) {
                         dto.setGenderCode(genderCodeLookup.get(cellValue));
                     }
-                    if (j == 4) {
+                    else if (j == 4) {
                         dto.setBirthSex(birthSexLookup.get(cellValue));
                     }
-                    if(j==5){
+                    else if(j==5){
                         dto.setRace(raceLookup.get(cellValue));
                     }
-                    if(j==6){
+                    else if(j==6){
                         dto.setEthnicity(ethnicityLookup.get(cellValue));
                     }
-                    if(j==7){
+                    else if(j==7){
                         dto.setLanguage(languageLookup.get(cellValue));
                     }
-                    if(j==8){
+                    else if(j==8){
                         tempIdentifiereDto.setSystem(identifierTypeLookup.get(cellValue));
                     }
-                    if(j==9){
+                    else if(j==9){
                         tempIdentifiereDto.setValue(cellValue);
                         dto.setIdentifier(Arrays.asList(tempIdentifiereDto));
                     }
-                    if(j==10){
+                    else if(j==10){
                         TelecomDto telecomDto=new TelecomDto();
                         telecomDto.setSystem(java.util.Optional.of(ContactPointSystem.PHONE.toCode()));
                         telecomDto.setUse(java.util.Optional.of(ContactPointUse.WORK.toCode()));
                         telecomDto.setValue(java.util.Optional.ofNullable(cellValue));
                         dto.setTelecoms(Arrays.asList(telecomDto));
                     }
-                    if(j==11){
+                    else if(j==11){
                         dto.setAddresses(CommonHelper.getAddresses(cellValue));
                     }
-                    if(j==13){
+                    else if(j==13){
                         dto.setOrganizationId(java.util.Optional.ofNullable(CommonHelper.getOrganizationId(cellValue)));
                     }
+                    else if(j==14){
+                        //For practitioner
+                    }
+                    j++;
                 }
+                patientDtos.add(dto);
             }
+            rowNum++;
         }
+
+        RestTemplate rt=new RestTemplate();
+
+        patientDtos.stream().forEach(patientDto->{
+            log.info("patientDto : "+patientDto);
+            HttpEntity<TempPatientDto> request=new HttpEntity<>(patientDto);
+            rt.postForObject("http://localhost:8444/patients/",request,TempPatientDto.class);
+        });
     }
 
     public static Map<String,String> identifierTypeDtoValue(String url){
