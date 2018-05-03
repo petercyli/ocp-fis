@@ -1,5 +1,7 @@
 package gov.samhsa.ocp.ocpfis.data;
 
+import gov.samhsa.ocp.ocpfis.data.model.organization.Element;
+import gov.samhsa.ocp.ocpfis.data.model.organization.TempOrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
@@ -74,4 +76,18 @@ public class CommonHelper {
         }
         return mapOfLookupValueSet;
      }
+
+     public static String getOrganizationId(String name){
+         String orgUrl="http://localhost:8444/organizations/search?searchType=name&searchValue="+name;
+         RestTemplate rt = new RestTemplate();
+         ResponseEntity<TempOrganizationDto> foo = rt.getForEntity(orgUrl, TempOrganizationDto.class);
+
+         TempOrganizationDto tempOrganizationDto = foo.getBody();
+
+         List<Element> elements = tempOrganizationDto.getElements();
+
+         return elements.stream().findFirst().get().getLogicalId();
+     }
+
+
 }
