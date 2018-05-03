@@ -54,6 +54,13 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private final FisProperties fisProperties;
 
+    private final String ACCEPTED_PARTICIPATION_STATUS = "accepted";
+    private final String DECLINED_PARTICIPATION_STATUS = "declined";
+    private final String TENTATIVE_PARTICIPATION_STATUS = "tentative";
+    private final String NEEDS_ACTION_PARTICIPATION_STATUS = "needs-action";
+    private final String PENDING_APPOINTMENT_STATUS = "pending";
+    private final String REQUIRED = "required";
+
     @Autowired
     public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.fhirClient = fhirClient;
@@ -373,24 +380,24 @@ public class AppointmentServiceImpl implements AppointmentService {
     private Appointment setAppointmentStatusBasedOnParticipantActions(Appointment apt) {
         //Call this function only when Accepting/TentativelyAccepting/Declining an appointment
         AppointmentDto aptDto = AppointmentToAppointmentDtoConverter.map(apt, Optional.empty());
+        List<AppointmentParticipantDto> participantList = aptDto.getParticipant();
 
-        if (aptDto.getStatusCode().trim().equalsIgnoreCase("proposed")) {
-            List<AppointmentParticipantDto> participantList = aptDto.getParticipant();
-            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase("needs-action") &&
-                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase("required"))) {
-                apt.setStatus(Appointment.AppointmentStatus.PENDING);
-            }
-        } else if (aptDto.getStatusCode().trim().equalsIgnoreCase("pending")) {
-            List<AppointmentParticipantDto> participantList = aptDto.getParticipant();
+        if (aptDto.getStatusCode().trim().equalsIgnoreCase(PENDING_APPOINTMENT_STATUS)) {
             boolean allParticipantsHaveResponded = true;
-            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase("needs-action") &&
-                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase("required"))) {
+            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase(NEEDS_ACTION_PARTICIPATION_STATUS) &&
+                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase(REQUIRED))) {
                 allParticipantsHaveResponded = false;
             }
             if (allParticipantsHaveResponded) {
                 apt.setStatus(Appointment.AppointmentStatus.BOOKED);
             }
-        } //else do nothing
+        } else {
+            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase(NEEDS_ACTION_PARTICIPATION_STATUS) &&
+                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase(REQUIRED))) {
+                apt.setStatus(Appointment.AppointmentStatus.PENDING);
+            }
+        }
+
         return apt;
     }
 
@@ -401,20 +408,24 @@ public class AppointmentServiceImpl implements AppointmentService {
                 if (temp.getActor().getReference().equalsIgnoreCase(actorReference)) {
                     switch (actionInUpperCase) {
                         case "ACCEPT":
-                            temp.setStatus(Appointment.ParticipationStatus.fromCode("accepted"));
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode(ACCEPTED_PARTICIPATION_STATUS));
+                            break;
                         case "DECLINE":
-                            temp.setStatus(Appointment.ParticipationStatus.fromCode("declined"));
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode(DECLINED_PARTICIPATION_STATUS));
+                            break;
                         case "TENTATIVE":
-                            temp.setStatus(Appointment.ParticipationStatus.fromCode("tentative"));
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode(TENTATIVE_PARTICIPATION_STATUS));
+                            break;
                         default:
                             log.error("Unidentified action by the participant.");
+                            break;
                     }
                 }
             }
         }
         catch (FHIRException e) {
-            log.error("Unable to convert from the givenParticipation Status Code");
-            throw new BadRequestException("Unable to convert from the givenParticipation Status Code ", e);
+            log.error("Unable to convert from the given Participation Status Code");
+            throw new BadRequestException("Unable to convert from the given Participation Status Code ", e);
         }
         return apt;
     }

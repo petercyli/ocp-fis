@@ -17,6 +17,12 @@ public class AppointmentToAppointmentDtoConverter {
 
     private static final String PATIENT_ACTOR_REFERENCE = "Patient";
     private static final String DATE_TIME_FORMATTER_PATTERN_DATE = "MM/dd/yyyy";
+    private static final String ACCEPTED_PARTICIPATION_STATUS = "accepted";
+    private static final String DECLINED_PARTICIPATION_STATUS = "declined";
+    private static final String TENTATIVE_PARTICIPATION_STATUS = "tentative";
+    private static final String NEEDS_ACTION_PARTICIPATION_STATUS = "needs-action";
+    private static final String AUTHOR_PARTICIPANT_TYPE = "AUT";
+
 
     public static AppointmentDto map(Appointment appointment, Optional<String> requesterReference) {
 
@@ -45,18 +51,19 @@ public class AppointmentToAppointmentDtoConverter {
                 String reference = requesterReference.get();
                 participantDtos.forEach(
                         participant -> {
-                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationTypeCode().equalsIgnoreCase("AUT")) {
+                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationTypeCode().equalsIgnoreCase(AUTHOR_PARTICIPANT_TYPE)) {
                                 appointmentDto.setCanCancel(true);
-                            }
-                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && !participant.getParticipationStatusCode().equalsIgnoreCase("accepted")) {
+                            }  else if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(NEEDS_ACTION_PARTICIPATION_STATUS)) {
                                 appointmentDto.setCanAccept(true);
-                                appointmentDto.setCanTentativelyAccept(true);
-                            }
-                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && !participant.getParticipationStatusCode().equalsIgnoreCase("declined")) {
                                 appointmentDto.setCanDecline(true);
                                 appointmentDto.setCanTentativelyAccept(true);
-                            }
-                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && !participant.getParticipationStatusCode().equalsIgnoreCase("tentative")) {
+                            } else if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(ACCEPTED_PARTICIPATION_STATUS)) {
+                                appointmentDto.setCanDecline(true);
+                                appointmentDto.setCanTentativelyAccept(true);
+                            } else if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(DECLINED_PARTICIPATION_STATUS)) {
+                                appointmentDto.setCanAccept(true);
+                                appointmentDto.setCanTentativelyAccept(true);
+                            } else if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(TENTATIVE_PARTICIPATION_STATUS)) {
                                 appointmentDto.setCanAccept(true);
                                 appointmentDto.setCanDecline(true);
                             }
