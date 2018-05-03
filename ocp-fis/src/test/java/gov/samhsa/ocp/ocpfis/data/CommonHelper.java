@@ -2,8 +2,11 @@ package gov.samhsa.ocp.ocpfis.data;
 
 import gov.samhsa.ocp.ocpfis.data.model.organization.Element;
 import gov.samhsa.ocp.ocpfis.data.model.organization.TempOrganizationDto;
+import gov.samhsa.ocp.ocpfis.data.model.patient.TempPageDto;
+import gov.samhsa.ocp.ocpfis.data.model.practitioner.TempPractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.springframework.http.ResponseEntity;
@@ -81,13 +84,26 @@ public class CommonHelper {
      }
 
      public static String getOrganizationId(String name){
-         String orgUrl="http://localhost:8444/organizations/search?searchType=name&searchValue="+name;
+             String orgUrl = "http://localhost:8444/organizations/search?searchType=name&searchValue=" + name;
          RestTemplate rt = new RestTemplate();
          ResponseEntity<TempOrganizationDto> foo = rt.getForEntity(orgUrl, TempOrganizationDto.class);
 
          TempOrganizationDto tempOrganizationDto = foo.getBody();
 
          List<Element> elements = tempOrganizationDto.getElements();
+
+         return elements.stream().findFirst().get().getLogicalId();
+
+     }
+
+     public static String getPractitionerId(String name){
+         String practitionerUrl="http://localhost:8444/practitioners/search?searchType=name&searchValue="+name;
+         RestTemplate rt=new RestTemplate();
+         ResponseEntity<TempPageDto> foo=rt.getForEntity(practitionerUrl,TempPageDto.class);
+
+         TempPageDto tempPageDto=foo.getBody();
+
+         List<TempPractitionerDto> elements=tempPageDto.getElements();
 
          return elements.stream().findFirst().get().getLogicalId();
      }

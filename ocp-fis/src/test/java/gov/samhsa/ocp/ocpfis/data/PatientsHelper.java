@@ -22,6 +22,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 public class PatientsHelper {
@@ -87,11 +88,11 @@ public class PatientsHelper {
                     else if(j==11){
                         dto.setAddresses(CommonHelper.getAddresses(cellValue));
                     }
-                    else if(j==13){
+                    else if(j==12){
                         dto.setOrganizationId(java.util.Optional.ofNullable(CommonHelper.getOrganizationId(cellValue)));
                     }
-                    else if(j==14){
-                        //For practitioner
+                    else if(j==13){
+                       dto.setPractitionerId(Optional.ofNullable(cellValue));
                     }
                     j++;
                 }
