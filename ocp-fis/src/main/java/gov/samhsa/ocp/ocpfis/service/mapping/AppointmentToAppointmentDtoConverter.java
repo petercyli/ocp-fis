@@ -55,6 +55,9 @@ public class AppointmentToAppointmentDtoConverter {
                 String reference = requesterReference.get();
                 participantDtos.forEach(
                         participant -> {
+                            if(participant.getActorReference().trim().equalsIgnoreCase(reference.trim())){
+                                appointmentDto.setRequesterParticipationStatusCode(participant.getParticipationStatusCode());
+                            }
                             if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) &&
                                     participant.getParticipationTypeCode().equalsIgnoreCase(AUTHOR_PARTICIPANT_TYPE) &&
                                     !appointment.getStatus().toCode().equalsIgnoreCase(CANCELLED_APPOINTMENT_STATUS)) {
