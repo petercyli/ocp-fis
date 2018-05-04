@@ -36,7 +36,7 @@ public class PatientsHelper {
         Map<String, String> raceLookup=CommonHelper.getLookup("http://localhost:8444/lookups/us-core-races");
         Map<String,String> ethnicityLookup=CommonHelper.getLookup("http://localhost:8444/lookups/us-core-ethnicities");
         Map<String, String> languageLookup=CommonHelper.getLookup("http://localhost:8444/lookups/languages");
-        Map<String,String> identifierTypeLookup=PatientsHelper.identifierTypeDtoValue("http://localhost:8444/lookups/identifier-systems");
+        Map<String,String> identifierTypeLookup=CommonHelper.identifierTypeDtoValue("http://localhost:8444/lookups/identifier-systems");
         for (Row row : patients) {
             if (rowNum > 0) {
                 int j = 0;
@@ -110,17 +110,4 @@ public class PatientsHelper {
         });
     }
 
-    public static Map<String,String> identifierTypeDtoValue(String url){
-        RestTemplate rt=new RestTemplate();
-        ResponseEntity<TempIdentifierTypeDto[]> foo=rt.getForEntity(url, TempIdentifierTypeDto[].class);
-
-        TempIdentifierTypeDto[] dtos=foo.getBody();
-
-        Map<String,String> mapOfLookupIdentifiers=new HashMap<>();
-
-        for(TempIdentifierTypeDto tempIdentifierTypeDto:dtos){
-            mapOfLookupIdentifiers.put(tempIdentifierTypeDto.getDisplay(),tempIdentifierTypeDto.getOid());
-        }
-        return mapOfLookupIdentifiers;
-    }
 }
