@@ -20,6 +20,9 @@ import java.util.Optional;
 @AllArgsConstructor
 @NoArgsConstructor
 public class TempPatientDto {
+    private String id;
+
+    private String resourceURL;
 
     private List<TempIdentifierDto> identifier;
 
