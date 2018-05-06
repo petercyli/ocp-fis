@@ -141,10 +141,12 @@ public class PractitionersHelper {
             log.info("Getting ready to post: " + practitionerDto);
             List<IdentifierDto> identifierDtos = practitionerDto.getIdentifiers();
 
-            IdentifierDto identifierDto = identifierDtos.stream().findFirst().get();
+            if(identifierDtos.stream().findFirst().isPresent()) {
+                IdentifierDto identifierDto = identifierDtos.stream().findFirst().get();
 
-            if (identifierDto.getValue() != null) {
-                PractitionerDto foo = rt.postForObject("http://localhost:8444/practitioners", request, PractitionerDto.class);
+                if (identifierDto.getValue() != null) {
+                    PractitionerDto foo = rt.postForObject("http://localhost:8444/practitioners", request, PractitionerDto.class);
+                }
             }
         });
 
