@@ -1,10 +1,9 @@
 package gov.samhsa.ocp.ocpfis.data;
 
-import gov.samhsa.ocp.ocpfis.data.model.patient.TempIdentifierDto;
-import gov.samhsa.ocp.ocpfis.data.model.patient.TempIdentifierTypeDto;
 import gov.samhsa.ocp.ocpfis.data.model.patient.TempPatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
@@ -14,12 +13,12 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.hl7.fhir.dstu3.model.codesystems.ContactPointSystem;
 import org.hl7.fhir.dstu3.model.codesystems.ContactPointUse;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,10 +26,10 @@ import java.util.Optional;
 @Slf4j
 public class PatientsHelper {
 
-    public static void process(Sheet patients) {
+    public static void process(Sheet patients, Map<String, String> mapOfPractitioners) {
         int rowNum = 0;
 
-        List<TempPatientDto> patientDtos = new ArrayList<>();
+        List<PatientDto> patientDtos = new ArrayList<>();
         Map<String, String> genderCodeLookup = CommonHelper.getLookup("http://localhost:8444/lookups/administrative-genders");
         Map<String, String> birthSexLookup=CommonHelper.getLookup("http://localhost:8444/lookups/us-core-birthsexes");
         Map<String, String> raceLookup=CommonHelper.getLookup("http://localhost:8444/lookups/us-core-races");
@@ -40,9 +39,9 @@ public class PatientsHelper {
         for (Row row : patients) {
             if (rowNum > 0) {
                 int j = 0;
-                TempPatientDto dto = new TempPatientDto();
+                PatientDto dto = new PatientDto();
                 NameDto nameDto = new NameDto();
-                TempIdentifierDto tempIdentifiereDto=new TempIdentifierDto();
+                IdentifierDto tempIdentifiereDto=new IdentifierDto();
                 for (Cell cell : row) {
                     String cellValue = new DataFormatter().formatCellValue(cell);
 
@@ -54,7 +53,11 @@ public class PatientsHelper {
                         dto.setName(Arrays.asList(nameDto));
                     }
                     else if (j == 2) {
-                        dto.setBirthDate(cellValue);
+                        //TODO: fix the date issue
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+                        String date = "11/08/1980";
+                        LocalDate localDate = LocalDate.parse(date, formatter);
+                        dto.setBirthDate(localDate);
                     }
                     else if (j == 3) {
                         dto.setGenderCode(genderCodeLookup.get(cellValue));
@@ -92,7 +95,7 @@ public class PatientsHelper {
                         dto.setOrganizationId(java.util.Optional.ofNullable(CommonHelper.getOrganizationId(cellValue)));
                     }
                     else if(j==13){
-                       dto.setPractitionerId(Optional.ofNullable(cellValue));
+                       dto.setPractitionerId(Optional.of(mapOfPractitioners.get(cellValue.trim())));
                     }
                     j++;
                 }
@@ -104,9 +107,14 @@ public class PatientsHelper {
         RestTemplate rt=new RestTemplate();
 
         patientDtos.stream().forEach(patientDto->{
-            log.info("patientDto : "+patientDto);
-            HttpEntity<TempPatientDto> request=new HttpEntity<>(patientDto);
-            rt.postForObject("http://localhost:8444/patients/",request,TempPatientDto.class);
+            try {
+                log.info("patientDto : " + patientDto);
+                HttpEntity<PatientDto> request = new HttpEntity<>(patientDto);
+                rt.postForObject("http://localhost:8444/patients/", request, TempPatientDto.class);
+            } catch (Exception e) {
+                log.info("This patient could not be posted : " + patientDto);
+                e.printStackTrace();
+            }
         });
     }
 
