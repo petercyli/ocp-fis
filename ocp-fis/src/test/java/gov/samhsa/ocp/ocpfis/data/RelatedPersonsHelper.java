@@ -23,7 +23,7 @@ import java.util.Map;
 @Slf4j
 public class RelatedPersonsHelper {
 
-    public static void process(Sheet relatedPersons) {
+    public static void process(Sheet relatedPersons, Map<String, String> mapOfPatients) {
         log.info("last row number :"+relatedPersons.getLastRowNum());
         int rowNum=0;
 
@@ -36,11 +36,14 @@ public class RelatedPersonsHelper {
                 int j=0;
                 TempRelatedPersonDto dto=new TempRelatedPersonDto();
 
+                dto.setStartDate("01/01/2018");
+                dto.setEndDate("01/01/2020");
+
                 for(Cell cell:row){
                     String cellValue=new DataFormatter().formatCellValue(cell);
 
                     if(j==0){
-                        dto.setPatient(cellValue);
+                        dto.setPatient(mapOfPatients.get(cellValue));
                     }else if(j==1){
                         dto.setFirstName(cellValue);
                     }else if(j==2){
@@ -49,7 +52,7 @@ public class RelatedPersonsHelper {
                         dto.setRelationshipCode(relationLookup.get(cellValue));
                         dto.setRelationshipValue(cellValue);
                     }else if(j==4){
-                        dto.setBirthDate(cellValue);
+                        dto.setBirthDate("01/01/1980");
                     }else if(j==5){
                         dto.setGenderCode(genderLookup.get(cellValue));
                         dto.setGenderValue(cellValue);
@@ -80,8 +83,18 @@ public class RelatedPersonsHelper {
 
         relatedPersonDtos.forEach(relatedPersonDto -> {
             log.info("related persons : "+relatedPersonDto);
-            HttpEntity<TempRelatedPersonDto> request=new HttpEntity<>(relatedPersonDto);
-            rt.postForObject("http://localhost:8444/related-persons/",request,RelatedPersonDto.class);
+
+            try {
+                if(relatedPersonDto.getPatient() != null) {
+                    HttpEntity<TempRelatedPersonDto> request = new HttpEntity<>(relatedPersonDto);
+                    rt.postForObject("http://localhost:8444/related-persons/", request, RelatedPersonDto.class);
+                }
+            } catch (Exception e) {
+                log.info("This relatedPerson could not be posted : " + relatedPersonDto);
+                e.printStackTrace();
+
+            }
+
         });
 
     }
