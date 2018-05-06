@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.data;
 
 import gov.samhsa.ocp.ocpfis.data.model.organization.Element;
 import gov.samhsa.ocp.ocpfis.data.model.organization.TempOrganizationDto;
+import gov.samhsa.ocp.ocpfis.data.model.patientlist.WrapperPatientDto;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.Code;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.Name;
 
@@ -62,14 +63,14 @@ public class OcpDataLoadApplication {
         Map<String, String> mapOfPractitioners = retrievePractitioners();
 
         Sheet patients = workbook.getSheet("Patient");
-        PatientsHelper.process(patients, mapOfPractitioners);
-        log.info("Populated patients");
+        //PatientsHelper.process(patients, mapOfPractitioners);
+        //log.info("Populated patients");
 
-        //Map<String, String> mapOfPatients = retrievePatients();
+        Map<String, String> mapOfPatients = retrievePatients();
 
         Sheet relationPersons = workbook.getSheet("Patient Related Persons");
-        //RelatedPersonsHelper.process(relationPersons);
-        //log.info("Populated relationPersons");
+        RelatedPersonsHelper.process(relationPersons, mapOfPatients);
+        log.info("Populated relationPersons");
 
         Sheet careTeams = workbook.getSheet("Patient Care Teams");
         //CareTeamsHelper.process(careTeams, mapOfPractitioners, mapOfPatients);
@@ -158,8 +159,27 @@ public class OcpDataLoadApplication {
     }
 
     private static Map<String, String> retrievePatients() {
-        //TODO: Implement
-        return new HashMap<>();
+        String url  = "http://localhost:8444/patients/search";
+        RestTemplate rt = new RestTemplate();
+        ResponseEntity<WrapperPatientDto> responseEntity = rt.getForEntity(url, WrapperPatientDto.class);
+        WrapperPatientDto wrapperDto = responseEntity.getBody();
+
+        List<gov.samhsa.ocp.ocpfis.data.model.patientlist.Element> dtos = wrapperDto.getElements();
+        Map<String, String> patientsMap = new HashMap<>();
+
+        for(gov.samhsa.ocp.ocpfis.data.model.patientlist.Element patientDto : dtos) {
+            gov.samhsa.ocp.ocpfis.data.model.patientlist.Name name = new gov.samhsa.ocp.ocpfis.data.model.patientlist.Name();
+            if(patientDto.getName().stream().findFirst().isPresent()) {
+                name = patientDto.getName().stream().findFirst().get();
+            } else {
+                name.setFirstName("Unknown");
+                name.setLastName("Unknown");
+            }
+
+            patientsMap.put(name.getFirstName().trim() + " " + name.getLastName(), patientDto.getId());
+        }
+
+        return patientsMap;
     }
 
 
