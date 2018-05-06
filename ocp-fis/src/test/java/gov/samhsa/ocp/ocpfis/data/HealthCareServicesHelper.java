@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,7 +29,12 @@ public class HealthCareServicesHelper {
 
         Map<String, String> categoryLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-categories");
         Map<String, String> typeLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-types");
-        Map<String, String> specialityLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-specialities");
+
+        //TODO: Fix this lookup
+        //Map<String, String> specialityLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-specialities");
+        Map<String, String> specialityLookups = new HashMap<>();
+        specialityLookups.put("Adult mental illness", "408467006");
+
         Map<String, String> referralLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-referral-methods");
 
         List<TempHealthCareServiceDto> healthCareServiceDtos = new ArrayList<>();
@@ -66,7 +72,10 @@ public class HealthCareServicesHelper {
                         //speciality
 
                         ValueSetDto valueSetDto = new ValueSetDto();
-                        valueSetDto.setCode(specialityLookups.get(cellValue.trim()));
+
+                        //TODO: Fix the issue with lookup
+                        valueSetDto.setCode(specialityLookups.get("Adult mental illness"));
+                        //valueSetDto.setCode(specialityLookups.get(cellValue.trim()));
                         dto.setSpecialty(Arrays.asList(valueSetDto));
                     } else if (j == 6) {
                         //referral
