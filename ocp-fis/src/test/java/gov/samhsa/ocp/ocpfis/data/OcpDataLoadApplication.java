@@ -2,17 +2,23 @@ package gov.samhsa.ocp.ocpfis.data;
 
 import gov.samhsa.ocp.ocpfis.data.model.organization.Element;
 import gov.samhsa.ocp.ocpfis.data.model.organization.TempOrganizationDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.data.model.practitioner.Code;
+import gov.samhsa.ocp.ocpfis.data.model.practitioner.Name;
+
+import gov.samhsa.ocp.ocpfis.data.model.practitioner.PractitionerRole;
+import gov.samhsa.ocp.ocpfis.data.model.practitioner.WrapperPractitionerDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,60 +36,60 @@ public class OcpDataLoadApplication {
         log.info("Number of sheets : " + workbook.getNumberOfSheets());
 
         //Organizations
-        Sheet organizations = workbook.getSheet("Organizations");
+        //Sheet organizations = workbook.getSheet("Organizations");
         //OrganizationHelper.process(organizations);
 
         //Get all organizations
         Map<String, String> mapOrganizations = retrieveOrganizations();
         log.info("Retrieved organizations");
 
-        Sheet locations = workbook.getSheet("Locations");
-        LocationsHelper.process(locations, mapOrganizations);
-        log.info("Populated locations");
+        //Sheet locations = workbook.getSheet("Locations");
+        //LocationsHelper.process(locations, mapOrganizations);
+        //log.info("Populated locations");
 
         Sheet healthCareServices = workbook.getSheet("Healthcare Services");
-        HealthCareServicesHelper.process(healthCareServices, mapOrganizations);
-        log.info("Populated healthCareServices");
+        //HealthCareServicesHelper.process(healthCareServices, mapOrganizations);
+        //log.info("Populated healthCareServices");
 
         Sheet activityDefinitions = workbook.getSheet("Activity Definitions");
-        ActivityDefinitionsHelper.process(activityDefinitions, mapOrganizations);
-        log.info("Populated practitioners");
+        //ActivityDefinitionsHelper.process(activityDefinitions, mapOrganizations);
+        //log.info("Populated practitioners");
 
         Sheet practitioners = workbook.getSheet("Practitioners");
-        PractitionersHelper.process(practitioners, mapOrganizations);
-        log.info("Populated practitioners");
+        //PractitionersHelper.process(practitioners, mapOrganizations);
+        //log.info("Populated practitioners");
 
         Map<String, String> mapOfPractitioners = retrievePractitioners();
 
         Sheet patients = workbook.getSheet("Patient");
-        PatientsHelper.process(patients);
-        log.info("Populated organizations");
+        PatientsHelper.process(patients, mapOfPractitioners);
+        log.info("Populated patients");
 
-        Map<String, String> mapOfPatients = retrievePatients();
+        //Map<String, String> mapOfPatients = retrievePatients();
 
         Sheet relationPersons = workbook.getSheet("Patient Related Persons");
-        RelatedPersonsHelper.process(relationPersons);
-        log.info("Populated relationPersons");
+        //RelatedPersonsHelper.process(relationPersons);
+        //log.info("Populated relationPersons");
 
         Sheet careTeams = workbook.getSheet("Patient Care Teams");
-        CareTeamsHelper.process(careTeams, mapOfPractitioners);
-        log.info("Populated careTeams");
+        //CareTeamsHelper.process(careTeams, mapOfPractitioners, mapOfPatients);
+        //log.info("Populated careTeams");
 
         Sheet taskOwners = workbook.getSheet("Tasks");
-        TasksHelper.process(taskOwners, mapOfPractitioners);
-        log.info("Populated taskOwners");
+        //TasksHelper.process(taskOwners, mapOfPractitioners);
+        //log.info("Populated taskOwners");
 
         Sheet todos = workbook.getSheet("To Do");
-        TodosHelper.process(todos, mapOfPractitioners);
-        log.info("Populated todosHelper");
+        //TodosHelper.process(todos, mapOfPractitioners);
+        //log.info("Populated todosHelper");
 
         Sheet communications = workbook.getSheet("Communication");
-        CommunicationsHelper.process(communications, mapOfPatients);
-        log.info("Populated communications");
+        //CommunicationsHelper.process(communications, mapOfPatients);
+        //log.info("Populated communications");
 
         Sheet appointments = workbook.getSheet("Appointments");
-        AppointmentsHelper.process(appointments, mapOfPatients, mapOfPractitioners);
-        log.info("Populated appointments");
+        //AppointmentsHelper.process(appointments, mapOfPatients, mapOfPractitioners);
+        //log.info("Populated appointments");
 
         workbook.close();
         log.info("Workbook closed");
@@ -108,7 +114,47 @@ public class OcpDataLoadApplication {
 
     private static Map<String, String> retrievePractitioners() {
         //TODO: Implement
-        return new HashMap<String, String>();
+        String url = "http://localhost:8444/practitioners/search";
+        RestTemplate rt = new RestTemplate();
+        ResponseEntity<WrapperPractitionerDto> practitioners = rt.getForEntity(url, WrapperPractitionerDto.class);
+
+        WrapperPractitionerDto wrapperDto = practitioners.getBody();
+
+        List<gov.samhsa.ocp.ocpfis.data.model.practitioner.Element> dtos = wrapperDto.getElements();
+
+        log.info("Number of Practitioners retrieved : " + dtos.size());
+
+        Map<String, String> practitionersMap = new HashMap<>();
+        for(gov.samhsa.ocp.ocpfis.data.model.practitioner.Element practitionerDto : dtos) {
+
+            Name name = new Name();
+            if(practitionerDto.getName().stream().findFirst().isPresent()) {
+                name = practitionerDto.getName().stream().findFirst().get();
+            } else {
+                name.setFirstName("Unknown");
+                name.setLastName("Unknown");
+            }
+
+            List<PractitionerRole> practitionRoles = practitionerDto.getPractitionerRoles();
+
+            PractitionerRole practitionerRole = new PractitionerRole();
+            if(practitionRoles.stream().findFirst().isPresent()) {
+                practitionerRole = practitionRoles.stream().findFirst().get();
+            } else {
+                Code code = new Code();
+                code.setCode("214"); //Org Admin
+                code.setDisplay("Organization Administrator");
+                practitionerRole.setLogicalId("214");
+                practitionerRole.setCode(Arrays.asList(code));
+
+            }
+
+            log.info("practitionerRole : " + practitionerRole.getLogicalId() + " Value : " + practitionerRole.getCode().stream().findFirst().get().getDisplay());
+
+            practitionersMap.put(name.getLastName().trim(), practitionerDto.getLogicalId());
+        }
+
+        return practitionersMap;
     }
 
     private static Map<String, String> retrievePatients() {
