@@ -1,7 +1,14 @@
 package gov.samhsa.ocp.ocpfis.data;
 
+import gov.samhsa.ocp.ocpfis.data.model.organization.Element;
+import gov.samhsa.ocp.ocpfis.data.model.organization.TempOrganizationDto;
+import gov.samhsa.ocp.ocpfis.data.model.patient.TempIdentifierTypeDto;
+import gov.samhsa.ocp.ocpfis.data.model.patient.TempPageDto;
+import gov.samhsa.ocp.ocpfis.data.model.patient.TempPatientDto;
+import gov.samhsa.ocp.ocpfis.data.model.practitioner.TempPractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.springframework.http.ResponseEntity;
@@ -50,6 +57,20 @@ public class CommonHelper {
         return Arrays.asList(dto);
     }
 
+    public static Map<String,String> identifierTypeDtoValue(String url){
+        RestTemplate rt=new RestTemplate();
+        ResponseEntity<TempIdentifierTypeDto[]> foo=rt.getForEntity(url, TempIdentifierTypeDto[].class);
+
+        TempIdentifierTypeDto[] dtos=foo.getBody();
+
+        Map<String,String> mapOfLookupIdentifiers=new HashMap<>();
+
+        for(TempIdentifierTypeDto tempIdentifierTypeDto:dtos){
+            mapOfLookupIdentifiers.put(tempIdentifierTypeDto.getDisplay(),tempIdentifierTypeDto.getOid());
+        }
+        return mapOfLookupIdentifiers;
+    }
+
     public static Map<String, String> getLookup(String url) {
         RestTemplate rt = new RestTemplate();
         ResponseEntity<ValueSetDto[]> foo = rt.getForEntity(url, ValueSetDto[].class);
@@ -63,4 +84,57 @@ public class CommonHelper {
         }
         return mapOfLookup;
     }
+
+     public static Map<String, ValueSetDto> getLookupValueSet(String url){
+        RestTemplate rt=new RestTemplate();
+        ResponseEntity<ValueSetDto[]> foo=rt.getForEntity(url,ValueSetDto[].class);
+
+        ValueSetDto[] dtos=foo.getBody();
+
+        Map<String,ValueSetDto> mapOfLookupValueSet=new HashMap<>();
+
+        for(ValueSetDto valueSetDto: dtos){
+            mapOfLookupValueSet.put(valueSetDto.getDisplay(),valueSetDto);
+        }
+        return mapOfLookupValueSet;
+     }
+
+     public static String getPatientId(String name){
+         String patientUrl="";
+         RestTemplate rt=new RestTemplate();
+         ResponseEntity<TempPageDto> foo = rt.getForEntity(patientUrl, TempPageDto.class);
+
+         TempPageDto tempPatientDto = foo.getBody();
+
+         List<TempPatientDto> elements = tempPatientDto.getElements();
+
+         return elements.stream().findFirst().get().getId();
+     }
+
+     public static String getOrganizationId(String name){
+             String orgUrl = "http://localhost:8444/organizations/search?searchType=name&searchValue=" + name;
+         RestTemplate rt = new RestTemplate();
+         ResponseEntity<TempOrganizationDto> foo = rt.getForEntity(orgUrl, TempOrganizationDto.class);
+
+         TempOrganizationDto tempOrganizationDto = foo.getBody();
+
+         List<Element> elements = tempOrganizationDto.getElements();
+
+         return elements.stream().findFirst().get().getLogicalId();
+
+     }
+
+     public static String getPractitionerId(String name){
+         String practitionerUrl="http://localhost:8444/practitioners/search?searchType=name&searchValue="+name;
+         RestTemplate rt=new RestTemplate();
+         ResponseEntity<TempPageDto> foo=rt.getForEntity(practitionerUrl,TempPageDto.class);
+
+         TempPageDto tempPageDto=foo.getBody();
+
+         List<TempPractitionerDto> elements=tempPageDto.getElements();
+
+         return elements.stream().findFirst().get().getLogicalId();
+     }
+
+
 }

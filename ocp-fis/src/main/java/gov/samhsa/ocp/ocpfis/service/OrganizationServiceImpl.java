@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -74,6 +75,9 @@ public class OrganizationServiceImpl implements OrganizationService {
         int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Organization.name());
 
         IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
+
+        //Set Sort order
+        organizationIQuery = FhirUtil.setLastUpdatedTimeSortOrder(organizationIQuery, true);
 
         if (showInactive.isPresent()) {
             if (!showInactive.get())
@@ -119,21 +123,21 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public PageDto<OrganizationDto> searchOrganizations(Optional<OrganizationController.SearchType> type, Optional<String> value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size,Optional<Boolean> showAll) {
+    public PageDto<OrganizationDto> searchOrganizations(Optional<OrganizationController.SearchType> type, Optional<String> value, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         int numberOfOrganizationsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Organization.name());
 
-        IQuery organizationIQuery = fhirClient.search().forResource(Organization.class);
+        IQuery organizationIQuery = fhirClient.search().forResource(Organization.class).sort().descending(PARAM_LASTUPDATED);
 
-        type.ifPresent(t->{
-            if (t.equals(OrganizationController.SearchType.name))
-                value.ifPresent(v->organizationIQuery.where(new RichStringClientParam("name").contains().value(v.trim())));
+        type.ifPresent(t -> {
+                    if (t.equals(OrganizationController.SearchType.name))
+                        value.ifPresent(v -> organizationIQuery.where(new RichStringClientParam("name").contains().value(v.trim())));
 
-            if (t.equals(OrganizationController.SearchType.identifier))
-                value.ifPresent(v->organizationIQuery.where(new TokenClientParam("identifier").exactly().code(v)));
+                    if (t.equals(OrganizationController.SearchType.identifier))
+                        value.ifPresent(v -> organizationIQuery.where(new TokenClientParam("identifier").exactly().code(v)));
 
-            if (t.equals(OrganizationController.SearchType.logicalId))
-                value.ifPresent(v->organizationIQuery.where(new TokenClientParam("_id").exactly().code(v)));
-            }
+                    if (t.equals(OrganizationController.SearchType.logicalId))
+                        value.ifPresent(v -> organizationIQuery.where(new TokenClientParam("_id").exactly().code(v)));
+                }
         );
 
         if (showInactive.isPresent()) {
@@ -275,10 +279,11 @@ public class OrganizationServiceImpl implements OrganizationService {
         Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
                 .where(new ReferenceClientParam("practitioner").hasId(ResourceType.Practitioner + "/" + practitioner))
                 .include(PractitionerRole.INCLUDE_ORGANIZATION)
+                .sort().descending(PARAM_LASTUPDATED)
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> organizationComponents = FhirUtil.getAllBundlesComponentIntoSingleList(bundle,Optional.empty(),fhirClient,fisProperties);
+            List<Bundle.BundleEntryComponent> organizationComponents = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
 
             if (organizationComponents != null) {
                 organizations = organizationComponents.stream()
@@ -300,7 +305,8 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         try {
             existingFhirOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
-        } catch (BaseServerResponseException e) {
+        }
+        catch (BaseServerResponseException e) {
             log.error("FHIR Client returned with an error while reading the organization with ID: " + organizationId);
             throw new ResourceNotFoundException("FHIR Client returned with an error while reading the organization:" + e.getMessage());
         }
@@ -312,19 +318,21 @@ public class OrganizationServiceImpl implements OrganizationService {
         try {
             MethodOutcome serverResponse = fhirClient.update().resource(existingFhirOrganization).execute();
             log.info("Inactivated the organization :" + serverResponse.getId().getIdPart());
-        } catch (BaseServerResponseException e) {
+        }
+        catch (BaseServerResponseException e) {
             log.error("Could NOT inactivate organization");
             throw new FHIRClientException("FHIR Client returned with an error while inactivating the organization:" + e.getMessage());
         }
     }
 
     private List<OrganizationDto> convertAllBundleToSingleOrganizationDtoList(Bundle firstPageOrganizationSearchBundle, int numberOBundlePerPage) {
-        return  FhirUtil.getAllBundlesComponentIntoSingleList(firstPageOrganizationSearchBundle, Optional.ofNullable(numberOBundlePerPage), fhirClient, fisProperties)
+        return FhirUtil.getAllBundlesComponentIntoSingleList(firstPageOrganizationSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties)
                 .stream()
                 .map(retrievedOrganization -> {
                     OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
                     organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
-                    return organizationDto;})
+                    return organizationDto;
+                })
                 .collect(toList());
     }
 

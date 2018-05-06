@@ -94,7 +94,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<ReferenceDto> participantsByRoles = new ArrayList<>();
         List<ParticipantReferenceDto> participantsSelected = new ArrayList<>();
 
-        Bundle careTeamBundle = (Bundle) FhirUtil.searchNoCache(fhirClient,CareTeam.class)
+        Bundle careTeamBundle = (Bundle) FhirUtil.searchNoCache(fhirClient,CareTeam.class, Optional.empty())
                 .where(new ReferenceClientParam("patient").hasId(patientId.trim()))
                 .include(CareTeam.INCLUDE_PARTICIPANT)
                 .returnBundle(Bundle.class).execute();
@@ -139,7 +139,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     public AppointmentDto getAppointmentById(String appointmentId) {
         log.info("Searching for appointmentId: " + appointmentId);
 
-        Bundle appointmentBundle = (Bundle) FhirUtil.searchNoCache(fhirClient, Appointment.class)
+        Bundle appointmentBundle = (Bundle) FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty())
                 .where(new TokenClientParam("_id").exactly().code(appointmentId.trim()))
                 .returnBundle(Bundle.class)
                 .execute();
@@ -170,7 +170,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Bundle otherPageAppointmentBundle;
         boolean firstPage = true;
 
-        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class);
+        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.of(Boolean.TRUE));
 
         if (patientId.isPresent()) {
             log.info("Searching Appointments for patientId = " + patientId.get().trim());
@@ -321,7 +321,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     public List<String> getParticipantsByPatientAndAppointmentId(String patientId, String appointmentId) {
         List<String> participantIds = new ArrayList<>();
 
-        Bundle bundle = (Bundle) FhirUtil.searchNoCache(fhirClient,Appointment.class)
+        Bundle bundle = (Bundle) FhirUtil.searchNoCache(fhirClient,Appointment.class, Optional.empty())
                 .where(new ReferenceClientParam("patient").hasId(patientId))
                 .where(new TokenClientParam("_id").exactly().code(appointmentId))
                 .include(Appointment.INCLUDE_PATIENT)

@@ -7,9 +7,11 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
@@ -22,7 +24,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Location;
+import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -68,6 +72,9 @@ public class LocationServiceImpl implements LocationService {
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
+        //Set Sort order
+        locationsSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(locationsSearchQuery, true);
+
         // Check if there are any additional search criteria
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
 
@@ -99,6 +106,9 @@ public class LocationServiceImpl implements LocationService {
         Bundle otherPageLocationSearchBundle;
 
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
+
+        //Set Sort order
+        locationsSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(locationsSearchQuery, true);
 
         // Check if there are any additional search criteria
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
@@ -170,6 +180,7 @@ public class LocationServiceImpl implements LocationService {
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateLocationBasedOnIdentifiersDuringCreate(locationDto);
 
+        getOrganizationIdentifier(organizationId).ifPresent(identifierDto -> locationDto.getIdentifiers().add(identifierDto));
         Location fhirLocation = modelMapper.map(locationDto, Location.class);
         fhirLocation.setStatus(getLocationStatusFromDto(locationDto));
         fhirLocation.setPhysicalType(getLocationPhysicalTypeFromDto(locationDto));
@@ -395,6 +406,15 @@ public class LocationServiceImpl implements LocationService {
         }
         log.warn("Location physical type is empty or NULL.");
         return null;
+    }
+
+    private Optional<IdentifierDto> getOrganizationIdentifier(String organizationId){
+        Organization organization=fhirClient.read().resource(Organization.class).withId(organizationId).execute();
+
+        OrganizationDto organizationDto=modelMapper.map(organization,OrganizationDto.class);
+        return organizationDto.getIdentifiers().stream()
+                .filter(identifier->identifier.getSystem().equalsIgnoreCase(KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getUri()))
+                .findFirst();
     }
 }
 

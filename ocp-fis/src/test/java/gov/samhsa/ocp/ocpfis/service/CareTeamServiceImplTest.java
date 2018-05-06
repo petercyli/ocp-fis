@@ -21,6 +21,7 @@ import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.StringType;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
@@ -61,6 +62,7 @@ public class CareTeamServiceImplTest {
     @InjectMocks
     public CareTeamServiceImpl careTeamService;
 
+    @Ignore
     @Test
     public void testGetCareTeams() {
         //Arrange

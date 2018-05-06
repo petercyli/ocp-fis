@@ -30,7 +30,6 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -55,6 +54,8 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
         IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class).where(new ReferenceClientParam("patient").hasId("Patient/" + patientId));
 
+        //Set Sort order
+        relatedPersonIQuery = FhirUtil.setLastUpdatedTimeSortOrder(relatedPersonIQuery, true);
         if(searchKey.isPresent()) {
             if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.RelatedPersonSearchKey.NAME.name())) {
                 relatedPersonIQuery.where(new RichStringClientParam("name").contains().value(searchValue.get().trim()));
@@ -177,7 +178,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     private List<RelatedPersonDto> convertAllBundleToSingleRelatedPersonDtoList(Bundle firstPageSearchBundle, int numberOBundlePerPage) {
-        return  FhirUtil.getAllBundlesComponentIntoSingleList(firstPageSearchBundle, Optional.ofNullable(numberOBundlePerPage), fhirClient, fisProperties)
+        return  FhirUtil.getAllBundlesComponentIntoSingleList(firstPageSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties)
                 .stream().map(this::convertToRelatedPerson)
                 .collect(toList());
     }

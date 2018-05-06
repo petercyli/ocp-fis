@@ -1,7 +1,9 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.NotEmpty;
 
 import javax.validation.Valid;
@@ -12,25 +14,27 @@ import java.util.Optional;
 import java.util.Set;
 
 @Data
+@Builder
 @AllArgsConstructor
+@NoArgsConstructor
 public class AbstractCareTeamDto {
-    public enum ProviderType{
-        PRACTITIONER, ORGANIZATION;
+    public enum CareTeamType{
+        PRACTITIONER, ORGANIZATION, RELATEDPERSON;
     }
-    protected String id;
+    private String id;
 
-    protected String display;
+    private String display;
 
     @Valid
     @NotEmpty
-    protected List<IdentifierDto> identifiers;
+    private List<IdentifierDto> identifiers;
 
-    protected Optional<String> phoneNumber;
+    private Optional<String> phoneNumber;
 
-    protected Optional<String> email;
+    private Optional<String> email;
 
     @Valid
-    protected AddressDto address;
+    private AddressDto address;
 
-    protected ProviderType providerType;
+    private CareTeamType careTeamType;
 }
