@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.data;
 
+import gov.samhsa.ocp.ocpfis.data.model.activitydefinition.TempActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.data.model.organization.Element;
 import gov.samhsa.ocp.ocpfis.data.model.organization.TempOrganizationDto;
 import gov.samhsa.ocp.ocpfis.data.model.patient.TempIdentifierTypeDto;
@@ -9,13 +10,16 @@ import gov.samhsa.ocp.ocpfis.data.model.practitioner.TempPractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -124,17 +128,30 @@ public class CommonHelper {
 
      }
 
-     public static String getPractitionerId(String name){
-         String practitionerUrl="http://localhost:8444/practitioners/search?searchType=name&searchValue="+name;
+     public static String getActivityDefinitionId(String orgId,String name){
+         String activityDefinitionUrl="http://localhost:8444/organizations/"+orgId+"/activity-definitions/definition-reference?name="+name;
          RestTemplate rt=new RestTemplate();
-         ResponseEntity<TempPageDto> foo=rt.getForEntity(practitionerUrl,TempPageDto.class);
-
-         TempPageDto tempPageDto=foo.getBody();
-
-         List<TempPractitionerDto> elements=tempPageDto.getElements();
-
-         return elements.stream().findFirst().get().getLogicalId();
+         ResponseEntity<String> foo=rt.getForEntity(activityDefinitionUrl, String.class);
+         return foo.getBody();
      }
 
+     public static String getPractitionerId(String name){
+         String practitionerUrl="http://localhost:8444/practitioners/practitioner-id?practitionerName="+name;
+         RestTemplate rt=new RestTemplate();
+         ResponseEntity<String> foo=rt.getForEntity(practitionerUrl, String.class);
+         return foo.getBody();
+     }
+
+     public static String getTodoMainTask(String patient,String organization){
+         String todoUrl="http://localhost:8444/tasks/task-references?definition=To-Do&patient="+patient+"&orgainization="+organization;
+         RestTemplate rt=new RestTemplate();
+         List<LinkedHashMap<String,String>> todo=rt.getForEntity(todoUrl,ArrayList.class).getBody();
+
+         if(!todo.isEmpty()) {
+             return todo.get(0).get("reference");
+         }else{
+             return null;
+         }
+     }
 
 }
