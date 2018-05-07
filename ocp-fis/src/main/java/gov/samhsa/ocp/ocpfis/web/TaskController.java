@@ -38,7 +38,11 @@ public class TaskController {
     @PostMapping("/tasks")
     @ResponseStatus(HttpStatus.CREATED)
     public void createTask(@Valid @RequestBody TaskDto taskDto) {
-        taskService.createTask(taskDto);
+        try {
+            taskService.createTask(taskDto);
+        }catch(Exception e){
+            e.printStackTrace();
+        }
     }
 
     @PutMapping("/tasks/{taskId}")
