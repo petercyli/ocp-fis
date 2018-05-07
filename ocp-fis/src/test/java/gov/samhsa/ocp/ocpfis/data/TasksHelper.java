@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.data;
 
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import gov.samhsa.ocp.ocpfis.data.model.activitydefinition.TempPeriodDto;
 import gov.samhsa.ocp.ocpfis.data.model.task.TempTaskDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -20,7 +21,7 @@ import java.util.Map;
 @Slf4j
 public class TasksHelper {
 
-    public static void process(Sheet tasks, Map<String, String> mapOfPractitioners) {
+    public static void process(Sheet tasks, Map<String,String> mapOfPatient, Map<String, String> mapOfPractitioners, Map<String,String>  mapOfOrganizations) {
         log.info("last row number:" +tasks.getLastRowNum());
 
         int rowNum=0;
@@ -40,34 +41,45 @@ public class TasksHelper {
 
                     if(j==0){
                         ReferenceDto referenceDto=new ReferenceDto();
-                        referenceDto.setReference("Patient/"+CommonHelper.getPatientId(cellValue));
+                        referenceDto.setReference("Patient/"+mapOfPatient.get(cellValue));
                         referenceDto.setDisplay(cellValue);
                         dto.setBeneficiary(referenceDto);
                     }
                     else if(j==1){
                         dto.setDescription(cellValue);
                     }else if(j==2){
-                        //No organization and task agent(who created task)
-                        // to determine which activity definition to find
-                        //as many organization can have different activity definition of same name.
+                       ReferenceDto referenceDto=new ReferenceDto();
+                       referenceDto.setReference("Organization/"+mapOfOrganizations.get(cellValue));
+                       referenceDto.setDisplay(cellValue);
+                       dto.setOrganization(referenceDto);
                     }else if(j==3){
                         dto.setStatus(statusLookupValueSet.get(cellValue));
                     }else if(j==4){
                         dto.setPriority(priorityValueSet.get(cellValue));
-                    }else if(j==5){
+                    }else if(j==5) {
                         dto.setIntent(intentValueSet.get(cellValue));
                     }else if(j==6){
                         ReferenceDto referenceDto=new ReferenceDto();
-                        referenceDto.setReference("Practitioner/"+CommonHelper.getPractitionerId(cellValue));
+                        referenceDto.setReference("ActivityDefinition/"+CommonHelper.getActivityDefinitionId(dto.getOrganization().getReference().split("/")[1],cellValue));
+                        referenceDto.setDisplay(cellValue);
+                        dto.setDefinition(referenceDto);
+                    }else if(j==7){
+                        ReferenceDto referenceDto=new ReferenceDto();
+                        referenceDto.setReference("Practitioner/"+CommonHelper.getPractitionerId(cellValue.trim().split(" ")[0]));
                         referenceDto.setDisplay(cellValue);
                         dto.setOwner(referenceDto);
-                    }else if(j==7){
-                        dto.setPerformerType(performerValueSet.get(cellValue));
                     }else if(j==8){
-                        tempPeriodDto.setStart(cellValue);
+                        dto.setPerformerType(performerValueSet.get(cellValue));
                     }else if(j==9){
+                        tempPeriodDto.setStart(cellValue);
+                    }else if(j==10){
                         tempPeriodDto.setEnd(cellValue);
                         dto.setExecutionPeriod(tempPeriodDto);
+                    }else if(j==11){
+                        ReferenceDto referenceDto=new ReferenceDto();
+                        referenceDto.setReference("Practitioner/"+CommonHelper.getPractitionerId(cellValue.trim().split(" ")[1]));
+                        referenceDto.setDisplay(cellValue);
+                        dto.setAgent(referenceDto);
                     }
                     j++;
                 }
@@ -78,9 +90,10 @@ public class TasksHelper {
         RestTemplate rt=new RestTemplate();
 
         taskDtos.forEach(taskDto->{
-            log.info("related persons : "+taskDto);
+            log.info("tasks  : "+taskDto);
             HttpEntity<TempTaskDto> request=new HttpEntity<>(taskDto);
-            rt.postForObject("http://localhost:8444/related-persons/",request,TempTaskDto.class);
+
+            rt.postForObject("http://localhost:8444/tasks",request,TempTaskDto.class);
         });
     }
 
