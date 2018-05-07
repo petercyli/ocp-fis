@@ -37,34 +37,34 @@ public class OcpDataLoadApplication {
         log.info("Number of sheets : " + workbook.getNumberOfSheets());
 
         //Organizations
-        //Sheet organizations = workbook.getSheet("Organizations");
-        //OrganizationHelper.process(organizations);
+        Sheet organizations = workbook.getSheet("Organizations");
+        OrganizationHelper.process(organizations);
 
         //Get all organizations
         Map<String, String> mapOrganizations = retrieveOrganizations();
         log.info("Retrieved organizations");
 
-        //Sheet locations = workbook.getSheet("Locations");
-        //LocationsHelper.process(locations, mapOrganizations);
-        //log.info("Populated locations");
+        Sheet locations = workbook.getSheet("Locations");
+        LocationsHelper.process(locations, mapOrganizations);
+        log.info("Populated locations");
 
         Sheet healthCareServices = workbook.getSheet("Healthcare Services");
-        //HealthCareServicesHelper.process(healthCareServices, mapOrganizations);
-        //log.info("Populated healthCareServices");
+        HealthCareServicesHelper.process(healthCareServices, mapOrganizations);
+        log.info("Populated healthCareServices");
 
         Sheet activityDefinitions = workbook.getSheet("Activity Definitions");
-        //ActivityDefinitionsHelper.process(activityDefinitions, mapOrganizations);
-        //log.info("Populated practitioners");
+        ActivityDefinitionsHelper.process(activityDefinitions, mapOrganizations);
+        log.info("Populated practitioners");
 
         Sheet practitioners = workbook.getSheet("Practitioners");
-        //PractitionersHelper.process(practitioners, mapOrganizations);
-        //log.info("Populated practitioners");
+       PractitionersHelper.process(practitioners, mapOrganizations);
+        log.info("Populated practitioners");
 
         Map<String, String> mapOfPractitioners = retrievePractitioners();
 
         Sheet patients = workbook.getSheet("Patient");
-        //PatientsHelper.process(patients, mapOfPractitioners);
-        //log.info("Populated patients");
+        PatientsHelper.process(patients, mapOfPractitioners);
+        log.info("Populated patients");
 
         Map<String, String> mapOfPatients = retrievePatients();
 
@@ -73,24 +73,24 @@ public class OcpDataLoadApplication {
         log.info("Populated relationPersons");
 
         Sheet careTeams = workbook.getSheet("Patient Care Teams");
-        //CareTeamsHelper.process(careTeams, mapOfPractitioners, mapOfPatients);
-        //log.info("Populated careTeams");
+        CareTeamsHelper.process(careTeams, mapOfPractitioners, mapOfPatients);
+        log.info("Populated careTeams");
 
         Sheet taskOwners = workbook.getSheet("Tasks");
-        //TasksHelper.process(taskOwners, mapOfPractitioners);
-        //log.info("Populated taskOwners");
+        TasksHelper.process(taskOwners, mapOfPatients,mapOfPractitioners, mapOrganizations);
+        log.info("Populated taskOwners");
 
         Sheet todos = workbook.getSheet("To Do");
-        //TodosHelper.process(todos, mapOfPractitioners);
-        //log.info("Populated todosHelper");
+        TodosHelper.process(todos, mapOfPatients,mapOrganizations);
+        log.info("Populated todosHelper");
 
         Sheet communications = workbook.getSheet("Communication");
-        //CommunicationsHelper.process(communications, mapOfPatients);
-        //log.info("Populated communications");
+        CommunicationsHelper.process(communications, mapOfPatients);
+        log.info("Populated communications");
 
         Sheet appointments = workbook.getSheet("Appointments");
-        //AppointmentsHelper.process(appointments, mapOfPatients, mapOfPractitioners);
-        //log.info("Populated appointments");
+        AppointmentsHelper.process(appointments, mapOfPatients, mapOfPractitioners);
+        log.info("Populated appointments");
 
         workbook.close();
         log.info("Workbook closed");
@@ -115,7 +115,7 @@ public class OcpDataLoadApplication {
 
     private static Map<String, String> retrievePractitioners() {
         //TODO: Implement
-        String url = "http://localhost:8444/practitioners/search";
+        String url = "http://localhost:8444/practitioners/search?showAll=true";
         RestTemplate rt = new RestTemplate();
         ResponseEntity<WrapperPractitionerDto> practitioners = rt.getForEntity(url, WrapperPractitionerDto.class);
 
@@ -159,7 +159,7 @@ public class OcpDataLoadApplication {
     }
 
     private static Map<String, String> retrievePatients() {
-        String url  = "http://localhost:8444/patients/search";
+        String url  = "http://localhost:8444/patients/search?showAll=true";
         RestTemplate rt = new RestTemplate();
         ResponseEntity<WrapperPatientDto> responseEntity = rt.getForEntity(url, WrapperPatientDto.class);
         WrapperPatientDto wrapperDto = responseEntity.getBody();
