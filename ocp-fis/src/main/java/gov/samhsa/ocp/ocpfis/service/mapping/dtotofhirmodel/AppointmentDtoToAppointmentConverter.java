@@ -56,8 +56,8 @@ public final class AppointmentDtoToAppointmentConverter {
             }
 
             //Start and End Dates
-            appointment.setStart(DateUtil.convertLocalDateTimeToDate(appointmentDto.getStart()));
-            appointment.setEnd(DateUtil.convertLocalDateTimeToDate(appointmentDto.getEnd()));
+            appointment.setStart(DateUtil.convertLocalDateTimeToUTCDate(appointmentDto.getStart()));
+            appointment.setEnd(DateUtil.convertLocalDateTimeToUTCDate(appointmentDto.getEnd()));
 
             //Caution: DO NOT set created time here
             //TBD: Slot and incoming reference

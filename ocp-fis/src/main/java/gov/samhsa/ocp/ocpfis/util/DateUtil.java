@@ -54,11 +54,11 @@ public class DateUtil {
         return "";
     }
 
-    public static LocalDateTime convertDateToLocalDateTime(Date date) {
+    public static LocalDateTime convertUTCDateToLocalDateTime(Date date) {
         return date.toInstant().atZone(ZoneId.of("UTC")).toLocalDateTime();
     }
 
-    public static Date convertLocalDateTimeToDate(LocalDateTime dateTime) {
+    public static Date convertLocalDateTimeToUTCDate(LocalDateTime dateTime) {
         return Date.from(dateTime.atZone(ZoneId.of("UTC")).toInstant());
     }
 
