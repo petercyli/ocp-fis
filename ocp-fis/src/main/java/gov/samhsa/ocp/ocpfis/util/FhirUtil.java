@@ -11,6 +11,7 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.AbstractCareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
@@ -19,6 +20,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
+import gov.samhsa.ocp.ocpfis.service.exception.IdentifierSystemNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Address;
@@ -65,6 +67,10 @@ public class FhirUtil {
     public static final int EPISODE_OF_CARE_END_PERIOD = 1;
     public static final String CARE_MANAGER_CODE = "CAREMNGR";
     public static final int PAGE_NUMBER = 2;
+
+    public static final String OID_TEXT = "urn:oid:";
+    public static final String URL_TEXT = "http";
+    public static final String OID_NUMBER = "2.16";
 
     public static Enumerations.AdministrativeGender getPatientGender(String codeString) {
         switch (codeString.toUpperCase()) {
@@ -415,7 +421,7 @@ public class FhirUtil {
             abstractCareTeamDto.setDisplay(organization.getName());
             abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.ORGANIZATION);
             List<IdentifierDto> identifierDtos = organization.getIdentifier().stream()
-                    .map(identifier -> covertIdentifierToIdentifierDto(identifier))
+                    .map(identifier -> entireCovertIdentifierToIdentifierDto(identifier))
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 
@@ -464,7 +470,7 @@ public class FhirUtil {
 
             abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.PRACTITIONER);
             List<IdentifierDto> identifierDtos = practitioner.getIdentifier().stream()
-                    .map(identifier -> covertIdentifierToIdentifierDto(identifier))
+                    .map(identifier -> entireCovertIdentifierToIdentifierDto(identifier))
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 
@@ -518,7 +524,7 @@ public class FhirUtil {
             });
 
             List<IdentifierDto> identifierDtos = relatedPerson.getIdentifier().stream()
-                    .map(identifier -> covertIdentifierToIdentifierDto(identifier))
+                    .map(identifier -> entireCovertIdentifierToIdentifierDto(identifier))
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 
@@ -592,6 +598,39 @@ public class FhirUtil {
         identifierDto.setValue(identifier.hasValue() ? identifier.getValue() : null);
         return identifierDto;
     }
+
+    public static IdentifierDto entireCovertIdentifierToIdentifierDto(Identifier identifier) {
+        IdentifierDto identifierDto = new IdentifierDto();
+
+        if (identifier != null) {
+            String systemOid = identifier.getSystem() != null ? identifier.getSystem() : "";
+            String systemDisplay = null;
+
+            try {
+                if (systemOid.startsWith(OID_TEXT) || systemOid.startsWith(URL_TEXT)) {
+                    systemDisplay = KnownIdentifierSystemEnum.fromUri(systemOid).getDisplay();
+                } else if (systemOid.startsWith(OID_NUMBER)) {
+                    systemDisplay = KnownIdentifierSystemEnum.fromOid(systemOid).getDisplay();
+                } else
+                    systemDisplay = systemOid;
+            } catch (IdentifierSystemNotFoundException e) {
+                systemDisplay = systemOid;
+            }
+
+            identifierDto = IdentifierDto.builder()
+                    .system(systemOid)
+                    .oid(systemOid.startsWith(OID_TEXT)
+                            ? systemOid.replace(OID_TEXT, "")
+                            : "")
+                    .systemDisplay(systemDisplay)
+                    .value(identifier.getValue())
+                    .display(identifier.getValue())
+                    .build();
+        }
+        return identifierDto;
+    }
+
+
 
     public static List<String> participantIds(Optional<String> participantId,Optional<String> patientId, Optional<List<String>> careTeams, IGenericClient fhirClient){
         List<String> participantIds=new ArrayList<>();
