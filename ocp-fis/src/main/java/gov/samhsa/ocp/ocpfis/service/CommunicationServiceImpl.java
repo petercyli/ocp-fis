@@ -55,13 +55,16 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     private final FisProperties fisProperties;
 
+    private final EpisodeOfCareService episodeOfCareService;
+
     @Autowired
-    public CommunicationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
+    public CommunicationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, EpisodeOfCareService episodeOfCareService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.episodeOfCareService = episodeOfCareService;
     }
 
     public PageDto<CommunicationDto> getCommunications(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
@@ -325,6 +328,15 @@ public class CommunicationServiceImpl implements CommunicationService {
             List<Reference> definitions = new ArrayList<>();
             definitions.add(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getDefinition()));
             communication.setDefinition(definitions);
+        }
+
+        //Set Episode Of Care as Context
+        if (communicationDto.getOrganization() != null){
+            List<ReferenceDto> episodeOfCaresForReference =  episodeOfCareService.getEpisodeOfCaresForReference(communicationDto.getSubject().getDisplay(), Optional.of(communicationDto.getOrganization().getReference()), Optional.empty());
+
+            if (!episodeOfCaresForReference.isEmpty()){
+                communicationDto.setContext(episodeOfCaresForReference.get(0));
+            }
         }
 
         //Set context

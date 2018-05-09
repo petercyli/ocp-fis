@@ -43,6 +43,7 @@ public class CommunicationDto {
     private ReferenceDto subject;
     private ReferenceDto sender;
     private ReferenceDto context;
+    private ReferenceDto organization;
 
     private List<ReferenceDto> recipient;
 
