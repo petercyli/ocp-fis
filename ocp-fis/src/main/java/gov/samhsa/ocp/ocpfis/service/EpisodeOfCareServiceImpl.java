@@ -71,12 +71,18 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
     }
 
     @Override
-    public List<ReferenceDto> getEpisodeOfCaresForReference(String patient, Optional<String> status) {
+    public List<ReferenceDto> getEpisodeOfCaresForReference(String patient, Optional<String> organization, Optional<String> status) {
         List<ReferenceDto> referenceDtos = new ArrayList<>();
+        IQuery iQuery = fhirClient.search().forResource(Task.class);
 
-        IQuery iQuery = fhirClient.search().forResource(Task.class)
-                .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
-                .include(Task.INCLUDE_CONTEXT);
+        if (organization.isPresent())
+            iQuery.where(new ReferenceClientParam("patient").hasId(patient))
+                    .where(new ReferenceClientParam("organization").hasId(organization.get()))
+                    .include(Task.INCLUDE_CONTEXT);
+        else
+            iQuery.where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
+                    .include(Task.INCLUDE_CONTEXT);
+
         //Set Sort order
         iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
 
