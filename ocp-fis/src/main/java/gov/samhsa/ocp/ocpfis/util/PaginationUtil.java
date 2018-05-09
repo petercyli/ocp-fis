@@ -46,8 +46,8 @@ public final class PaginationUtil {
 
             String pageUrl = fisProperties.getFhir().getServerUrl()
                     + "?" + PARAM_PAGINGACTION + "=" + SearchBundle.getId()
-                    + "?" + PARAM_PAGINGOFFSET + "=" + offset
-                    + "?" + PARAM_COUNT + "=" + pageSize
+                    + "&" + PARAM_PAGINGOFFSET + "=" + offset
+                    + "&" + PARAM_COUNT + "=" + pageSize
                     + "&_bundletype=searchset";
 
             // Load the required page
