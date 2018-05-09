@@ -90,10 +90,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Bundle otherPageOrganizationSearchBundle;
         boolean firstPage = true;
 
-        firstPageOrganizationSearchBundle = (Bundle) organizationIQuery
-                .count(numberOfOrganizationsPerPage)
-                .returnBundle(Bundle.class)
-                .execute();
+        firstPageOrganizationSearchBundle = PaginationUtil.getSearchBundleFirstPage(organizationIQuery,numberOfOrganizationsPerPage,Optional.empty());
 
         if (firstPageOrganizationSearchBundle == null || firstPageOrganizationSearchBundle.getEntry().size() < 1) {
             log.info("No organizations were found for the given criteria.");
