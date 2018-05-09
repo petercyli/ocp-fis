@@ -97,7 +97,7 @@ public class AppointmentToAppointmentDtoConverter {
         String duration = "";
 
         if (appointment.hasStart()) {
-            appointmentDto.setStart(DateUtil.convertDateToLocalDateTime(appointment.getStart()));
+            appointmentDto.setStart(DateUtil.convertUTCDateToLocalDateTime(appointment.getStart()));
             DateTimeFormatter startFormatterDate = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_DATE);
             String formattedDate = appointmentDto.getStart().format(startFormatterDate);
             appointmentDto.setAppointmentDate(formattedDate);
@@ -106,13 +106,13 @@ public class AppointmentToAppointmentDtoConverter {
         }
 
         if (appointment.hasEnd()) {
-            appointmentDto.setEnd(DateUtil.convertDateToLocalDateTime(appointment.getEnd()));
+            appointmentDto.setEnd(DateUtil.convertUTCDateToLocalDateTime(appointment.getEnd()));
 
             duration = duration + " - " + DateUtil.convertLocalDateTimeToHumanReadableFormat(appointmentDto.getEnd());
         }
 
         if (appointment.hasCreated()) {
-            appointmentDto.setCreated(DateUtil.convertDateToLocalDateTime(appointment.getCreated()));
+            appointmentDto.setCreated(DateUtil.convertUTCDateToLocalDateTime(appointment.getCreated()));
         }
         appointmentDto.setAppointmentDuration(duration);
 
