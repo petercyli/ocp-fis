@@ -36,18 +36,6 @@ public class DateUtil {
         return instant.atZone(defaultZoneId).toLocalDate();
     }
 
-    public static LocalDateTime convertDateToLocalDateTime(Date date) {
-        //the system default time zone will be appended
-        ZoneId defaultZoneId = ZoneId.systemDefault();
-
-        //1. Convert Date -> Instant
-        Instant instant = date.toInstant();
-
-        //2. Instant + system default time zone + toLocalDateTime() = LocalDateTime
-
-        return instant.atZone(defaultZoneId).toLocalDateTime();
-    }
-
     public static String convertDateToString(Date date) {
         DateFormat df = new SimpleDateFormat("MM/dd/YYYY", Locale.US);
 
@@ -66,8 +54,12 @@ public class DateUtil {
         return "";
     }
 
-    public static Date convertLocalDateTimeToDate(LocalDateTime dateTime) {
-        return Date.from(dateTime.atZone(ZoneId.systemDefault()).toInstant());
+    public static LocalDateTime convertUTCDateToLocalDateTime(Date date) {
+        return date.toInstant().atZone(ZoneId.of("UTC")).toLocalDateTime();
+    }
+
+    public static Date convertLocalDateTimeToUTCDate(LocalDateTime dateTime) {
+        return Date.from(dateTime.atZone(ZoneId.of("UTC")).toInstant());
     }
 
     /**
