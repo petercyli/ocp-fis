@@ -366,4 +366,9 @@ public class LookUpController {
     public List<ValueSetDto> getPurposeOfUse(){
         return lookUpService.getPurposeOfUse();
    }
+
+   @GetMapping("/security-label")
+    public List<ValueSetDto> getSecurityLabel(){
+        return lookUpService.getSecurityLabel();
+   }
 }
