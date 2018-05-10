@@ -281,7 +281,7 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         //Set Status
         if (communicationDto.getStatusCode() != null) {
-            communication.setStatus(Communication.CommunicationStatus.valueOf(communicationDto.getStatusCode().toUpperCase()));
+            communication.setStatus(Communication.CommunicationStatus.valueOf(communicationDto.getStatusCode().toUpperCase().replaceAll("-","")));
         }
 
         //Set Category
