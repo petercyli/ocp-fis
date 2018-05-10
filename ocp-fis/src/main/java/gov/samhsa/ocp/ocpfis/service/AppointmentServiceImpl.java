@@ -229,6 +229,39 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
+    public List<AppointmentDto> getAppointmentsWithNoPagination(Optional<List<String>> statusList, Optional<String> patientId, Optional<String> practitionerId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showPastAppointments, Optional<Boolean> sortByStartTimeAsc) {
+        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
+
+        if (patientId.isPresent()) {
+            log.info("Searching Appointments for patientId = " + patientId.get().trim());
+            iQuery.where(new ReferenceClientParam("patient").hasId(patientId.get().trim()));
+        }
+        if (practitionerId.isPresent()) {
+            log.info("Searching Appointments for practitionerId = " + practitionerId.get().trim());
+            iQuery.where(new ReferenceClientParam("practitioner").hasId(practitionerId.get().trim()));
+        }
+        // Check if there are any additional search criteria
+        iQuery = addStatusSearchConditions(iQuery, statusList);
+
+        // Additional Search Key and Value
+        iQuery = addSearchKeyValueConditions(iQuery, searchKey, searchValue);
+
+        // Past appointments
+        iQuery = addShowPastAppointmentConditions(iQuery, showPastAppointments);
+
+        //Check sort order
+        iQuery = addSortConditions(iQuery, sortByStartTimeAsc);
+
+        Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
+
+        List<Bundle.BundleEntryComponent> retrievedAppointments = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
+
+        return retrievedAppointments.stream()
+                .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
+                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.empty()))).collect(toList());
+    }
+
+    @Override
     public void cancelAppointment(String appointmentId) {
         Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
         //Cancel
