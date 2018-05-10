@@ -194,7 +194,7 @@ public class PatientServiceImpl implements PatientService {
                 .execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
+            List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
             if (components != null && !components.isEmpty()) {
                 patients = components.stream()
                         .filter(it -> it.getResource().getResourceType().equals(ResourceType.Patient))
@@ -435,19 +435,17 @@ public class PatientServiceImpl implements PatientService {
         List<Extension> extensionList = patient.getExtension();
 
         extensionList.stream().map(extension -> (CodeableConcept)extension.getValue())
-                .forEach(codeableConcept -> {
-                    codeableConcept.getCoding().stream().findFirst().ifPresent(coding->{
-                        if (coding.getSystem().contains(CODING_SYSTEM_RACE)) {
-                            patientDto.setRace(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreRace()).getDisplay());
-                        } else if (coding.getSystem().contains(CODING_SYSTEM_LANGUAGE)) {
-                            patientDto.setLanguage(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getLanguages()).getDisplay());
-                        } else if (coding.getSystem().contains(CODING_SYSTEM_ETHNICITY)) {
-                            patientDto.setEthnicity(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreEthnicity()).getDisplay());
-                        } else if (coding.getSystem().contains(CODING_SYSTEM_BIRTHSEX)) {
-                            patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreBirthSex()).getDisplay());
-                        }
-                    });
-                });
+                .forEach(codeableConcept -> codeableConcept.getCoding().stream().findFirst().ifPresent(coding->{
+                    if (coding.getSystem().contains(CODING_SYSTEM_RACE)) {
+                        patientDto.setRace(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreRace()).getDisplay());
+                    } else if (coding.getSystem().contains(CODING_SYSTEM_LANGUAGE)) {
+                        patientDto.setLanguage(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getLanguages()).getDisplay());
+                    } else if (coding.getSystem().contains(CODING_SYSTEM_ETHNICITY)) {
+                        patientDto.setEthnicity(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreEthnicity()).getDisplay());
+                    } else if (coding.getSystem().contains(CODING_SYSTEM_BIRTHSEX)) {
+                        patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreBirthSex()).getDisplay());
+                    }
+                }));
     }
 
     private Flag convertFlagDtoToFlag(Reference patientId, FlagDto flagDto) {
@@ -526,14 +524,14 @@ public class PatientServiceImpl implements PatientService {
                 .sort().descending(PARAM_LASTUPDATED)
                 .execute();
 
-        return FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(eoc -> {
+        return FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(eoc -> {
             EpisodeOfCare episodeOfCare = (EpisodeOfCare) eoc.getResource();
             return (episodeOfCare.hasPatient()) ? (episodeOfCare.getPatient().getReference().split("/")[1]) : null;
         }).distinct().collect(toList());
     }
 
     private List<PatientDto> convertAllBundleToSinglePatientDtoList(Bundle firstPagePatientSearchBundle, int numberOBundlePerPage) {
-        List<Bundle.BundleEntryComponent> bundleEntryComponentList = FhirUtil.getAllBundlesComponentIntoSingleList(firstPagePatientSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> bundleEntryComponentList = FhirUtil.getAllBundleComponentsAsList(firstPagePatientSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties);
         return bundleEntryComponentList.stream()
                 .filter(bundleEntryComponent -> bundleEntryComponent.getResource().getResourceType().equals(ResourceType.Patient))
                 .map(bundleEntryComponent -> (Patient) bundleEntryComponent.getResource())

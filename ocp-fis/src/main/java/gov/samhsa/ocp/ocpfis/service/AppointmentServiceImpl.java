@@ -254,7 +254,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
-        List<Bundle.BundleEntryComponent> retrievedAppointments = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> retrievedAppointments = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
         return retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->

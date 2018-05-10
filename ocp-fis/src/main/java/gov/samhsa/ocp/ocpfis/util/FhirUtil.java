@@ -380,7 +380,7 @@ public class FhirUtil {
         return referenceDto;
     }
 
-    public static List<Bundle.BundleEntryComponent> getAllBundlesComponentIntoSingleList(Bundle bundle, Optional<Integer> countSize, IGenericClient fhirClient, FisProperties fisProperties) {
+    public static List<Bundle.BundleEntryComponent> getAllBundleComponentsAsList(Bundle bundle, Optional<Integer> countSize, IGenericClient fhirClient, FisProperties fisProperties) {
         int pageNumber = PAGE_NUMBER;
         int pageSize = countSize.orElse(fisProperties.getFhir().getDefaultResourceBundlePageSize());
         Bundle updatedBundle = bundle;
@@ -412,7 +412,7 @@ public class FhirUtil {
                 .returnBundle(Bundle.class)
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
                 .execute();
-        List<Bundle.BundleEntryComponent> organizationBundleEntryList = getAllBundlesComponentIntoSingleList(organizationBundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> organizationBundleEntryList = getAllBundleComponentsAsList(organizationBundle, Optional.empty(), fhirClient, fisProperties);
 
        return organizationBundleEntryList.stream().map(org -> {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
@@ -458,7 +458,7 @@ public class FhirUtil {
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
                 .execute();
 
-        List<Bundle.BundleEntryComponent> practitionerBundleEntryList = FhirUtil.getAllBundlesComponentIntoSingleList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> practitionerBundleEntryList = FhirUtil.getAllBundleComponentsAsList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
 
         return practitionerBundleEntryList.stream().map(pr -> {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
@@ -511,7 +511,7 @@ public class FhirUtil {
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
                 .execute();
 
-        List<Bundle.BundleEntryComponent> relatedPersonBundleEntryList = FhirUtil.getAllBundlesComponentIntoSingleList(relatedBundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> relatedPersonBundleEntryList = FhirUtil.getAllBundleComponentsAsList(relatedBundle, Optional.empty(), fhirClient, fisProperties);
 
         return  relatedPersonBundleEntryList.stream().map(rp -> {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
