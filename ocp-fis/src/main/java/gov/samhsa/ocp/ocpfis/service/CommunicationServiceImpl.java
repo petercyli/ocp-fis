@@ -35,6 +35,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -113,8 +114,16 @@ public class CommunicationServiceImpl implements CommunicationService {
         List<CommunicationDto> communicationDtos = retrievedCommunications.stream().filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Communication)).map(retrievedCommunication -> {
 
             Communication communication = (Communication) retrievedCommunication.getResource();
+            Date lastUpdated = new Date();
+
+            if(retrievedCommunication.getResource().hasMeta() && retrievedCommunication.getResource().getMeta().hasLastUpdated())
+            lastUpdated = retrievedCommunication.getResource().getMeta().getLastUpdated();
 
             CommunicationDto communicationDto = new CommunicationDto();
+
+            if(lastUpdated != null)
+                communicationDto.setLastUpdated(DateUtil.convertUTCDateToLocalDateTime(lastUpdated));
+
 
             communicationDto.setLogicalId(communication.getIdElement().getIdPart());
 
