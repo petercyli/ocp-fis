@@ -205,7 +205,11 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
 
             if (communication.hasSent()) {
-                communicationDto.setSent(DateUtil.convertDateToString(communication.getSent()));
+                communicationDto.setSent(DateUtil.convertUTCDateToLocalDateTime(communication.getSent()));
+            }
+
+            if (communication.hasReceived()) {
+                communicationDto.setReceived(DateUtil.convertUTCDateToLocalDateTime(communication.getReceived()));
             }
 
             return communicationDto;
@@ -344,13 +348,13 @@ public class CommunicationServiceImpl implements CommunicationService {
             communication.setContext(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getContext()));
         }
 
+        //Set Sent and Received Dates
         if(communicationDto.getSent() !=null) {
-            communication.setSent(DateUtil.convertStringToDate(communicationDto.getSent()));
+            communication.setSent(DateUtil.convertLocalDateTimeToUTCDate(communicationDto.getSent()));
         }
 
-
         if(communicationDto.getReceived() !=null)
-            communication.setReceived(DateUtil.convertStringToDate(communicationDto.getReceived()));
+            communication.setReceived(DateUtil.convertLocalDateTimeToUTCDate(communicationDto.getReceived()));
 
         //Set Note
         if (communicationDto.getNote() != null){
