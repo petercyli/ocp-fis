@@ -65,6 +65,17 @@ public class AppointmentController {
         return appointmentService.getAppointments(statusList, requesterReference, patientId, practitionerId, searchKey, searchValue, showPastAppointments, sortByStartTimeAsc, pageNumber, pageSize);
     }
 
+    @GetMapping("/appointments/search-with-no-pagination")
+    public List<AppointmentDto> getAppointmentsWithNoPagination(@RequestParam Optional<List<String>> statusList,
+                                                   @RequestParam(value = "patientId") Optional<String> patientId,
+                                                   @RequestParam(value = "practitionerId") Optional<String> practitionerId,
+                                                   @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                   @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                   @RequestParam(value = "showPastAppointments") Optional<Boolean> showPastAppointments,
+                                                   @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc) {
+        return appointmentService.getAppointmentsWithNoPagination(statusList, patientId, practitionerId, searchKey, searchValue, showPastAppointments, sortByStartTimeAsc);
+    }
+
     @PutMapping("/appointments/{appointmentId}/cancel")
     @ResponseStatus(HttpStatus.OK)
     public void cancelAppointment(@PathVariable String appointmentId) {
@@ -81,14 +92,14 @@ public class AppointmentController {
     @PutMapping("/appointments/{appointmentId}/decline")
     @ResponseStatus(HttpStatus.OK)
     public void declineAppointment(@PathVariable String appointmentId,
-                                  @RequestParam(value = "actorReference") String actorReference) {
+                                   @RequestParam(value = "actorReference") String actorReference) {
         appointmentService.declineAppointment(appointmentId, actorReference);
     }
 
     @PutMapping("/appointments/{appointmentId}/tentative")
     @ResponseStatus(HttpStatus.OK)
     public void tentativelyAcceptAppointment(@PathVariable String appointmentId,
-                                   @RequestParam(value = "actorReference") String actorReference) {
+                                             @RequestParam(value = "actorReference") String actorReference) {
         appointmentService.tentativelyAcceptAppointment(appointmentId, actorReference);
     }
 

@@ -51,6 +51,7 @@ public enum LookupPathUrls {
     CONSENT_SECURITY_ROLE("security role", Constants.CONSENT_SECURITY_ROLE_PATH),
     CONSENT_ACTION("consent action", Constants.CONSENT_ACTION_PATH),
     PURPOSE_OF_USE("consent purpose of use", Constants.PURPOSE_OF_USE_PATH),
+    SECURITY_LABEL("security label",Constants.SECURITY_LABEL_PATH),
     SIMPLE_LANGUAGE("simple language",Constants.SIMPLE_LANGUAGE);
 
     private final String type;
@@ -119,7 +120,8 @@ public enum LookupPathUrls {
         static final String CONSENT_CATEGORY_PATH = "/ValueSet/consent-category";
         static final String CONSENT_SECURITY_ROLE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/security-role-type";
         static final String CONSENT_ACTION_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/consent-action";
-        static final String PURPOSE_OF_USE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/v3-ActReason";
+        static final String PURPOSE_OF_USE_PATH = "/ValueSet/ocp-purposeofuse";
+        static final String SECURITY_LABEL_PATH="/ValueSet/ocp-security-label";
         static final String SIMPLE_LANGUAGE = "/ValueSet/simple-language";
     }
 }

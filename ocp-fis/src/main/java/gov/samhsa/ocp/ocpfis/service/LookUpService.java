@@ -126,4 +126,6 @@ public interface LookUpService {
     List<ValueSetDto> getConsentAction();
 
     List<ValueSetDto> getPurposeOfUse();
+
+    List<ValueSetDto> getSecurityLabel();
 }

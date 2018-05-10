@@ -397,7 +397,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
-        List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
         List<CareTeam> careTeams = components.stream()
                     .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
@@ -414,7 +414,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                     .collect(toList());
 
         List<CareTeamDto> careTeamDtos = careTeams.stream()
-                .map(it -> convertCareTeamToCareTeamDto(it))
+                .map(this::convertCareTeamToCareTeamDto)
                 .collect(toList());
 
         return (PageDto<CareTeamDto>) PaginationUtil.applyPaginationForCustomArrayList(careTeamDtos, numberOfCareTeamsPerPage, pageNumber, false);

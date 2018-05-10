@@ -184,7 +184,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                     .returnBundle(Bundle.class).execute();
 
             if (bundle != null && !bundle.getEntry().isEmpty()) {
-                return FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties)
+                return FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties)
                         .stream().filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
                         .map(it -> {
                             Practitioner pr = (Practitioner) it.getResource();
@@ -215,7 +215,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                     .returnBundle(Bundle.class).execute();
 
             if (bundle != null) {
-                List<Bundle.BundleEntryComponent> practitionerComponents = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
+                List<Bundle.BundleEntryComponent> practitionerComponents = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
                 if (practitionerComponents != null) {
                     organizations = practitionerComponents.stream()
@@ -275,7 +275,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                 .include(new Include("PractitionerRole:practitioner"))
                 .returnBundle(Bundle.class)
                 .execute();
-        return FhirUtil.getAllBundlesComponentIntoSingleList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
+        return FhirUtil.getAllBundleComponentsAsList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
     }
 
     private List<PractitionerDto> getPractitionerDtos(List<PractitionerDto> practitioners, List<Bundle.BundleEntryComponent> bundleEntry) {
@@ -482,7 +482,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                 .sort().descending(PARAM_LASTUPDATED)
                 .returnBundle(Bundle.class)
                 .execute();
-        return FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties)
+        return FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties)
                 .stream().map(pr -> {
                     PractitionerRole practitionerRole = (PractitionerRole) pr.getResource();
                     return practitionerRole.getPractitioner().getReference().split("/")[1];
@@ -490,7 +490,7 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     private List<PractitionerDto> convertAllBundleToSinglePractitionerDtoList(Bundle firstPageSearchBundle, int numberOfBundlePerPage) {
-        List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundlesComponentIntoSingleList(firstPageSearchBundle, Optional.of(numberOfBundlePerPage), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundleComponentsAsList(firstPageSearchBundle, Optional.of(numberOfBundlePerPage), fhirClient, fisProperties);
         return bundleEntryComponents.stream().filter(pr -> pr.getResource().getResourceType().equals(ResourceType.Practitioner))
                 .map(prac -> this.covertEntryComponentToPractitioner(prac, bundleEntryComponents)).collect(toList());
     }
