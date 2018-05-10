@@ -178,7 +178,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     private List<RelatedPersonDto> convertAllBundleToSingleRelatedPersonDtoList(Bundle firstPageSearchBundle, int numberOBundlePerPage) {
-        return  FhirUtil.getAllBundlesComponentIntoSingleList(firstPageSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties)
+        return  FhirUtil.getAllBundleComponentsAsList(firstPageSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties)
                 .stream().map(this::convertToRelatedPerson)
                 .collect(toList());
     }
