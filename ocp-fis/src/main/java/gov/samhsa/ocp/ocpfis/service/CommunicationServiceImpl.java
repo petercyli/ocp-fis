@@ -68,7 +68,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         this.episodeOfCareService = episodeOfCareService;
     }
 
-    public PageDto<CommunicationDto> getCommunications(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<CommunicationDto> getCommunications(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<String> organization, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfCommunicationsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Communication.name());
         IQuery iQuery = fhirClient.search().forResource(Communication.class);
 
@@ -76,9 +76,13 @@ public class CommunicationServiceImpl implements CommunicationService {
         iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
 
         //Check for Patient
-        if (searchKey.equalsIgnoreCase("patientId"))
-            iQuery.where(new ReferenceClientParam("patient").hasId(searchValue));
-
+        if (searchKey.equalsIgnoreCase("patientId")) {
+            if (organization.isPresent()){
+                String eoc = episodeOfCareService.getEpisodeOfCaresForReference(searchValue, Optional.of(organization.get()), Optional.empty()).get(0).getReference();
+                iQuery.where(new ReferenceClientParam("patient").hasId(searchValue))
+                        .where(new ReferenceClientParam("context").hasId(eoc));
+            }
+        }
         //Check for Communication
         if (searchKey.equalsIgnoreCase("communicationId"))
             iQuery.where(new TokenClientParam("_id").exactly().code(searchValue));
@@ -116,12 +120,12 @@ public class CommunicationServiceImpl implements CommunicationService {
             Communication communication = (Communication) retrievedCommunication.getResource();
             Date lastUpdated = new Date();
 
-            if(retrievedCommunication.getResource().hasMeta() && retrievedCommunication.getResource().getMeta().hasLastUpdated())
-            lastUpdated = retrievedCommunication.getResource().getMeta().getLastUpdated();
+            if (retrievedCommunication.getResource().hasMeta() && retrievedCommunication.getResource().getMeta().hasLastUpdated())
+                lastUpdated = retrievedCommunication.getResource().getMeta().getLastUpdated();
 
             CommunicationDto communicationDto = new CommunicationDto();
 
-            if(lastUpdated != null)
+            if (lastUpdated != null)
                 communicationDto.setLastUpdated(DateUtil.convertUTCDateToLocalDateTime(lastUpdated));
 
 
@@ -134,12 +138,12 @@ public class CommunicationServiceImpl implements CommunicationService {
                 communicationDto.setStatusCode(communication.getStatus().toCode());
             }
 
-           if (communication.hasCategory()) {
+            if (communication.hasCategory()) {
                 ValueSetDto category = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getCategory());
                 communicationDto.setCategoryValue(category.getDisplay());
-               communicationDto.setCategoryCode(category.getCode());
+                communicationDto.setCategoryCode(category.getCode());
 
-           }
+            }
 
             if (communication.hasMedium()) {
                 ValueSetDto medium = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getMedium());
@@ -159,24 +163,24 @@ public class CommunicationServiceImpl implements CommunicationService {
 
             if (communication.hasSender()) {
                 communicationDto.setSender(ReferenceDto.builder()
-                            .reference((communication.getSender().getReference() != null && !communication.getSender().getReference().isEmpty()) ? communication.getSender().getReference() : null)
-                            .display((communication.getSender().getDisplay()!= null && !communication.getSender().getDisplay().isEmpty()) ? communication.getSender().getDisplay() : null)
-                            .build());
+                        .reference((communication.getSender().getReference() != null && !communication.getSender().getReference().isEmpty()) ? communication.getSender().getReference() : null)
+                        .display((communication.getSender().getDisplay() != null && !communication.getSender().getDisplay().isEmpty()) ? communication.getSender().getDisplay() : null)
+                        .build());
             }
 
             if (communication.hasSubject()) {
                 communicationDto.setSubject(ReferenceDto.builder()
                         .reference((communication.getSubject().getReference() != null && !communication.getSubject().getReference().isEmpty()) ? communication.getSubject().getReference() : null)
-                        .display((communication.getSubject().getDisplay()!= null && !communication.getSubject().getDisplay().isEmpty()) ? communication.getSubject().getDisplay() : null)
+                        .display((communication.getSubject().getDisplay() != null && !communication.getSubject().getDisplay().isEmpty()) ? communication.getSubject().getDisplay() : null)
                         .build());
             }
 
 
             if (communication.hasTopic()) {
                 communicationDto.setTopic(ReferenceDto.builder()
-                                          .reference(FhirDtoUtil.convertReferenceToReferenceDto(communication.getTopic().stream().findAny().get()).getReference())
-                                          .display(FhirDtoUtil.convertReferenceToReferenceDto(communication.getTopic().stream().findAny().get()).getDisplay())
-                                          .build());
+                        .reference(FhirDtoUtil.convertReferenceToReferenceDto(communication.getTopic().stream().findAny().get()).getReference())
+                        .display(FhirDtoUtil.convertReferenceToReferenceDto(communication.getTopic().stream().findAny().get()).getDisplay())
+                        .build());
             }
 
 
@@ -191,7 +195,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             if (communication.hasContext()) {
                 communicationDto.setContext(ReferenceDto.builder()
                         .reference((communication.getContext().getReference() != null && !communication.getContext().getReference().isEmpty()) ? communication.getContext().getReference() : null)
-                        .display((communication.getContext().getDisplay()!= null && !communication.getContext().getDisplay().isEmpty()) ? communication.getContext().getDisplay() : null)
+                        .display((communication.getContext().getDisplay() != null && !communication.getContext().getDisplay().isEmpty()) ? communication.getContext().getDisplay() : null)
                         .build());
             }
 
@@ -240,7 +244,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                 .include(Communication.INCLUDE_RECIPIENT)
                 .returnBundle(Bundle.class).execute();
 
-        if(bundle != null) {
+        if (bundle != null) {
             List<Bundle.BundleEntryComponent> components = bundle.getEntry();
             recipientIds = components.stream().map(Bundle.BundleEntryComponent::getResource).filter(resource -> resource instanceof Practitioner || resource instanceof Patient || resource instanceof RelatedPerson || resource instanceof Organization).map(resource -> resource.getIdElement().getIdPart()).collect(Collectors.toList());
         }
@@ -251,14 +255,13 @@ public class CommunicationServiceImpl implements CommunicationService {
     @Override
     public void createCommunication(CommunicationDto communicationDto) {
 
-        try{
+        try {
             final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.empty(), ResourceType.Communication.name(), "Create Communication");
             //Create
             FhirUtil.createFhirResource(fhirClient, communication, ResourceType.Communication.name());
-        }
-        catch ( ParseException e) {
+        } catch (ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while create a communication:" + e.getMessage());
         }
     }
@@ -273,8 +276,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.of(communicationId), ResourceType.Communication.name(), "Update Communication");
             //Update
             FhirUtil.updateFhirResource(fhirClient, communication, ResourceType.Communication.name());
-        }
-        catch ( ParseException e) {
+        } catch (ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while update a communication:" + e.getMessage());
         }
     }
@@ -285,7 +287,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         communication.setNotDone(communicationDto.isNotDone());
 
         //Set Subject
-        if(communicationDto.getSubject() !=null) {
+        if (communicationDto.getSubject() != null) {
             communication.setSubject(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSubject()));
         }
 
@@ -294,7 +296,7 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         //Set Status
         if (communicationDto.getStatusCode() != null) {
-            communication.setStatus(Communication.CommunicationStatus.valueOf(communicationDto.getStatusCode().toUpperCase().replaceAll("-","")));
+            communication.setStatus(Communication.CommunicationStatus.valueOf(communicationDto.getStatusCode().toUpperCase().replaceAll("-", "")));
         }
 
         //Set Category
@@ -344,10 +346,10 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
 
         //Set Episode Of Care as Context
-        if (communicationDto.getOrganization() != null){
-            List<ReferenceDto> episodeOfCaresForReference =  episodeOfCareService.getEpisodeOfCaresForReference(communicationDto.getSubject().getDisplay(), Optional.of(communicationDto.getOrganization().getReference()), Optional.empty());
+        if (communicationDto.getOrganization() != null) {
+            List<ReferenceDto> episodeOfCaresForReference = episodeOfCareService.getEpisodeOfCaresForReference(communicationDto.getSubject().getDisplay(), Optional.of(communicationDto.getOrganization().getReference()), Optional.empty());
 
-            if (!episodeOfCaresForReference.isEmpty()){
+            if (!episodeOfCaresForReference.isEmpty()) {
                 communicationDto.setContext(episodeOfCaresForReference.get(0));
             }
         }
@@ -358,15 +360,15 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
 
         //Set Sent and Received Dates
-        if(communicationDto.getSent() !=null) {
+        if (communicationDto.getSent() != null) {
             communication.setSent(DateUtil.convertLocalDateTimeToUTCDate(communicationDto.getSent()));
         }
 
-        if(communicationDto.getReceived() !=null)
+        if (communicationDto.getReceived() != null)
             communication.setReceived(DateUtil.convertLocalDateTimeToUTCDate(communicationDto.getReceived()));
 
         //Set Note
-        if (communicationDto.getNote() != null){
+        if (communicationDto.getNote() != null) {
             Annotation note = new Annotation();
             note.setText(communicationDto.getNote());
             List<Annotation> notes = new ArrayList<>();
@@ -375,7 +377,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
 
         //Set Message
-        if (communicationDto.getPayloadContent() != null){
+        if (communicationDto.getPayloadContent() != null) {
             StringType newType = new StringType(communicationDto.getPayloadContent());
             Communication.CommunicationPayloadComponent messagePayload = new Communication.CommunicationPayloadComponent(newType);
             List<Communication.CommunicationPayloadComponent> payloads = new ArrayList<>();
