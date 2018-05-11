@@ -1,16 +1,13 @@
 package gov.samhsa.ocp.ocpfis.data;
 
-import gov.samhsa.ocp.ocpfis.data.model.activitydefinition.TempActivityDefinitionDto;
+import com.github.javafaker.Faker;
 import gov.samhsa.ocp.ocpfis.data.model.organization.Element;
 import gov.samhsa.ocp.ocpfis.data.model.organization.TempOrganizationDto;
 import gov.samhsa.ocp.ocpfis.data.model.patient.TempIdentifierTypeDto;
 import gov.samhsa.ocp.ocpfis.data.model.patient.TempPageDto;
 import gov.samhsa.ocp.ocpfis.data.model.patient.TempPatientDto;
-import gov.samhsa.ocp.ocpfis.data.model.practitioner.TempPractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
-import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import org.springframework.http.ResponseEntity;
@@ -27,25 +24,18 @@ import java.util.Optional;
 public class CommonHelper {
 
     public static AddressDto getAddress(String cellValue) {
-        //TODO parse cellValue to get AddressDto
-        return new AddressDto();
+        AddressDto dto = new AddressDto();
+        Faker faker = new Faker();
+        dto.setLine1(faker.address().streetAddress());
+        dto.setCity(faker.address().city());
+        dto.setStateCode(faker.address().state());
+        dto.setPostalCode(faker.address().zipCode());
+        dto.setCountryCode("US");
+        return dto;
     }
 
     public static List<AddressDto> getAddresses(String cellValue) {
-        System.out.println("getAddresses : " + cellValue);
-        String [] elements = cellValue.split("\\|");
-        System.out.println("size of elements" + elements.length);
-        AddressDto dto = new AddressDto();
-
-        if(elements.length == 5) {
-            dto.setLine1(elements[0]);
-            dto.setCity(elements[1]);
-            dto.setStateCode(elements[2]);
-            dto.setPostalCode(elements[3]);
-            dto.setCountryCode(elements[4]);
-        }
-
-        return Arrays.asList(dto);
+        return Arrays.asList(getAddress(cellValue));
     }
 
     public static List<TelecomDto> getTelecoms(String cellValue) {
