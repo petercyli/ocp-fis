@@ -831,14 +831,22 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getPurposeOfUse() {
-        List<ValueSetDto> purposeOfUseList = new ArrayList<>();
+        List<ValueSetDto> purposeOfUseList;
         ValueSet response = getValueSets(LookupPathUrls.PURPOSE_OF_USE.getUrlPath(), LookupPathUrls.PURPOSE_OF_USE.getType());
-        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.PURPOSE_OF_USE.getType())) {
-            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            purposeOfUseList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        }
-        log.info("Found " + purposeOfUseList.size() + " purpose of use.");
+        List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
+        purposeOfUseList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + purposeOfUseList.size() + " security labels.");
         return purposeOfUseList;
+    }
+
+    @Override
+    public List<ValueSetDto> getSecurityLabel() {
+        List<ValueSetDto> securityLabelList;
+        ValueSet response = getValueSets(LookupPathUrls.SECURITY_LABEL.getUrlPath(), LookupPathUrls.SECURITY_LABEL.getType());
+        List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
+        securityLabelList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        log.info("Found " + securityLabelList.size() + " security labels.");
+        return securityLabelList;
     }
 
     private ValueSet getValueSets(String urlPath, String type) {
