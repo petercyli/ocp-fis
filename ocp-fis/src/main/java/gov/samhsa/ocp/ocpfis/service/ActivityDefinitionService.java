@@ -18,4 +18,6 @@ public interface ActivityDefinitionService {
     List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner);
 
     ActivityDefinitionDto getActivityDefinitionById(String id);
+
+    String getActivityDefinitionByName(String organizationId,String name);
 }

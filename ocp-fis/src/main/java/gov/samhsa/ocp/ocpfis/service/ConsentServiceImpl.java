@@ -9,6 +9,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.AbstractCareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
+import gov.samhsa.ocp.ocpfis.service.dto.DetailedConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
@@ -266,7 +267,8 @@ public class ConsentServiceImpl implements ConsentService {
                 String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
                 PatientDto patientDto = patientService.getPatientById(patientID);
                 log.info("Generating consent PDF");
-                byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
+                DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
+                byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(detailedConsentDto, patientDto, operatedByPatient);
                 consentDto.setSourceAttachment(pdfBytes);
             }
 
@@ -328,9 +330,13 @@ public class ConsentServiceImpl implements ConsentService {
         String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
         PatientDto patientDto = patientService.getPatientById(patientID);
 
+        DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
+
+
+
         try {
             log.info("Updating consent: Generating the attested PDF");
-            byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
+            byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(detailedConsentDto, patientDto, operatedByPatient);
             consent.setSource(addAttachment(pdfBytes));
 
         }
@@ -353,12 +359,14 @@ public class ConsentServiceImpl implements ConsentService {
     @Override
     public PdfDto createConsentPdf(String consentId) {
         ConsentDto consentDto = getConsentsById(consentId);
+        DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
+
         String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
         PatientDto patientDto = patientService.getPatientById(patientID);
 
         try {
             log.info("Generating consent PDF");
-            byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(consentDto, patientDto, operatedByPatient);
+            byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(detailedConsentDto, patientDto, operatedByPatient);
             return new PdfDto(pdfBytes);
 
         }
@@ -552,5 +560,68 @@ public class ConsentServiceImpl implements ConsentService {
         }).collect(Collectors.toList());
 
     }
+
+    private DetailedConsentDto convertConsentDtoToDetailedConsentDto(ConsentDto consentDto){
+
+        List<AbstractCareTeamDto> fromOrganizationActors = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("Organization"))
+                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/","")), Optional.empty(), fhirClient,fisProperties)
+                .stream().findAny().get()
+        ).collect(Collectors.toList());
+
+        List<AbstractCareTeamDto> fromPractitionerActors = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("Practitioner"))
+                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/","")), Optional.empty(), fhirClient,fisProperties)
+                        .stream().findAny().get()
+                ).collect(Collectors.toList());
+
+        List<AbstractCareTeamDto> fromRelatedPersons = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("RelatedPerson"))
+                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/","")), Optional.empty(), fhirClient,fisProperties)
+                        .stream().findAny().get()
+                ).collect(Collectors.toList());
+
+
+        List<AbstractCareTeamDto> toOrganizationActors = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("Organization"))
+                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/","")), Optional.empty(), fhirClient,fisProperties)
+                        .stream().findAny().get()
+                ).collect(Collectors.toList());
+
+        List<AbstractCareTeamDto> toPractitionerActors = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("Practitioner"))
+                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/","")), Optional.empty(), fhirClient,fisProperties)
+                        .stream().findAny().get()
+                ).collect(Collectors.toList());
+
+        List<AbstractCareTeamDto> toRelatedPersons = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("RelatedPerson"))
+                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/","")), Optional.empty(), fhirClient,fisProperties)
+                        .stream().findAny().get()
+                ).collect(Collectors.toList());
+
+
+        List<ReferenceDto> toCareTeams = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("CareTeam")).collect(Collectors.toList());
+
+        DetailedConsentDto detailedConsentDto = new DetailedConsentDto();
+
+        return detailedConsentDto.builder()
+                .logicalId(consentDto.getLogicalId())
+                .identifier(consentDto.getIdentifier())
+                .category(consentDto.getCategory())
+                .period(consentDto.getPeriod())
+                .dateTime(consentDto.getDateTime())
+                .status(consentDto.getStatus())
+                .generalDesignation(consentDto.isGeneralDesignation())
+                .patient(consentDto.getPatient())
+                .fromOrganizationActors(fromOrganizationActors)
+                .fromPractitionerActors(fromPractitionerActors)
+                .fromRelatedPersons(fromRelatedPersons)
+                .toOrganizationActors(toOrganizationActors)
+                .toPractitionerActors(toPractitionerActors)
+                .toRelatedPersons(toRelatedPersons)
+                .toCareTeams(toCareTeams)
+                .category(consentDto.getCategory())
+                .purpose(consentDto.getPurpose())
+                .medicalInformation(consentDto.getMedicalInformation())
+                .sourceAttachment(consentDto.getSourceAttachment())
+                .build();
+    }
+
+
 
 }

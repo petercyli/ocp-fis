@@ -256,6 +256,22 @@ public class PractitionerServiceImpl implements PractitionerService {
         return (PageDto<PractitionerDto>) PaginationUtil.applyPaginationForCustomArrayList(practitioners, numberOfPractitionersPerPage, pageNumber, false);
     }
 
+    @Override
+    public String getPractitionerByName(String name) {
+        Bundle bundle=fhirClient.search().forResource(Practitioner.class)
+                .where(new RichStringClientParam("name").matches().value(name))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        List<Bundle.BundleEntryComponent> bundleEntryComponents=bundle.getEntry();
+
+        if(!bundleEntryComponents.isEmpty()){
+            return bundleEntryComponents.get(0).getResource().getIdElement().getIdPart();
+        }else{
+            return null;
+        }
+    }
+
 
     private List<PractitionerDto> getPractitionersByOrganization(String organizationId) {
         List<PractitionerDto> practitioners = new ArrayList<>();

@@ -1,5 +1,7 @@
-package gov.samhsa.ocp.ocpfis.service.dto;
+package gov.samhsa.ocp.ocpfis.data.model.appointment;
 
+import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,7 +14,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class AppointmentDto {
+public class TempAppointmentDto {
     private String logicalId;
 
     private String statusCode;
@@ -23,9 +25,9 @@ public class AppointmentDto {
     private String appointmentDuration;
     private String patientName;
 
-    private LocalDateTime start;
-    private LocalDateTime end;
-    private LocalDateTime created;
+    private String start;
+    private String end;
+    private String created;
 
     private List<ReferenceDto> slot; //To be used later
     private List<ReferenceDto> incomingReferral;//To be used later
@@ -42,5 +44,4 @@ public class AppointmentDto {
     private boolean canDecline;
     private boolean canTentativelyAccept;
     private String requesterParticipationStatusCode;
-
 }

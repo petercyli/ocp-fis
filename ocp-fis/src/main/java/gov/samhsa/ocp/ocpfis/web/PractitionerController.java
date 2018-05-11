@@ -63,5 +63,10 @@ public class PractitionerController {
         return practitionerService.getPractitionersByOrganizationAndRole(organization, role, page, size);
     }
 
+    @GetMapping("/practitioner-id")
+    public String getPractitionerId(@RequestParam String practitionerName){
+        return practitionerService.getPractitionerByName(practitionerName);
+    }
+
 
 }

@@ -8,10 +8,12 @@ import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
+import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
+import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.AppointmentToAppointmentDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.CareTeamToCareTeamDtoConverter;
@@ -30,6 +32,7 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -50,6 +53,13 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final FhirValidator fhirValidator;
 
     private final FisProperties fisProperties;
+
+    private final String ACCEPTED_PARTICIPATION_STATUS = "accepted";
+    private final String DECLINED_PARTICIPATION_STATUS = "declined";
+    private final String TENTATIVE_PARTICIPATION_STATUS = "tentative";
+    private final String NEEDS_ACTION_PARTICIPATION_STATUS = "needs-action";
+    private final String PENDING_APPOINTMENT_STATUS = "pending";
+    private final String REQUIRED = "required";
 
     @Autowired
     public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
@@ -94,7 +104,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<ReferenceDto> participantsByRoles = new ArrayList<>();
         List<ParticipantReferenceDto> participantsSelected = new ArrayList<>();
 
-        Bundle careTeamBundle = (Bundle) FhirUtil.searchNoCache(fhirClient,CareTeam.class, Optional.empty())
+        Bundle careTeamBundle = (Bundle) FhirUtil.searchNoCache(fhirClient, CareTeam.class, Optional.empty())
                 .where(new ReferenceClientParam("patient").hasId(patientId.trim()))
                 .include(CareTeam.INCLUDE_PARTICIPANT)
                 .returnBundle(Bundle.class).execute();
@@ -152,11 +162,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("FHIR appointment bundle retrieved from FHIR server successfully for appointment Id:" + appointmentId);
 
         Bundle.BundleEntryComponent retrievedAppointment = appointmentBundle.getEntry().get(0);
-        return AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource());
+        return AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.empty());
     }
 
     @Override
     public PageDto<AppointmentDto> getAppointments(Optional<List<String>> statusList,
+                                                   Optional<String> requesterReference,
                                                    Optional<String> patientId,
                                                    Optional<String> practitionerId,
                                                    Optional<String> searchKey,
@@ -170,7 +181,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Bundle otherPageAppointmentBundle;
         boolean firstPage = true;
 
-        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.of(Boolean.TRUE));
+        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
 
         if (patientId.isPresent()) {
             log.info("Searching Appointments for patientId = " + patientId.get().trim());
@@ -209,7 +220,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         List<AppointmentDto> appointmentDtos = retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
-                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource()))).collect(toList());
+                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), requesterReference))).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
@@ -220,9 +231,40 @@ public class AppointmentServiceImpl implements AppointmentService {
     @Override
     public void cancelAppointment(String appointmentId) {
         Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        //Cancel
         appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
         //Update the resource
         FhirUtil.updateFhirResource(fhirClient, appointment, "Cancel Appointment");
+    }
+
+    @Override
+    public void acceptAppointment(String appointmentId, String actorReference) {
+        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        //Accept
+        appointment = setParticipantAction(appointment, actorReference, "ACCEPT");
+        appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, appointment, "Accept Appointment");
+    }
+
+    @Override
+    public void declineAppointment(String appointmentId, String actorReference) {
+        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        //Decline
+        appointment = setParticipantAction(appointment, actorReference, "DECLINE");
+        appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, appointment, "Decline Appointment");
+    }
+
+    @Override
+    public void tentativelyAcceptAppointment(String appointmentId, String actorReference) {
+        Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
+        //Tentatively Accept
+        appointment = setParticipantAction(appointment, actorReference, "TENTATIVE");
+        appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, appointment, "TentativelyAccept Appointment");
     }
 
 
@@ -289,7 +331,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         String missingFields = "";
 
         if (appointmentDto == null) {
-            throw new BadRequestException("AppointmentDto is NULL!!");
+            throw new PreconditionFailedException("AppointmentDto is NULL!!");
         }
 
         if (FhirUtil.isStringNullOrEmpty(appointmentDto.getTypeCode())) {
@@ -310,18 +352,18 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         if (missingFields.length() > 0) {
             missingFields = missingFields.substring(0, (missingFields.length() - 2)) + ".";
-            throw new BadRequestException("The following required fields are missing in the appointmentDto: " + missingFields);
+            throw new PreconditionFailedException("The following required fields are missing in the appointmentDto: " + missingFields);
         }
 
         if (!DateUtil.isValidDateTimeRange(appointmentDto.getStart(), appointmentDto.getEnd(), false)) {
-            throw new BadRequestException("Appointment EndDateTime is before StartDateTime");
+            throw new PreconditionFailedException("Appointment EndDateTime is before StartDateTime");
         }
     }
 
-    public List<String> getParticipantsByPatientAndAppointmentId(String patientId, String appointmentId) {
+    private List<String> getParticipantsByPatientAndAppointmentId(String patientId, String appointmentId) {
         List<String> participantIds = new ArrayList<>();
 
-        Bundle bundle = (Bundle) FhirUtil.searchNoCache(fhirClient,Appointment.class, Optional.empty())
+        Bundle bundle = (Bundle) FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty())
                 .where(new ReferenceClientParam("patient").hasId(patientId))
                 .where(new TokenClientParam("_id").exactly().code(appointmentId))
                 .include(Appointment.INCLUDE_PATIENT)
@@ -334,4 +376,58 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         return participantIds;
     }
+
+    private Appointment setAppointmentStatusBasedOnParticipantActions(Appointment apt) {
+        //Call this function only when Accepting/TentativelyAccepting/Declining an appointment
+        AppointmentDto aptDto = AppointmentToAppointmentDtoConverter.map(apt, Optional.empty());
+        List<AppointmentParticipantDto> participantList = aptDto.getParticipant();
+
+        if (aptDto.getStatusCode().trim().equalsIgnoreCase(PENDING_APPOINTMENT_STATUS)) {
+            boolean allParticipantsHaveResponded = true;
+            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase(NEEDS_ACTION_PARTICIPATION_STATUS) &&
+                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase(REQUIRED))) {
+                allParticipantsHaveResponded = false;
+            }
+            if (allParticipantsHaveResponded) {
+                apt.setStatus(Appointment.AppointmentStatus.BOOKED);
+            }
+        } else {
+            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase(NEEDS_ACTION_PARTICIPATION_STATUS) &&
+                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase(REQUIRED))) {
+                apt.setStatus(Appointment.AppointmentStatus.PENDING);
+            }
+        }
+
+        return apt;
+    }
+
+    private Appointment setParticipantAction(Appointment apt, String actorReference, String actionInUpperCase) {
+        List<org.hl7.fhir.dstu3.model.Appointment.AppointmentParticipantComponent> participantList = apt.getParticipant();
+        try {
+            for (org.hl7.fhir.dstu3.model.Appointment.AppointmentParticipantComponent temp : participantList) {
+                if (temp.getActor().getReference().equalsIgnoreCase(actorReference)) {
+                    switch (actionInUpperCase) {
+                        case "ACCEPT":
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode(ACCEPTED_PARTICIPATION_STATUS));
+                            break;
+                        case "DECLINE":
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode(DECLINED_PARTICIPATION_STATUS));
+                            break;
+                        case "TENTATIVE":
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode(TENTATIVE_PARTICIPATION_STATUS));
+                            break;
+                        default:
+                            log.error("Unidentified action by the participant.");
+                            break;
+                    }
+                }
+            }
+        }
+        catch (FHIRException e) {
+            log.error("Unable to convert from the given Participation Status Code");
+            throw new BadRequestException("Unable to convert from the given Participation Status Code ", e);
+        }
+        return apt;
+    }
 }
+
