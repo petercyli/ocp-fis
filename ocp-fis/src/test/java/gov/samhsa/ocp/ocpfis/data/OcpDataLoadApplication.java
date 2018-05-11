@@ -5,7 +5,6 @@ import gov.samhsa.ocp.ocpfis.data.model.organization.TempOrganizationDto;
 import gov.samhsa.ocp.ocpfis.data.model.patientlist.WrapperPatientDto;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.Code;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.Name;
-
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.PractitionerRole;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.WrapperPractitionerDto;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +12,6 @@ import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
-
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
@@ -30,6 +28,13 @@ public class OcpDataLoadApplication {
     private static final String XSLX_FILE = "C://data//OCP.xlsx";
 
     public static void main(String[] args) throws IOException, InvalidFormatException {
+
+        //for intercepting the requests and debugging
+        setFiddler();
+
+        //ValueSets
+        ValueSetHelper.process();
+
         //Create a workbook form excel file
         Workbook workbook = WorkbookFactory.create(new File(XSLX_FILE));
 
@@ -39,6 +44,7 @@ public class OcpDataLoadApplication {
         //Organizations
         Sheet organizations = workbook.getSheet("Organizations");
         OrganizationHelper.process(organizations);
+
 
         //Get all organizations
         Map<String, String> mapOrganizations = retrieveOrganizations();
@@ -57,7 +63,7 @@ public class OcpDataLoadApplication {
         log.info("Populated practitioners");
 
         Sheet practitioners = workbook.getSheet("Practitioners");
-       PractitionersHelper.process(practitioners, mapOrganizations);
+        PractitionersHelper.process(practitioners, mapOrganizations);
         log.info("Populated practitioners");
 
         Map<String, String> mapOfPractitioners = retrievePractitioners();
@@ -77,11 +83,11 @@ public class OcpDataLoadApplication {
         log.info("Populated careTeams");
 
         Sheet taskOwners = workbook.getSheet("Tasks");
-        TasksHelper.process(taskOwners, mapOfPatients,mapOfPractitioners, mapOrganizations);
+        TasksHelper.process(taskOwners, mapOfPatients, mapOfPractitioners, mapOrganizations);
         log.info("Populated taskOwners");
 
         Sheet todos = workbook.getSheet("To Do");
-        TodosHelper.process(todos, mapOfPatients,mapOrganizations);
+        TodosHelper.process(todos, mapOfPatients, mapOrganizations);
         log.info("Populated todosHelper");
 
         Sheet communications = workbook.getSheet("Communication");
@@ -94,6 +100,7 @@ public class OcpDataLoadApplication {
 
         workbook.close();
         log.info("Workbook closed");
+
     }
 
     private static Map<String, String> retrieveOrganizations() {
@@ -126,10 +133,10 @@ public class OcpDataLoadApplication {
         log.info("Number of Practitioners retrieved : " + dtos.size());
 
         Map<String, String> practitionersMap = new HashMap<>();
-        for(gov.samhsa.ocp.ocpfis.data.model.practitioner.Element practitionerDto : dtos) {
+        for (gov.samhsa.ocp.ocpfis.data.model.practitioner.Element practitionerDto : dtos) {
 
             Name name = new Name();
-            if(practitionerDto.getName().stream().findFirst().isPresent()) {
+            if (practitionerDto.getName().stream().findFirst().isPresent()) {
                 name = practitionerDto.getName().stream().findFirst().get();
             } else {
                 name.setFirstName("Unknown");
@@ -139,7 +146,7 @@ public class OcpDataLoadApplication {
             List<PractitionerRole> practitionRoles = practitionerDto.getPractitionerRoles();
 
             PractitionerRole practitionerRole = new PractitionerRole();
-            if(practitionRoles.stream().findFirst().isPresent()) {
+            if (practitionRoles.stream().findFirst().isPresent()) {
                 practitionerRole = practitionRoles.stream().findFirst().get();
             } else {
                 Code code = new Code();
@@ -159,7 +166,7 @@ public class OcpDataLoadApplication {
     }
 
     private static Map<String, String> retrievePatients() {
-        String url  = "http://localhost:8444/patients/search?showAll=true";
+        String url = "http://localhost:8444/patients/search?showAll=true";
         RestTemplate rt = new RestTemplate();
         ResponseEntity<WrapperPatientDto> responseEntity = rt.getForEntity(url, WrapperPatientDto.class);
         WrapperPatientDto wrapperDto = responseEntity.getBody();
@@ -167,9 +174,9 @@ public class OcpDataLoadApplication {
         List<gov.samhsa.ocp.ocpfis.data.model.patientlist.Element> dtos = wrapperDto.getElements();
         Map<String, String> patientsMap = new HashMap<>();
 
-        for(gov.samhsa.ocp.ocpfis.data.model.patientlist.Element patientDto : dtos) {
+        for (gov.samhsa.ocp.ocpfis.data.model.patientlist.Element patientDto : dtos) {
             gov.samhsa.ocp.ocpfis.data.model.patientlist.Name name = new gov.samhsa.ocp.ocpfis.data.model.patientlist.Name();
-            if(patientDto.getName().stream().findFirst().isPresent()) {
+            if (patientDto.getName().stream().findFirst().isPresent()) {
                 name = patientDto.getName().stream().findFirst().get();
             } else {
                 name.setFirstName("Unknown");
@@ -180,6 +187,13 @@ public class OcpDataLoadApplication {
         }
 
         return patientsMap;
+    }
+
+    private static void setFiddler() {
+        System.setProperty("http.proxyHost", "127.0.0.1");
+        System.setProperty("https.proxyHost", "127.0.0.1");
+        System.setProperty("http.proxyPort", "8888");
+        System.setProperty("https.proxyPort", "8888");
     }
 
 
