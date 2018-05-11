@@ -1,7 +1,6 @@
 package gov.samhsa.ocp.ocpfis.data;
 
 import gov.samhsa.ocp.ocpfis.data.model.healthcareservice.TempHealthCareServiceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +13,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -29,12 +27,7 @@ public class HealthCareServicesHelper {
 
         Map<String, String> categoryLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-categories");
         Map<String, String> typeLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-types");
-
-        //TODO: Fix this lookup
-        //Map<String, String> specialityLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-specialities");
-        Map<String, String> specialityLookups = new HashMap<>();
-        specialityLookups.put("Adult mental illness", "408467006");
-
+        Map<String, String> specialityLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-specialities");
         Map<String, String> referralLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-referral-methods");
 
         List<TempHealthCareServiceDto> healthCareServiceDtos = new ArrayList<>();
@@ -60,6 +53,11 @@ public class HealthCareServicesHelper {
 
                         ValueSetDto valueSetDto = new ValueSetDto();
                         valueSetDto.setCode(categoryLookups.get(cellValue.trim()));
+
+                        if(valueSetDto.getCode() == null) {
+                            valueSetDto.setCode(categoryLookups.get("Adoption"));
+                        }
+
                         dto.setCategory(valueSetDto);
                     } else if (j == 4) {
                         //type
@@ -67,21 +65,33 @@ public class HealthCareServicesHelper {
                         ValueSetDto valueSetDto = new ValueSetDto();
                         valueSetDto.setCode(typeLookups.get(cellValue.trim()));
                         valueSetDto.setSystem("http://hl7.org/fhir/service-type");
+
+                        if(valueSetDto.getCode() == null) {
+                            valueSetDto.setCode(typeLookups.get("Aged Care Assessment"));
+                        }
+
                         dto.setType(Arrays.asList(valueSetDto));
                     } else if (j == 5) {
                         //speciality
 
                         ValueSetDto valueSetDto = new ValueSetDto();
 
-                        //TODO: Fix the issue with lookup
-                        valueSetDto.setCode(specialityLookups.get("Adult mental illness"));
-                        //valueSetDto.setCode(specialityLookups.get(cellValue.trim()));
+                        //if not available, set a default value
+                        if(valueSetDto.getCode() == null) {
+                            valueSetDto.setCode(specialityLookups.get("Adult mental illness"));
+                        }
+
                         dto.setSpecialty(Arrays.asList(valueSetDto));
                     } else if (j == 6) {
                         //referral
 
                         ValueSetDto valueSetDto = new ValueSetDto();
                         valueSetDto.setCode(referralLookups.get(cellValue.trim()));
+
+                        if(valueSetDto.getCode() == null) {
+                            valueSetDto.setCode(referralLookups.get("Phone"));
+                        }
+
                         dto.setReferralMethod(Arrays.asList(valueSetDto));
                     } else if (j == 7) {
                         //contact
@@ -101,10 +111,14 @@ public class HealthCareServicesHelper {
         RestTemplate rt = new RestTemplate();
 
         healthCareServiceDtos.forEach(healthcareServiceDto -> {
-            log.info("healthcareServiceDto : " + healthcareServiceDto);
-            HttpEntity<TempHealthCareServiceDto> request = new HttpEntity<>(healthcareServiceDto);
+            try {
+                log.info("healthcareServiceDto : " + healthcareServiceDto);
+                HttpEntity<TempHealthCareServiceDto> request = new HttpEntity<>(healthcareServiceDto);
+                rt.postForObject("http://localhost:8444/organization/" + healthcareServiceDto.getOrganizationId() + "/healthcare-services", request, TempHealthCareServiceDto.class);
 
-            rt.postForObject("http://localhost:8444/organization/" + healthcareServiceDto.getOrganizationId() + "/healthcare-services", request, TempHealthCareServiceDto.class);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
 
 
