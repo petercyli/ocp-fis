@@ -21,7 +21,7 @@ import java.util.Map;
 @Slf4j
 public class TasksHelper {
 
-    public static void process(Sheet tasks, Map<String,String> mapOfPatient, Map<String, String> mapOfPractitioners, Map<String,String>  mapOfOrganizations) {
+    public static void process(Sheet tasks, Map<String,String> mapOfPatients, Map<String, String> mapOfPractitioners, Map<String,String>  mapOfOrganizations) {
         log.info("last row number:" +tasks.getLastRowNum());
 
         int rowNum=0;
@@ -41,7 +41,7 @@ public class TasksHelper {
 
                     if(j==0){
                         ReferenceDto referenceDto=new ReferenceDto();
-                        referenceDto.setReference("Patient/"+mapOfPatient.get(cellValue));
+                        referenceDto.setReference("Patient/"+mapOfPatients.get(cellValue));
                         referenceDto.setDisplay(cellValue);
                         dto.setBeneficiary(referenceDto);
                     }
@@ -56,11 +56,11 @@ public class TasksHelper {
                         dto.setStatus(statusLookupValueSet.get(cellValue));
                     }else if(j==4){
                         dto.setPriority(priorityValueSet.get(cellValue));
-                    }else if(j==5) {
+                    }else if(j==5){
                         dto.setIntent(intentValueSet.get(cellValue));
                     }else if(j==6){
                         ReferenceDto referenceDto=new ReferenceDto();
-                        referenceDto.setReference("ActivityDefinition/"+CommonHelper.getActivityDefinitionId(dto.getOrganization().getReference().split("/")[1],cellValue));
+                        referenceDto.setReference("Practitioner/"+mapOfPractitioners.get(cellValue));
                         referenceDto.setDisplay(cellValue);
                         dto.setDefinition(referenceDto);
                     }else if(j==7){
@@ -90,10 +90,9 @@ public class TasksHelper {
         RestTemplate rt=new RestTemplate();
 
         taskDtos.forEach(taskDto->{
-            log.info("tasks  : "+taskDto);
+            log.info("Tasks : "+taskDto);
             HttpEntity<TempTaskDto> request=new HttpEntity<>(taskDto);
-
-            rt.postForObject("http://localhost:8444/tasks",request,TempTaskDto.class);
+            rt.postForObject("http://localhost:8444/tasks", request, TempTaskDto.class);
         });
     }
 
