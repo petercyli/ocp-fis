@@ -3,9 +3,7 @@ package gov.samhsa.ocp.ocpfis.data;
 import com.github.javafaker.Faker;
 import gov.samhsa.ocp.ocpfis.data.model.organization.Element;
 import gov.samhsa.ocp.ocpfis.data.model.organization.TempOrganizationDto;
-import gov.samhsa.ocp.ocpfis.data.model.patient.TempIdentifierTypeDto;
-import gov.samhsa.ocp.ocpfis.data.model.patient.TempPageDto;
-import gov.samhsa.ocp.ocpfis.data.model.patient.TempPatientDto;
+
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
@@ -53,13 +51,13 @@ public class CommonHelper {
 
     public static Map<String,String> identifierTypeDtoValue(String url){
         RestTemplate rt=new RestTemplate();
-        ResponseEntity<TempIdentifierTypeDto[]> foo=rt.getForEntity(url, TempIdentifierTypeDto[].class);
+        ResponseEntity<IdentifierDto[]> foo=rt.getForEntity(url, IdentifierDto[].class);
 
-        TempIdentifierTypeDto[] dtos=foo.getBody();
+        IdentifierDto[] dtos=foo.getBody();
 
         Map<String,String> mapOfLookupIdentifiers=new HashMap<>();
 
-        for(TempIdentifierTypeDto tempIdentifierTypeDto:dtos){
+        for(IdentifierDto tempIdentifierTypeDto:dtos){
             mapOfLookupIdentifiers.put(tempIdentifierTypeDto.getDisplay(),tempIdentifierTypeDto.getOid());
         }
         return mapOfLookupIdentifiers;
@@ -93,19 +91,7 @@ public class CommonHelper {
         return mapOfLookupValueSet;
      }
 
-     public static String getPatientId(String name){
-         String patientUrl="";
-         RestTemplate rt=new RestTemplate();
-         ResponseEntity<TempPageDto> foo = rt.getForEntity(patientUrl, TempPageDto.class);
-
-         TempPageDto tempPatientDto = foo.getBody();
-
-         List<TempPatientDto> elements = tempPatientDto.getElements();
-
-         return elements.stream().findFirst().get().getId();
-     }
-
-     public static String getOrganizationId(String name){
+    public static String getOrganizationId(String name){
              String orgUrl = "http://localhost:8444/organizations/search?searchType=name&searchValue=" + name;
          RestTemplate rt = new RestTemplate();
          ResponseEntity<TempOrganizationDto> foo = rt.getForEntity(orgUrl, TempOrganizationDto.class);
