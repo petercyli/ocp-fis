@@ -90,9 +90,15 @@ public class TasksHelper {
         RestTemplate rt=new RestTemplate();
 
         taskDtos.forEach(taskDto->{
-            log.info("Tasks : "+taskDto);
-            HttpEntity<TempTaskDto> request=new HttpEntity<>(taskDto);
-            rt.postForObject("http://localhost:8444/tasks", request, TempTaskDto.class);
+            try {
+                log.info("Tasks : " + taskDto);
+                HttpEntity<TempTaskDto> request = new HttpEntity<>(taskDto);
+                rt.postForObject("http://localhost:8444/tasks", request, TempTaskDto.class);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+
+            }
         });
     }
 
