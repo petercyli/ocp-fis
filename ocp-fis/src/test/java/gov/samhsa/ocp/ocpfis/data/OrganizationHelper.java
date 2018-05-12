@@ -54,8 +54,12 @@ public class OrganizationHelper {
         String fooResourceUrl = "http://localhost:8444/organizations";
 
         organizationDtos.forEach(organizationDto -> {
-            HttpEntity<OrganizationDto> request = new HttpEntity<>(organizationDto);
-            OrganizationDto foo = rt.postForObject(fooResourceUrl, request, OrganizationDto.class);
+            try {
+                HttpEntity<OrganizationDto> request = new HttpEntity<>(organizationDto);
+                OrganizationDto foo = rt.postForObject(fooResourceUrl, request, OrganizationDto.class);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
 
     }
