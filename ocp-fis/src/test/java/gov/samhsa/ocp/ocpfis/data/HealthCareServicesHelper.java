@@ -41,7 +41,7 @@ public class HealthCareServicesHelper {
 
                     if (j == 0) {
                         //organization
-                        dto.setOrganizationId(mapOrganizations.get(cellValue));
+                        dto.setOrganizationId(mapOrganizations.get(cellValue.trim()));
                     } else if (j == 1) {
                         //name
                         dto.setName(cellValue);
