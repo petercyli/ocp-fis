@@ -40,10 +40,10 @@ public class RelatedPersonsHelper {
                 dto.setEndDate("01/01/2020");
 
                 for(Cell cell:row){
-                    String cellValue=new DataFormatter().formatCellValue(cell);
+                    String cellValue=new DataFormatter().formatCellValue(cell).trim();
 
                     if(j==0){
-                        dto.setPatient(mapOfPatients.get(cellValue));
+                        dto.setPatient(mapOfPatients.get(cellValue.trim()));
                     }else if(j==1){
                         dto.setFirstName(cellValue);
                     }else if(j==2){
@@ -80,6 +80,10 @@ public class RelatedPersonsHelper {
         }
 
         RestTemplate rt=new RestTemplate();
+
+        log.info("Size : " + relatedPersonDtos.size());
+
+
 
         relatedPersonDtos.forEach(relatedPersonDto -> {
             log.info("related persons : "+relatedPersonDto);
