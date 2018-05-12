@@ -87,12 +87,18 @@ public class PractitionersHelper {
                         valueSetDto.setCode(practitionerRolesLookup.get(cellValue.trim()));
                         valueSetDto.setDisplay(cellValue);
 
+                        //put a default if not available
+                        if(valueSetDto.getCode() == null) {
+                            valueSetDto.setCode(practitionerRolesLookup.get("Counselor"));
+                        }
+
                         roleDto.setCode(Arrays.asList(valueSetDto));
 
                     } else if (j == 5) {
                         //address
 
                         dto.setAddresses(CommonHelper.getAddresses(cellValue));
+
                     } else if (j == 6) {
                         //contact
                         TelecomDto telecom = new TelecomDto();
@@ -141,11 +147,12 @@ public class PractitionersHelper {
             log.info("Getting ready to post: " + practitionerDto);
             List<IdentifierDto> identifierDtos = practitionerDto.getIdentifiers();
 
-            if(identifierDtos.stream().findFirst().isPresent()) {
-                IdentifierDto identifierDto = identifierDtos.stream().findFirst().get();
+            Optional<IdentifierDto> oIdentifierDto = identifierDtos.stream().findFirst();
+            if(oIdentifierDto.isPresent()) {
+                IdentifierDto identifierDto = oIdentifierDto.get();
 
                 if (identifierDto.getValue() != null) {
-                    PractitionerDto foo = rt.postForObject("http://localhost:8444/practitioners", request, PractitionerDto.class);
+                    rt.postForObject("http://localhost:8444/practitioners", request, PractitionerDto.class);
                 }
             }
         });
