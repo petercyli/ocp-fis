@@ -49,14 +49,15 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final FhirValidator fhirValidator;
     private final FisProperties fisProperties;
 
-    @Autowired
-    private LookUpService lookUpService;
+    private final LookUpService lookUpService;
 
-    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
+    @Autowired
+    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
+        this.lookUpService = lookUpService;
     }
 
     @Override
@@ -280,7 +281,7 @@ public class OrganizationServiceImpl implements OrganizationService {
                 .returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> organizationComponents = FhirUtil.getAllBundlesComponentIntoSingleList(bundle, Optional.empty(), fhirClient, fisProperties);
+            List<Bundle.BundleEntryComponent> organizationComponents = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
             if (organizationComponents != null) {
                 organizations = organizationComponents.stream()
@@ -323,7 +324,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     private List<OrganizationDto> convertAllBundleToSingleOrganizationDtoList(Bundle firstPageOrganizationSearchBundle, int numberOBundlePerPage) {
-        return FhirUtil.getAllBundlesComponentIntoSingleList(firstPageOrganizationSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties)
+        return FhirUtil.getAllBundleComponentsAsList(firstPageOrganizationSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties)
                 .stream()
                 .map(retrievedOrganization -> {
                     OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
