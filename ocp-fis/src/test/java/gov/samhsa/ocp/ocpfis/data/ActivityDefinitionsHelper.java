@@ -82,9 +82,13 @@ public class ActivityDefinitionsHelper {
         RestTemplate rt=new RestTemplate();
 
         activityDefinitionDtos.stream().filter(activityDef->!activityDef.getPublisher().split("/")[1].equalsIgnoreCase("null")).forEach(activityDefinitionDto->{
-            log.info("activityDefinitionDto : "+activityDefinitionDto);
-            HttpEntity<TempActivityDefinitionDto> request=new HttpEntity<>(activityDefinitionDto);
-            rt.postForObject("http://localhost:8444/organizations/"+activityDefinitionDto.getPublisher().split("/")[1]+"/activity-definitions",request,TempActivityDefinitionDto.class);
+            try {
+                log.info("activityDefinitionDto : " + activityDefinitionDto);
+                HttpEntity<TempActivityDefinitionDto> request = new HttpEntity<>(activityDefinitionDto);
+                rt.postForObject("http://localhost:8444/organizations/" + activityDefinitionDto.getPublisher().split("/")[1] + "/activity-definitions", request, TempActivityDefinitionDto.class);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
     }
 }
