@@ -45,7 +45,6 @@ public class OcpDataLoadApplication {
         Sheet organizations = workbook.getSheet("Organizations");
         OrganizationHelper.process(organizations);
 
-
         //Get all organizations
         Map<String, String> mapOrganizations = retrieveOrganizations();
         log.info("Retrieved organizations");
@@ -59,7 +58,8 @@ public class OcpDataLoadApplication {
         log.info("Populated healthCareServices");
 
         Sheet activityDefinitions = workbook.getSheet("Activity Definitions");
-        ActivityDefinitionsHelper.process(activityDefinitions, mapOrganizations);
+        //Do not enable
+        //ActivityDefinitionsHelper.process(activityDefinitions, mapOrganizations);
         log.info("Populated practitioners");
 
         Sheet practitioners = workbook.getSheet("Practitioners");
@@ -69,7 +69,7 @@ public class OcpDataLoadApplication {
         Map<String, String> mapOfPractitioners = retrievePractitioners();
 
         Sheet patients = workbook.getSheet("Patient");
-        PatientsHelper.process(patients, mapOfPractitioners);
+        PatientsHelper.process(patients, mapOfPractitioners, mapOrganizations);
         log.info("Populated patients");
 
         Map<String, String> mapOfPatients = retrievePatients();
@@ -91,7 +91,7 @@ public class OcpDataLoadApplication {
         log.info("Populated todosHelper");
 
         Sheet communications = workbook.getSheet("Communication");
-        CommunicationsHelper.process(communications, mapOfPatients);
+        CommunicationsHelper.process(communications, mapOfPatients, mapOfPractitioners);
         log.info("Populated communications");
 
         Sheet appointments = workbook.getSheet("Appointments");
@@ -114,7 +114,7 @@ public class OcpDataLoadApplication {
 
         Map<String, String> mapOrganizations = new HashMap<>();
         for (Element element : elements) {
-            mapOrganizations.put(element.getName(), element.getLogicalId());
+            mapOrganizations.put(element.getName().trim(), element.getLogicalId());
         }
 
         return mapOrganizations;
@@ -183,7 +183,7 @@ public class OcpDataLoadApplication {
                 name.setLastName("Unknown");
             }
 
-            patientsMap.put(name.getFirstName().trim() + " " + name.getLastName(), patientDto.getId());
+            patientsMap.put(name.getFirstName().trim() + " " + name.getLastName().trim(), patientDto.getId());
         }
 
         return patientsMap;
