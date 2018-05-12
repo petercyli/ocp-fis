@@ -71,7 +71,7 @@ public class LocationsHelper {
     private static void processCell(Map<String, String> mapOrganizations, int j, TempLocationDto dto, String cellValue) {
         if (j == 0) {
             //get the id of the organization
-            dto.setManagingOrganization(mapOrganizations.get(cellValue));
+            dto.setManagingOrganization(mapOrganizations.get(cellValue.trim()));
 
         } else if (j == 1) {
             dto.setName(cellValue);
