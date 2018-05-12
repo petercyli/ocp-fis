@@ -1,6 +1,5 @@
 package gov.samhsa.ocp.ocpfis.data;
 
-import gov.samhsa.ocp.ocpfis.data.model.patient.TempPatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
@@ -26,7 +25,7 @@ import java.util.Optional;
 @Slf4j
 public class PatientsHelper {
 
-    public static void process(Sheet patients, Map<String, String> mapOfPractitioners) {
+    public static void process(Sheet patients, Map<String, String> mapOfPractitioners, Map<String, String> mapOfOrganizations) {
         int rowNum = 0;
 
         List<PatientDto> patientDtos = new ArrayList<>();
@@ -92,7 +91,7 @@ public class PatientsHelper {
                         dto.setAddresses(CommonHelper.getAddresses(cellValue));
                     }
                     else if(j==12){
-                        dto.setOrganizationId(java.util.Optional.ofNullable(CommonHelper.getOrganizationId(cellValue)));
+                        dto.setOrganizationId(Optional.of(mapOfOrganizations.get(cellValue.trim())));
                     }
                     else if(j==13){
                        dto.setPractitionerId(Optional.of(mapOfPractitioners.get(cellValue.trim())));
@@ -108,9 +107,8 @@ public class PatientsHelper {
 
         patientDtos.stream().forEach(patientDto->{
             try {
-                log.info("patientDto : " + patientDto);
                 HttpEntity<PatientDto> request = new HttpEntity<>(patientDto);
-                rt.postForObject("http://localhost:8444/patients/", request, TempPatientDto.class);
+                rt.postForObject("http://localhost:8444/patients/", request, PatientDto.class);
             } catch (Exception e) {
                 log.info("This patient could not be posted : " + patientDto);
                 e.printStackTrace();
