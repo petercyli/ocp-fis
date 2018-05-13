@@ -37,7 +37,7 @@ public class TasksHelper {
                 TempTaskDto dto=new TempTaskDto();
                 TempPeriodDto tempPeriodDto=new TempPeriodDto();
                 for(Cell cell: row){
-                    String cellValue=new DataFormatter().formatCellValue(cell);
+                    String cellValue=new DataFormatter().formatCellValue(cell).trim();
 
                     if(j==0){
                         ReferenceDto referenceDto=new ReferenceDto();
@@ -71,9 +71,9 @@ public class TasksHelper {
                     }else if(j==8){
                         dto.setPerformerType(performerValueSet.get(cellValue));
                     }else if(j==9){
-                        tempPeriodDto.setStart(cellValue);
+                        tempPeriodDto.setStart("01/01/2018");
                     }else if(j==10){
-                        tempPeriodDto.setEnd(cellValue);
+                        tempPeriodDto.setEnd("02/01/2018");
                         dto.setExecutionPeriod(tempPeriodDto);
                     }else if(j==11){
                         ReferenceDto referenceDto=new ReferenceDto();
