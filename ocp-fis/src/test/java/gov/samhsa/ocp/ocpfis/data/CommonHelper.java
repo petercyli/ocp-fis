@@ -86,7 +86,7 @@ public class CommonHelper {
         Map<String,ValueSetDto> mapOfLookupValueSet=new HashMap<>();
 
         for(ValueSetDto valueSetDto: dtos){
-            mapOfLookupValueSet.put(valueSetDto.getDisplay(),valueSetDto);
+            mapOfLookupValueSet.put(valueSetDto.getDisplay().trim(),valueSetDto);
         }
         return mapOfLookupValueSet;
      }
