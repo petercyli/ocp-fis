@@ -36,8 +36,9 @@ public class CommonHelper {
         return Arrays.asList(getAddress(cellValue));
     }
 
-    public static List<TelecomDto> getTelecoms(String cellValue) {
+    public static List<TelecomDto> getTelecoms(String system,String cellValue) {
         TelecomDto telecomDto = new TelecomDto();
+        telecomDto.setSystem(Optional.ofNullable(system));
         telecomDto.setValue(Optional.of(cellValue.replaceAll("-", "")));
         return Arrays.asList(telecomDto);
     }
