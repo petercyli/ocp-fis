@@ -80,7 +80,7 @@ public class LocationsHelper {
             dto.setAddress(CommonHelper.getAddress(cellValue));
 
         } else if (j == 3) {
-            dto.setTelecoms(CommonHelper.getTelecoms(cellValue));
+            dto.setTelecoms(CommonHelper.getTelecoms("phone",cellValue));
 
         } else if (j == 5) {
             dto.setIdentifiers(CommonHelper.getIdentifiers("Organization Tax ID", cellValue));

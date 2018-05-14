@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.data;
 
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -11,15 +12,16 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 public class OrganizationHelper {
 
     private static DataFormatter dataFormatter = new DataFormatter();
 
+
     public static void process(Sheet organizations) {
         log.info("last row number : " + organizations.getLastRowNum());
-
         int rowNum = 0;
 
         List<OrganizationDto> organizationDtos = new ArrayList<>();
@@ -36,7 +38,7 @@ public class OrganizationHelper {
                     } else if (j == 2) {
                         dto.setAddresses(CommonHelper.getAddresses(cellValue));
                     } else if (j == 3) {
-                        dto.setTelecoms(CommonHelper.getTelecoms(cellValue));
+                        dto.setTelecoms(CommonHelper.getTelecoms("phone",cellValue));
                     } else if (j == 4) {
                         dto.setIdentifiers(CommonHelper.getIdentifiers("Organization Tax ID", cellValue));
                     } else if (j == 5) {
