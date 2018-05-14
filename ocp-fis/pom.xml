@@ -29,6 +29,7 @@
         <lombok.version>1.16.18</lombok.version>
         <spring-cloud.version>Edgware.SR1</spring-cloud.version>
         <pdfbox.version>2.0.4</pdfbox.version>
+        <microsoft.ews.version>2.0</microsoft.ews.version>
     </properties>
 
     <dependencies>
@@ -123,6 +124,11 @@
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>${pdfbox.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.ews-java-api</groupId>
+            <artifactId>ews-java-api</artifactId>
+            <version>${microsoft.ews.version}</version>
         </dependency>
     </dependencies>
 
