@@ -34,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -77,7 +78,7 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         //Check for Patient
         if (searchKey.equalsIgnoreCase("patientId")) {
-            if (organization.isPresent()){
+            if (organization.isPresent()) {
                 String eoc = episodeOfCareService.getEpisodeOfCaresForReference(searchValue, Optional.of(organization.get()), Optional.empty()).get(0).getReference();
                 iQuery.where(new ReferenceClientParam("patient").hasId(searchValue))
                         .where(new ReferenceClientParam("context").hasId(eoc));
@@ -254,6 +255,8 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     @Override
     public void createCommunication(CommunicationDto communicationDto) {
+        if (communicationDto.getSent() == null)
+            communicationDto.setSent(LocalDateTime.now());
 
         try {
             final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
