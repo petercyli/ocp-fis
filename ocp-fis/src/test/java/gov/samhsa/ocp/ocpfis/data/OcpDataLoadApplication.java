@@ -59,7 +59,7 @@ public class OcpDataLoadApplication {
 
         Sheet activityDefinitions = workbook.getSheet("Activity Definitions");
         //Do not enable
-        //ActivityDefinitionsHelper.process(activityDefinitions, mapOrganizations);
+        ActivityDefinitionsHelper.process(activityDefinitions, mapOrganizations);
         log.info("Populated practitioners");
 
         Sheet practitioners = workbook.getSheet("Practitioners");
@@ -121,7 +121,6 @@ public class OcpDataLoadApplication {
     }
 
     private static Map<String, String> retrievePractitioners() {
-        //TODO: Implement
         String url = "http://localhost:8444/practitioners/search?showAll=true";
         RestTemplate rt = new RestTemplate();
         ResponseEntity<WrapperPractitionerDto> practitioners = rt.getForEntity(url, WrapperPractitionerDto.class);
