@@ -255,7 +255,6 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     @Override
     public void createCommunication(CommunicationDto communicationDto) {
-        if (communicationDto.getSent() == null)
             communicationDto.setSent(LocalDateTime.now());
 
         try {
@@ -275,6 +274,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         try {
             Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             communication.setId(communicationId);
+
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.of(communicationId), ResourceType.Communication.name(), "Update Communication");
             //Update
