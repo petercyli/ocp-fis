@@ -146,6 +146,9 @@ public class EwsCalendarServiceImpl implements EwsCalendarService {
                     }
             ).collect(Collectors.toList());
             eDto.setOptionalAttendees(optionalAttendeesList);
+
+            eDto.setMyResponse(apt.getMyResponseType().name());
+            eDto.setCalUid(apt.getICalUid());
         }
         catch (ServiceLocalException e) {
             log.error("ServiceLocalException when converting EWS Appointment to DTO", e);

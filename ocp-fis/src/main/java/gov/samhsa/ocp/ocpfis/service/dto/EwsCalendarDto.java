@@ -24,6 +24,9 @@ public class EwsCalendarDto {
     private double durationInMinutes;
     private String timeZone;
 
+    private String myResponse;
+    private String calUid;
+
     private boolean allDayEvent;
     private boolean cancelled;
     private boolean meeting;
