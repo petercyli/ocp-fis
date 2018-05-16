@@ -24,6 +24,15 @@ public class DateUtil {
         return null;
     }
 
+
+    public static Date convertStringToDateTime(String dateString) throws ParseException {
+        DateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.US);
+        if (dateString != null) {
+            return format.parse(dateString);
+        }
+        return null;
+    }
+
     public static LocalDate convertDateToLocalDate(Date date) {
         //the system default time zone will be appended
         ZoneId defaultZoneId = ZoneId.systemDefault();
@@ -38,6 +47,15 @@ public class DateUtil {
 
     public static String convertDateToString(Date date) {
         DateFormat df = new SimpleDateFormat("MM/dd/YYYY", Locale.US);
+
+        if (date != null) {
+            return df.format(date);
+        }
+        return "";
+    }
+
+    public static String convertDateTimeToString(Date date) {
+        DateFormat df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.US);
 
         if (date != null) {
             return df.format(date);
