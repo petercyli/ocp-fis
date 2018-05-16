@@ -127,8 +127,7 @@ public class CommunicationServiceImpl implements CommunicationService {
             CommunicationDto communicationDto = new CommunicationDto();
 
             if (lastUpdated != null)
-                communicationDto.setLastUpdated(DateUtil.convertUTCDateToLocalDateTime(lastUpdated));
-
+                communicationDto.setLastUpdated(DateUtil.convertDateTimeToString(lastUpdated));
 
             communicationDto.setLogicalId(communication.getIdElement().getIdPart());
 
@@ -219,11 +218,11 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
 
             if (communication.hasSent()) {
-                communicationDto.setSent(DateUtil.convertUTCDateToLocalDateTime(communication.getSent()));
+                communicationDto.setSent(DateUtil.convertDateTimeToString(communication.getSent()));
             }
 
             if (communication.hasReceived()) {
-                communicationDto.setReceived(DateUtil.convertUTCDateToLocalDateTime(communication.getReceived()));
+                communicationDto.setReceived(DateUtil.convertDateTimeToString(communication.getReceived()));
             }
 
             return communicationDto;
@@ -255,7 +254,7 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     @Override
     public void createCommunication(CommunicationDto communicationDto) {
-            communicationDto.setSent(LocalDateTime.now());
+            communicationDto.setSent(DateUtil.convertDateTimeToString(DateUtil.convertLocalDateTimeToUTCDate(LocalDateTime.now())));
 
         try {
             final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
@@ -364,11 +363,11 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         //Set Sent and Received Dates
         if (communicationDto.getSent() != null) {
-            communication.setSent(DateUtil.convertLocalDateTimeToUTCDate(communicationDto.getSent()));
+              communication.setSent(DateUtil.convertStringToDateTime(communicationDto.getSent()));
         }
 
         if (communicationDto.getReceived() != null)
-            communication.setReceived(DateUtil.convertLocalDateTimeToUTCDate(communicationDto.getReceived()));
+            communication.setReceived(DateUtil.convertStringToDateTime(communicationDto.getReceived()));
 
         //Set Note
         if (communicationDto.getNote() != null) {
