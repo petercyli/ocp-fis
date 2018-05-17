@@ -119,17 +119,15 @@ public class CommunicationServiceImpl implements CommunicationService {
         List<CommunicationDto> communicationDtos = retrievedCommunications.stream().filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Communication)).map(retrievedCommunication -> {
 
             Communication communication = (Communication) retrievedCommunication.getResource();
-            Date lastUpdated = new Date();
-
-            if (retrievedCommunication.getResource().hasMeta() && retrievedCommunication.getResource().getMeta().hasLastUpdated())
-                lastUpdated = retrievedCommunication.getResource().getMeta().getLastUpdated();
-
             CommunicationDto communicationDto = new CommunicationDto();
 
-            if (lastUpdated != null) {
-                LocalDateTime lastUpdatedDateTime = DateUtil.convertUTCDateToLocalDateTime(lastUpdated);
-                communicationDto.setLastUpdated(DateUtil.convertLocalDateTimeToString(lastUpdatedDateTime));
+            if (retrievedCommunication.getResource().hasMeta() && retrievedCommunication.getResource().getMeta().hasLastUpdated()) {
+                Date lastUpdated = retrievedCommunication.getResource().getMeta().getLastUpdated();
+                //LocalDateTime lastUpdatedDateTime = DateUtil.convertUTCDateToLocalDateTime(lastUpdated);
+                //communicationDto.setLastUpdated(DateUtil.convertLocalDateTimeToString(lastUpdatedDateTime));
+                communicationDto.setLastUpdated(DateUtil.convertDateTimeToString(lastUpdated));
             }
+
             communicationDto.setLogicalId(communication.getIdElement().getIdPart());
 
             communicationDto.setNotDone(communication.getNotDone());
@@ -143,7 +141,6 @@ public class CommunicationServiceImpl implements CommunicationService {
                 ValueSetDto category = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getCategory());
                 communicationDto.setCategoryValue(category.getDisplay());
                 communicationDto.setCategoryCode(category.getCode());
-
             }
 
             if (communication.hasMedium()) {
@@ -219,14 +216,15 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
 
             if (communication.hasSent()) {
-               // LocalDateTime sentDateTime = DateUtil.convertUTCDateToLocalDateTime(communication.getSent());
-               // communicationDto.setSent(DateUtil.convertLocalDateTimeToString(sentDateTime));
+                // LocalDateTime sentDateTime = DateUtil.convertUTCDateToLocalDateTime(communication.getSent());
+                // communicationDto.setSent(DateUtil.convertLocalDateTimeToString(sentDateTime));
                 communicationDto.setSent(DateUtil.convertDateTimeToString(communication.getSent()));
             }
 
             if (communication.hasReceived()) {
-                LocalDateTime receivedDateTime = DateUtil.convertUTCDateToLocalDateTime(communication.getReceived());
-                communicationDto.setReceived(DateUtil.convertLocalDateTimeToString(receivedDateTime));
+                // LocalDateTime receivedDateTime = DateUtil.convertUTCDateToLocalDateTime(communication.getReceived());
+                // communicationDto.setReceived(DateUtil.convertLocalDateTimeToString(receivedDateTime));
+                communicationDto.setReceived(DateUtil.convertDateTimeToString(communication.getReceived()));
             }
 
             return communicationDto;
@@ -369,7 +367,7 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         //Set Sent and Received Dates
         if (communicationDto.getSent() != null) {
-              communication.setSent(DateUtil.convertStringToDateTime(communicationDto.getSent()));
+            communication.setSent(DateUtil.convertStringToDateTime(communicationDto.getSent()));
         }
 
         if (communicationDto.getReceived() != null)
