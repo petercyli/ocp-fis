@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.EwsCalendarDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameAndEmailAddressDto;
+import gov.samhsa.ocp.ocpfis.service.exception.NotAuthorizedException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -91,7 +92,11 @@ public class EwsCalendarServiceImpl implements EwsCalendarService {
             }
             catch (Exception e1) {
                 log.error("Redirection failed", e1);
+                throw new NotAuthorizedException("Could not Authorize", e);
             }
+        }
+        if(service.getUrl() == null){
+            throw new NotAuthorizedException("Could not Authorize: Service URL is NULL!");
         }
         return service;
     }
