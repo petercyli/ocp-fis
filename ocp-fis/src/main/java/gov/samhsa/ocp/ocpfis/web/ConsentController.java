@@ -59,6 +59,11 @@ public class ConsentController {
         consentService.attestConsent(consentId);
     }
 
+    @PutMapping("/consents/{consentId}/revocation")
+    @ResponseStatus(HttpStatus.OK)
+    public void revokeConsent(@PathVariable String consentId) {
+        consentService.revokeConsent(consentId);
+    }
 
     @PostMapping("/consents")
     @ResponseStatus(HttpStatus.CREATED)
