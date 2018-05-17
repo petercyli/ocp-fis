@@ -126,9 +126,10 @@ public class CommunicationServiceImpl implements CommunicationService {
 
             CommunicationDto communicationDto = new CommunicationDto();
 
-            if (lastUpdated != null)
-                communicationDto.setLastUpdated(DateUtil.convertDateTimeToString(lastUpdated));
-
+            if (lastUpdated != null) {
+                LocalDateTime lastUpdatedDateTime = DateUtil.convertUTCDateToLocalDateTime(lastUpdated);
+                communicationDto.setLastUpdated(DateUtil.convertLocalDateTimeToString(lastUpdatedDateTime));
+            }
             communicationDto.setLogicalId(communication.getIdElement().getIdPart());
 
             communicationDto.setNotDone(communication.getNotDone());
@@ -218,11 +219,14 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
 
             if (communication.hasSent()) {
+               // LocalDateTime sentDateTime = DateUtil.convertUTCDateToLocalDateTime(communication.getSent());
+               // communicationDto.setSent(DateUtil.convertLocalDateTimeToString(sentDateTime));
                 communicationDto.setSent(DateUtil.convertDateTimeToString(communication.getSent()));
             }
 
             if (communication.hasReceived()) {
-                communicationDto.setReceived(DateUtil.convertDateTimeToString(communication.getReceived()));
+                LocalDateTime receivedDateTime = DateUtil.convertUTCDateToLocalDateTime(communication.getReceived());
+                communicationDto.setReceived(DateUtil.convertLocalDateTimeToString(receivedDateTime));
             }
 
             return communicationDto;
@@ -254,10 +258,12 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     @Override
     public void createCommunication(CommunicationDto communicationDto) {
-            communicationDto.setSent(DateUtil.convertDateTimeToString(DateUtil.convertLocalDateTimeToUTCDate(LocalDateTime.now())));
+        //communicationDto.setSent(DateUtil.convertLocalDateTimeToString(DateUtil.convertLocalDateTimeToUTCDate(LocalDateTime.now())));
+        //LocalDateTime now = LocalDateTime.now();
 
         try {
             final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
+            communication.setSent(DateUtil.convertLocalDateTimeToUTCDate(LocalDateTime.now()));
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.empty(), ResourceType.Communication.name(), "Create Communication");
             //Create

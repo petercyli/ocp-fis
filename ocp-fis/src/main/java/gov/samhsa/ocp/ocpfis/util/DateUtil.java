@@ -26,7 +26,7 @@ public class DateUtil {
 
 
     public static Date convertStringToDateTime(String dateString) throws ParseException {
-        DateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.US);
+        DateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss z", Locale.US);
         if (dateString != null) {
             return format.parse(dateString);
         }
@@ -55,10 +55,19 @@ public class DateUtil {
     }
 
     public static String convertDateTimeToString(Date date) {
-        DateFormat df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss", Locale.US);
+        DateFormat df = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss z", Locale.US);
 
         if (date != null) {
             return df.format(date);
+        }
+        return "";
+    }
+
+    public static String convertLocalDateTimeToString(LocalDateTime date) {
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("MM/dd/yyyy HH:mm:ss", Locale.US);
+
+        if (date != null) {
+            return date.format(df);
         }
         return "";
     }
