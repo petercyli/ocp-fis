@@ -106,10 +106,10 @@ public class PatientServiceImpl implements PatientService {
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class).sort().descending(PARAM_LASTUPDATED);
 
-        if(organization.isPresent()){
-            if(!patientsInOrganization(organization.get()).isEmpty()) {
+        if (organization.isPresent()) {
+            if (!patientsInOrganization(organization.get()).isEmpty()) {
                 PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsInOrganization(organization.get())));
-            }else{
+            } else {
                 log.info("No Patients were found for given organization.");
                 return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
             }
@@ -122,15 +122,15 @@ public class PatientServiceImpl implements PatientService {
             }
         }
 
-        searchKey.ifPresent(key-> {
-                    if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
-                        value.ifPresent(s -> PatientSearchQuery.where(new RichStringClientParam("name").contains().value(s.trim())));
-                    } else if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
-                        value.ifPresent(s -> PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(s.trim())));
-                    } else {
-                        throw new BadRequestException("Invalid Type Values");
-                    }
-                });
+        searchKey.ifPresent(key -> {
+            if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
+                value.ifPresent(s -> PatientSearchQuery.where(new RichStringClientParam("name").contains().value(s.trim())));
+            } else if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
+                value.ifPresent(s -> PatientSearchQuery.where(new TokenClientParam("identifier").exactly().code(s.trim())));
+            } else {
+                throw new BadRequestException("Invalid Type Values");
+            }
+        });
 
         Bundle firstPagePatientSearchBundle;
         Bundle otherPagePatientSearchBundle;
@@ -235,11 +235,21 @@ public class PatientServiceImpl implements PatientService {
 
     private int getPatientsByIdentifier(String system, String value) {
         log.info("Searching patients with identifier.system : " + system + " and value : " + value);
-        IQuery searchQuery = fhirClient.search().forResource(Patient.class)
-                .where(Patient.IDENTIFIER.exactly().systemAndIdentifier(system, value)).sort().descending(PARAM_LASTUPDATED);
-        Bundle searchBundle = (Bundle) searchQuery.returnBundle(Bundle.class).execute();
-        return searchBundle.getTotal();
+        Bundle searchBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class).where(Patient.IDENTIFIER.exactly().systemAndIdentifier(system, value)))
+                .returnBundle(Bundle.class).execute();
+        if (searchBundle.getTotal() == 0) {
+            Bundle patientBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class)).returnBundle(Bundle.class).execute();
+            return FhirUtil.getAllBundleComponentsAsList(patientBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(patient -> {
+                Patient p = (Patient) patient.getResource();
+                return p.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(system) && identifier.getValue().replaceAll(" ", "")
+                        .replaceAll("-", "").trim()
+                        .equalsIgnoreCase(value.replaceAll(" ", "").replaceAll("-", "").trim()));
+            }).collect(toList()).size();
+        } else {
+            return searchBundle.getTotal();
+        }
     }
+
 
     @Override
     public void createPatient(PatientDto patientDto) {
@@ -290,36 +300,40 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public void updatePatient(PatientDto patientDto) {
-        final Patient patient = modelMapper.map(patientDto, Patient.class);
-        patient.setId(new IdType(patientDto.getId()));
-        patient.setGender(FhirUtil.getPatientGender(patientDto.getGenderCode()));
-        patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
+        if (!isDuplicateWhileUpdate(patientDto)) {
+            final Patient patient = modelMapper.map(patientDto, Patient.class);
+            patient.setId(new IdType(patientDto.getId()));
+            patient.setGender(FhirUtil.getPatientGender(patientDto.getGenderCode()));
+            patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
-        setExtensionFields(patient, patientDto);
+            setExtensionFields(patient, patientDto);
 
-        final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
-        if (validationResult.isSuccessful()) {
-            MethodOutcome methodOutcome = fhirClient.update().resource(patient).execute();
-            //Assign fhir Patient resource id.
-            Reference patientId = new Reference();
-            patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
+            final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
+            if (validationResult.isSuccessful()) {
+                MethodOutcome methodOutcome = fhirClient.update().resource(patient).execute();
+                //Assign fhir Patient resource id.
+                Reference patientId = new Reference();
+                patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
 
-            patientDto.getFlags().ifPresent(flags -> flags.forEach(flagDto -> {
-                if (!duplicateCheckForFlag(flagDto, patientDto.getId())) {
-                    Flag flag = convertFlagDtoToFlag(patientId, flagDto);
-                    if (flagDto.getLogicalId() != null) {
-                        flag.setId(flagDto.getLogicalId());
-                        fhirClient.update().resource(flag).execute();
+                patientDto.getFlags().ifPresent(flags -> flags.forEach(flagDto -> {
+                    if (!duplicateCheckForFlag(flagDto, patientDto.getId())) {
+                        Flag flag = convertFlagDtoToFlag(patientId, flagDto);
+                        if (flagDto.getLogicalId() != null) {
+                            flag.setId(flagDto.getLogicalId());
+                            fhirClient.update().resource(flag).execute();
+                        } else {
+                            fhirClient.create().resource(flag).execute();
+                        }
                     } else {
-                        fhirClient.create().resource(flag).execute();
+                        throw new DuplicateResourceFoundException("Same flag is already present for this patient.");
                     }
-                } else {
-                    throw new DuplicateResourceFoundException("Same flag is already present for this patient.");
-                }
-            }));
+                }));
 
+            } else {
+                throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
+            }
         } else {
-            throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
+            throw new DuplicateResourceFoundException("Patient already exists with the given identifier system and value.");
         }
     }
 
@@ -434,16 +448,16 @@ public class PatientServiceImpl implements PatientService {
     private void mapExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = patient.getExtension();
 
-        extensionList.stream().map(extension -> (CodeableConcept)extension.getValue())
-                .forEach(codeableConcept -> codeableConcept.getCoding().stream().findFirst().ifPresent(coding->{
+        extensionList.stream().map(extension -> (CodeableConcept) extension.getValue())
+                .forEach(codeableConcept -> codeableConcept.getCoding().stream().findFirst().ifPresent(coding -> {
                     if (coding.getSystem().contains(CODING_SYSTEM_RACE)) {
-                        patientDto.setRace(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreRace()).getCode());
+                        patientDto.setRace(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreRace()).getCode());
                     } else if (coding.getSystem().contains(CODING_SYSTEM_LANGUAGE)) {
-                        patientDto.setLanguage(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getLanguages()).getCode());
+                        patientDto.setLanguage(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getLanguages()).getCode());
                     } else if (coding.getSystem().contains(CODING_SYSTEM_ETHNICITY)) {
-                        patientDto.setEthnicity(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreEthnicity()).getCode());
+                        patientDto.setEthnicity(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreEthnicity()).getCode());
                     } else if (coding.getSystem().contains(CODING_SYSTEM_BIRTHSEX)) {
-                        patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreBirthSex()).getCode());
+                        patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreBirthSex()).getCode());
                     }
                 }));
     }
@@ -537,6 +551,34 @@ public class PatientServiceImpl implements PatientService {
                 .map(bundleEntryComponent -> (Patient) bundleEntryComponent.getResource())
                 .map(patient -> mapPatientToPatientDto(patient, bundleEntryComponentList))
                 .collect(toList());
+    }
+
+    private boolean isDuplicateWhileUpdate(PatientDto patientDto) {
+        final Patient patient = fhirClient.read().resource(Patient.class).withId(patientDto.getId()).execute();
+
+        Bundle searchPatient = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class).where(Patient.IDENTIFIER.exactly().systemAndIdentifier(patientDto.getIdentifier().stream().findFirst().get().getSystem(), patientDto.getIdentifier().stream().findFirst().get().getValue())))
+                .returnBundle(Bundle.class).execute();
+
+        if (!searchPatient.getEntry().isEmpty()) {
+            return !patient.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getSystem())
+                    && identifier.getValue().equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getValue()));
+        } else {
+            Bundle patientBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class)).returnBundle(Bundle.class).execute();
+            List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundleComponentsAsList(patientBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(pat -> {
+                Patient p = (Patient) pat.getResource();
+                return p.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getSystem()) && identifier.getValue().replaceAll(" ", "")
+                        .replaceAll("-", "").trim()
+                        .equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getValue().replaceAll(" ", "").replaceAll("-", "").trim()));
+            }).collect(toList());
+            if (bundleEntryComponents.isEmpty()) {
+                return false;
+            } else {
+                return !bundleEntryComponents.stream().anyMatch(resource -> {
+                    Patient pRes = (Patient) resource.getResource();
+                    return pRes.getIdElement().getIdPart().equalsIgnoreCase(patient.getIdElement().getIdPart());
+                });
+            }
+        }
     }
 }
 
