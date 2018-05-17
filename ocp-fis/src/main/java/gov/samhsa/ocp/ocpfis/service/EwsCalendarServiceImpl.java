@@ -82,18 +82,10 @@ public class EwsCalendarServiceImpl implements EwsCalendarService {
         ExchangeCredentials credentials = new WebCredentials(emailAddress, password);
         service.setCredentials(credentials);
         try {
-            service.autodiscoverUrl(emailAddress);
+            service.autodiscoverUrl(emailAddress, new RedirectionUrlCallback());
         }
         catch (Exception e) {
-            log.error("Exception trying to set URL by AutoDiscover", e);
-            log.info("Accepting Redirection");
-            try {
-                service.autodiscoverUrl(emailAddress, new RedirectionUrlCallback());
-            }
-            catch (Exception e1) {
-                log.error("Redirection failed", e1);
-                throw new NotAuthorizedException("Could not Authorize", e);
-            }
+            throw new NotAuthorizedException("Failed to set URL using AutoDiscover");
         }
         if(service.getUrl() == null){
             throw new NotAuthorizedException("Could not Authorize: Service URL is NULL!");
