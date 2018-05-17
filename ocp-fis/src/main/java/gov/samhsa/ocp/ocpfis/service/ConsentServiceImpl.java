@@ -22,6 +22,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.NoDataFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
+import gov.samhsa.ocp.ocpfis.service.pdf.ConsentRevocationPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
@@ -71,6 +72,7 @@ public class ConsentServiceImpl implements ConsentService {
     private final FisProperties fisProperties;
     private final ModelMapper modelMapper;
     private final ConsentPdfGenerator consentPdfGenerator;
+    private final ConsentRevocationPdfGenerator consentRevocationPdfGenerator;
 
     private final PatientService patientService;
 
@@ -82,12 +84,15 @@ public class ConsentServiceImpl implements ConsentService {
                               IGenericClient fhirClient,
                               LookUpService lookUpService,
                               FisProperties fisProperties,
-                              ConsentPdfGenerator consentPdfGenerator, PatientService patientService, FhirValidator fhirValidator) {
+                              ConsentPdfGenerator consentPdfGenerator,
+                              ConsentRevocationPdfGenerator consentRevocationPdfGenerator,
+                              PatientService patientService, FhirValidator fhirValidator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.consentPdfGenerator = consentPdfGenerator;
+        this.consentRevocationPdfGenerator = consentRevocationPdfGenerator;
         this.patientService = patientService;
         this.fhirValidator = fhirValidator;
     }
@@ -238,7 +243,7 @@ public class ConsentServiceImpl implements ConsentService {
         int numberOfActorsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Consent.name());
 
         //Getting List of practitioners
-        List<AbstractCareTeamDto> abstractCareTeamDtoList = FhirUtil.getPractitionerActors(patientId, name, Optional.empty(), Optional.empty(),fhirClient, fisProperties);
+        List<AbstractCareTeamDto> abstractCareTeamDtoList = FhirUtil.getPractitionerActors(patientId, name, Optional.empty(), Optional.empty(), fhirClient, fisProperties);
 
         //Add organizations
         abstractCareTeamDtoList.addAll(FhirUtil.getOrganizationActors(patientId, name, Optional.empty(), Optional.empty(), fhirClient, fisProperties));
@@ -272,8 +277,7 @@ public class ConsentServiceImpl implements ConsentService {
                 consentDto.setSourceAttachment(pdfBytes);
             }
 
-        }
-        catch (FHIRException | IOException e) {
+        } catch (FHIRException | IOException e) {
             log.error("No Consent document found");
             throw new NoDataFoundException("No Consent document found");
         }
@@ -332,15 +336,39 @@ public class ConsentServiceImpl implements ConsentService {
 
         DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
 
-
-
         try {
             log.info("Updating consent: Generating the attested PDF");
             byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(detailedConsentDto, patientDto, operatedByPatient);
             consent.setSource(addAttachment(pdfBytes));
 
+        } catch (IOException e) {
+            throw new ConsentPdfGenerationException(e);
         }
-        catch (IOException e) {
+        //consent.getSourceAttachment().getData();
+        log.info("Updating consent: Saving the consent into the FHIR server.");
+        fhirClient.update().resource(consent).execute();
+    }
+
+    @Override
+    public void revokeConsent(String consentId) {
+
+        Consent consent = fhirClient.read().resource(Consent.class).withId(consentId.trim()).execute();
+        consent.setStatus(Consent.ConsentState.INACTIVE);
+
+        ConsentDto consentDto = getConsentsById(consentId);
+        consentDto.setStatus("Inactive");
+
+        String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
+        PatientDto patientDto = patientService.getPatientById(patientID);
+
+        DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
+
+        try {
+            log.info("Updating consent: Generating the revocation PDF");
+            byte[] pdfBytes = consentRevocationPdfGenerator.generateConsentRevocationPdf(detailedConsentDto, patientDto, operatedByPatient);
+            consent.setSource(addAttachment(pdfBytes));
+
+        } catch (IOException e) {
             throw new ConsentPdfGenerationException(e);
         }
         //consent.getSourceAttachment().getData();
@@ -369,8 +397,7 @@ public class ConsentServiceImpl implements ConsentService {
             byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(detailedConsentDto, patientDto, operatedByPatient);
             return new PdfDto(pdfBytes);
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new ConsentPdfGenerationException(e);
         }
     }
@@ -416,8 +443,7 @@ public class ConsentServiceImpl implements ConsentService {
             if (consentDto.getStatus() != null) {
                 try {
                     consent.setStatus(Consent.ConsentState.fromCode(consentDto.getStatus()));
-                }
-                catch (FHIRException e) {
+                } catch (FHIRException e) {
                     throw new ResourceNotFoundException("Invalid consent status found.");
                 }
             }
@@ -561,36 +587,36 @@ public class ConsentServiceImpl implements ConsentService {
 
     }
 
-    private DetailedConsentDto convertConsentDtoToDetailedConsentDto(ConsentDto consentDto){
+    private DetailedConsentDto convertConsentDtoToDetailedConsentDto(ConsentDto consentDto) {
 
         List<AbstractCareTeamDto> fromOrganizationActors = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("Organization"))
-                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/","")), Optional.empty(), fhirClient,fisProperties)
-                .stream().findAny().get()
-        ).collect(Collectors.toList());
+                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/", "")), Optional.empty(), fhirClient, fisProperties)
+                        .stream().findAny().get()
+                ).collect(Collectors.toList());
 
         List<AbstractCareTeamDto> fromPractitionerActors = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("Practitioner"))
-                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/","")), Optional.empty(), fhirClient,fisProperties)
+                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
         List<AbstractCareTeamDto> fromRelatedPersons = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("RelatedPerson"))
-                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/","")), Optional.empty(), fhirClient,fisProperties)
+                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
 
         List<AbstractCareTeamDto> toOrganizationActors = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("Organization"))
-                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/","")), Optional.empty(), fhirClient,fisProperties)
+                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
         List<AbstractCareTeamDto> toPractitionerActors = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("Practitioner"))
-                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/","")), Optional.empty(), fhirClient,fisProperties)
+                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
         List<AbstractCareTeamDto> toRelatedPersons = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("RelatedPerson"))
-                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/","")), Optional.empty(), fhirClient,fisProperties)
+                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
@@ -621,7 +647,6 @@ public class ConsentServiceImpl implements ConsentService {
                 .sourceAttachment(consentDto.getSourceAttachment())
                 .build();
     }
-
 
 
 }

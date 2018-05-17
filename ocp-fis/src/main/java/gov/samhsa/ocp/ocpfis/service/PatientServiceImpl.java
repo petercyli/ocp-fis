@@ -437,13 +437,13 @@ public class PatientServiceImpl implements PatientService {
         extensionList.stream().map(extension -> (CodeableConcept)extension.getValue())
                 .forEach(codeableConcept -> codeableConcept.getCoding().stream().findFirst().ifPresent(coding->{
                     if (coding.getSystem().contains(CODING_SYSTEM_RACE)) {
-                        patientDto.setRace(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreRace()).getDisplay());
+                        patientDto.setRace(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreRace()).getCode());
                     } else if (coding.getSystem().contains(CODING_SYSTEM_LANGUAGE)) {
-                        patientDto.setLanguage(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getLanguages()).getDisplay());
+                        patientDto.setLanguage(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getLanguages()).getCode());
                     } else if (coding.getSystem().contains(CODING_SYSTEM_ETHNICITY)) {
-                        patientDto.setEthnicity(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreEthnicity()).getDisplay());
+                        patientDto.setEthnicity(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreEthnicity()).getCode());
                     } else if (coding.getSystem().contains(CODING_SYSTEM_BIRTHSEX)) {
-                        patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreBirthSex()).getDisplay());
+                        patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(),lookUpService.getUSCoreBirthSex()).getCode());
                     }
                 }));
     }
