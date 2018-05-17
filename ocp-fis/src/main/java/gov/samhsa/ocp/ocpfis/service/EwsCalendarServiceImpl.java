@@ -7,16 +7,22 @@ import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import lombok.extern.slf4j.Slf4j;
 import microsoft.exchange.webservices.data.autodiscover.IAutodiscoverRedirectionUrl;
+import microsoft.exchange.webservices.data.autodiscover.exception.AutodiscoverLocalException;
 import microsoft.exchange.webservices.data.core.ExchangeService;
 import microsoft.exchange.webservices.data.core.PropertySet;
 import microsoft.exchange.webservices.data.core.enumeration.misc.ExchangeVersion;
+import microsoft.exchange.webservices.data.core.enumeration.misc.IdFormat;
 import microsoft.exchange.webservices.data.core.enumeration.property.WellKnownFolderName;
+import microsoft.exchange.webservices.data.core.exception.misc.FormatException;
 import microsoft.exchange.webservices.data.core.exception.service.local.ServiceLocalException;
+import microsoft.exchange.webservices.data.core.exception.service.remote.ServiceRequestException;
+import microsoft.exchange.webservices.data.core.exception.service.remote.ServiceResponseException;
 import microsoft.exchange.webservices.data.core.service.folder.CalendarFolder;
 import microsoft.exchange.webservices.data.core.service.item.Appointment;
 import microsoft.exchange.webservices.data.core.service.schema.AppointmentSchema;
 import microsoft.exchange.webservices.data.credential.ExchangeCredentials;
 import microsoft.exchange.webservices.data.credential.WebCredentials;
+import microsoft.exchange.webservices.data.misc.id.AlternateId;
 import microsoft.exchange.webservices.data.search.CalendarView;
 import microsoft.exchange.webservices.data.search.FindItemsResults;
 import org.springframework.stereotype.Service;
@@ -78,19 +84,53 @@ public class EwsCalendarServiceImpl implements EwsCalendarService {
     }
 
     private ExchangeService initializeExchangeService(String emailAddress, String password) {
+        boolean authenticated = false;
         ExchangeService service = new ExchangeService(ExchangeVersion.Exchange2010_SP2);
         ExchangeCredentials credentials = new WebCredentials(emailAddress, password);
         service.setCredentials(credentials);
         try {
             service.autodiscoverUrl(emailAddress, new RedirectionUrlCallback());
+            log.info("Auto discover URL complete");
+        }
+        catch (AutodiscoverLocalException ale)
+        {
+            log.error("Failed to set URL using AutoDiscover", ale.getMessage());
+            // throw new NotAuthorizedException("Failed to set URL using AutoDiscover");
         }
         catch (Exception e) {
             throw new NotAuthorizedException("Failed to set URL using AutoDiscover");
         }
-        if(service.getUrl() == null){
-            throw new NotAuthorizedException("Could not Authorize: Service URL is NULL!");
+
+        try{
+            // Once we have the URL, try a ConvertId operation to check if we can access the service. We expect that
+            // the user will be authenticated and that we will get an error code due to the invalid format. Expect a
+            // ServiceResponseException.
+            service.convertId(new AlternateId(IdFormat.EwsId, "Placeholder", emailAddress), IdFormat.EwsId);
         }
-        return service;
+        catch (FormatException fe) {
+            // The user principal name is in a bad format.
+            log.error("Please enter your credentials in UPN format.", fe.getMessage());
+        }
+        catch (ServiceResponseException sre)
+        {
+            // The credentials were authenticated. We expect this exception since we are providing intentional bad data for ConvertId
+            log.info("Successfully connected to EWS.");
+            authenticated = true;
+        }
+        catch (ServiceRequestException sreq)
+        {
+            throw new NotAuthorizedException("ServiceRequestException: The credentials were not authenticated.", sreq);
+        }
+        catch (Exception e) {
+            throw new NotAuthorizedException("Exception: The credentials were not authenticated.", e);
+        }
+
+        if(authenticated){
+            return service;
+        } else {
+            throw new NotAuthorizedException("The credentials were not authenticated.");
+        }
+
     }
 
     private EwsCalendarDto mapAppointmentToDto(Appointment apt) {
