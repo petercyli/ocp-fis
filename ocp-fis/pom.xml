@@ -29,6 +29,7 @@
         <lombok.version>1.16.18</lombok.version>
         <spring-cloud.version>Edgware.SR1</spring-cloud.version>
         <pdfbox.version>2.0.4</pdfbox.version>
+        <javafaker.version>0.15</javafaker.version>
     </properties>
 
     <dependencies>
@@ -123,6 +124,21 @@
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>${pdfbox.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>3.17</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>3.17</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.javafaker</groupId>
+            <artifactId>javafaker</artifactId>
+            <version>${javafaker.version}</version>
         </dependency>
     </dependencies>
 

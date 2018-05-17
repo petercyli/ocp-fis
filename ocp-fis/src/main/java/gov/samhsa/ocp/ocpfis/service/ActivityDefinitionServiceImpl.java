@@ -134,6 +134,25 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     }
 
     @Override
+    public String getActivityDefinitionByName(String organizationId, String name) {
+        Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
+                .where(new StringClientParam("publisher").matches().value("Organization/"+organizationId))
+                .where(new StringClientParam("name").matches().value(name))
+                .returnBundle(Bundle.class).execute();
+
+        if (bundle == null || bundle.isEmpty()) {
+            throw new ResourceNotFoundException("No ActivityDefinition was found for the given name : " + name);
+        }
+
+        List<Bundle.BundleEntryComponent> entry= bundle.getEntry();
+        if(!entry.isEmpty()){
+            return entry.get(0).getResource().getIdElement().getIdPart();
+        }else{
+            return null;
+        }
+    }
+
+    @Override
     public void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId) {
         if (!isDuplicate(activityDefinitionDto, organizationId)) {
             String version = fisProperties.getActivityDefinition().getVersion();
