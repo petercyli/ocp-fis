@@ -296,19 +296,10 @@ public class PractitionerServiceImpl implements PractitionerService {
     @Override
     public void createPractitioner(PractitionerDto practitionerDto) {
         //Check Duplicate Identifier
-        boolean hasDuplicateIdentifier = practitionerDto.getIdentifiers().stream().anyMatch(identifierDto -> {
-            if (fhirClient.search()
-                    .forResource(Practitioner.class)
-                    .where(new TokenClientParam("identifier")
-                            .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()))
-                    .returnBundle(Bundle.class).execute().getTotal() > 0) {
-                return true;
-            }
-            return false;
-        });
+
 
         //When there is no duplicate identifier, practitioner gets created
-        if (!hasDuplicateIdentifier) {
+        if (!hasDuplicateIdentifier(practitionerDto)) {
             //Create Fhir Practitioner
             Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
             practitioner.setActive(true);
@@ -353,24 +344,9 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     @Override
     public void updatePractitioner(String practitionerId, PractitionerDto practitionerDto) {
-        //Check Duplicate Identifier
-        boolean hasDuplicateIdentifier = practitionerDto.getIdentifiers().stream().anyMatch(identifierDto -> {
-            IQuery practitionersWithUpdatedIdentifierQuery = fhirClient.search()
-                    .forResource(Practitioner.class)
-                    .where(new TokenClientParam("identifier")
-                            .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()));
-            Bundle practitionerWithUpdatedIdentifierBundle = (Bundle) practitionersWithUpdatedIdentifierQuery.returnBundle(Bundle.class).execute();
-            Bundle practitionerWithUpdatedIdentifierAndSameResourceIdBundle = (Bundle) practitionersWithUpdatedIdentifierQuery.where(new TokenClientParam("_id").exactly().code(practitionerId)).returnBundle(Bundle.class).execute();
-            if (practitionerWithUpdatedIdentifierBundle.getTotal() > 0) {
-                return practitionerWithUpdatedIdentifierBundle.getTotal() != practitionerWithUpdatedIdentifierAndSameResourceIdBundle.getTotal();
-            }
-            return false;
-        });
-
-
         Practitioner existingPractitioner = fhirClient.read().resource(Practitioner.class).withId(practitionerId.trim()).execute();
 
-        if (!hasDuplicateIdentifier) {
+        if (!isDuplicateWhileUpdate(practitionerDto)) {
             Practitioner updatedpractitioner = modelMapper.map(practitionerDto, Practitioner.class);
             existingPractitioner.setIdentifier(updatedpractitioner.getIdentifier());
             existingPractitioner.setName(updatedpractitioner.getName());
@@ -502,5 +478,53 @@ public class PractitionerServiceImpl implements PractitionerService {
         List<PractitionerRoleDto> practitionerRoleDtos = getPractitionerRolesForEachPractitioner(practitionerAndPractitionerRoleList, practitionerComponent.getResource().getIdElement().getIdPart());
         practitionerDto.setPractitionerRoles(practitionerRoleDtos);
         return practitionerDto;
+    }
+
+    private boolean hasDuplicateIdentifier(PractitionerDto practitionerDto) {
+        return practitionerDto.getIdentifiers().stream().anyMatch(identifierDto -> {
+            if (fhirClient.search()
+                    .forResource(Practitioner.class)
+                    .where(new TokenClientParam("identifier")
+                            .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()))
+                    .returnBundle(Bundle.class).execute().getTotal() > 0) {
+                return true;
+            } else {
+                Bundle practitionerBundle = fhirClient.search().forResource(Practitioner.class).returnBundle(Bundle.class).execute();
+                return !FhirUtil.getAllBundleComponentsAsList(practitionerBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(practitioner -> {
+                    Practitioner p = (Practitioner) practitioner.getResource();
+                    return p.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(identifierDto.getSystem()) && identifier.getValue().replaceAll(" ", "")
+                            .replaceAll("-", "").trim()
+                            .equalsIgnoreCase(identifierDto.getValue().replaceAll(" ", "").replaceAll("-", "").trim()));
+                }).collect(toList()).isEmpty();
+            }
+        });
+    }
+
+    private boolean isDuplicateWhileUpdate(PractitionerDto practitionerDto) {
+        final Practitioner practitioner = fhirClient.read().resource(Practitioner.class).withId(practitionerDto.getLogicalId()).execute();
+
+        Bundle searchPractitioner = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Practitioner.class).where(Practitioner.IDENTIFIER.exactly().systemAndIdentifier(practitionerDto.getIdentifiers().stream().findFirst().get().getSystem(), practitionerDto.getIdentifiers().stream().findFirst().get().getValue())))
+                .returnBundle(Bundle.class).execute();
+
+        if (!searchPractitioner.getEntry().isEmpty()) {
+            return !practitioner.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(practitionerDto.getIdentifiers().stream().findFirst().get().getSystem())
+                    && identifier.getValue().equalsIgnoreCase(practitionerDto.getIdentifiers().stream().findFirst().get().getValue()));
+        } else {
+            Bundle praBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Practitioner.class)).returnBundle(Bundle.class).execute();
+            List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundleComponentsAsList(praBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(pat -> {
+                Practitioner p = (Practitioner) pat.getResource();
+                return p.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(practitionerDto.getIdentifiers().stream().findFirst().get().getSystem()) && identifier.getValue().replaceAll(" ", "")
+                        .replaceAll("-", "").trim()
+                        .equalsIgnoreCase(practitionerDto.getIdentifiers().stream().findFirst().get().getValue().replaceAll(" ", "").replaceAll("-", "").trim()));
+            }).collect(toList());
+            if (bundleEntryComponents.isEmpty()) {
+                return false;
+            } else {
+                return !bundleEntryComponents.stream().anyMatch(resource -> {
+                    Practitioner pRes = (Practitioner) resource.getResource();
+                    return pRes.getIdElement().getIdPart().equalsIgnoreCase(practitioner.getIdElement().getIdPart());
+                });
+            }
+        }
     }
 }
