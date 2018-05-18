@@ -93,6 +93,7 @@ public class TaskController {
                                   @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks,
                                   @RequestParam(value = "isTodoList") Optional<Boolean> isTodoList,
                                   @RequestParam(value = "filterDate") Optional<DateRangeEnum> filterDate) {
+        log.info("Retrieving tasks for the given criteria");
         return taskService.getMainAndSubTasks(practitioner, patient, organization, definition, partOf, isUpcomingTasks, isTodoList, filterDate);
     }
 }
