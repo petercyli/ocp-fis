@@ -115,11 +115,9 @@ public class CareTeamToCareTeamDtoConverter {
                     ReferenceDto referenceDto = new ReferenceDto();
                     ParticipantDto participantDto = new ParticipantDto();
                     if (roles.isPresent()) {
-                        String role = FhirUtil.getRoleFromCodeableConcept(it.getRole());
-
-                        if (roles.get().contains(role)) {
-                            referenceDto.setReference(member.getReference());
-
+                        for (String ro : roles.get()) {
+                            if (member.getReference().toUpperCase().contains(ro.toUpperCase()))
+                                referenceDto.setReference(member.getReference());
                         }
                     } else {
                         referenceDto.setReference(member.getReference());
