@@ -5,6 +5,8 @@ import gov.samhsa.ocp.ocpfis.service.TaskService;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
+import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
+@Slf4j
 public class TaskController {
 
     @Autowired
@@ -40,15 +43,19 @@ public class TaskController {
     public void createTask(@Valid @RequestBody TaskDto taskDto) {
         try {
             taskService.createTask(taskDto);
-        }catch(Exception e){
-            e.printStackTrace();
+        } catch (FHIRException e) {
+            log.error("A FHIRException occured when creating a task" + e);
         }
     }
 
     @PutMapping("/tasks/{taskId}")
     @ResponseStatus(HttpStatus.OK)
     public void updateTask(@PathVariable String taskId, @Valid @RequestBody TaskDto taskDto) {
-        taskService.updateTask(taskId, taskDto);
+        try {
+            taskService.updateTask(taskId, taskDto);
+        } catch (FHIRException e) {
+            log.error("A FHIRException occurred when updating a task " + e);
+        }
     }
 
     @PutMapping("/tasks/{taskId}/deactivate")
@@ -80,7 +87,7 @@ public class TaskController {
     @GetMapping("/tasks")
     public List<TaskDto> getTasks(@RequestParam(value = "practitioner") Optional<String> practitioner,
                                   @RequestParam(value = "patient") Optional<String> patient,
-                                  @RequestParam(value="organization") Optional<String> organization,
+                                  @RequestParam(value = "organization") Optional<String> organization,
                                   @RequestParam(value = "definition") Optional<String> definition,
                                   @RequestParam(value = "partOf") Optional<String> partOf,
                                   @RequestParam(value = "isUpcomingTasks") Optional<Boolean> isUpcomingTasks,

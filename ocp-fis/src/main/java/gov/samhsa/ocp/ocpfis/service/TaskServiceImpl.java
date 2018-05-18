@@ -17,6 +17,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.InvalidStatusException;
 import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TaskDtoToTaskMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
@@ -38,8 +39,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -62,6 +65,8 @@ public class TaskServiceImpl implements TaskService {
     private final EpisodeOfCareService episodeOfCareService;
     private final ActivityDefinitionService activityDefinitionService;
     private final PatientService patientService;
+    private final Map<Task.TaskStatus, List<Task.TaskStatus>> taskStatuses;
+    private final List<String> finalStatuses;
 
     @Autowired
     public TaskServiceImpl(IGenericClient fhirClient,
@@ -76,6 +81,8 @@ public class TaskServiceImpl implements TaskService {
         this.activityDefinitionService = activityDefinitionService;
         this.episodeOfCareService = episodeOfCareService;
         this.patientService = patientService;
+        this.taskStatuses = populateTaskStatuses();
+        this.finalStatuses = Arrays.asList(Task.TaskStatus.COMPLETED.toCode(), Task.TaskStatus.FAILED.toCode(), Task.TaskStatus.CANCELLED.toCode());
     }
 
     @Override
@@ -175,7 +182,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public void createTask(TaskDto taskDto) {
+    public void createTask(TaskDto taskDto) throws FHIRException {
         if (!isDuplicate(taskDto)) {
             retrieveActivityDefinitionDuration(taskDto);
             Task task = TaskDtoToTaskMap.map(taskDto);
@@ -190,7 +197,16 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public void updateTask(String taskId, TaskDto taskDto) {
+    public void updateTask(String taskId, TaskDto taskDto) throws FHIRException {
+
+        if (!isValidTaskStatus(taskDto)) {
+            throw new InvalidStatusException("Invalid task status has been submitted.");
+        }
+
+        if (!isValidSubTasks(taskDto)) {
+            throw new InvalidStatusException("One or more sub-tasks are not in the final state.");
+        }
+
         Task task = TaskDtoToTaskMap.map(taskDto);
         task.setId(taskId);
 
@@ -257,7 +273,7 @@ public class TaskServiceImpl implements TaskService {
             }
 
             //Setting Status, Intent, Priority
-            taskDto.setStatus(FhirDtoUtil.convertDisplayCodeToValueSetDto(task.getStatus().toCode(), lookUpService.getTaskStatus()));
+            taskDto.setStatus(FhirDtoUtil.convertCodeToValueSetDto(task.getStatus().toCode(), lookUpService.getTaskStatus()));
             taskDto.setIntent(FhirDtoUtil.convertDisplayCodeToValueSetDto(task.getIntent().toCode(), lookUpService.getRequestIntent()));
             taskDto.setPriority(FhirDtoUtil.convertDisplayCodeToValueSetDto(task.getPriority().toCode(), lookUpService.getRequestPriority()));
 
@@ -382,6 +398,24 @@ public class TaskServiceImpl implements TaskService {
         return tasks;
     }
 
+    private boolean isValidTaskStatus(TaskDto newTaskDto) throws FHIRException {
+        TaskDto exitingTask = getTaskById(newTaskDto.getLogicalId());
+
+        //if existing status is final and new status is not final, it is not allowed
+        if(finalStatuses.contains(exitingTask.getStatus().getCode()) && !finalStatuses.contains(newTaskDto.getStatus().getCode())) {
+            return false;
+        }
+
+        //if existing status is final and new status is also final, it is allowed
+        if(finalStatuses.contains(exitingTask.getStatus().getCode()) && finalStatuses.contains(newTaskDto.getStatus().getCode())) {
+            return true;
+        }
+
+        List<Task.TaskStatus> allowedStatuses =  taskStatuses.get(Task.TaskStatus.fromCode(exitingTask.getStatus().getCode()));
+
+        return allowedStatuses.stream().anyMatch(t -> t.toCode().equals(newTaskDto.getStatus().getCode()));
+    }
+
     private List<TaskDto> getUpcomingTasksByPractitioner(String practitioner, Optional<String> searchKey, Optional<String> searchValue) {
         List<PatientDto> patients = patientService.getPatientsByPractitioner(Optional.ofNullable(practitioner), Optional.empty(), Optional.empty());
 
@@ -406,9 +440,7 @@ public class TaskServiceImpl implements TaskService {
             }
         }
 
-        //TODO: filter tasks by searchKey/value if present
-
-        Collections.sort(finalList);
+         Collections.sort(finalList);
         return finalList;
     }
 
@@ -716,4 +748,52 @@ public class TaskServiceImpl implements TaskService {
 
         return getTaskById(taskId);
     }
+
+    private Map<Task.TaskStatus, List<Task.TaskStatus>> populateTaskStatuses() {
+        Map<Task.TaskStatus, List<Task.TaskStatus>> map = new HashMap<Task.TaskStatus, List<Task.TaskStatus>>();
+
+        map.put(Task.TaskStatus.DRAFT, Arrays.asList(Task.TaskStatus.DRAFT, Task.TaskStatus.READY, Task.TaskStatus.REQUESTED));
+        map.put(Task.TaskStatus.READY, Arrays.asList(Task.TaskStatus.READY, Task.TaskStatus.INPROGRESS, Task.TaskStatus.CANCELLED));
+        map.put(Task.TaskStatus.REQUESTED, Arrays.asList(Task.TaskStatus.REQUESTED, Task.TaskStatus.RECEIVED, Task.TaskStatus.ACCEPTED, Task.TaskStatus.REJECTED, Task.TaskStatus.CANCELLED));
+        map.put(Task.TaskStatus.RECEIVED, Arrays.asList(Task.TaskStatus.RECEIVED, Task.TaskStatus.ACCEPTED, Task.TaskStatus.REJECTED, Task.TaskStatus.CANCELLED));
+        map.put(Task.TaskStatus.ACCEPTED, Arrays.asList(Task.TaskStatus.ACCEPTED, Task.TaskStatus.INPROGRESS, Task.TaskStatus.CANCELLED));
+        map.put(Task.TaskStatus.REJECTED, Arrays.asList(Task.TaskStatus.REJECTED, Task.TaskStatus.CANCELLED));
+        map.put(Task.TaskStatus.INPROGRESS, Arrays.asList(Task.TaskStatus.INPROGRESS, Task.TaskStatus.ONHOLD, Task.TaskStatus.COMPLETED, Task.TaskStatus.FAILED));
+        map.put(Task.TaskStatus.ONHOLD, Arrays.asList(Task.TaskStatus.ONHOLD, Task.TaskStatus.INPROGRESS));
+
+        return map;
+    }
+
+    private boolean isValidSubTasks(TaskDto taskDto) {
+        boolean valid = false;
+
+        List<TaskDto> subtasks = this.getMainAndSubTasks(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(taskDto.getLogicalId()), Optional.empty(), Optional.empty(), Optional.empty());
+
+        if(subtasks != null && subtasks.isEmpty()) {
+            valid = true;
+        }
+
+        //if the new status is not in the final status
+        if(!finalStatuses.contains(taskDto.getStatus().getCode())) {
+            //check the statuses of the sub tasks
+            if(subTasksInFinalStatus(subtasks)) {
+                valid = false;
+            } else {
+                valid = true;
+            }
+        } else {
+            if(subTasksInFinalStatus(subtasks)) {
+                valid = true;
+            } else {
+                valid = false;
+            }
+        }
+
+        return valid;
+    }
+
+    private boolean subTasksInFinalStatus(List<TaskDto> subtasks) {
+        return subtasks.stream().map(it -> it.getStatus().getCode()).anyMatch(status -> finalStatuses.contains(status));
+    }
+
 }
