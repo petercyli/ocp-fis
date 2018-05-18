@@ -19,7 +19,7 @@ public class EpisodeOfCareController {
     EpisodeOfCareService episodeOfCareService;
 
     @GetMapping
-    private List<ReferenceDto> getEpisodeOfCares(@RequestParam String patient, @RequestParam Optional<String> status) {
-        return episodeOfCareService.getEpisodeOfCaresForReference(patient, status);
+    private List<ReferenceDto> getEpisodeOfCares(@RequestParam String patient,@RequestParam Optional<String> organization, @RequestParam Optional<String> status) {
+        return episodeOfCareService.getEpisodeOfCaresForReference(patient, organization, status);
     }
 }

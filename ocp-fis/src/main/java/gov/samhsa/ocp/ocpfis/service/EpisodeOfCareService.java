@@ -10,5 +10,5 @@ public interface EpisodeOfCareService {
 
     List<EpisodeOfCareDto> getEpisodeOfCares(String patient, Optional<String> status);
 
-    List<ReferenceDto> getEpisodeOfCaresForReference(String patient, Optional<String> status);
+    List<ReferenceDto> getEpisodeOfCaresForReference(String patient, Optional<String> organization, Optional<String> status);
 }
