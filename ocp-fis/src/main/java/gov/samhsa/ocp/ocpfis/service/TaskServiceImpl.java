@@ -16,6 +16,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.InvalidStatusException;
 import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
@@ -67,6 +68,7 @@ public class TaskServiceImpl implements TaskService {
     private final PatientService patientService;
     private final Map<Task.TaskStatus, List<Task.TaskStatus>> taskStatuses;
     private final List<String> finalStatuses;
+    private final List<ValueSetDto> taskPerformerTypes;
 
     @Autowired
     public TaskServiceImpl(IGenericClient fhirClient,
@@ -83,6 +85,7 @@ public class TaskServiceImpl implements TaskService {
         this.patientService = patientService;
         this.taskStatuses = populateTaskStatuses();
         this.finalStatuses = Arrays.asList(Task.TaskStatus.COMPLETED.toCode(), Task.TaskStatus.FAILED.toCode(), Task.TaskStatus.CANCELLED.toCode());
+        this.taskPerformerTypes = lookUpService.getTaskPerformerType();
     }
 
     @Override
@@ -138,7 +141,9 @@ public class TaskServiceImpl implements TaskService {
                 .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Task))
                 .map(retrievedTask -> {
                     Task task = (Task) retrievedTask.getResource();
-                    return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());
+                    TaskDto taskDto =  TaskToTaskDtoMap.map(task, taskPerformerTypes);
+                    setRollupNumbers(taskDto);
+                    return taskDto;
                 }).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageTaskBundle.getTotal() / numberOfTasksPerPage);
@@ -178,6 +183,7 @@ public class TaskServiceImpl implements TaskService {
             taskDtos.add(toDoTaskDto);
         }
 
+        log.info("Returning a list of tasks of size : " + taskDtos.size());
         return taskDtos;
     }
 
@@ -292,7 +298,7 @@ public class TaskServiceImpl implements TaskService {
             //Set Performer Type
             if (task.hasPerformerType()) {
                 task.getPerformerType().stream().findFirst().ifPresent(performerType -> performerType.getCoding().stream().findFirst().ifPresent(coding -> {
-                    taskDto.setPerformerType(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getTaskPerformerType()));
+                    taskDto.setPerformerType(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), taskPerformerTypes));
                 }));
             }
 
@@ -317,6 +323,8 @@ public class TaskServiceImpl implements TaskService {
             }
 
             taskDto.setContext(FhirDtoUtil.convertReferenceToReferenceDto(task.getContext()));
+
+            this.setRollupNumbers(taskDto);
         });
 
         return taskDto;
@@ -499,7 +507,7 @@ public class TaskServiceImpl implements TaskService {
 
             tasks = bundleEntry.stream()
                     .map(it -> (Task) it.getResource())
-                    .map(it -> TaskToTaskDtoMap.map(it, lookUpService.getTaskPerformerType()))
+                    .map(it -> TaskToTaskDtoMap.map(it, taskPerformerTypes))
                     .collect(toList());
         }
 
@@ -734,7 +742,9 @@ public class TaskServiceImpl implements TaskService {
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Task))
                 .map(retrievedTask -> {
                     Task task = (Task) retrievedTask.getResource();
-                    return TaskToTaskDtoMap.map(task, lookUpService.getTaskPerformerType());
+                    TaskDto taskDto = TaskToTaskDtoMap.map(task, taskPerformerTypes);
+                    setRollupNumbers(taskDto);
+                    return taskDto;
                 }).collect(toList());
     }
 
@@ -794,6 +804,49 @@ public class TaskServiceImpl implements TaskService {
 
     private boolean subTasksInFinalStatus(List<TaskDto> subtasks) {
         return subtasks.stream().map(it -> it.getStatus().getCode()).anyMatch(status -> finalStatuses.contains(status));
+    }
+
+    private int getRemainingSubtasks(List<TaskDto> subtasks) {
+        int counter = 0;
+        for(TaskDto taskDto : subtasks) {
+            if(!finalStatuses.contains(taskDto.getStatus().getCode())) {
+                counter++;
+            }
+        }
+        return counter;
+    }
+
+    private void setRollupNumbers(TaskDto parentTaskDto) {
+        List<TaskDto> subtasks = getSubTasks(parentTaskDto);
+
+        if(subtasks == null || subtasks.isEmpty()) {
+            parentTaskDto.setTotalSubtasks(0);
+            parentTaskDto.setRemainingSubtasks(0);
+        }
+
+        parentTaskDto.setTotalSubtasks(subtasks.size());
+        parentTaskDto.setRemainingSubtasks(getRemainingSubtasks(subtasks));
+    }
+
+    private List<TaskDto> getSubTasks(TaskDto parentTaskDto) {
+        List<TaskDto> subTasksList = new ArrayList<>();
+
+        IQuery iQuery = fhirClient.search().forResource(Task.class)
+                .where(new ReferenceClientParam("part-of").hasAnyOfIds(Arrays.asList(parentTaskDto.getLogicalId())));
+        Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
+
+        if(bundle != null) {
+            List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
+
+            if(components != null) {
+                subTasksList = components.stream()
+                        .map(it -> (Task) it.getResource())
+                        .map(it -> TaskToTaskDtoMap.map(it, taskPerformerTypes))
+                        .collect(toList());
+            }
+        }
+
+        return subTasksList;
     }
 
 }
