@@ -123,8 +123,6 @@ public class CommunicationServiceImpl implements CommunicationService {
 
             if (retrievedCommunication.getResource().hasMeta() && retrievedCommunication.getResource().getMeta().hasLastUpdated()) {
                 Date lastUpdated = retrievedCommunication.getResource().getMeta().getLastUpdated();
-                //LocalDateTime lastUpdatedDateTime = DateUtil.convertUTCDateToLocalDateTime(lastUpdated);
-                //communicationDto.setLastUpdated(DateUtil.convertLocalDateTimeToString(lastUpdatedDateTime));
                 communicationDto.setLastUpdated(DateUtil.convertDateTimeToString(lastUpdated));
             }
 
@@ -216,14 +214,10 @@ public class CommunicationServiceImpl implements CommunicationService {
             }
 
             if (communication.hasSent()) {
-                // LocalDateTime sentDateTime = DateUtil.convertUTCDateToLocalDateTime(communication.getSent());
-                // communicationDto.setSent(DateUtil.convertLocalDateTimeToString(sentDateTime));
                 communicationDto.setSent(DateUtil.convertDateTimeToString(communication.getSent()));
             }
 
             if (communication.hasReceived()) {
-                // LocalDateTime receivedDateTime = DateUtil.convertUTCDateToLocalDateTime(communication.getReceived());
-                // communicationDto.setReceived(DateUtil.convertLocalDateTimeToString(receivedDateTime));
                 communicationDto.setReceived(DateUtil.convertDateTimeToString(communication.getReceived()));
             }
 
@@ -256,9 +250,6 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     @Override
     public void createCommunication(CommunicationDto communicationDto) {
-        //communicationDto.setSent(DateUtil.convertLocalDateTimeToString(DateUtil.convertLocalDateTimeToUTCDate(LocalDateTime.now())));
-        //LocalDateTime now = LocalDateTime.now();
-
         try {
             final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             communication.setSent(DateUtil.convertLocalDateTimeToUTCDate(LocalDateTime.now()));
