@@ -42,6 +42,9 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class LocationServiceImpl implements LocationService {
+    final static String ORGANIZATION_TAX_ID_URI= "urn:oid:2.16.840.1.113883.4.4";
+
+    final static String ORGANIZATION_TAX_ID_DISPLAY= "Organization Tax ID";
 
     private final ModelMapper modelMapper;
 
@@ -178,6 +181,8 @@ public class LocationServiceImpl implements LocationService {
     public void createLocation(String organizationId, LocationDto locationDto) {
         log.info("Creating location for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
+
+        checkForDuplicateLocationBasedOnOrganizationTaxId(organizationId, locationDto);
         checkForDuplicateLocationBasedOnIdentifiersDuringCreate(locationDto);
 
         getOrganizationIdentifier(organizationId).ifPresent(identifierDto -> locationDto.getIdentifiers().add(identifierDto));
@@ -201,6 +206,7 @@ public class LocationServiceImpl implements LocationService {
     public void updateLocation(String organizationId, String locationId, LocationDto locationDto) {
         log.info("Updating location Id: " + locationId + " for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
+        checkForDuplicateLocationBasedOnOrganizationTaxId(organizationId, locationDto);
         checkForDuplicateLocationBasedOnIdentifiersDuringUpdate(locationId, locationDto);
 
         //First, get the existing resource from the server
@@ -310,8 +316,27 @@ public class LocationServiceImpl implements LocationService {
         Bundle bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
 
         if (bundle != null && !bundle.getEntry().isEmpty()) {
-            throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
+            List<Identifier> identifierList=bundle.getEntry().stream().flatMap(loc-> {
+                Location location= (Location) loc.getResource();
+               return location.getIdentifier().stream();
+            }).collect(Collectors.toList());
+            identifierList.stream().filter(identifier -> !identifier.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY)).findAny().ifPresent(ids-> {
+                        throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
+                    }
+            );
         }
+    }
+
+    private void checkForDuplicateLocationBasedOnOrganizationTaxId(String organizationId, LocationDto locationDto){
+        fhirClient.read().resource(Organization.class).withId(organizationId).execute().getIdentifier().stream()
+                .filter(identifier -> identifier.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_URI)).findAny().ifPresent(identifier -> {
+            locationDto.getIdentifiers().stream().filter(identifierDto -> identifierDto.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY))
+                    .findAny().ifPresent(identifierDto -> {
+                if (!identifierDto.getValue().equalsIgnoreCase(identifier.getValue())){
+                    throw new DuplicateResourceFoundException("The organization id is different from the original organization.");
+                }
+            });
+        });
     }
 
     private void checkForDuplicateLocationBasedOnIdentifiersDuringUpdate(String locationId, LocationDto locationDto) {
