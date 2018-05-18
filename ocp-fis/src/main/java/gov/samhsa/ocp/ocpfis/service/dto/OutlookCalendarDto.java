@@ -12,7 +12,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class EwsCalendarDto {
+public class OutlookCalendarDto {
     private String subject;
     private Date start;
     private Date end;

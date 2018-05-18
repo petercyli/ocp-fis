@@ -1,8 +1,9 @@
 package gov.samhsa.ocp.ocpfis.service;
 
-import gov.samhsa.ocp.ocpfis.service.dto.EwsCalendarDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OutlookCalendarDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameAndEmailAddressDto;
 import gov.samhsa.ocp.ocpfis.service.exception.NotAuthorizedException;
+import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
-public class EwsCalendarServiceImpl implements EwsCalendarService {
+public class OutlookCalendarServiceImpl implements OutlookCalendarService {
 
     static class RedirectionUrlCallback implements IAutodiscoverRedirectionUrl {
         public boolean autodiscoverRedirectionUrlValidationCallback(
@@ -44,10 +45,10 @@ public class EwsCalendarServiceImpl implements EwsCalendarService {
     }
 
     @Override
-    public List<EwsCalendarDto> getEwsCalendarAppointments(String emailAddress,
-                                                           String password,
-                                                           Optional<LocalDateTime> start,
-                                                           Optional<LocalDateTime> end) {
+    public List<OutlookCalendarDto> getOutlookCalendarAppointments(String emailAddress,
+                                                                   String password,
+                                                                   Optional<LocalDateTime> start,
+                                                                   Optional<LocalDateTime> end) {
         ExchangeService service = initializeExchangeService(emailAddress, password);
         LocalDateTime dateNow = LocalDateTime.now();
         LocalDateTime startDate = dateNow.minusMonths(1);
@@ -79,8 +80,8 @@ public class EwsCalendarServiceImpl implements EwsCalendarService {
         }
         catch (Exception e) {
             log.error("Exception occurred either when binding the service or when finding appointments from calendar view", e);
+            throw new ResourceNotFoundException("Exception occurred either when binding the service or when finding appointments from calendar view", e);
         }
-        return null;
     }
 
     private ExchangeService initializeExchangeService(String emailAddress, String password) {
@@ -133,8 +134,8 @@ public class EwsCalendarServiceImpl implements EwsCalendarService {
 
     }
 
-    private EwsCalendarDto mapAppointmentToDto(Appointment apt) {
-        EwsCalendarDto eDto = new EwsCalendarDto();
+    private OutlookCalendarDto mapAppointmentToDto(Appointment apt) {
+        OutlookCalendarDto eDto = new OutlookCalendarDto();
         try {
             apt.load();
             eDto.setSubject(apt.getSubject());
