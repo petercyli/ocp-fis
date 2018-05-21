@@ -51,8 +51,8 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
                                                                    Optional<LocalDateTime> end) {
         ExchangeService service = initializeExchangeService(emailAddress, password);
         LocalDateTime dateNow = LocalDateTime.now();
-        LocalDateTime startDate = dateNow.minusMonths(1);
-        LocalDateTime endDate = dateNow.plusMonths(1);
+        LocalDateTime startDate = dateNow.minusYears(1);
+        LocalDateTime endDate = dateNow.plusYears(1);
 
         if (start.isPresent()) {
             startDate = start.get();
