@@ -313,10 +313,10 @@ public class LocationServiceImpl implements LocationService {
     }
 
     private void checkDuplicateLocationExistsDuringCreate(String identifierSystem, String identifierValue) {
-        Bundle bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
+        List<Bundle.BundleEntryComponent> bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
 
-        if (bundle != null && !bundle.getEntry().isEmpty()) {
-            List<Identifier> identifierList=bundle.getEntry().stream().flatMap(loc-> {
+        if (bundle != null && !bundle.isEmpty()) {
+            List<Identifier> identifierList=bundle.stream().flatMap(loc-> {
                 Location location= (Location) loc.getResource();
                return location.getIdentifier().stream();
             }).collect(Collectors.toList());
@@ -332,7 +332,9 @@ public class LocationServiceImpl implements LocationService {
                 .filter(identifier -> identifier.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_URI)).findAny().ifPresent(identifier -> {
             locationDto.getIdentifiers().stream().filter(identifierDto -> identifierDto.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY))
                     .findAny().ifPresent(identifierDto -> {
-                if (!identifierDto.getValue().equalsIgnoreCase(identifier.getValue())){
+                if (!identifierDto.getValue().replaceAll(" ", "")
+                        .replaceAll("-", "").trim().equalsIgnoreCase(identifier.getValue().replaceAll(" ", "")
+                                .replaceAll("-", "").trim())){
                     throw new DuplicateResourceFoundException("The organization id is different from the original organization.");
                 }
             });
@@ -352,35 +354,46 @@ public class LocationServiceImpl implements LocationService {
     }
 
     private void checkDuplicateLocationExistsDuringUpdate(String locationId, String identifierSystem, String identifierValue) {
-        Bundle bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
+        List<Bundle.BundleEntryComponent> bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
 
-        if (bundle != null && bundle.getEntry().size() > 1) {
-            throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
-        } else if (bundle != null && bundle.getEntry().size() == 1) {
-            String logicalId = bundle.getEntry().get(0).getResource().getIdElement().getIdPart();
+        if (bundle != null && bundle.size() > 1) {
+         String iS=bundle.stream().map(loc->{
+                Location location= (Location) loc.getResource();
+                return location.getIdentifier().stream().findFirst().get().getSystem();
+            }).findFirst().get();
+
+            if(!iS.equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY)) {
+                throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
+            }
+        } else if (bundle != null && bundle.size() == 1) {
+            String logicalId = bundle.get(0).getResource().getIdElement().getIdPart();
             if (!logicalId.trim().equalsIgnoreCase(locationId.trim())) {
                 throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
             }
         }
     }
 
-    private Bundle getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(String identifierSystem, String identifierValue) {
-        Bundle bundle;
+    private List<Bundle.BundleEntryComponent> getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(String identifierSystem, String identifierValue) {
+        List<Bundle.BundleEntryComponent> bundleEntry;
         if (identifierSystem != null && !identifierSystem.trim().isEmpty()
                 && identifierValue != null && !identifierValue.trim().isEmpty()) {
-            bundle = fhirClient.search().forResource(Location.class)
-                    .where(new TokenClientParam("identifier").exactly().systemAndCode(identifierSystem.trim(), identifierValue.trim()))
-                    .returnBundle(Bundle.class)
-                    .execute();
+                Bundle bundle=fhirClient.search().forResource(Location.class).returnBundle(Bundle.class).execute();
+                bundleEntry= FhirUtil.getAllBundleComponentsAsList(bundle,Optional.empty(),fhirClient,fisProperties).stream().filter(location->{
+                    Location l= (Location) location.getResource();
+                    return l.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(identifierSystem) && identifier.getValue().replaceAll(" ", "")
+                            .replaceAll("-", "").trim()
+                            .equalsIgnoreCase(identifierValue.replaceAll(" ", "").replaceAll("-", "").trim()));
+                }).collect(Collectors.toList());
         } else if (identifierValue != null && !identifierValue.trim().isEmpty()) {
-            bundle = fhirClient.search().forResource(Location.class)
+           Bundle bundle = fhirClient.search().forResource(Location.class)
                     .where(new TokenClientParam("identifier").exactly().code(identifierValue.trim()))
                     .returnBundle(Bundle.class)
                     .execute();
+           bundleEntry=bundle.getEntry();
         } else {
             throw new BadRequestException("Found no valid identifierSystem and/or identifierValue");
         }
-        return bundle;
+        return bundleEntry;
     }
 
     private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel) {
