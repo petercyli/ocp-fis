@@ -13,6 +13,8 @@ import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
+import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,15 +75,13 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
     @Override
     public List<ReferenceDto> getEpisodeOfCaresForReference(String patient, Optional<String> organization, Optional<String> status) {
         List<ReferenceDto> referenceDtos = new ArrayList<>();
-        IQuery iQuery = fhirClient.search().forResource(Task.class);
+        IQuery iQuery = fhirClient.search().forResource(EpisodeOfCare.class);
 
         if (organization.isPresent())
             iQuery.where(new ReferenceClientParam("patient").hasId(patient))
-                    .where(new ReferenceClientParam("organization").hasId(organization.get()))
-                    .include(Task.INCLUDE_CONTEXT);
+                    .where(new ReferenceClientParam("organization").hasId(organization.get()));
         else
-            iQuery.where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
-                    .include(Task.INCLUDE_CONTEXT);
+            iQuery.where(new ReferenceClientParam("patient").hasId(patient));
 
         //Set Sort order
         iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
@@ -93,10 +93,17 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
 
             if (eocComponents != null) {
                 referenceDtos = eocComponents.stream()
-                        .filter(it -> it.getResource().getResourceType().equals(ResourceType.Task))
-                        .map(it -> (Task) it.getResource())
-                        .filter(task -> task.hasContext())
-                        .map(it -> EpisodeOfCareToEpisodeOfCareDtoMapper.mapToReferenceDto(it))
+                        .map(it -> (EpisodeOfCare) it.getResource())
+                        .map(it -> {
+                            ReferenceDto referenceDto=new ReferenceDto();
+                            referenceDto.setReference("EpisodeOfCare/"+it.getIdElement().getIdPart());
+                            Patient p=fhirClient.read().resource(Patient.class).withId(patient).execute();
+                            String name=p.getName().stream().findAny().get().getGiven().stream().findAny().get()+p.getName().stream().findAny().get().getFamily();
+                            Organization org=fhirClient.read().resource(Organization.class).withId(it.getManagingOrganization().getReference().split("/")[1]).execute();
+                            String orgName=org.getName();
+                            referenceDto.setDisplay(name+"-"+orgName);
+                            return referenceDto;
+                        })
                         .collect(toList());
             }
         }
