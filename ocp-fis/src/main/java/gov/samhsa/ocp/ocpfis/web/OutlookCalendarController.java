@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/EWS/calendar")
+@RequestMapping("/outlook/calendar")
 public class OutlookCalendarController {
 
     private final OutlookCalendarService outlookCalendarService;
