@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -14,8 +14,8 @@ import java.util.List;
 @NoArgsConstructor
 public class OutlookCalendarDto {
     private String subject;
-    private Date start;
-    private Date end;
+    private LocalDateTime start;
+    private LocalDateTime end;
     private String location;
     private String organizerEmail;
     private String organizerName;

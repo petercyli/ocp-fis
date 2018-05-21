@@ -62,6 +62,12 @@ public class DateUtil {
         return Date.from(dateTime.atZone(ZoneId.of("UTC")).toInstant());
     }
 
+    public static LocalDateTime convertDateToLocalDateTime(Date dateToConvert) {
+        return dateToConvert.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
+    }
+
     /**
      * Returns true if endDate is after startDate or if startDate equals endDate.
      * Returns false if either value is null.  If equalOK, returns true if the

@@ -1,7 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
-import gov.samhsa.ocp.ocpfis.service.dto.OutlookCalendarDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameAndEmailAddressDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OutlookCalendarDto;
 import gov.samhsa.ocp.ocpfis.service.exception.NotAuthorizedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
@@ -139,8 +139,8 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
         try {
             apt.load();
             eDto.setSubject(apt.getSubject());
-            eDto.setStart(apt.getStart());
-            eDto.setEnd(apt.getEnd());
+            eDto.setStart(DateUtil.convertDateToLocalDateTime(apt.getStart()));
+            eDto.setEnd(DateUtil.convertDateToLocalDateTime(apt.getEnd()));
             eDto.setLocation(apt.getLocation());
 
             if (apt.getOrganizer() != null) {
