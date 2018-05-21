@@ -4,6 +4,7 @@ import gov.samhsa.ocp.ocpfis.domain.DateRangeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TaskDto;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -15,9 +16,9 @@ public interface TaskService {
 
     List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<Boolean> isTodoList, Optional<DateRangeEnum> filterDate);
 
-    void createTask(TaskDto taskDto);
+    void createTask(TaskDto taskDto) throws FHIRException;
 
-    void updateTask(String taskId, TaskDto taskDto);
+    void updateTask(String taskId, TaskDto taskDto) throws FHIRException;
 
     void deactivateTask(String taskId);
 

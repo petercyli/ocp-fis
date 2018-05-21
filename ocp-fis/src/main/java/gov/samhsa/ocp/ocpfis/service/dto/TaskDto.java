@@ -80,6 +80,10 @@ public class TaskDto implements Comparable<TaskDto> {
 
     int dateDiff;
 
+    private int totalSubtasks;
+
+    private int remainingSubtasks;
+
     @Override
     public int compareTo(TaskDto taskDto) {
         if (endDateAvailable(this) && endDateAvailable(taskDto)) {

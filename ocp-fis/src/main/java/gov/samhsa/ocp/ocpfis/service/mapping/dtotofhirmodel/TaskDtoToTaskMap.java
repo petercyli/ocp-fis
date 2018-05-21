@@ -7,6 +7,7 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.dstu3.model.codesystems.TaskStatus;
+import org.hl7.fhir.exceptions.FHIRException;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -16,7 +17,7 @@ import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
 
 public class TaskDtoToTaskMap {
 
-    public static Task map(TaskDto taskDto) {
+    public static Task map(TaskDto taskDto) throws FHIRException {
         Task task = new Task();
         task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(taskDto.getDefinition()));
 
@@ -26,7 +27,7 @@ public class TaskDtoToTaskMap {
             task.setPartOf(partOfReferences);
         }
 
-        task.setStatus(Task.TaskStatus.valueOf(taskDto.getStatus().getDisplay().replaceAll("\\s", "").toUpperCase()));
+        task.setStatus(Task.TaskStatus.fromCode(taskDto.getStatus().getCode()));
         task.setIntent(Task.TaskIntent.valueOf(taskDto.getIntent().getDisplay().replaceAll("\\s", "").toUpperCase()));
         task.setPriority(Task.TaskPriority.valueOf(taskDto.getPriority().getDisplay().replaceAll("\\s", "").toUpperCase()));
 
