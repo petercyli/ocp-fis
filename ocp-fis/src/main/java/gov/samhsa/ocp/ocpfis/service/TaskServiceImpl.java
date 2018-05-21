@@ -180,7 +180,9 @@ public class TaskServiceImpl implements TaskService {
 
         if(patient.isPresent() && !isTodoList.isPresent()) {
             TaskDto toDoTaskDto = getToDoTaskDto(practitioner, patient, organization, definition);
-            taskDtos.add(toDoTaskDto);
+            if(!taskDtos.stream().map(taskDto -> taskDto.getLogicalId()).collect(toList()).contains(toDoTaskDto.getLogicalId())) {
+                taskDtos.add(toDoTaskDto);
+            }
         }
 
         log.info("Returning a list of tasks of size : " + taskDtos.size());
