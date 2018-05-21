@@ -91,7 +91,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         Bundle otherPageOrganizationSearchBundle;
         boolean firstPage = true;
 
-        firstPageOrganizationSearchBundle = PaginationUtil.getSearchBundleFirstPage(organizationIQuery,numberOfOrganizationsPerPage,Optional.empty());
+        firstPageOrganizationSearchBundle = PaginationUtil.getSearchBundleFirstPage(organizationIQuery, numberOfOrganizationsPerPage, Optional.empty());
 
         if (firstPageOrganizationSearchBundle == null || firstPageOrganizationSearchBundle.getEntry().size() < 1) {
             log.info("No organizations were found for the given criteria.");
@@ -185,11 +185,23 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     private int getOrganizationsCountByIdentifier(String system, String code) {
         log.info("Searching organizations with identifier.system : " + system + " and code : " + code);
-        IQuery searchQuery = fhirClient.search().forResource(Organization.class)
-                .where(new TokenClientParam("identifier").exactly().systemAndCode(system, code));
-        Bundle searchBundle = (Bundle) searchQuery.returnBundle(Bundle.class).execute();
-        log.info("Total " + searchBundle.getTotal());
-        return searchBundle.getTotal();
+
+        Bundle searchBundle = fhirClient.search().forResource(Organization.class).where(new TokenClientParam("identifier").exactly().systemAndCode(system, code))
+                .returnBundle(Bundle.class).execute();
+        if (searchBundle.getTotal() == 0) {
+            Bundle organizationBundle = fhirClient.search().forResource(Organization.class).returnBundle(Bundle.class).execute();
+            return FhirUtil.getAllBundleComponentsAsList(organizationBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(organization -> {
+                Organization o = (Organization) organization.getResource();
+                return o.getIdentifier().stream().anyMatch(identifier ->
+                        (identifier.getSystem().equalsIgnoreCase(system) &&
+                                identifier.getValue().replaceAll(" ", "")
+                                        .replaceAll("-", "").trim()
+                                        .equalsIgnoreCase(code.replaceAll(" ", "").replaceAll("-", "").trim()))
+                );
+            }).collect(toList()).size();
+        } else {
+            return searchBundle.getTotal();
+        }
     }
 
 
@@ -223,23 +235,10 @@ public class OrganizationServiceImpl implements OrganizationService {
     @Override
     public void updateOrganization(String organizationId, OrganizationDto organizationDto) {
         log.info("Updating the Organization with Id:" + organizationId);
-        //Check Duplicate Identifier
-        boolean hasDuplicateIdentifier = organizationDto.getIdentifiers().stream().anyMatch(identifierDto -> {
-            IQuery organizationsWithUpdatedIdentifierQuery = fhirClient.search()
-                    .forResource(Organization.class)
-                    .where(new TokenClientParam("identifier")
-                            .exactly().systemAndCode(identifierDto.getSystem(), identifierDto.getValue()));
-            Bundle organizationWithUpdatedIdentifierBundle = (Bundle) organizationsWithUpdatedIdentifierQuery.returnBundle(Bundle.class).execute();
-            Bundle organizationWithUpdatedIdentifierAndSameResourceIdBundle = (Bundle) organizationsWithUpdatedIdentifierQuery.where(new TokenClientParam("_id").exactly().code(organizationId)).returnBundle(Bundle.class).execute();
-            if (organizationWithUpdatedIdentifierBundle.getTotal() > 0) {
-                return organizationWithUpdatedIdentifierBundle.getTotal() != organizationWithUpdatedIdentifierAndSameResourceIdBundle.getTotal();
-            }
-            return false;
-        });
 
         Organization existingOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
 
-        if (!hasDuplicateIdentifier) {
+        if (!isDuplicateWhileUpdate(organizationDto)) {
             Organization updatedOrganization = modelMapper.map(organizationDto, Organization.class);
             existingOrganization.setIdentifier(updatedOrganization.getIdentifier());
             existingOrganization.setName(updatedOrganization.getName());
@@ -303,8 +302,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         try {
             existingFhirOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
-        }
-        catch (BaseServerResponseException e) {
+        } catch (BaseServerResponseException e) {
             log.error("FHIR Client returned with an error while reading the organization with ID: " + organizationId);
             throw new ResourceNotFoundException("FHIR Client returned with an error while reading the organization:" + e.getMessage());
         }
@@ -316,8 +314,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         try {
             MethodOutcome serverResponse = fhirClient.update().resource(existingFhirOrganization).execute();
             log.info("Inactivated the organization :" + serverResponse.getId().getIdPart());
-        }
-        catch (BaseServerResponseException e) {
+        } catch (BaseServerResponseException e) {
             log.error("Could NOT inactivate organization");
             throw new FHIRClientException("FHIR Client returned with an error while inactivating the organization:" + e.getMessage());
         }
@@ -332,6 +329,35 @@ public class OrganizationServiceImpl implements OrganizationService {
                     return organizationDto;
                 })
                 .collect(toList());
+    }
+
+    private boolean isDuplicateWhileUpdate(OrganizationDto organizationDto) {
+        final Organization organization = fhirClient.read().resource(Organization.class).withId(organizationDto.getLogicalId()).execute();
+
+        Bundle searchOrganization = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Organization.class)
+                .where(Organization.IDENTIFIER.exactly().systemAndIdentifier(organizationDto.getIdentifiers().stream().findFirst().get().getSystem(), organizationDto.getIdentifiers().stream().findFirst().get().getValue())))
+                .returnBundle(Bundle.class).execute();
+
+        if (!searchOrganization.getEntry().isEmpty()) {
+            return !organization.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(organizationDto.getIdentifiers().stream().findFirst().get().getSystem())
+                    && identifier.getValue().equalsIgnoreCase(organizationDto.getIdentifiers().stream().findFirst().get().getValue()));
+        } else {
+            Bundle organizationBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Organization.class)).returnBundle(Bundle.class).execute();
+            List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundleComponentsAsList(organizationBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(org -> {
+                Organization o = (Organization) org.getResource();
+                return o.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(organizationDto.getIdentifiers().stream().findFirst().get().getSystem()) && identifier.getValue().replaceAll(" ", "")
+                        .replaceAll("-", "").trim()
+                        .equalsIgnoreCase(organizationDto.getIdentifiers().stream().findFirst().get().getValue().replaceAll(" ", "").replaceAll("-", "").trim()));
+            }).collect(toList());
+            if (bundleEntryComponents.isEmpty()) {
+                return false;
+            } else {
+                return !bundleEntryComponents.stream().anyMatch(resource -> {
+                    Organization oRes = (Organization) resource.getResource();
+                    return oRes.getIdElement().getIdPart().equalsIgnoreCase(organization.getIdElement().getIdPart());
+                });
+            }
+        }
     }
 
 }

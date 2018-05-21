@@ -152,17 +152,30 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     private void checkForDuplicates(RelatedPersonDto relatedPersonDto, String patientId) {
-        Bundle relatedPersonBundle = fhirClient.search().forResource(RelatedPerson.class)
+        Bundle relatedPersonBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(RelatedPerson.class)
                 .where(RelatedPerson.IDENTIFIER.exactly().systemAndIdentifier(relatedPersonDto.getIdentifierType(), relatedPersonDto.getIdentifierValue()))
-                .where(new TokenClientParam("patient").exactly().code(patientId))
+                .where(new TokenClientParam("patient").exactly().code(patientId)))
                 .returnBundle(Bundle.class)
                 .execute();
         log.info("Existing RelatedPersons size : " + relatedPersonBundle.getEntry().size());
 
         if(!relatedPersonBundle.getEntry().isEmpty()) {
             throw new DuplicateResourceFoundException("RelatedPerson already exists with the given Identifier Type and Identifier Value");
-        }
+        }else{
+            Bundle rPBundle= (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(RelatedPerson.class)
+                    .where(new TokenClientParam("patient").exactly().code(patientId)))
+                    .returnBundle(Bundle.class)
+                    .execute();
 
+            if(!FhirUtil.getAllBundleComponentsAsList(rPBundle,Optional.empty(),fhirClient,fisProperties).stream().filter(relatedP-> {
+                RelatedPerson rp= (RelatedPerson) relatedP.getResource();
+                return rp.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(relatedPersonDto.getIdentifierType()) && identifier.getValue().replaceAll(" ", "")
+                        .replaceAll("-", "").trim()
+                        .equalsIgnoreCase(relatedPersonDto.getIdentifierValue().replaceAll(" ", "").replaceAll("-", "").trim()));
+            } ).collect(toList()).isEmpty()){
+                throw new DuplicateResourceFoundException("RelatedPerson already exists with the given Identifier Type and Identifier Value");
+            }
+        }
     }
 
     private void validate(RelatedPerson relatedPerson) {

@@ -509,16 +509,23 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         for (ValueSetDto tempType : typeList) {
             String typeSystem = tempType.getSystem();
             String typeCode = tempType.getCode();
-            checkDuplicateHealthcareServiceExistsDuringCreate(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
+            checkDuplicateHealthcareServiceExistsDuringCreate(organizationId, categorySystem, categoryCode, typeSystem, typeCode, healthcareServiceDto.getName());
         }
         log.info("Create Healthcare Service: Found no duplicate Healthcare service.");
     }
 
-    private void checkDuplicateHealthcareServiceExistsDuringCreate(String organizationId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
+    private void checkDuplicateHealthcareServiceExistsDuringCreate(String organizationId, String categorySystem, String categoryCode, String typeSystem, String typeCode, String healthcareServiceName) {
         Bundle bundle = getHealthCareServiceBundleBasedOnCategoryAndType(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
 
         if (bundle != null && !bundle.getEntry().isEmpty()) {
-            throw new DuplicateResourceFoundException("The current organization: " + organizationId + " already has active Healthcare Service(s) with the Category System " + categorySystem + " and Category Code " + categoryCode + " with Type system " + typeSystem + " and Type Code: " + typeCode);
+            List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties)
+                    .stream().filter(res -> {
+                        HealthcareService healthcareService = (HealthcareService) res.getResource();
+                        return healthcareService.getName().equalsIgnoreCase(healthcareServiceName);
+                    }).collect(Collectors.toList());
+            if (!bundleEntryComponents.isEmpty()) {
+                throw new DuplicateResourceFoundException("The current organization: " + organizationId + " already has active Healthcare Service(s) with the Category System " + categorySystem + " and Category Code " + categoryCode + " with Type system " + typeSystem + " and Type Code: " + typeCode);
+            }
         }
     }
 
@@ -533,21 +540,30 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         for (ValueSetDto tempType : typeList) {
             String typeSystem = tempType.getSystem();
             String typeCode = tempType.getCode();
-            checkDuplicateHealthcareServiceExistsDuringUpdate(organizationId, healthcareServiceId, categorySystem, categoryCode, typeSystem, typeCode);
+            checkDuplicateHealthcareServiceExistsDuringUpdate(organizationId, healthcareServiceId, categorySystem, categoryCode, typeSystem, typeCode, healthcareServiceDto.getName());
         }
         log.info("Update Healthcare Service: Found no duplicate Healthcare service");
 
     }
 
-    private void checkDuplicateHealthcareServiceExistsDuringUpdate(String organizationId, String healthcareServiceId, String categorySystem, String categoryCode, String typeSystem, String typeCode) {
+    private void checkDuplicateHealthcareServiceExistsDuringUpdate(String organizationId, String healthcareServiceId, String categorySystem, String categoryCode, String typeSystem, String typeCode,String healthcareServiceName) {
         Bundle bundle = getHealthCareServiceBundleBasedOnCategoryAndType(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
 
-        if (bundle != null && bundle.getEntry().size() > 1) {
-            throw new DuplicateResourceFoundException("A Healthcare Service already exists");
-        } else if (bundle != null && bundle.getEntry().size() == 1) {
-            String logicalId = bundle.getEntry().get(0).getResource().getIdElement().getIdPart();
-            if (!healthcareServiceId.trim().equalsIgnoreCase(logicalId.trim())) {
-                throw new DuplicateResourceFoundException("A Healthcare Service already exists");
+        List<Bundle.BundleEntryComponent> bundleEntryComponents=FhirUtil.getAllBundleComponentsAsList(bundle,Optional.empty(),fhirClient,fisProperties);
+
+        if(!bundleEntryComponents.isEmpty()){
+            List<Bundle.BundleEntryComponent> bundleEntryComponentList= bundleEntryComponents.stream().filter(bundleEntryComponent ->{
+                HealthcareService healthcareService= (HealthcareService) bundleEntryComponent.getResource();
+                 return healthcareService.getName().equalsIgnoreCase(healthcareServiceName);
+            }).collect(Collectors.toList());
+
+            if(bundleEntryComponentList.size()==1){
+                String logicalId=bundleEntryComponentList.stream().findFirst().get().getResource().getIdElement().getIdPart();
+                if(!healthcareServiceId.trim().equalsIgnoreCase(logicalId.trim())){
+                    throw new DuplicateResourceFoundException("A Healtcare Service already exists.");
+                }
+            }else if(bundleEntryComponentList.size()>1){
+                throw new DuplicateResourceFoundException("A Healthcare Service already exists.");
             }
         }
     }
