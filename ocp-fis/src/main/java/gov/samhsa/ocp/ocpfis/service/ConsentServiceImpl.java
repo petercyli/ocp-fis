@@ -39,6 +39,7 @@ import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.codesystems.V3ActReason;
 import org.hl7.fhir.exceptions.FHIRException;
+import org.hl7.fhir.r4.model.codesystems.V3ActCode;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -464,7 +465,7 @@ public class ConsentServiceImpl implements ConsentService {
 
         List<Consent.ConsentActorComponent> actors = new ArrayList<>();
 
-        //Getting psuedo organization
+        //Getting pseudo organization
         Bundle organizationBundle = getPseudoOrganization();
 
         organizationBundle.getEntry().stream().findAny().ifPresent(entry -> {
@@ -488,7 +489,8 @@ public class ConsentServiceImpl implements ConsentService {
                     .where(new ReferenceClientParam("subject").hasId(consentDto.getPatient().getReference()))
                     .returnBundle(Bundle.class).execute();
 
-            careTeamBundle.getEntry().stream().map(careTeamEntry -> (CareTeam) careTeamEntry.getResource()).map(careTeam -> convertCareTeamToActor(careTeam, FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_RECIPIENT_CODE, lookUpService.getSecurityRole()))).forEach(actors::add);
+            careTeamBundle.getEntry().stream().map(careTeamEntry -> (CareTeam) careTeamEntry.getResource()).map(careTeam -> convertCareTeamToActor(careTeam, FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_RECIPIENT_CODE, lookUpService
+                    .getSecurityRole()))).forEach(actors::add);
             consent.setActor(actors);
         } else {
             List<Consent.ConsentActorComponent> fromActors = consentDto.getFromActor().stream().map(fromActor -> {
@@ -508,9 +510,38 @@ public class ConsentServiceImpl implements ConsentService {
 
             consent.setActor(fromActors);
         }
+        // set Medical Information
+        setMedicalInformation(consentDto, consent);
 
         return consent;
     }
+
+    private void setMedicalInformation(ConsentDto consentDto, Consent consent) {
+        // Adding Medical Information
+        Consent.ExceptComponent exceptComponent = new Consent.ExceptComponent();
+
+        // List of included Sensitive policy codes
+        exceptComponent.setType(Consent.ConsentExceptType.PERMIT);
+        if (consentDto.isGeneralDesignation()) {
+            // share all
+            exceptComponent.setSecurityLabel(getIncludeCodingList(lookUpService.getSecurityLabel()));
+         } else {
+            // share the one user selects
+            exceptComponent.setSecurityLabel(getIncludeCodingList(consentDto.getMedicalInformation()));
+        }
+        consent.setExcept(Collections.singletonList(exceptComponent));
+    }
+
+    private List<Coding> getIncludeCodingList(List<ValueSetDto> medicalInfoList) {
+        // Set Exempt portion
+        String systemUrl = fisProperties.getConsent().getCodeSystem();
+        // Get "share" categories from consent
+        return medicalInfoList
+                .stream()
+                .map(valueSetDto -> new Coding(systemUrl, valueSetDto.getCode(), valueSetDto.getDisplay()))
+                .collect(Collectors.toList());
+    }
+
 
     private Consent.ConsentActorComponent convertCareTeamToActor(CareTeam careTeam, ValueSetDto securityRoleValueSet) {
         Consent.ConsentActorComponent actor = new Consent.ConsentActorComponent();
