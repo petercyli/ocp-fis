@@ -46,7 +46,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -595,7 +594,7 @@ public class ConsentServiceImpl implements ConsentService {
                 ).collect(Collectors.toList());
 
         List<AbstractCareTeamDto> fromPractitionerActors = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("Practitioner"))
-                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
+                .map(actor -> FhirUtil.getPractitionerActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
@@ -611,7 +610,7 @@ public class ConsentServiceImpl implements ConsentService {
                 ).collect(Collectors.toList());
 
         List<AbstractCareTeamDto> toPractitionerActors = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("Practitioner"))
-                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
+                .map(actor -> FhirUtil.getPractitionerActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
