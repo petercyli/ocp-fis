@@ -28,6 +28,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.RandomStringUtils;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -70,13 +71,7 @@ public class PatientServiceImpl implements PatientService {
     public static final String EXTENSION_URL_ETHNICITY = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity";
     public static final String CODING_SYSTEM_BIRTHSEX = "http://hl7.org/fhir/v3/AdministrativeGender";
     public static final String EXTENSION_URL_BIRTHSEX = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex";
-    public static final String RACE_CODE = "Race";
-    public static final String LANGUAGE_CODE = "language";
-    public static final String ETHNICITY_CODE = "Ethnicity";
-    public static final String GENDER_CODE = "Gender";
     public static final String TO_DO = "To-Do";
-    public static final String UNIQUE_IDENTIFIER_SYSTEM="1.12.232.43.423.4";
-    public static final String UNIQUE_IDENTIFIER_DISPLAY="UND";
 
     private final IGenericClient fhirClient;
     private final IParser iParser;
@@ -246,10 +241,10 @@ public class PatientServiceImpl implements PatientService {
             if(checkDuplicateInFhir(patientDto)){
                 patientDto.getIdentifier().add(setUniqueIdentifierForPatient(patientsWithMatchedDuplicateCheckParameters(patientDto).stream()
                         .map(pat->(Patient)pat.getResource()).findAny().get().getIdentifier().stream()
-                        .filter(iden->iden.getSystem().equalsIgnoreCase(UNIQUE_IDENTIFIER_SYSTEM))
-                        .map(iden->iden.getValue()).findAny().orElse(UUID.randomUUID().toString())));
+                        .filter(iden->iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID()))
+                        .map(iden->iden.getValue()).findAny().orElse(generateRandomMrn())));
             }else{
-                patientDto.getIdentifier().add(setUniqueIdentifierForPatient(UUID.randomUUID().toString()));
+                patientDto.getIdentifier().add(setUniqueIdentifierForPatient(generateRandomMrn()));
             }
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
@@ -601,7 +596,9 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private IdentifierDto setUniqueIdentifierForPatient(String value){
-        return IdentifierDto.builder().system(UNIQUE_IDENTIFIER_SYSTEM).systemDisplay(UNIQUE_IDENTIFIER_DISPLAY).value(value).display(value).build();
+        return IdentifierDto.builder().system(fisProperties.getPatient().getMrn().getCodeSystemOID())
+                .systemDisplay(fisProperties.getPatient().getMrn().getDisplayName())
+                .value(value).display(value).build();
     }
 
     private List<Bundle.BundleEntryComponent> patientsWithMatchedDuplicateCheckParameters(PatientDto patientDto){
@@ -633,6 +630,17 @@ public class PatientServiceImpl implements PatientService {
 
     private boolean checkGender(Patient p, PatientDto patientDto){
         return  p.getGender().toCode().equalsIgnoreCase(patientDto.getGenderCode());
+    }
+
+    private String generateRandomMrn(){
+        StringBuilder localIdIdBuilder = new StringBuilder();
+        if (null != fisProperties.getPatient().getMrn().getPrefix()) {
+            localIdIdBuilder.append(fisProperties.getPatient().getMrn().getPrefix());
+            localIdIdBuilder.append("-");
+        }
+        localIdIdBuilder.append(RandomStringUtils
+                .randomAlphanumeric((fisProperties.getPatient().getMrn().getLength())));
+        return localIdIdBuilder.toString().toUpperCase();
     }
 
 }
