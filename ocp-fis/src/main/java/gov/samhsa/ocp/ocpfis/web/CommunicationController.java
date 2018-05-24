@@ -27,9 +27,10 @@ public class CommunicationController {
     public PageDto<CommunicationDto> getCommunications(@RequestParam Optional<List<String>> statusList,
                                                        @RequestParam(value = "searchKey") String searchKey,
                                                        @RequestParam(value = "searchValue") String searchValue,
+                                                       @RequestParam(value = "organization") Optional<String> organization,
                                                        @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                        @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return communicationService.getCommunications(statusList, searchKey, searchValue, pageNumber, pageSize);
+        return communicationService.getCommunications(statusList, searchKey, searchValue, organization, pageNumber, pageSize);
     }
 
 

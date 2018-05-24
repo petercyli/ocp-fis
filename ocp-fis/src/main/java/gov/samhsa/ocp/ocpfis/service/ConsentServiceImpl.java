@@ -22,6 +22,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.NoDataFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
+import gov.samhsa.ocp.ocpfis.service.pdf.ConsentRevocationPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
@@ -38,6 +39,7 @@ import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.codesystems.V3ActReason;
 import org.hl7.fhir.exceptions.FHIRException;
+import org.hl7.fhir.r4.model.codesystems.V3ActCode;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -45,7 +47,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -71,6 +72,7 @@ public class ConsentServiceImpl implements ConsentService {
     private final FisProperties fisProperties;
     private final ModelMapper modelMapper;
     private final ConsentPdfGenerator consentPdfGenerator;
+    private final ConsentRevocationPdfGenerator consentRevocationPdfGenerator;
 
     private final PatientService patientService;
 
@@ -82,12 +84,15 @@ public class ConsentServiceImpl implements ConsentService {
                               IGenericClient fhirClient,
                               LookUpService lookUpService,
                               FisProperties fisProperties,
-                              ConsentPdfGenerator consentPdfGenerator, PatientService patientService, FhirValidator fhirValidator) {
+                              ConsentPdfGenerator consentPdfGenerator,
+                              ConsentRevocationPdfGenerator consentRevocationPdfGenerator,
+                              PatientService patientService, FhirValidator fhirValidator) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.consentPdfGenerator = consentPdfGenerator;
+        this.consentRevocationPdfGenerator = consentRevocationPdfGenerator;
         this.patientService = patientService;
         this.fhirValidator = fhirValidator;
     }
@@ -238,7 +243,7 @@ public class ConsentServiceImpl implements ConsentService {
         int numberOfActorsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Consent.name());
 
         //Getting List of practitioners
-        List<AbstractCareTeamDto> abstractCareTeamDtoList = FhirUtil.getPractitionerActors(patientId, name, Optional.empty(), Optional.empty(),fhirClient, fisProperties);
+        List<AbstractCareTeamDto> abstractCareTeamDtoList = FhirUtil.getPractitionerActors(patientId, name, Optional.empty(), Optional.empty(), fhirClient, fisProperties);
 
         //Add organizations
         abstractCareTeamDtoList.addAll(FhirUtil.getOrganizationActors(patientId, name, Optional.empty(), Optional.empty(), fhirClient, fisProperties));
@@ -272,8 +277,7 @@ public class ConsentServiceImpl implements ConsentService {
                 consentDto.setSourceAttachment(pdfBytes);
             }
 
-        }
-        catch (FHIRException | IOException e) {
+        } catch (FHIRException | IOException e) {
             log.error("No Consent document found");
             throw new NoDataFoundException("No Consent document found");
         }
@@ -332,15 +336,39 @@ public class ConsentServiceImpl implements ConsentService {
 
         DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
 
-
-
         try {
             log.info("Updating consent: Generating the attested PDF");
             byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(detailedConsentDto, patientDto, operatedByPatient);
             consent.setSource(addAttachment(pdfBytes));
 
+        } catch (IOException e) {
+            throw new ConsentPdfGenerationException(e);
         }
-        catch (IOException e) {
+        //consent.getSourceAttachment().getData();
+        log.info("Updating consent: Saving the consent into the FHIR server.");
+        fhirClient.update().resource(consent).execute();
+    }
+
+    @Override
+    public void revokeConsent(String consentId) {
+
+        Consent consent = fhirClient.read().resource(Consent.class).withId(consentId.trim()).execute();
+        consent.setStatus(Consent.ConsentState.INACTIVE);
+
+        ConsentDto consentDto = getConsentsById(consentId);
+        consentDto.setStatus("Inactive");
+
+        String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
+        PatientDto patientDto = patientService.getPatientById(patientID);
+
+        DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
+
+        try {
+            log.info("Updating consent: Generating the revocation PDF");
+            byte[] pdfBytes = consentRevocationPdfGenerator.generateConsentRevocationPdf(detailedConsentDto, patientDto, operatedByPatient);
+            consent.setSource(addAttachment(pdfBytes));
+
+        } catch (IOException e) {
             throw new ConsentPdfGenerationException(e);
         }
         //consent.getSourceAttachment().getData();
@@ -369,8 +397,7 @@ public class ConsentServiceImpl implements ConsentService {
             byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(detailedConsentDto, patientDto, operatedByPatient);
             return new PdfDto(pdfBytes);
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new ConsentPdfGenerationException(e);
         }
     }
@@ -416,8 +443,7 @@ public class ConsentServiceImpl implements ConsentService {
             if (consentDto.getStatus() != null) {
                 try {
                     consent.setStatus(Consent.ConsentState.fromCode(consentDto.getStatus()));
-                }
-                catch (FHIRException e) {
+                } catch (FHIRException e) {
                     throw new ResourceNotFoundException("Invalid consent status found.");
                 }
             }
@@ -439,7 +465,7 @@ public class ConsentServiceImpl implements ConsentService {
 
         List<Consent.ConsentActorComponent> actors = new ArrayList<>();
 
-        //Getting psuedo organization
+        //Getting pseudo organization
         Bundle organizationBundle = getPseudoOrganization();
 
         organizationBundle.getEntry().stream().findAny().ifPresent(entry -> {
@@ -463,7 +489,8 @@ public class ConsentServiceImpl implements ConsentService {
                     .where(new ReferenceClientParam("subject").hasId(consentDto.getPatient().getReference()))
                     .returnBundle(Bundle.class).execute();
 
-            careTeamBundle.getEntry().stream().map(careTeamEntry -> (CareTeam) careTeamEntry.getResource()).map(careTeam -> convertCareTeamToActor(careTeam, FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_RECIPIENT_CODE, lookUpService.getSecurityRole()))).forEach(actors::add);
+            careTeamBundle.getEntry().stream().map(careTeamEntry -> (CareTeam) careTeamEntry.getResource()).map(careTeam -> convertCareTeamToActor(careTeam, FhirDtoUtil.convertCodeToValueSetDto(INFORMANT_RECIPIENT_CODE, lookUpService
+                    .getSecurityRole()))).forEach(actors::add);
             consent.setActor(actors);
         } else {
             List<Consent.ConsentActorComponent> fromActors = consentDto.getFromActor().stream().map(fromActor -> {
@@ -483,9 +510,38 @@ public class ConsentServiceImpl implements ConsentService {
 
             consent.setActor(fromActors);
         }
+        // set Medical Information
+        setMedicalInformation(consentDto, consent);
 
         return consent;
     }
+
+    private void setMedicalInformation(ConsentDto consentDto, Consent consent) {
+        // Adding Medical Information
+        Consent.ExceptComponent exceptComponent = new Consent.ExceptComponent();
+
+        // List of included Sensitive policy codes
+        exceptComponent.setType(Consent.ConsentExceptType.PERMIT);
+        if (consentDto.isGeneralDesignation()) {
+            // share all
+            exceptComponent.setSecurityLabel(getIncludeCodingList(lookUpService.getSecurityLabel()));
+         } else {
+            // share the one user selects
+            exceptComponent.setSecurityLabel(getIncludeCodingList(consentDto.getMedicalInformation()));
+        }
+        consent.setExcept(Collections.singletonList(exceptComponent));
+    }
+
+    private List<Coding> getIncludeCodingList(List<ValueSetDto> medicalInfoList) {
+        // Set Exempt portion
+        String systemUrl = fisProperties.getConsent().getCodeSystem();
+        // Get "share" categories from consent
+        return medicalInfoList
+                .stream()
+                .map(valueSetDto -> new Coding(systemUrl, valueSetDto.getCode(), valueSetDto.getDisplay()))
+                .collect(Collectors.toList());
+    }
+
 
     private Consent.ConsentActorComponent convertCareTeamToActor(CareTeam careTeam, ValueSetDto securityRoleValueSet) {
         Consent.ConsentActorComponent actor = new Consent.ConsentActorComponent();
@@ -561,36 +617,36 @@ public class ConsentServiceImpl implements ConsentService {
 
     }
 
-    private DetailedConsentDto convertConsentDtoToDetailedConsentDto(ConsentDto consentDto){
+    private DetailedConsentDto convertConsentDtoToDetailedConsentDto(ConsentDto consentDto) {
 
         List<AbstractCareTeamDto> fromOrganizationActors = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("Organization"))
-                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/","")), Optional.empty(), fhirClient,fisProperties)
-                .stream().findAny().get()
-        ).collect(Collectors.toList());
+                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/", "")), Optional.empty(), fhirClient, fisProperties)
+                        .stream().findAny().get()
+                ).collect(Collectors.toList());
 
         List<AbstractCareTeamDto> fromPractitionerActors = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("Practitioner"))
-                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/","")), Optional.empty(), fhirClient,fisProperties)
+                .map(actor -> FhirUtil.getPractitionerActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
         List<AbstractCareTeamDto> fromRelatedPersons = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("RelatedPerson"))
-                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/","")), Optional.empty(), fhirClient,fisProperties)
+                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
 
         List<AbstractCareTeamDto> toOrganizationActors = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("Organization"))
-                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/","")), Optional.empty(), fhirClient,fisProperties)
+                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
         List<AbstractCareTeamDto> toPractitionerActors = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("Practitioner"))
-                .map(actor -> FhirUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/","")), Optional.empty(), fhirClient,fisProperties)
+                .map(actor -> FhirUtil.getPractitionerActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
         List<AbstractCareTeamDto> toRelatedPersons = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("RelatedPerson"))
-                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/","")), Optional.empty(), fhirClient,fisProperties)
+                .map(actor -> FhirUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(Collectors.toList());
 
@@ -621,7 +677,6 @@ public class ConsentServiceImpl implements ConsentService {
                 .sourceAttachment(consentDto.getSourceAttachment())
                 .build();
     }
-
 
 
 }

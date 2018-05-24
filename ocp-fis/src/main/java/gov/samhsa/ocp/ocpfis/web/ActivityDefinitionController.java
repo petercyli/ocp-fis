@@ -26,7 +26,11 @@ public class ActivityDefinitionController {
 
     @PostMapping("/organizations/{organizationId}/activity-definitions")
     public void createActivityDefinition(@PathVariable String organizationId, @RequestBody ActivityDefinitionDto activityDefinitionDto) {
-        activityDefinitionService.createActivityDefinition(activityDefinitionDto, organizationId);
+        try {
+            activityDefinitionService.createActivityDefinition(activityDefinitionDto, organizationId);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     @PutMapping("/organizations/{organizationId}/activity-definitions/{activityDefinitionId}")
@@ -51,5 +55,11 @@ public class ActivityDefinitionController {
     @GetMapping("/activity-definitions")
     public List<ReferenceDto> getActivityDefinitionsByPractitioner(@RequestParam(value = "practitioner") String practitioner) {
         return activityDefinitionService.getActivityDefinitionsByPractitioner(practitioner);
+    }
+
+    @GetMapping("/organizations/{organizationId}/activity-definitions/definition-reference")
+    public String getSearchedActivityDefinition(@PathVariable String organizationId,
+                                                                     @RequestParam(value="name") String name){
+        return activityDefinitionService.getActivityDefinitionByName(organizationId,name);
     }
 }
