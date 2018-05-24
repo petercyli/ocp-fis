@@ -9,7 +9,7 @@ ribbon:
   ReadTimeout: 50000
 ocp-fis:
   fhir:
-    serverUrl: http://ocp.consent2share.org/fhir/baseDstu3
+    serverUrl: http://34.202.133.253:8080/fhir/baseDstu3
     clientSocketTimeoutInMs: 768000
     encoding: json
     defaultResourceBundlePageSize: 10
@@ -45,6 +45,12 @@ ocp-fis:
   patient:
     pagination:
       default-size: 20
+     mrn:
+      codeSystem: https://bhits.github.io/consent2share
+      codeSystemOID: 1.3.6.1.4.1.21367.13.20.200
+      displayName: MRN
+      prefix: OCP-DEV
+      length: 10
   healthcareService:
     pagination:
       default-size: 20

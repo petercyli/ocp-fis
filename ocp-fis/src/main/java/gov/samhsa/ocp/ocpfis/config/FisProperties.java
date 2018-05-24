@@ -274,6 +274,9 @@ public class FisProperties {
         @Valid
         private Pagination pagination = new Pagination();
 
+        @Valid
+        private Mrn mrn = new Mrn();
+
         @Data
         public static class Pagination {
             @Min(1)
@@ -282,6 +285,15 @@ public class FisProperties {
             @Min(1)
             @Max(500)
             private int maxSize = 50;
+        }
+
+        @Data
+        public static class Mrn {
+            private String codeSystem;
+            private String codeSystemOID;
+            private String displayName;
+            private String prefix;
+            private int length;
         }
     }
 
