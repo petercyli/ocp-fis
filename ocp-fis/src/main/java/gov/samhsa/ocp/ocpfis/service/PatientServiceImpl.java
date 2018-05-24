@@ -11,6 +11,7 @@ import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
+import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
@@ -35,6 +36,7 @@ import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Flag;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Period;
@@ -49,6 +51,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.createExtension;
@@ -72,6 +75,8 @@ public class PatientServiceImpl implements PatientService {
     public static final String ETHNICITY_CODE = "Ethnicity";
     public static final String GENDER_CODE = "Gender";
     public static final String TO_DO = "To-Do";
+    public static final String UNIQUE_IDENTIFIER_SYSTEM="1.12.232.43.423.4";
+    public static final String UNIQUE_IDENTIFIER_DISPLAY="UND";
 
     private final IGenericClient fhirClient;
     private final IParser iParser;
@@ -238,6 +243,14 @@ public class PatientServiceImpl implements PatientService {
     public void createPatient(PatientDto patientDto) {
 
         if(!checkDuplicatePatientOfSameOrganization(patientDto)){
+            if(checkDuplicateInFhir(patientDto)){
+                patientDto.getIdentifier().add(setUniqueIdentifierForPatient(patientsWithMatchedDuplicateCheckParameters(patientDto).stream()
+                        .map(pat->(Patient)pat.getResource()).findAny().get().getIdentifier().stream()
+                        .filter(iden->iden.getSystem().equalsIgnoreCase(UNIQUE_IDENTIFIER_SYSTEM))
+                        .map(iden->iden.getValue()).findAny().orElse(UUID.randomUUID().toString())));
+            }else{
+                patientDto.getIdentifier().add(setUniqueIdentifierForPatient(UUID.randomUUID().toString()));
+            }
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(orgReference(patientDto.getOrganizationId())));
@@ -245,7 +258,7 @@ public class PatientServiceImpl implements PatientService {
             patient.setGender(FhirUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
-            setExtensionFields(patient, patientDto);
+             setExtensionFields(patient, patientDto);
 
             final ValidationResult validationResult = fhirValidator.validateWithResult(patient);
             if (validationResult.isSuccessful()) {
@@ -577,7 +590,8 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private boolean checkDuplicatePatientOfSameOrganization(PatientDto patientDto){
-        if(!patientsWithMatchedDuplicateCheckParameters(patientDto).isEmpty()) {
+        List<Bundle.BundleEntryComponent> patientWithDuplicateParameters=patientsWithMatchedDuplicateCheckParameters(patientDto);
+        if(!patientWithDuplicateParameters.isEmpty()) {
             return !patientsWithMatchedDuplicateCheckParameters(patientDto).stream().filter(pat -> {
                 Patient patient = (Patient) pat.getResource();
                 return (patient.hasManagingOrganization()) ? patient.getManagingOrganization().getReference().split("/")[1].equalsIgnoreCase(patientDto.getOrganizationId().get()) : false;
@@ -586,19 +600,39 @@ public class PatientServiceImpl implements PatientService {
         return false;
     }
 
+    private IdentifierDto setUniqueIdentifierForPatient(String value){
+        return IdentifierDto.builder().system(UNIQUE_IDENTIFIER_SYSTEM).systemDisplay(UNIQUE_IDENTIFIER_DISPLAY).value(value).display(value).build();
+    }
+
     private List<Bundle.BundleEntryComponent> patientsWithMatchedDuplicateCheckParameters(PatientDto patientDto){
         String system=patientDto.getIdentifier().get(0).getSystem();
         String value=patientDto.getIdentifier().get(0).getValue();
-        log.info("Searching patients with identifier.system : " + system + " and value : " + value);
+        log.info("Searching patients with identifier system : " + system + " and value : " + value);
         Bundle patientBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class)).returnBundle(Bundle.class).execute();
         return FhirUtil.getAllBundleComponentsAsList(patientBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(patient -> {
             Patient p = (Patient) patient.getResource();
-            return p.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(system) && identifier.getValue().replaceAll(" ", "")
-                    .replaceAll("-", "").trim()
-                    .equalsIgnoreCase(value.replaceAll(" ", "").replaceAll("-", "").trim())
-                    && p.getName().stream().findAny().get().getGiven().stream().findAny().get().toString().equalsIgnoreCase(patientDto.getName().stream().findAny().get().getFirstName())
-                    && p.getBirthDate().equals(patientDto.getBirthDate()) && p.getGender().toCode().equalsIgnoreCase(patientDto.getGenderCode()));
+            return p.getIdentifier().stream().anyMatch(identifier -> checkIdentifier(system,value,identifier)) &&
+                   checkFirstName(p,patientDto)
+                    && checkBirthdate(p, patientDto) && checkGender(p, patientDto);
         }).collect(toList());
+    }
+
+    private boolean checkIdentifier(String system, String value, Identifier identifier){
+       return identifier.getSystem().equalsIgnoreCase(system) && identifier.getValue().replaceAll(" ", "")
+                .replaceAll("-", "").trim()
+                .equalsIgnoreCase(value.replaceAll(" ", "").replaceAll("-", "").trim());
+    }
+
+    private boolean checkFirstName(Patient p, PatientDto patientDto){
+        return p.getName().stream().findAny().get().getGiven().stream().findAny().get().toString().equalsIgnoreCase(patientDto.getName().stream().findAny().get().getFirstName());
+    }
+
+    private boolean checkBirthdate(Patient p, PatientDto patientDto){
+        return modelMapper.map(p,PatientDto.class).getBirthDate().toString().equalsIgnoreCase(patientDto.getBirthDate().toString());
+    }
+
+    private boolean checkGender(Patient p, PatientDto patientDto){
+        return  p.getGender().toCode().equalsIgnoreCase(patientDto.getGenderCode());
     }
 
 }
