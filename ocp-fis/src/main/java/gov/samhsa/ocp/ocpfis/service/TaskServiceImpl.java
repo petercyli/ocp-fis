@@ -764,7 +764,7 @@ public class TaskServiceImpl implements TaskService {
     private Map<Task.TaskStatus, List<Task.TaskStatus>> populateTaskStatuses() {
         Map<Task.TaskStatus, List<Task.TaskStatus>> map = new HashMap<Task.TaskStatus, List<Task.TaskStatus>>();
 
-        map.put(Task.TaskStatus.DRAFT, Arrays.asList(Task.TaskStatus.DRAFT, Task.TaskStatus.READY, Task.TaskStatus.REQUESTED));
+        map.put(Task.TaskStatus.DRAFT, Arrays.asList(Task.TaskStatus.DRAFT, Task.TaskStatus.READY, Task.TaskStatus.REQUESTED, Task.TaskStatus.CANCELLED));
         map.put(Task.TaskStatus.READY, Arrays.asList(Task.TaskStatus.READY, Task.TaskStatus.INPROGRESS, Task.TaskStatus.CANCELLED));
         map.put(Task.TaskStatus.REQUESTED, Arrays.asList(Task.TaskStatus.REQUESTED, Task.TaskStatus.RECEIVED, Task.TaskStatus.ACCEPTED, Task.TaskStatus.REJECTED, Task.TaskStatus.CANCELLED));
         map.put(Task.TaskStatus.RECEIVED, Arrays.asList(Task.TaskStatus.RECEIVED, Task.TaskStatus.ACCEPTED, Task.TaskStatus.REJECTED, Task.TaskStatus.CANCELLED));
@@ -782,7 +782,7 @@ public class TaskServiceImpl implements TaskService {
         List<TaskDto> subtasks = this.getMainAndSubTasks(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(taskDto.getLogicalId()), Optional.empty(), Optional.empty(), Optional.empty());
 
         if(subtasks != null && subtasks.isEmpty()) {
-            valid = true;
+            return true;
         }
 
         //if the new status is not in the final status
