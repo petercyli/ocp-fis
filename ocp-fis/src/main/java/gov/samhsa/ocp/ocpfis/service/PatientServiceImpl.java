@@ -546,22 +546,8 @@ public class PatientServiceImpl implements PatientService {
 
     private boolean isDuplicateWhileUpdate(PatientDto patientDto) {
         final Patient patient = fhirClient.read().resource(Patient.class).withId(patientDto.getId()).execute();
-
-        Bundle searchPatient = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class).where(Patient.IDENTIFIER.exactly().systemAndIdentifier(patientDto.getIdentifier().stream().findFirst().get().getSystem(), patientDto.getIdentifier().stream().findFirst().get().getValue())))
-                .returnBundle(Bundle.class).execute();
-
-        if (!searchPatient.getEntry().isEmpty()) {
-            return !patient.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getSystem())
-                    && identifier.getValue().equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getValue()));
-        } else {
-            Bundle patientBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class)).returnBundle(Bundle.class).execute();
-            List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundleComponentsAsList(patientBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(pat -> {
-                Patient p = (Patient) pat.getResource();
-                return p.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getSystem()) && identifier.getValue().replaceAll(" ", "")
-                        .replaceAll("-", "").trim()
-                        .equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getValue().replaceAll(" ", "").replaceAll("-", "").trim()));
-            }).collect(toList());
-            if (bundleEntryComponents.isEmpty()) {
+        List<Bundle.BundleEntryComponent> bundleEntryComponents = patientsWithMatchedDuplicateCheckParameters(patientDto);
+        if (bundleEntryComponents.isEmpty()) {
                 return false;
             } else {
                 return !bundleEntryComponents.stream().anyMatch(resource -> {
@@ -569,7 +555,6 @@ public class PatientServiceImpl implements PatientService {
                     return pRes.getIdElement().getIdPart().equalsIgnoreCase(patient.getIdElement().getIdPart());
                 });
             }
-        }
     }
 
     private ReferenceDto orgReference(Optional<String> organizationId) {
