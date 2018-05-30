@@ -47,8 +47,8 @@ ocp-fis:
       default-size: 20
     mrn:
       codeSystem: https://bhits.github.io/consent2share
-      codeSystemOID: 1.3.6.1.4.1.21367.13.20.200
-      displayName: MRN
+      codeSystemOID: 2.16.840.1.113883.3.468.2
+      displayName: MRN/EID
       prefix: OCP-DEV
       length: 10
   healthcareService:
