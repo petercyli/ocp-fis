@@ -53,6 +53,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.createExtension;
@@ -225,6 +226,9 @@ public class PatientServiceImpl implements PatientService {
     private PatientDto mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
         PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
         patientDto.setId(patient.getIdElement().getIdPart());
+        if(patientDto.getOrganizationId()==null){
+            patientDto.setOrganizationId(Optional.of(patient.getManagingOrganization().getReference().split("/")[1]));
+        }
         if (patient.getGender() != null)
             patientDto.setGenderCode(patient.getGender().toCode());
         mapExtensionFields(patient, patientDto);
@@ -268,16 +272,9 @@ public class PatientServiceImpl implements PatientService {
                     fhirClient.create().resource(flag).execute();
                 }));
 
-                //Create Episode of care
-                EpisodeOfCare episodeOfCare = FhirUtil.createEpisodeOfCare(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties, lookUpService);
-                MethodOutcome eOCMethodOutcome = fhirClient.create().resource(episodeOfCare).execute();
-
                 //Create To-Do task
                 Task task = FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
                 task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
-                Reference eocReference = new Reference();
-                eocReference.setReference(ResourceType.EpisodeOfCare + "/" + eOCMethodOutcome.getId().getIdPart());
-                task.setContext(eocReference);
 
                 fhirClient.create().resource(task).execute();
             } else {
@@ -523,16 +520,30 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private List<String> patientsInOrganization(String org) {
-        Bundle bundle = fhirClient.search().forResource(EpisodeOfCare.class)
+        Bundle bundleFromPatient=fhirClient.search().forResource(Patient.class)
                 .where(new ReferenceClientParam("organization").hasId(org))
                 .returnBundle(Bundle.class)
                 .sort().descending(PARAM_LASTUPDATED)
                 .execute();
 
-        return FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(eoc -> {
+        List<String> getPatientIdFromPatient= FhirUtil.getAllBundleComponentsAsList(bundleFromPatient,Optional.empty(),fhirClient,fisProperties)
+                .stream().map(pat->{
+                    Patient patient= (Patient) pat.getResource();
+                    return patient.getIdElement().getIdPart().toString();
+                }).distinct().collect(toList());
+
+        //TODO:Remove the bundle after next data purge.
+        Bundle bundle = fhirClient.search().forResource(EpisodeOfCare.class)
+                .where(new ReferenceClientParam("organization").hasId(org))
+                .returnBundle(Bundle.class)
+                .sort().descending(PARAM_LASTUPDATED)
+                .execute();
+        List<String> getPatientFromEoc=FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(eoc -> {
             EpisodeOfCare episodeOfCare = (EpisodeOfCare) eoc.getResource();
             return (episodeOfCare.hasPatient()) ? (episodeOfCare.getPatient().getReference().split("/")[1]) : null;
         }).distinct().collect(toList());
+
+        return Stream.of(getPatientIdFromPatient,getPatientFromEoc).flatMap(id->id.stream()).distinct().collect(toList());
     }
 
     private List<PatientDto> convertAllBundleToSinglePatientDtoList(Bundle firstPagePatientSearchBundle, int numberOBundlePerPage) {
