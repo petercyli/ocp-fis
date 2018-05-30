@@ -15,6 +15,7 @@ public class ConsentToConsentDtoMap extends PropertyMap<Consent, ConsentDto> {
     private final PeriodToPeriodDtoConverter periodToPeriodDtoConverter;
     private final CodeableConceptListToValueSetDtoListConverter codeableConceptListToValueSetDtoListConverter;
     private final IdentifierToIdentifierDtoConverter identifierToIdentifierDtoConverter;
+    private final ExceptComponentToValueSetDtoConverter exceptComponentToValueSetDtoConverter;
 
     @Autowired
     public ConsentToConsentDtoMap(ConsentActorComponentListToConsenToReferenceDtoListConverter consentActorComponentListToConsenToReferenceDtoListConverter,
@@ -22,13 +23,14 @@ public class ConsentToConsentDtoMap extends PropertyMap<Consent, ConsentDto> {
                                   ResourceIdToLogicalIdConverter resourceIdToLogicalIdConverter,
                                   PeriodToPeriodDtoConverter periodToPeriodDtoConverter,
                                   CodeableConceptListToValueSetDtoListConverter CodeableConceptListToValueSetDtoListConverter,
-                                  IdentifierToIdentifierDtoConverter identifierToIdentifierDtoConverter) {
+                                  IdentifierToIdentifierDtoConverter identifierToIdentifierDtoConverter, ExceptComponentToValueSetDtoConverter exceptComponentToValueSetDtoConverter) {
         this.consentActorComponentListToConsenToReferenceDtoListConverter = consentActorComponentListToConsenToReferenceDtoListConverter;
         this.consentActorComponentListToConsenFromReferenceDtoListConverter = consentActorComponentListToConsenFromReferenceDtoListConverter;
         this.resourceIdToLogicalIdConverter = resourceIdToLogicalIdConverter;
         this.periodToPeriodDtoConverter = periodToPeriodDtoConverter;
         this.codeableConceptListToValueSetDtoListConverter = CodeableConceptListToValueSetDtoListConverter;
         this.identifierToIdentifierDtoConverter = identifierToIdentifierDtoConverter;
+        this.exceptComponentToValueSetDtoConverter = exceptComponentToValueSetDtoConverter;
     }
 
     @Override
@@ -39,6 +41,7 @@ public class ConsentToConsentDtoMap extends PropertyMap<Consent, ConsentDto> {
         using(periodToPeriodDtoConverter).map(source.getPeriod()).setPeriod(null);
         using(codeableConceptListToValueSetDtoListConverter).map(source.getCategory()).setCategory(null);
         using(identifierToIdentifierDtoConverter).map(source.getIdentifier()).setIdentifier(null);
+        using(exceptComponentToValueSetDtoConverter).map(source.getExcept()).setMedicalInformation(null);
     }
 
 }
