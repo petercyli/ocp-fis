@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import gov.samhsa.ocp.ocpfis.service.dto.CredentialDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameAndEmailAddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OutlookCalendarDto;
 import gov.samhsa.ocp.ocpfis.service.exception.NotAuthorizedException;
@@ -84,6 +85,11 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
         }
     }
 
+    @Override
+    public void loginToOutlook(CredentialDto credentialDto) {
+        initializeExchangeService(credentialDto.getUsername(), credentialDto.getPassword());
+    }
+
     private ExchangeService initializeExchangeService(String emailAddress, String password) {
         boolean authenticated = false;
         ExchangeService service = new ExchangeService(ExchangeVersion.Exchange2010_SP2);
@@ -100,6 +106,10 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
         }
         catch (Exception e) {
             throw new NotAuthorizedException("Failed to set URL using AutoDiscover");
+        }
+
+        if(service.getUrl() == null || service.getUrl().getPath().isEmpty()){
+            throw new NotAuthorizedException("URL is not set.");
         }
 
         try{
