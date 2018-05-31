@@ -54,4 +54,6 @@ public class DetailedConsentDto {
 
     private byte[] sourceAttachment;
 
+    private ConsentMedicalInfoType consentMedicalInfoType;
+
 }
