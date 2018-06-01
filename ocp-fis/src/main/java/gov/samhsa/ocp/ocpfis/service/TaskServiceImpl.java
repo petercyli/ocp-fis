@@ -10,6 +10,7 @@ import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.DateRangeEnum;
 import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
+import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
@@ -27,9 +28,12 @@ import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
+import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -48,6 +52,7 @@ import java.util.stream.Collectors;
 
 import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
+import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 
@@ -145,7 +150,15 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner, Optional<String> patient, Optional<String> organization, Optional<String> definition, Optional<String> partOf, Optional<Boolean> isUpcomingTasks, Optional<Boolean> isTodoList, Optional<DateRangeEnum> filterDate) {
+    public List<TaskDto> getMainAndSubTasks(Optional<String> practitioner,
+                                            Optional<String> patient,
+                                            Optional<String> organization,
+                                            Optional<String> definition,
+                                            Optional<String> partOf,
+                                            Optional<Boolean> isUpcomingTasks,
+                                            Optional<Boolean> isTodoList,
+                                            Optional<DateRangeEnum> filterDate,
+                                            Optional<List<String>> statusList) {
 
         // Generate the Query Based on Input Variables
         IQuery ownerIQuery = getTasksIQuery(practitioner, organization, patient, partOf, "owner");
@@ -168,12 +181,17 @@ public class TaskServiceImpl implements TaskService {
         List<TaskDto> taskDtos = taskList.stream().distinct().collect(toList());
 
         //Apply Filters Based on Input Variables
-        taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos, filterDate);
+        taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos, filterDate, statusList);
 
         if (patient.isPresent() && !isTodoList.isPresent()) {
             TaskDto toDoTaskDto = getToDoTaskDto(practitioner, patient, organization, definition);
-            if (!taskDtos.stream().map(taskDto -> taskDto.getLogicalId()).collect(toList()).contains(toDoTaskDto.getLogicalId())) {
-                taskDtos.add(toDoTaskDto);
+            if(isIntermediateStatuses(toDoTaskDto)) {
+                if (!taskDtos.stream()
+                        .map(taskDto -> taskDto.getLogicalId())
+                        .collect(toList())
+                        .contains(toDoTaskDto.getLogicalId())) {
+                    taskDtos.add(toDoTaskDto);
+                }
             }
         }
 
@@ -379,7 +397,7 @@ public class TaskServiceImpl implements TaskService {
         TaskDto exitingTask = getTaskById(newTaskDto.getLogicalId());
 
         //if existing status is final and new status is not final, it is not allowed
-        if (finalStatuses.contains(exitingTask.getStatus().getCode()) && !finalStatuses.contains(newTaskDto.getStatus().getCode())) {
+        if(finalStatuses.contains(exitingTask.getStatus().getCode()) && !finalStatuses.contains(newTaskDto.getStatus().getCode())) {
             return false;
         }
 
@@ -388,7 +406,7 @@ public class TaskServiceImpl implements TaskService {
             return true;
         }
 
-        List<Task.TaskStatus> allowedStatuses = taskStatuses.get(Task.TaskStatus.fromCode(exitingTask.getStatus().getCode()));
+        List<Task.TaskStatus> allowedStatuses =  taskStatuses.get(Task.TaskStatus.fromCode(exitingTask.getStatus().getCode()));
 
         return allowedStatuses.stream().anyMatch(t -> t.toCode().equals(newTaskDto.getStatus().getCode()));
     }
@@ -529,23 +547,23 @@ public class TaskServiceImpl implements TaskService {
         return new StringJoiner("-").add(status).add(date).add(agent).toString();
     }
 
-    private List<TaskDto> getTaskDtosBasedOnFilters(Optional<String> definition, Optional<String> parentTaskId, Optional<Boolean> isUpcomingTasks, List<TaskDto> taskDtos, Optional<DateRangeEnum> filterDate) {
+    private List<TaskDto> getTaskDtosBasedOnFilters(Optional<String> definition, Optional<String> parentTaskId, Optional<Boolean> isUpcomingTasks, List<TaskDto> taskDtos, Optional<DateRangeEnum> filterDate, Optional<List<String>> statusList) {
 
         // Filter the general sub-tasks for the given parent task
         if (parentTaskId.isPresent()) {
             taskDtos = taskDtos.stream()
                     .filter(t -> t.getPartOf() != null && t.getDefinition() != null)
-                    .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
-                            && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode())).collect(toList());
+                    .filter(t -> filterByStatus(statusList, t))
+                    .collect(toList());
         } else {
 
             // Filter the general sub-tasks or to-do sub tasks with the certain activity definition
             if (definition.isPresent()) {
                 taskDtos = taskDtos.stream()
                         .filter(t -> t.getPartOf() != null && t.getDefinition() != null)
-                        .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
-                                && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
-                        .filter(taskDto -> taskDto.getPartOf().getDisplay().equalsIgnoreCase(definition.get())).collect(toList());
+                        .filter(t -> filterByStatus(statusList, t))
+                        .filter(taskDto -> taskDto.getPartOf().getDisplay().equalsIgnoreCase(definition.get()))
+                        .collect(toList());
             }
 
 
@@ -553,8 +571,7 @@ public class TaskServiceImpl implements TaskService {
             if (!definition.isPresent()) {
                 taskDtos = taskDtos.stream()
                         .filter(t -> t.getDefinition() != null)
-                        .filter(t -> !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
-                                && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode()))
+                        .filter(t -> filterByStatus(statusList, t))
                         .filter(taskDto -> taskDto.getPartOf() == null)
                         .collect(toList());
             }
@@ -593,6 +610,24 @@ public class TaskServiceImpl implements TaskService {
         taskDtos.sort(Comparator.comparing(TaskDto::getDateDiff));
 
         return taskDtos;
+    }
+
+    private boolean filterByStatus(Optional<List<String>> statusList, TaskDto t) {
+        if(statusList.isPresent() && !statusList.get().isEmpty()) {
+            return isGivenStatuses(t, statusList.get());
+        } else {
+            return isIntermediateStatuses(t);
+        }
+    }
+
+    private boolean isGivenStatuses(TaskDto t, List<String> statusList) {
+        return statusList.stream().anyMatch(status -> isIntermediateStatuses(t) || t.getStatus().getCode().equalsIgnoreCase(status));
+    }
+
+    private boolean isIntermediateStatuses(TaskDto t) {
+        boolean result =  !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
+                && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode());
+        return result;
     }
 
     private IQuery getTasksIQuery(Optional<String> practitionerId, Optional<String> organization, Optional<String> patientId, Optional<String> parentTaskId, String practitionerType) {
@@ -675,7 +710,7 @@ public class TaskServiceImpl implements TaskService {
     private Map<Task.TaskStatus, List<Task.TaskStatus>> populateTaskStatuses() {
         Map<Task.TaskStatus, List<Task.TaskStatus>> map = new HashMap<Task.TaskStatus, List<Task.TaskStatus>>();
 
-        map.put(Task.TaskStatus.DRAFT, Arrays.asList(Task.TaskStatus.DRAFT, Task.TaskStatus.READY, Task.TaskStatus.REQUESTED));
+        map.put(Task.TaskStatus.DRAFT, Arrays.asList(Task.TaskStatus.DRAFT, Task.TaskStatus.READY, Task.TaskStatus.REQUESTED, Task.TaskStatus.CANCELLED));
         map.put(Task.TaskStatus.READY, Arrays.asList(Task.TaskStatus.READY, Task.TaskStatus.INPROGRESS, Task.TaskStatus.CANCELLED));
         map.put(Task.TaskStatus.REQUESTED, Arrays.asList(Task.TaskStatus.REQUESTED, Task.TaskStatus.RECEIVED, Task.TaskStatus.ACCEPTED, Task.TaskStatus.REJECTED, Task.TaskStatus.CANCELLED));
         map.put(Task.TaskStatus.RECEIVED, Arrays.asList(Task.TaskStatus.RECEIVED, Task.TaskStatus.ACCEPTED, Task.TaskStatus.REJECTED, Task.TaskStatus.CANCELLED));
@@ -690,10 +725,10 @@ public class TaskServiceImpl implements TaskService {
     private boolean isValidSubTasks(TaskDto taskDto) {
         boolean valid = false;
 
-        List<TaskDto> subtasks = this.getMainAndSubTasks(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(taskDto.getLogicalId()), Optional.empty(), Optional.empty(), Optional.empty());
+        List<TaskDto> subtasks = this.getMainAndSubTasks(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(taskDto.getLogicalId()), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
 
-        if (subtasks != null && subtasks.isEmpty()) {
-            valid = true;
+        if(subtasks != null && subtasks.isEmpty()) {
+            return true;
         }
 
         //if the new status is not in the final status

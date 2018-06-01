@@ -49,9 +49,9 @@ public class DetailedConsentDto {
     private List<ValueSetDto> category;
 
     private List<ValueSetDto> purpose;
-
     private List<ValueSetDto> medicalInformation;
 
-    private byte[] sourceAttachment;
+    private ConsentMedicalInfoType consentMedicalInfoType;
 
+    private byte[] sourceAttachment;
 }
