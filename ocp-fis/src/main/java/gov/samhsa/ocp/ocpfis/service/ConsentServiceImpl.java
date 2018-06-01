@@ -9,6 +9,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.AbstractCareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ConsentMedicalInfoType;
 import gov.samhsa.ocp.ocpfis.service.dto.DetailedConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -186,6 +187,7 @@ public class ConsentServiceImpl implements ConsentService {
             });
 
             generalConsentRelatedFieldDto.setPurposeOfUse(FhirDtoUtil.convertCodeToValueSetDto(V3ActReason.TREAT.toCode(), lookUpService.getPurposeOfUse()));
+            generalConsentRelatedFieldDto.setMedicalInformation(lookUpService.getSecurityLabel());
 
         } else {
             throw new ResourceNotFoundException("No care teams are present.");
@@ -282,6 +284,16 @@ public class ConsentServiceImpl implements ConsentService {
             throw new NoDataFoundException("No Consent document found");
         }
 
+        //setting medical info type
+        if(consentDto.getMedicalInformation() != null){
+            int totalMedicalInfo = lookUpService.getSecurityLabel() != null?
+                    lookUpService.getSecurityLabel().size() : 0;
+            if(consentDto.getMedicalInformation().size() < lookUpService.getSecurityLabel().size()){
+                consentDto.setConsentMedicalInfoType(ConsentMedicalInfoType.SHARE_SPECIFIC);
+            } else {
+                consentDto.setConsentMedicalInfoType(ConsentMedicalInfoType.SHARE_ALL);
+            }
+        }
         return consentDto;
     }
 
@@ -653,6 +665,10 @@ public class ConsentServiceImpl implements ConsentService {
 
         List<ReferenceDto> toCareTeams = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("CareTeam")).collect(Collectors.toList());
 
+/*        // set medical information
+        List<ValueSetDto> medicalInfo = consentDto.getMedicalInformation().stream().map(
+
+        )*/
         DetailedConsentDto detailedConsentDto = new DetailedConsentDto();
 
         return detailedConsentDto.builder()
@@ -675,6 +691,7 @@ public class ConsentServiceImpl implements ConsentService {
                 .purpose(consentDto.getPurpose())
                 .medicalInformation(consentDto.getMedicalInformation())
                 .sourceAttachment(consentDto.getSourceAttachment())
+                .consentMedicalInfoType(consentDto.getConsentMedicalInfoType())
                 .build();
     }
 
