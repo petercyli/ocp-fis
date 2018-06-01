@@ -86,12 +86,15 @@ public class AppointmentToAppointmentDtoConverter {
         }
 
         if (!appointmentDto.getParticipant().isEmpty()) {
-            List<String> actorNames = appointmentDto.getParticipant().stream()
+            List<AppointmentParticipantDto> patientActors = appointmentDto.getParticipant().stream()
                     .filter(participant -> participant.getActorReference() != null && participant.getActorReference().toUpperCase().contains(PATIENT_ACTOR_REFERENCE.toUpperCase()))
-                    .map(AppointmentParticipantDto::getActorName)
                     .collect(toList());
-            if (!actorNames.isEmpty())
-                appointmentDto.setPatientName(actorNames.get(0));
+            if (!patientActors.isEmpty()){
+                appointmentDto.setPatientName(patientActors.get(0).getActorName());
+                String resourceId = patientActors.get(0).getActorReference().trim().split("/")[1];
+                appointmentDto.setPatientId(resourceId);
+            }
+
         }
 
         String duration = "";

@@ -22,6 +22,7 @@ public class AppointmentDto {
     private String appointmentDate;
     private String appointmentDuration;
     private String patientName;
+    private String patientId;
 
     private LocalDateTime start;
     private LocalDateTime end;
