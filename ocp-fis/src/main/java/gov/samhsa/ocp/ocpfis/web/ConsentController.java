@@ -4,6 +4,7 @@ import gov.samhsa.ocp.ocpfis.service.ConsentService;
 import gov.samhsa.ocp.ocpfis.service.PatientService;
 import gov.samhsa.ocp.ocpfis.service.dto.AbstractCareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
+import gov.samhsa.ocp.ocpfis.service.dto.DetailedConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
@@ -34,17 +35,17 @@ public class ConsentController {
     private ConsentService consentService;
 
     @GetMapping("/consents")
-    public PageDto<ConsentDto> getConsents(@RequestParam(value = "patient") Optional<String> patient,
-                                           @RequestParam(value = "practitioner") Optional<String> practitioner,
-                                           @RequestParam(value = "status") Optional<String> status,
-                                           @RequestParam(value = "generalDesignation") Optional<Boolean> generalDesignation,
-                                           @RequestParam Optional<Integer> pageNumber,
-                                           @RequestParam Optional<Integer> pageSize) {
+    public PageDto<DetailedConsentDto> getConsents(@RequestParam(value = "patient") Optional<String> patient,
+                                                   @RequestParam(value = "practitioner") Optional<String> practitioner,
+                                                   @RequestParam(value = "status") Optional<String> status,
+                                                   @RequestParam(value = "generalDesignation") Optional<Boolean> generalDesignation,
+                                                   @RequestParam Optional<Integer> pageNumber,
+                                                   @RequestParam Optional<Integer> pageSize) {
         return consentService.getConsents(patient, practitioner, status, generalDesignation, pageNumber, pageSize);
     }
 
     @GetMapping("/consents/{consentId}")
-    public ConsentDto getConsentById(@PathVariable String consentId) {
+    public DetailedConsentDto getConsentById(@PathVariable String consentId) {
         return consentService.getConsentsById(consentId);
     }
 
