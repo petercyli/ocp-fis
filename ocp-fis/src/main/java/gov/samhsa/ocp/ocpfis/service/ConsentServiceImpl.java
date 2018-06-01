@@ -282,15 +282,13 @@ public class ConsentServiceImpl implements ConsentService {
 
         try {
             if (consent.hasSourceAttachment() && !consentDto.getStatus().equalsIgnoreCase("draft")) {
-                consentDto.setSourceAttachment(consent.getSourceAttachment().getData());
                 detailedConsentDto.setSourceAttachment(consent.getSourceAttachment().getData());
             } else if (consentDto.getStatus().equalsIgnoreCase("draft")) {
                 String patientID = consentDto.getPatient().getReference().replace("Patient/", "");
                 PatientDto patientDto = patientService.getPatientById(patientID);
                 log.info("Generating consent PDF");
-                //DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
                 byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(detailedConsentDto, patientDto, operatedByPatient);
-                consentDto.setSourceAttachment(pdfBytes);
+                detailedConsentDto.setSourceAttachment(pdfBytes);
             }
 
         } catch (FHIRException | IOException e) {
@@ -350,7 +348,6 @@ public class ConsentServiceImpl implements ConsentService {
         String patientID = detailedConsentDto.getPatient().getReference().replace("Patient/", "");
         PatientDto patientDto = patientService.getPatientById(patientID);
 
-        //DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
 
         try {
             log.info("Updating consent: Generating the attested PDF");
@@ -377,8 +374,6 @@ public class ConsentServiceImpl implements ConsentService {
         String patientID = detailedConsentDto.getPatient().getReference().replace("Patient/", "");
         PatientDto patientDto = patientService.getPatientById(patientID);
 
-        //DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
-
         try {
             log.info("Updating consent: Generating the revocation PDF");
             byte[] pdfBytes = consentRevocationPdfGenerator.generateConsentRevocationPdf(detailedConsentDto, patientDto, operatedByPatient);
@@ -403,8 +398,6 @@ public class ConsentServiceImpl implements ConsentService {
     @Override
     public PdfDto createConsentPdf(String consentId) {
         DetailedConsentDto detailedConsentDto = getConsentsById(consentId);
-        //DetailedConsentDto detailedConsentDto = convertConsentDtoToDetailedConsentDto(consentDto);
-
         String patientID = detailedConsentDto.getPatient().getReference().replace("Patient/", "");
         PatientDto patientDto = patientService.getPatientById(patientID);
 
