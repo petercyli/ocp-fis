@@ -63,7 +63,6 @@ public class TaskServiceImpl implements TaskService {
     private final IGenericClient fhirClient;
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
-    private final EpisodeOfCareService episodeOfCareService;
     private final ActivityDefinitionService activityDefinitionService;
     private final PatientService patientService;
     private final Map<Task.TaskStatus, List<Task.TaskStatus>> taskStatuses;
@@ -75,13 +74,11 @@ public class TaskServiceImpl implements TaskService {
                            LookUpService lookUpService,
                            FisProperties fisProperties,
                            ActivityDefinitionService activityDefinitionService,
-                           EpisodeOfCareService episodeOfCareService,
                            PatientService patientService) {
         this.fhirClient = fhirClient;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.activityDefinitionService = activityDefinitionService;
-        this.episodeOfCareService = episodeOfCareService;
         this.patientService = patientService;
         this.taskStatuses = populateTaskStatuses();
         this.finalStatuses = Arrays.asList(Task.TaskStatus.COMPLETED.toCode(), Task.TaskStatus.FAILED.toCode(), Task.TaskStatus.CANCELLED.toCode());
@@ -141,7 +138,7 @@ public class TaskServiceImpl implements TaskService {
                 .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Task))
                 .map(retrievedTask -> {
                     Task task = (Task) retrievedTask.getResource();
-                    TaskDto taskDto =  TaskToTaskDtoMap.map(task, taskPerformerTypes);
+                    TaskDto taskDto = TaskToTaskDtoMap.map(task, taskPerformerTypes);
                     setRollupNumbers(taskDto);
                     return taskDto;
                 }).collect(toList());
@@ -186,7 +183,7 @@ public class TaskServiceImpl implements TaskService {
         //Apply Filters Based on Input Variables
         taskDtos = getTaskDtosBasedOnFilters(definition, partOf, isUpcomingTasks, taskDtos, filterDate, statusList);
 
-        if(patient.isPresent() && !isTodoList.isPresent()) {
+        if (patient.isPresent() && !isTodoList.isPresent()) {
             TaskDto toDoTaskDto = getToDoTaskDto(practitioner, patient, organization, definition);
             if(isIntermediateStatuses(toDoTaskDto)) {
                 if (!taskDtos.stream()
@@ -237,9 +234,6 @@ public class TaskServiceImpl implements TaskService {
                 .execute();
 
         Task existingTask = (Task) taskBundle.getEntry().stream().findFirst().get().getResource();
-
-        //Check activity definition for enrollment
-        task.setContext(createOrRetrieveEpisodeOfCare(taskDto));
 
         //authoredOn
         task.setAuthoredOn(existingTask.getAuthoredOn());
@@ -348,8 +342,8 @@ public class TaskServiceImpl implements TaskService {
 
     public List<ReferenceDto> getRelatedTasks(String patient, Optional<String> definition, Optional<String> practitioner, Optional<String> organization) {
         List<ReferenceDto> tasks = getBundleForRelatedTask(patient, organization).stream()
-                .filter(task->{
-                    Task mainTask= (Task) task.getResource();
+                .filter(task -> {
+                    Task mainTask = (Task) task.getResource();
                     return !mainTask.hasPartOf();
                 })
                 .map(Bundle.BundleEntryComponent::getResource)
@@ -385,28 +379,6 @@ public class TaskServiceImpl implements TaskService {
                     task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(organization.get(), definition.get(), fhirClient, fisProperties)));
                 }
 
-                //Look for episode of care
-                IQuery episodeOfCareQuery = fhirClient.search().forResource(EpisodeOfCare.class)
-                        .where(new ReferenceClientParam("patient").hasId(patient))
-                        .where(new ReferenceClientParam("organization").hasId("Organization/" + organization.get()))
-                        .where(new ReferenceClientParam("care-manager").hasId(practitioner.get()));
-
-                //Set Sort order
-                episodeOfCareQuery = FhirUtil.setLastUpdatedTimeSortOrder(episodeOfCareQuery, true);
-
-                Bundle episodeOfCareBundle = (Bundle) FhirUtil.setNoCacheControlDirective(episodeOfCareQuery)
-                        .returnBundle(Bundle.class)
-                        .execute();
-
-                //Create episode of care
-                if (episodeOfCareBundle.getEntry().isEmpty()) {
-                    EpisodeOfCare episodeOfCare = FhirUtil.createEpisodeOfCare(patient, practitioner.get(), organization.get(), fhirClient, fisProperties, lookUpService);
-                    MethodOutcome eocMethodOutcome = fhirClient.create().resource(episodeOfCare).execute();
-                    Reference reference = new Reference();
-                    reference.setReference(ResourceType.EpisodeOfCare + "/" + eocMethodOutcome.getId().getIdPart());
-                    task.setContext(reference);
-                }
-
                 MethodOutcome methodOutcome = fhirClient.create().resource(task).execute();
                 ReferenceDto referenceDto = new ReferenceDto();
                 referenceDto.setReference("Task/" + methodOutcome.getId().getIdPart());
@@ -430,7 +402,7 @@ public class TaskServiceImpl implements TaskService {
         }
 
         //if existing status is final and new status is also final, it is allowed
-        if(finalStatuses.contains(exitingTask.getStatus().getCode()) && finalStatuses.contains(newTaskDto.getStatus().getCode())) {
+        if (finalStatuses.contains(exitingTask.getStatus().getCode()) && finalStatuses.contains(newTaskDto.getStatus().getCode())) {
             return true;
         }
 
@@ -463,7 +435,7 @@ public class TaskServiceImpl implements TaskService {
             }
         }
 
-         Collections.sort(finalList);
+        Collections.sort(finalList);
         return finalList;
     }
 
@@ -490,26 +462,6 @@ public class TaskServiceImpl implements TaskService {
             float duration = activityDefinition.getTiming().getDurationMax();
             taskDto.getExecutionPeriod().setEnd(startDate.plusDays((long) duration));
         }
-    }
-
-    private Reference createOrRetrieveEpisodeOfCare(TaskDto taskDto) {
-        Reference contextReference = new Reference();
-
-        if (taskDto.getDefinition().getDisplay().equalsIgnoreCase("Enrollment")) {
-
-            Optional<EpisodeOfCareDto> episodeOfCare = retrieveEpisodeOfCare(taskDto);
-
-            if (episodeOfCare.isPresent()) {
-                EpisodeOfCareDto dto = episodeOfCare.get();
-                contextReference.setReference(ResourceType.EpisodeOfCare + "/" + dto.getId());
-            } else {
-                EpisodeOfCare newEpisodeOfCare = createEpisodeOfCare(taskDto);
-                MethodOutcome methodOutcome = fhirClient.create().resource(newEpisodeOfCare).execute();
-                contextReference.setReference(ResourceType.EpisodeOfCare + "/" + methodOutcome.getId().getIdPart());
-            }
-            contextReference.setDisplay(createDisplayForEpisodeOfCare(taskDto));
-        }
-        return contextReference;
     }
 
 
@@ -586,42 +538,6 @@ public class TaskServiceImpl implements TaskService {
         return !duplicateCheckList.isEmpty();
     }
 
-    private EpisodeOfCare createEpisodeOfCare(TaskDto taskDto) {
-        EpisodeOfCare episodeOfCare = new EpisodeOfCare();
-        episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
-
-        //Setting Episode of care type tp HACC
-        CodeableConcept codeableConcept = new CodeableConcept();
-        codeableConcept.addCoding().setSystem(EpisodeofcareType.HACC.getSystem())
-                .setDisplay(EpisodeofcareType.HACC.getDisplay())
-                .setCode(EpisodeofcareType.HACC.toCode());
-        List<CodeableConcept> codeableConcepts = new ArrayList<>();
-        codeableConcepts.add(codeableConcept);
-
-        episodeOfCare.setType(codeableConcepts);
-
-        //patient
-        episodeOfCare.setPatient(mapReferenceDtoToReference(taskDto.getBeneficiary()));
-
-        //managing organization
-        episodeOfCare.setManagingOrganization(mapReferenceDtoToReference(taskDto.getOrganization()));
-
-        //start date
-        episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(taskDto.getExecutionPeriod().getStart()));
-
-        //careManager
-        episodeOfCare.setCareManager(mapReferenceDtoToReference(taskDto.getAgent()));
-
-        return episodeOfCare;
-    }
-
-    private Optional<EpisodeOfCareDto> retrieveEpisodeOfCare(TaskDto taskDto) {
-        String patient = mapReferenceDtoToReference(taskDto.getBeneficiary()).getReference();
-
-        List<EpisodeOfCareDto> episodeOfCareDtos = episodeOfCareService.getEpisodeOfCares(patient, Optional.of(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE.toCode()));
-
-        return episodeOfCareDtos.stream().findFirst();
-    }
 
     private String createDisplayForEpisodeOfCare(TaskDto dto) {
         String status = dto.getDefinition() != null ? dto.getDefinition().getDisplay() : "NA";
@@ -816,15 +732,15 @@ public class TaskServiceImpl implements TaskService {
         }
 
         //if the new status is not in the final status
-        if(!finalStatuses.contains(taskDto.getStatus().getCode())) {
+        if (!finalStatuses.contains(taskDto.getStatus().getCode())) {
             //check the statuses of the sub tasks
-            if(subTasksInFinalStatus(subtasks)) {
+            if (subTasksInFinalStatus(subtasks)) {
                 valid = false;
             } else {
                 valid = true;
             }
         } else {
-            if(subTasksInFinalStatus(subtasks)) {
+            if (subTasksInFinalStatus(subtasks)) {
                 valid = true;
             } else {
                 valid = false;
@@ -840,8 +756,8 @@ public class TaskServiceImpl implements TaskService {
 
     private int getRemainingSubtasks(List<TaskDto> subtasks) {
         int counter = 0;
-        for(TaskDto taskDto : subtasks) {
-            if(!finalStatuses.contains(taskDto.getStatus().getCode())) {
+        for (TaskDto taskDto : subtasks) {
+            if (!finalStatuses.contains(taskDto.getStatus().getCode())) {
                 counter++;
             }
         }
@@ -851,7 +767,7 @@ public class TaskServiceImpl implements TaskService {
     private void setRollupNumbers(TaskDto parentTaskDto) {
         List<TaskDto> subtasks = getSubTasks(parentTaskDto);
 
-        if(subtasks == null || subtasks.isEmpty()) {
+        if (subtasks == null || subtasks.isEmpty()) {
             parentTaskDto.setTotalSubtasks(0);
             parentTaskDto.setRemainingSubtasks(0);
         }
@@ -867,10 +783,10 @@ public class TaskServiceImpl implements TaskService {
                 .where(new ReferenceClientParam("part-of").hasAnyOfIds(Arrays.asList(parentTaskDto.getLogicalId())));
         Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
-        if(bundle != null) {
+        if (bundle != null) {
             List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
-            if(components != null) {
+            if (components != null) {
                 subTasksList = components.stream()
                         .map(it -> (Task) it.getResource())
                         .map(it -> TaskToTaskDtoMap.map(it, taskPerformerTypes))

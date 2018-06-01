@@ -11,9 +11,11 @@ import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
+import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -26,6 +28,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.RandomStringUtils;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -34,6 +37,8 @@ import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Flag;
 import org.hl7.fhir.dstu3.model.IdType;
+import org.hl7.fhir.dstu3.model.Identifier;
+import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Reference;
@@ -47,6 +52,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.util.FhirUtil.createExtension;
@@ -65,10 +71,6 @@ public class PatientServiceImpl implements PatientService {
     public static final String EXTENSION_URL_ETHNICITY = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity";
     public static final String CODING_SYSTEM_BIRTHSEX = "http://hl7.org/fhir/v3/AdministrativeGender";
     public static final String EXTENSION_URL_BIRTHSEX = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex";
-    public static final String RACE_CODE = "Race";
-    public static final String LANGUAGE_CODE = "language";
-    public static final String ETHNICITY_CODE = "Ethnicity";
-    public static final String GENDER_CODE = "Gender";
     public static final String TO_DO = "To-Do";
 
     private final IGenericClient fhirClient;
@@ -223,6 +225,7 @@ public class PatientServiceImpl implements PatientService {
     private PatientDto mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
         PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
         patientDto.setId(patient.getIdElement().getIdPart());
+
         if (patient.getGender() != null)
             patientDto.setGenderCode(patient.getGender().toCode());
         mapExtensionFields(patient, patientDto);
@@ -232,32 +235,21 @@ public class PatientServiceImpl implements PatientService {
         return patientDto;
     }
 
-
-    private int getPatientsByIdentifier(String system, String value) {
-        log.info("Searching patients with identifier.system : " + system + " and value : " + value);
-        Bundle searchBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class).where(Patient.IDENTIFIER.exactly().systemAndIdentifier(system, value)))
-                .returnBundle(Bundle.class).execute();
-        if (searchBundle.getTotal() == 0) {
-            Bundle patientBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class)).returnBundle(Bundle.class).execute();
-            return FhirUtil.getAllBundleComponentsAsList(patientBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(patient -> {
-                Patient p = (Patient) patient.getResource();
-                return p.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(system) && identifier.getValue().replaceAll(" ", "")
-                        .replaceAll("-", "").trim()
-                        .equalsIgnoreCase(value.replaceAll(" ", "").replaceAll("-", "").trim()));
-            }).collect(toList()).size();
-        } else {
-            return searchBundle.getTotal();
-        }
-    }
-
-
     @Override
     public void createPatient(PatientDto patientDto) {
-        int existingNumberOfPatients = this.getPatientsByIdentifier(patientDto.getIdentifier().get(0).getSystem(), patientDto.getIdentifier().get(0).getValue());
 
-        if (existingNumberOfPatients == 0) {
+        if (!checkDuplicatePatientOfSameOrganization(patientDto)) {
+            if (checkDuplicateInFhir(patientDto)) {
+                patientDto.getIdentifier().add(setUniqueIdentifierForPatient(patientsWithMatchedDuplicateCheckParameters(patientDto).stream()
+                        .map(pat -> (Patient) pat.getResource()).findAny().get().getIdentifier().stream()
+                        .filter(iden -> iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID()))
+                        .map(iden -> iden.getValue()).findAny().orElse(generateRandomMrn())));
+            } else {
+                patientDto.getIdentifier().add(setUniqueIdentifierForPatient(generateRandomMrn()));
+            }
 
             final Patient patient = modelMapper.map(patientDto, Patient.class);
+            patient.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(orgReference(patientDto.getOrganizationId())));
             patient.setActive(Boolean.TRUE);
             patient.setGender(FhirUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
@@ -277,16 +269,9 @@ public class PatientServiceImpl implements PatientService {
                     fhirClient.create().resource(flag).execute();
                 }));
 
-                //Create Episode of care
-                EpisodeOfCare episodeOfCare = FhirUtil.createEpisodeOfCare(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties, lookUpService);
-                MethodOutcome eOCMethodOutcome = fhirClient.create().resource(episodeOfCare).execute();
-
                 //Create To-Do task
                 Task task = FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
                 task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
-                Reference eocReference = new Reference();
-                eocReference.setReference(ResourceType.EpisodeOfCare + "/" + eOCMethodOutcome.getId().getIdPart());
-                task.setContext(eocReference);
 
                 fhirClient.create().resource(task).execute();
             } else {
@@ -532,16 +517,30 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private List<String> patientsInOrganization(String org) {
-        Bundle bundle = fhirClient.search().forResource(EpisodeOfCare.class)
+        Bundle bundleFromPatient = fhirClient.search().forResource(Patient.class)
                 .where(new ReferenceClientParam("organization").hasId(org))
                 .returnBundle(Bundle.class)
                 .sort().descending(PARAM_LASTUPDATED)
                 .execute();
 
-        return FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(eoc -> {
+        List<String> getPatientIdFromPatient = FhirUtil.getAllBundleComponentsAsList(bundleFromPatient, Optional.empty(), fhirClient, fisProperties)
+                .stream().map(pat -> {
+                    Patient patient = (Patient) pat.getResource();
+                    return patient.getIdElement().getIdPart().toString();
+                }).distinct().collect(toList());
+
+        //TODO:Remove the bundle after next data purge.
+        Bundle bundle = fhirClient.search().forResource(EpisodeOfCare.class)
+                .where(new ReferenceClientParam("organization").hasId(org))
+                .returnBundle(Bundle.class)
+                .sort().descending(PARAM_LASTUPDATED)
+                .execute();
+        List<String> getPatientFromEoc = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(eoc -> {
             EpisodeOfCare episodeOfCare = (EpisodeOfCare) eoc.getResource();
             return (episodeOfCare.hasPatient()) ? (episodeOfCare.getPatient().getReference().split("/")[1]) : null;
         }).distinct().collect(toList());
+
+        return Stream.of(getPatientIdFromPatient, getPatientFromEoc).flatMap(id -> id.stream()).distinct().collect(toList());
     }
 
     private List<PatientDto> convertAllBundleToSinglePatientDtoList(Bundle firstPagePatientSearchBundle, int numberOBundlePerPage) {
@@ -555,31 +554,88 @@ public class PatientServiceImpl implements PatientService {
 
     private boolean isDuplicateWhileUpdate(PatientDto patientDto) {
         final Patient patient = fhirClient.read().resource(Patient.class).withId(patientDto.getId()).execute();
-
-        Bundle searchPatient = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class).where(Patient.IDENTIFIER.exactly().systemAndIdentifier(patientDto.getIdentifier().stream().findFirst().get().getSystem(), patientDto.getIdentifier().stream().findFirst().get().getValue())))
-                .returnBundle(Bundle.class).execute();
-
-        if (!searchPatient.getEntry().isEmpty()) {
-            return !patient.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getSystem())
-                    && identifier.getValue().equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getValue()));
+        List<Bundle.BundleEntryComponent> bundleEntryComponents = patientsWithMatchedDuplicateCheckParameters(patientDto);
+        if (bundleEntryComponents.isEmpty()) {
+            return false;
         } else {
-            Bundle patientBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class)).returnBundle(Bundle.class).execute();
-            List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundleComponentsAsList(patientBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(pat -> {
-                Patient p = (Patient) pat.getResource();
-                return p.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getSystem()) && identifier.getValue().replaceAll(" ", "")
-                        .replaceAll("-", "").trim()
-                        .equalsIgnoreCase(patientDto.getIdentifier().stream().findFirst().get().getValue().replaceAll(" ", "").replaceAll("-", "").trim()));
-            }).collect(toList());
-            if (bundleEntryComponents.isEmpty()) {
-                return false;
-            } else {
-                return !bundleEntryComponents.stream().anyMatch(resource -> {
-                    Patient pRes = (Patient) resource.getResource();
-                    return pRes.getIdElement().getIdPart().equalsIgnoreCase(patient.getIdElement().getIdPart());
-                });
-            }
+            return !bundleEntryComponents.stream().anyMatch(resource -> {
+                Patient pRes = (Patient) resource.getResource();
+                return pRes.getIdElement().getIdPart().equalsIgnoreCase(patient.getIdElement().getIdPart());
+            });
         }
     }
+
+    private ReferenceDto orgReference(Optional<String> organizationId) {
+        ReferenceDto referenceDto = new ReferenceDto();
+        referenceDto.setDisplay(fhirClient.read().resource(Organization.class).withId(organizationId.get()).execute().getName());
+        referenceDto.setReference("Organization/" + organizationId.get());
+        return referenceDto;
+    }
+
+
+    private boolean checkDuplicateInFhir(PatientDto patientDto) {
+        return !patientsWithMatchedDuplicateCheckParameters(patientDto).isEmpty();
+    }
+
+    private boolean checkDuplicatePatientOfSameOrganization(PatientDto patientDto) {
+        List<Bundle.BundleEntryComponent> patientWithDuplicateParameters = patientsWithMatchedDuplicateCheckParameters(patientDto);
+        if (!patientWithDuplicateParameters.isEmpty()) {
+            return !patientsWithMatchedDuplicateCheckParameters(patientDto).stream().filter(pat -> {
+                Patient patient = (Patient) pat.getResource();
+                return (patient.hasManagingOrganization()) ? patient.getManagingOrganization().getReference().split("/")[1].equalsIgnoreCase(patientDto.getOrganizationId().get()) : false;
+            }).collect(toList()).isEmpty();
+        }
+        return false;
+    }
+
+    private IdentifierDto setUniqueIdentifierForPatient(String value) {
+        return IdentifierDto.builder().system(fisProperties.getPatient().getMrn().getCodeSystemOID())
+                .systemDisplay(fisProperties.getPatient().getMrn().getDisplayName())
+                .value(value).display(value).build();
+    }
+
+    private List<Bundle.BundleEntryComponent> patientsWithMatchedDuplicateCheckParameters(PatientDto patientDto) {
+        String system = patientDto.getIdentifier().get(0).getSystem();
+        String value = patientDto.getIdentifier().get(0).getValue();
+        log.info("Searching patients with identifier system : " + system + " and value : " + value);
+        Bundle patientBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Patient.class)).returnBundle(Bundle.class).execute();
+        return FhirUtil.getAllBundleComponentsAsList(patientBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(patient -> {
+            Patient p = (Patient) patient.getResource();
+            return p.getIdentifier().stream().anyMatch(identifier -> checkIdentifier(system, value, identifier)) &&
+                    checkFirstName(p, patientDto)
+                    && checkBirthdate(p, patientDto) && checkGender(p, patientDto);
+        }).collect(toList());
+    }
+
+    private boolean checkIdentifier(String system, String value, Identifier identifier) {
+        return identifier.getSystem().equalsIgnoreCase(system) && identifier.getValue().replaceAll(" ", "")
+                .replaceAll("-", "").trim()
+                .equalsIgnoreCase(value.replaceAll(" ", "").replaceAll("-", "").trim());
+    }
+
+    private boolean checkFirstName(Patient p, PatientDto patientDto) {
+        return p.getName().stream().findAny().get().getGiven().stream().findAny().get().toString().equalsIgnoreCase(patientDto.getName().stream().findAny().get().getFirstName());
+    }
+
+    private boolean checkBirthdate(Patient p, PatientDto patientDto) {
+        return modelMapper.map(p, PatientDto.class).getBirthDate().toString().equalsIgnoreCase(patientDto.getBirthDate().toString());
+    }
+
+    private boolean checkGender(Patient p, PatientDto patientDto) {
+        return p.getGender().toCode().equalsIgnoreCase(patientDto.getGenderCode());
+    }
+
+    private String generateRandomMrn() {
+        StringBuilder localIdIdBuilder = new StringBuilder();
+        if (null != fisProperties.getPatient().getMrn().getPrefix()) {
+            localIdIdBuilder.append(fisProperties.getPatient().getMrn().getPrefix());
+            localIdIdBuilder.append("-");
+        }
+        localIdIdBuilder.append(RandomStringUtils
+                .randomAlphanumeric((fisProperties.getPatient().getMrn().getLength())));
+        return localIdIdBuilder.toString().toUpperCase();
+    }
+
 }
 
 
