@@ -53,7 +53,8 @@ public enum LookupPathUrls {
     PURPOSE_OF_USE("consent purpose of use", Constants.PURPOSE_OF_USE_PATH),
     SECURITY_LABEL("security label",Constants.SECURITY_LABEL_PATH),
     SIMPLE_LANGUAGE("simple language",Constants.SIMPLE_LANGUAGE),
-    POLICYHOLDER_RELATIONSHIP("policyholder relationship",Constants.POLICYHOLDER_RELATIONSHIP_PATH);
+    POLICYHOLDER_RELATIONSHIP("policyholder relationship",Constants.POLICYHOLDER_RELATIONSHIP_PATH),
+    FM_STATUS("financial resource status code", Constants.FM_STATUS_PATH);
 
     private final String type;
     private final String urlPath;
@@ -125,5 +126,6 @@ public enum LookupPathUrls {
         static final String SECURITY_LABEL_PATH="/ValueSet/ocp-security-label";
         static final String SIMPLE_LANGUAGE = "/ValueSet/simple-language";
         static final String POLICYHOLDER_RELATIONSHIP_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/policyholder-relationship";
+        static final String FM_STATUS_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/fm-status";
     }
 }

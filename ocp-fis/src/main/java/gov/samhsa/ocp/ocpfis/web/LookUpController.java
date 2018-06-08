@@ -376,4 +376,9 @@ public class LookUpController {
     public List<ValueSetDto> getPolicyholderRelationship(){
         return lookUpService.getPolicyholderRelationship();
    }
+
+   @GetMapping("/fm-status")
+    public List<ValueSetDto> getFmStatus(){
+        return lookUpService.getFmStatus();
+   }
 }

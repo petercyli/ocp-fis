@@ -861,6 +861,19 @@ public class LookUpServiceImpl implements LookUpService {
         return policyholderRelationshipList;
     }
 
+    @Override
+    public List<ValueSetDto> getFmStatus() {
+        List<ValueSetDto> fmStatusList=new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.FM_STATUS.getUrlPath(), LookupPathUrls.FM_STATUS.getType());
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.FM_STATUS.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            fmStatusList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + fmStatusList.size() + " consent Action.");
+        return fmStatusList;
+
+    }
+
     private ValueSet getValueSets(String urlPath, String type) {
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + urlPath;

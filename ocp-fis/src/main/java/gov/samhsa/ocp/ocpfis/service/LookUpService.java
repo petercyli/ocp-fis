@@ -130,4 +130,6 @@ public interface LookUpService {
     List<ValueSetDto> getSecurityLabel();
 
     List<ValueSetDto> getPolicyholderRelationship();
+
+    List<ValueSetDto> getFmStatus();
 }
