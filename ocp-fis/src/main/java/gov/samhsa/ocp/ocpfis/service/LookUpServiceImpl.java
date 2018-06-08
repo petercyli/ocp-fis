@@ -849,6 +849,18 @@ public class LookUpServiceImpl implements LookUpService {
         return securityLabelList;
     }
 
+    @Override
+    public List<ValueSetDto> getPolicyholderRelationship() {
+        List<ValueSetDto> policyholderRelationshipList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.POLICYHOLDER_RELATIONSHIP.getUrlPath(), LookupPathUrls.POLICYHOLDER_RELATIONSHIP.getType());
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.POLICYHOLDER_RELATIONSHIP.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            policyholderRelationshipList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + policyholderRelationshipList.size() + " consent Action.");
+        return policyholderRelationshipList;
+    }
+
     private ValueSet getValueSets(String urlPath, String type) {
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + urlPath;

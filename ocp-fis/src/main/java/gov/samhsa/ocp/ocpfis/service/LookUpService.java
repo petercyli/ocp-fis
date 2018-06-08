@@ -128,4 +128,6 @@ public interface LookUpService {
     List<ValueSetDto> getPurposeOfUse();
 
     List<ValueSetDto> getSecurityLabel();
+
+    List<ValueSetDto> getPolicyholderRelationship();
 }
