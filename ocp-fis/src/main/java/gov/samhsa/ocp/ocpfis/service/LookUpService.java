@@ -132,4 +132,6 @@ public interface LookUpService {
     List<ValueSetDto> getPolicyholderRelationship();
 
     List<ValueSetDto> getFmStatus();
+
+    List<ValueSetDto> getCoverageType();
 }

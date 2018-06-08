@@ -273,8 +273,7 @@ public class LookUpController {
     }
 
     @GetMapping("/communication-not-done-reasons")
-    public List<ValueSetDto> getCommunicationNotDoneReason()
-    {
+    public List<ValueSetDto> getCommunicationNotDoneReason() {
         return lookUpService.getCommunicationNotDoneReason();
     }
 
@@ -338,47 +337,52 @@ public class LookUpController {
     }
 
     @GetMapping("/flag-category")
-    public List<ValueSetDto> getFlagCategory(){
+    public List<ValueSetDto> getFlagCategory() {
         return lookUpService.getFlagCategory();
     }
 
-   @GetMapping("/consent-state-codes")
-    public List<ValueSetDto> getConsentStateCodes(){
+    @GetMapping("/consent-state-codes")
+    public List<ValueSetDto> getConsentStateCodes() {
         return lookUpService.getConsentStateCodes();
-   }
+    }
 
-   @GetMapping("/consent-category")
-    public List<ValueSetDto> getConsentCategory(){
+    @GetMapping("/consent-category")
+    public List<ValueSetDto> getConsentCategory() {
         return lookUpService.getConsentCategory();
-   }
+    }
 
-   @GetMapping("/security-role-type")
-    public List<ValueSetDto> getSecurityRole(){
+    @GetMapping("/security-role-type")
+    public List<ValueSetDto> getSecurityRole() {
         return lookUpService.getSecurityRole();
-   }
+    }
 
-   @GetMapping("/consent-action")
-    public List<ValueSetDto> getConsentAction(){
+    @GetMapping("/consent-action")
+    public List<ValueSetDto> getConsentAction() {
         return lookUpService.getConsentAction();
-   }
+    }
 
-   @GetMapping("/purpose-of-use")
-    public List<ValueSetDto> getPurposeOfUse(){
+    @GetMapping("/purpose-of-use")
+    public List<ValueSetDto> getPurposeOfUse() {
         return lookUpService.getPurposeOfUse();
-   }
+    }
 
-   @GetMapping("/security-label")
-    public List<ValueSetDto> getSecurityLabel(){
+    @GetMapping("/security-label")
+    public List<ValueSetDto> getSecurityLabel() {
         return lookUpService.getSecurityLabel();
-   }
+    }
 
-   @GetMapping("/policyholder-relationship")
-    public List<ValueSetDto> getPolicyholderRelationship(){
+    @GetMapping("/policyholder-relationship")
+    public List<ValueSetDto> getPolicyholderRelationship() {
         return lookUpService.getPolicyholderRelationship();
-   }
+    }
 
-   @GetMapping("/fm-status")
-    public List<ValueSetDto> getFmStatus(){
+    @GetMapping("/fm-status")
+    public List<ValueSetDto> getFmStatus() {
         return lookUpService.getFmStatus();
-   }
+    }
+
+    @GetMapping("/coverage-type")
+    public List<ValueSetDto> getCoverageType() {
+        return lookUpService.getCoverageType();
+    }
 }
