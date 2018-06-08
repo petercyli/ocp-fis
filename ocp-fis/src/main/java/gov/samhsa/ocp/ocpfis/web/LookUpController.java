@@ -371,4 +371,9 @@ public class LookUpController {
     public List<ValueSetDto> getSecurityLabel(){
         return lookUpService.getSecurityLabel();
    }
+
+   @GetMapping("/policyholder-relationship")
+    public List<ValueSetDto> getPolicyholderRelationship(){
+        return lookUpService.getPolicyholderRelationship();
+   }
 }
