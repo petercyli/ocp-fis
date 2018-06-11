@@ -83,8 +83,8 @@ public class CoverageServiceImpl implements CoverageService {
     }
 
     private boolean isDuplicateWhileCreate(CoverageDto coverageDto){
-       Bundle bundle=fhirClient.search().forResource(Coverage.class)
-               .where(new ReferenceClientParam("beneficiary").hasId(coverageDto.getBeneficiary().getReference()))
+       Bundle bundle= (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Coverage.class)
+               .where(new ReferenceClientParam("beneficiary").hasId(coverageDto.getBeneficiary().getReference())))
                .returnBundle(Bundle.class).execute();
       return !bundle.getEntry().stream().map(bundleEntryComponent -> {
            Coverage coverage= (Coverage) bundleEntryComponent.getResource();
