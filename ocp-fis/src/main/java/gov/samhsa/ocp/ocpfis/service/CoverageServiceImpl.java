@@ -1,15 +1,18 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.CoverageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
+import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.PeriodToPeriodDtoConverter;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coverage;
 import org.hl7.fhir.dstu3.model.Period;
@@ -18,7 +21,9 @@ import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -43,11 +48,15 @@ public class CoverageServiceImpl implements CoverageService {
 
     @Override
     public void createCoverage(CoverageDto coverageDto) {
-        Coverage coverage=convertCoverageDtoToCoverage(coverageDto);
-        //Validate
-        FhirUtil.validateFhirResource(fhirValidator,coverage, Optional.empty(), ResourceType.Coverage.name(),"Create Coverage");
-        //Create
-        FhirUtil.createFhirResource(fhirClient,coverage,ResourceType.Coverage.name());
+        if(!isDuplicateWhileCreate(coverageDto)) {
+            Coverage coverage = convertCoverageDtoToCoverage(coverageDto);
+            //Validate
+            FhirUtil.validateFhirResource(fhirValidator, coverage, Optional.empty(), ResourceType.Coverage.name(), "Create Coverage");
+            //Create
+            FhirUtil.createFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
+        }else{
+            throw new DuplicateResourceFoundException("Coverage already exists for given subscriber id and beneficiary.");
+        }
     }
 
 
@@ -71,5 +80,16 @@ public class CoverageServiceImpl implements CoverageService {
         coverage.setPeriod(period);
 
         return coverage;
+    }
+
+    private boolean isDuplicateWhileCreate(CoverageDto coverageDto){
+       Bundle bundle=fhirClient.search().forResource(Coverage.class)
+               .where(new ReferenceClientParam("beneficiary").hasId(coverageDto.getBeneficiary().getReference()))
+               .returnBundle(Bundle.class).execute();
+      return !bundle.getEntry().stream().map(bundleEntryComponent -> {
+           Coverage coverage= (Coverage) bundleEntryComponent.getResource();
+           return coverage.getSubscriberId();
+       }).filter(id->id.equalsIgnoreCase(coverageDto.getSubscriberId().trim())).collect(Collectors.toList()).isEmpty();
+
     }
 }
