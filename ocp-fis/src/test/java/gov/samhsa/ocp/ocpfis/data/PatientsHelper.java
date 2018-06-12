@@ -29,12 +29,12 @@ public class PatientsHelper {
         int rowNum = 0;
 
         List<PatientDto> patientDtos = new ArrayList<>();
-        Map<String, String> genderCodeLookup = CommonHelper.getLookup("http://localhost:8444/lookups/administrative-genders");
-        Map<String, String> birthSexLookup=CommonHelper.getLookup("http://localhost:8444/lookups/us-core-birthsexes");
-        Map<String, String> raceLookup=CommonHelper.getLookup("http://localhost:8444/lookups/us-core-races");
-        Map<String,String> ethnicityLookup=CommonHelper.getLookup("http://localhost:8444/lookups/us-core-ethnicities");
-        Map<String, String> languageLookup=CommonHelper.getLookup("http://localhost:8444/lookups/languages");
-        Map<String,String> identifierTypeLookup=CommonHelper.identifierTypeDtoValue("http://localhost:8444/lookups/identifier-systems");
+        Map<String, String> genderCodeLookup = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/administrative-genders");
+        Map<String, String> birthSexLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-birthsexes");
+        Map<String, String> raceLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-races");
+        Map<String,String> ethnicityLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-ethnicities");
+        Map<String, String> languageLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/languages");
+        Map<String,String> identifierTypeLookup=CommonHelper.identifierTypeDtoValue(DataConstants.serverUrl + "lookups/identifier-systems");
         for (Row row : patients) {
             if (rowNum > 0) {
                 int j = 0;
@@ -108,7 +108,7 @@ public class PatientsHelper {
         patientDtos.stream().forEach(patientDto->{
             try {
                 HttpEntity<PatientDto> request = new HttpEntity<>(patientDto);
-                rt.postForObject("http://localhost:8444/patients/", request, PatientDto.class);
+                rt.postForObject(DataConstants.serverUrl + "patients/", request, PatientDto.class);
             } catch (Exception e) {
                 log.info("This patient could not be posted : " + patientDto);
                 e.printStackTrace();

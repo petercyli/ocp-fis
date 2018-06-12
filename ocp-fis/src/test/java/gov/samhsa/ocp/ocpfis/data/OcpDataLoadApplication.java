@@ -104,7 +104,7 @@ public class OcpDataLoadApplication {
     }
 
     private static Map<String, String> retrieveOrganizations() {
-        String orgsUrl = "http://localhost:8444/organizations/search";
+        String orgsUrl = DataConstants.serverUrl + "organizations/search";
         RestTemplate rt = new RestTemplate();
         ResponseEntity<TempOrganizationDto> foo = rt.getForEntity(orgsUrl, TempOrganizationDto.class);
 
@@ -121,7 +121,7 @@ public class OcpDataLoadApplication {
     }
 
     private static Map<String, String> retrievePractitioners() {
-        String url = "http://localhost:8444/practitioners/search?showAll=true";
+        String url = DataConstants.serverUrl + "practitioners/search?showAll=true";
         RestTemplate rt = new RestTemplate();
         ResponseEntity<WrapperPractitionerDto> practitioners = rt.getForEntity(url, WrapperPractitionerDto.class);
 
@@ -165,7 +165,7 @@ public class OcpDataLoadApplication {
     }
 
     private static Map<String, String> retrievePatients() {
-        String url = "http://localhost:8444/patients/search?showAll=true";
+        String url = DataConstants.serverUrl + "patients/search?showAll=true";
         RestTemplate rt = new RestTemplate();
         ResponseEntity<WrapperPatientDto> responseEntity = rt.getForEntity(url, WrapperPatientDto.class);
         WrapperPatientDto wrapperDto = responseEntity.getBody();

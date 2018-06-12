@@ -21,10 +21,10 @@ public class CommunicationsHelper {
 
     public static void process(Sheet communications, Map<String, String> mapOfPatients, Map<String,String> mapOfPractitioners) {
         log.info("last row number: "+ communications.getLastRowNum());
-        Map<String,String> statusLookup=CommonHelper.getLookup("http://localhost:8444/lookups/communication-statuses");
-        Map<String,ValueSetDto> notDoneReasonValueSetLookup=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/communication-not-done-reasons");
-        Map<String,ValueSetDto> categoryValueSetLookup=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/communication-categories");
-        Map<String,ValueSetDto> contactMediumValueSetLookup=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/communication-mediums");
+        Map<String,String> statusLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/communication-statuses");
+        Map<String,ValueSetDto> notDoneReasonValueSetLookup=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/communication-not-done-reasons");
+        Map<String,ValueSetDto> categoryValueSetLookup=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/communication-categories");
+        Map<String,ValueSetDto> contactMediumValueSetLookup=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/communication-mediums");
         int rowNum=0;
 
         List<CommunicationDto> communicationDtos=new ArrayList<>();
@@ -91,7 +91,7 @@ public class CommunicationsHelper {
 
             try {
                     HttpEntity<CommunicationDto> request = new HttpEntity<>(communicationDto);
-                    rt.postForObject("http://localhost:8444/communications/", request, CommunicationDto.class);
+                    rt.postForObject(DataConstants.serverUrl + "communications/", request, CommunicationDto.class);
             } catch (Exception e) {
                 log.info("This communications could not be posted : " + communicationDto);
                 e.printStackTrace();

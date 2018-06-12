@@ -30,7 +30,7 @@ public class PractitionersHelper {
 
         int rowNum = 0;
 
-        Map<String, String> practitionerRolesLookup = CommonHelper.getLookup("http://localhost:8444/lookups/provider-role");
+        Map<String, String> practitionerRolesLookup = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/provider-role");
         List<PractitionerDto> practitionerDtos = new ArrayList<>();
 
         for (Row row : practitioners) {
@@ -152,7 +152,7 @@ public class PractitionersHelper {
                 IdentifierDto identifierDto = oIdentifierDto.get();
 
                 if (identifierDto.getValue() != null) {
-                    rt.postForObject("http://localhost:8444/practitioners", request, PractitionerDto.class);
+                    rt.postForObject(DataConstants.serverUrl + "practitioners", request, PractitionerDto.class);
                 }
             }
         });

@@ -24,9 +24,9 @@ public class CareTeamsHelper {
 
         int rowNum = 0;
 
-        Map<String, String> careTeamsCategories = CommonHelper.getLookup("http://localhost:8444/lookups/care-team-categories");
-        Map<String, String> careTeamReasonCodes = CommonHelper.getLookup("http://localhost:8444/lookups/care-team-reasons");
-        Map<String, String> participantRoles = CommonHelper.getLookup("http://localhost:8444/lookups/participant-roles");
+        Map<String, String> careTeamsCategories = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/care-team-categories");
+        Map<String, String> careTeamReasonCodes = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/care-team-reasons");
+        Map<String, String> participantRoles = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/participant-roles");
 
         List<CareTeamDto> careTeamDtos = new ArrayList<>();
 
@@ -117,7 +117,7 @@ public class CareTeamsHelper {
                 if(careTeamDto.getSubjectId() != null && careTeamDto.getParticipants() != null) {
                     log.info("Getting ready to post: " + careTeamDto);
                     HttpEntity<CareTeamDto> request = new HttpEntity<>(careTeamDto);
-                    rt.postForObject("http://localhost:8444/care-teams/", request, CareTeamDto.class);
+                    rt.postForObject(DataConstants.serverUrl + "care-teams/", request, CareTeamDto.class);
                 }
             } catch (Exception e) {
                 log.info("This careteam could not be posted : " + careTeamDto);

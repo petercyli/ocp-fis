@@ -53,7 +53,7 @@ public class OrganizationHelper {
 
         RestTemplate rt = new RestTemplate();
 
-        String fooResourceUrl = "http://localhost:8444/organizations";
+        String fooResourceUrl = DataConstants.serverUrl + "organizations";
 
         organizationDtos.forEach(organizationDto -> {
             try {

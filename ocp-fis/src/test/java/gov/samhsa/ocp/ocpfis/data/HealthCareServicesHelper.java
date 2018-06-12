@@ -25,10 +25,10 @@ public class HealthCareServicesHelper {
 
         int rowNum = 0;
 
-        Map<String, String> categoryLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-categories");
-        Map<String, String> typeLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-types");
-        Map<String, String> specialityLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-specialities");
-        Map<String, String> referralLookups = CommonHelper.getLookup("http://localhost:8444/lookups/healthcare-service-referral-methods");
+        Map<String, String> categoryLookups = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/healthcare-service-categories");
+        Map<String, String> typeLookups = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/healthcare-service-types");
+        Map<String, String> specialityLookups = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/healthcare-service-specialities");
+        Map<String, String> referralLookups = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/healthcare-service-referral-methods");
 
         List<TempHealthCareServiceDto> healthCareServiceDtos = new ArrayList<>();
 
@@ -114,7 +114,7 @@ public class HealthCareServicesHelper {
             try {
                 log.info("healthcareServiceDto : " + healthcareServiceDto);
                 HttpEntity<TempHealthCareServiceDto> request = new HttpEntity<>(healthcareServiceDto);
-                rt.postForObject("http://localhost:8444/organization/" + healthcareServiceDto.getOrganizationId() + "/healthcare-services", request, TempHealthCareServiceDto.class);
+                rt.postForObject(DataConstants.serverUrl + "organization/" + healthcareServiceDto.getOrganizationId() + "/healthcare-services", request, TempHealthCareServiceDto.class);
 
             } catch (Exception e) {
                 e.printStackTrace();

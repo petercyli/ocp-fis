@@ -67,7 +67,7 @@ public class ValueSetHelper {
     }
 
     private static String getUrl() {
-        return "http://localhost:8444/valuesets";
+        return DataConstants.serverUrl + "valuesets";
     }
 
 

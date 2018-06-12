@@ -48,7 +48,7 @@ public class LocationsHelper {
                 HttpEntity<TempLocationDto> request = new HttpEntity<>(locationDto);
                 log.info("locationDto being posted : " + locationDto);
 
-                ResponseEntity<TempLocationDto> response = rt.exchange("http://localhost:8444/organizations/" + locationDto.getManagingOrganization() + "/locations", HttpMethod.POST, request, TempLocationDto.class);
+                ResponseEntity<TempLocationDto> response = rt.exchange(DataConstants.serverUrl + "organizations/" + locationDto.getManagingOrganization() + "/locations", HttpMethod.POST, request, TempLocationDto.class);
                 log.info("response code : " + response.getStatusCode());
 
             } catch (Exception e) {

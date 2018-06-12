@@ -24,10 +24,10 @@ public class TodosHelper {
         int rowNum=0;
 
         List<TempTaskDto> todoDtos=new ArrayList<>();
-        Map<String,ValueSetDto> statusLookupValueSet=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/task-status");
-        Map<String,ValueSetDto> priorityValueSet=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/request-priority");
-        Map<String,ValueSetDto> intentValueSet=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/request-intent");
-        Map<String,ValueSetDto> performerValueSet=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/task-performer-type");
+        Map<String,ValueSetDto> statusLookupValueSet=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/task-status");
+        Map<String,ValueSetDto> priorityValueSet=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/request-priority");
+        Map<String,ValueSetDto> intentValueSet=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/request-intent");
+        Map<String,ValueSetDto> performerValueSet=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/task-performer-type");
         for(Row row: todos){
             if(rowNum>0){
                 int j=0;
@@ -96,7 +96,7 @@ public class TodosHelper {
             log.info("tasks  : "+taskDto);
             HttpEntity<TempTaskDto> request=new HttpEntity<>(taskDto);
 
-            rt.postForObject("http://localhost:8444/tasks",request,TempTaskDto.class);
+            rt.postForObject(DataConstants.serverUrl + "tasks",request,TempTaskDto.class);
         });
     }
 }

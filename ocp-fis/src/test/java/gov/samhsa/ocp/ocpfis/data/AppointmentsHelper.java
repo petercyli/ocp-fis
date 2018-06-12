@@ -25,11 +25,11 @@ public class AppointmentsHelper {
         log.info("last row number : "+ appointments.getLastRowNum());
 
         int rowNum=0;
-        Map<String,ValueSetDto> statusValueSetLookups= CommonHelper.getLookupValueSet("http://localhost:8444/lookups/appointment-statuses");
-        Map<String,String> typeCodeLookups=CommonHelper.getLookup("http://localhost:8444/lookups/appointment-types");
-        Map<String,ValueSetDto> participationTypes=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/appointment-participation-types");
-        Map<String,ValueSetDto> participationStatus=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/appointment-participation-statuses");
-        Map<String,ValueSetDto> participantRequired=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/appointment-participant-required");
+        Map<String,ValueSetDto> statusValueSetLookups= CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/appointment-statuses");
+        Map<String,String> typeCodeLookups=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/appointment-types");
+        Map<String,ValueSetDto> participationTypes=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/appointment-participation-types");
+        Map<String,ValueSetDto> participationStatus=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/appointment-participation-statuses");
+        Map<String,ValueSetDto> participantRequired=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/appointment-participant-required");
         List<TempAppointmentDto> appointmentDtos=new ArrayList<>();
         AppointmentParticipantDto appointmentParticipantDto=new AppointmentParticipantDto();
         for(Row row:appointments){
@@ -92,7 +92,7 @@ public class AppointmentsHelper {
             try {
                 HttpEntity<TempAppointmentDto> request = new HttpEntity<>(appointmentDto);
 
-                rt.postForObject("http://localhost:8444/appointments", request, TempAppointmentDto.class);
+                rt.postForObject(DataConstants.serverUrl + "appointments", request, TempAppointmentDto.class);
             }catch (Exception e){
                 log.info("This appointments counld not be posted: "+appointmentDto);
                 e.printStackTrace();

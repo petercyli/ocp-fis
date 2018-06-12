@@ -28,9 +28,9 @@ public class RelatedPersonsHelper {
         int rowNum=0;
 
         List<TempRelatedPersonDto> relatedPersonDtos=new ArrayList<>();
-        Map<String,String> identifierTypeLookup=CommonHelper.identifierTypeDtoValue("http://localhost:8444/lookups/identifier-systems");
-        Map<String, String> genderLookup = CommonHelper.getLookup("http://localhost:8444/lookups/administrative-genders");
-        Map<String, String> relationLookup = CommonHelper.getLookup("http://localhost:8444/lookups/related-person-patient-relationship-types");
+        Map<String,String> identifierTypeLookup=CommonHelper.identifierTypeDtoValue(DataConstants.serverUrl + "lookups/identifier-systems");
+        Map<String, String> genderLookup = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/administrative-genders");
+        Map<String, String> relationLookup = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/related-person-patient-relationship-types");
         for(Row row:relatedPersons){
             if(rowNum>0){
                 int j=0;
@@ -91,7 +91,7 @@ public class RelatedPersonsHelper {
             try {
                 if(relatedPersonDto.getPatient() != null) {
                     HttpEntity<TempRelatedPersonDto> request = new HttpEntity<>(relatedPersonDto);
-                    rt.postForObject("http://localhost:8444/related-persons/", request, RelatedPersonDto.class);
+                    rt.postForObject(DataConstants.serverUrl + "related-persons/", request, RelatedPersonDto.class);
                 }
             } catch (Exception e) {
                 log.info("This relatedPerson could not be posted : " + relatedPersonDto);

@@ -24,11 +24,11 @@ public class ActivityDefinitionsHelper {
 
         int rowNum=0;
 
-        Map<String, ValueSetDto> publicationStatusLookups = CommonHelper.getLookupValueSet("http://localhost:8444/lookups/publication-status");
-        Map<String,ValueSetDto> topicLookups=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/definition-topic");
-        Map<String,ValueSetDto> actionParticipantTypeLookups=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/action-participant-type");
-        Map<String,ValueSetDto> actionParticipantRoleLookups=CommonHelper.getLookupValueSet("http://localhost:8444/lookups/action-participant-role");
-        Map<String,ValueSetDto> actionResourceTypeLookups= CommonHelper.getLookupValueSet("http://localhost:8444/lookups/resource-type");
+        Map<String, ValueSetDto> publicationStatusLookups = CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/publication-status");
+        Map<String,ValueSetDto> topicLookups=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/definition-topic");
+        Map<String,ValueSetDto> actionParticipantTypeLookups=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/action-participant-type");
+        Map<String,ValueSetDto> actionParticipantRoleLookups=CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/action-participant-role");
+        Map<String,ValueSetDto> actionResourceTypeLookups= CommonHelper.getLookupValueSet(DataConstants.serverUrl + "lookups/resource-type");
 
         List<TempActivityDefinitionDto> activityDefinitionDtos=new ArrayList<>();
 
@@ -85,7 +85,7 @@ public class ActivityDefinitionsHelper {
             try {
                 log.info("activityDefinitionDto : " + activityDefinitionDto);
                 HttpEntity<TempActivityDefinitionDto> request = new HttpEntity<>(activityDefinitionDto);
-                rt.postForObject("http://localhost:8444/organizations/" + activityDefinitionDto.getPublisher().split("/")[1] + "/activity-definitions", request, TempActivityDefinitionDto.class);
+                rt.postForObject(DataConstants.serverUrl + "organizations/" + activityDefinitionDto.getPublisher().split("/")[1] + "/activity-definitions", request, TempActivityDefinitionDto.class);
             } catch (Exception e) {
                 e.printStackTrace();
             }

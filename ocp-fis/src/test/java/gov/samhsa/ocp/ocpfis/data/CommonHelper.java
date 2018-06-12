@@ -93,7 +93,7 @@ public class CommonHelper {
      }
 
     public static String getOrganizationId(String name){
-             String orgUrl = "http://localhost:8444/organizations/search?searchType=name&searchValue=" + name;
+             String orgUrl = DataConstants.serverUrl + "organizations/search?searchType=name&searchValue=" + name;
          RestTemplate rt = new RestTemplate();
          ResponseEntity<TempOrganizationDto> foo = rt.getForEntity(orgUrl, TempOrganizationDto.class);
 
@@ -106,21 +106,21 @@ public class CommonHelper {
      }
 
      public static String getActivityDefinitionId(String orgId,String name){
-         String activityDefinitionUrl="http://localhost:8444/organizations/"+orgId+"/activity-definitions/definition-reference?name="+name;
+         String activityDefinitionUrl= DataConstants.serverUrl + "organizations/"+orgId+"/activity-definitions/definition-reference?name="+name;
          RestTemplate rt=new RestTemplate();
          ResponseEntity<String> foo=rt.getForEntity(activityDefinitionUrl, String.class);
          return foo.getBody();
      }
 
      public static String getPractitionerId(String name){
-         String practitionerUrl="http://localhost:8444/practitioners/practitioner-id?practitionerName="+name;
+         String practitionerUrl= DataConstants.serverUrl + "practitioners/practitioner-id?practitionerName="+name;
          RestTemplate rt=new RestTemplate();
          ResponseEntity<String> foo=rt.getForEntity(practitionerUrl, String.class);
          return foo.getBody();
      }
 
      public static String getTodoMainTask(String patient,String organization){
-         String todoUrl="http://localhost:8444/tasks/task-references?definition=To-Do&patient="+patient+"&orgainization="+organization;
+         String todoUrl=DataConstants.serverUrl + "tasks/task-references?definition=To-Do&patient="+patient+"&orgainization="+organization;
          RestTemplate rt=new RestTemplate();
          List<LinkedHashMap<String,String>> todo=rt.getForEntity(todoUrl,ArrayList.class).getBody();
 
