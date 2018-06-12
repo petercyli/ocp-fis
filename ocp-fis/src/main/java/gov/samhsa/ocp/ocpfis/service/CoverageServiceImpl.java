@@ -26,6 +26,7 @@ import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -147,11 +148,13 @@ public class CoverageServiceImpl implements CoverageService {
         coverage.setRelationship(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(coverageDto.getRelationship(),lookUpService.getPolicyholderRelationship())));
 
         Period period = new Period();
-        period.setStart((coverageDto.getStartDate() != null) ? java.sql.Date.valueOf(coverageDto.getStartDate()) : null);
-        period.setEnd((coverageDto.getEndDate() != null) ? java.sql.Date.valueOf(coverageDto.getEndDate()) : null);
-
+        try {
+            period.setStart((coverageDto.getStartDate() != null) ? DateUtil.convertStringToDate(coverageDto.getStartDate()) : null);
+            period.setEnd((coverageDto.getEndDate() != null) ? DateUtil.convertStringToDate(coverageDto.getEndDate()) : null);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
         coverage.setPeriod(period);
-
         return coverage;
     }
 
@@ -184,8 +187,8 @@ public class CoverageServiceImpl implements CoverageService {
             coverageDto.setRelationshipDisplay(Optional.ofNullable(coding.getDisplay()));
         });
 
-        coverageDto.setStartDate(DateUtil.convertDateToLocalDate(coverage.getPeriod().getStart()));
-        coverageDto.setEndDate(DateUtil.convertDateToLocalDate(coverage.getPeriod().getEnd()));
+        coverageDto.setStartDate(DateUtil.convertDateToString(coverage.getPeriod().getStart()));
+        coverageDto.setEndDate(DateUtil.convertDateToString(coverage.getPeriod().getEnd()));
 
         return coverageDto;
     }
