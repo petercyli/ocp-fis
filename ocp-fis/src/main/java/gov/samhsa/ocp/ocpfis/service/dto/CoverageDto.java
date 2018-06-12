@@ -1,20 +1,25 @@
 package gov.samhsa.ocp.ocpfis.service.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class CoverageDto {
     private String logicalId;
 
-    private ValueSetDto status;
+    private String status;
 
-    private ValueSetDto type;
+    private String type;
 
     private ReferenceDto subscriber;
 
@@ -22,7 +27,11 @@ public class CoverageDto {
 
     private ReferenceDto beneficiary;
 
-    private ValueSetDto relationship;
+    private String relationship;
 
-    private PeriodDto period;
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
+    private LocalDate startDate;
+
+    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
+    private LocalDate endDate;
 }

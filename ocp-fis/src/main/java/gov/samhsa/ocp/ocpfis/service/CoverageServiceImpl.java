@@ -93,19 +93,19 @@ public class CoverageServiceImpl implements CoverageService {
     private Coverage convertCoverageDtoToCoverage(CoverageDto coverageDto) {
         Coverage coverage = new Coverage();
         try {
-            coverage.setStatus(Coverage.CoverageStatus.fromCode(coverageDto.getStatus().getCode()));
+            coverage.setStatus(Coverage.CoverageStatus.fromCode(coverageDto.getStatus()));
         } catch (FHIRException e) {
             throw new ResourceNotFoundException("Status code not found");
         }
-        coverage.setType(FhirDtoUtil.convertValuesetDtoToCodeableConcept(coverageDto.getType()));
+        coverage.setType(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(coverageDto.getType(),lookUpService.getCoverageType())));
         coverage.setSubscriber(FhirDtoUtil.mapReferenceDtoToReference(coverageDto.getSubscriber()));
         coverage.setSubscriberId(coverageDto.getSubscriberId());
         coverage.setBeneficiary(FhirDtoUtil.mapReferenceDtoToReference(coverageDto.getBeneficiary()));
-        coverage.setRelationship(FhirDtoUtil.convertValuesetDtoToCodeableConcept(coverageDto.getRelationship()));
+        coverage.setRelationship(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(coverageDto.getRelationship(),lookUpService.getPolicyholderRelationship())));
 
         Period period = new Period();
-        period.setStart((coverageDto.getPeriod().getStart() != null) ? java.sql.Date.valueOf(coverageDto.getPeriod().getStart()) : null);
-        period.setEnd((coverageDto.getPeriod().getEnd() != null) ? java.sql.Date.valueOf(coverageDto.getPeriod().getEnd()) : null);
+        period.setStart((coverageDto.getStartDate() != null) ? java.sql.Date.valueOf(coverageDto.getStartDate()) : null);
+        period.setEnd((coverageDto.getEndDate() != null) ? java.sql.Date.valueOf(coverageDto.getEndDate()) : null);
 
         coverage.setPeriod(period);
 
