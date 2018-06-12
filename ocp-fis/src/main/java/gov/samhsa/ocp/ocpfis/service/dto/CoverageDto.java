@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 @Data
 @Builder
@@ -19,7 +20,11 @@ public class CoverageDto {
 
     private String status;
 
+    private Optional<String> statusDisplay;
+
     private String type;
+
+    private Optional<String> typeDisplay;
 
     private ReferenceDto subscriber;
 
@@ -28,6 +33,8 @@ public class CoverageDto {
     private ReferenceDto beneficiary;
 
     private String relationship;
+
+    private Optional<String> relationshipDisplay;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy")
     private LocalDate startDate;
