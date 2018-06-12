@@ -10,6 +10,7 @@ ribbon:
 ocp-fis:
   fhir:
     serverUrl: http://ocp.consent2share.org/fhir/baseDstu3
+    serverSecurityEnabled: true
     clientSocketTimeoutInMs: 768000
     encoding: json
     defaultResourceBundlePageSize: 10
