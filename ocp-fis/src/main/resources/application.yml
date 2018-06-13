@@ -60,6 +60,9 @@ ocp-fis:
   careTeam:
     pagination:
       default-size: 20
+  coverage:
+    pagination:
+      default-size: 20
   pdf:
     pdfConfigs:
       - type: consent-pdf
