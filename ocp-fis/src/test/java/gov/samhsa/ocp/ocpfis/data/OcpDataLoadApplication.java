@@ -30,10 +30,12 @@ public class OcpDataLoadApplication {
     public static void main(String[] args) throws IOException, InvalidFormatException {
 
         //for intercepting the requests and debugging
-        setFiddler();
+        //setFiddler();
 
         //ValueSets
         ValueSetHelper.process();
+
+
 
         //Create a workbook form excel file
         Workbook workbook = WorkbookFactory.create(new File(XSLX_FILE));
@@ -41,13 +43,14 @@ public class OcpDataLoadApplication {
         //Check number of sheets
         log.info("Number of sheets : " + workbook.getNumberOfSheets());
 
-        //Organizations
+       //Organizations
         Sheet organizations = workbook.getSheet("Organizations");
         OrganizationHelper.process(organizations);
 
         //Get all organizations
         Map<String, String> mapOrganizations = retrieveOrganizations();
         log.info("Retrieved organizations");
+
 
         Sheet locations = workbook.getSheet("Locations");
         LocationsHelper.process(locations, mapOrganizations);
@@ -66,9 +69,10 @@ public class OcpDataLoadApplication {
         PractitionersHelper.process(practitioners, mapOrganizations);
         log.info("Populated practitioners");
 
+
         Map<String, String> mapOfPractitioners = retrievePractitioners();
 
-        Sheet patients = workbook.getSheet("Patient");
+       Sheet patients = workbook.getSheet("Patient");
         PatientsHelper.process(patients, mapOfPractitioners, mapOrganizations);
         log.info("Populated patients");
 
@@ -90,7 +94,7 @@ public class OcpDataLoadApplication {
         TodosHelper.process(todos, mapOfPatients, mapOrganizations);
         log.info("Populated todosHelper");
 
-        Sheet communications = workbook.getSheet("Communication");
+       Sheet communications = workbook.getSheet("Communication");
         CommunicationsHelper.process(communications, mapOfPatients, mapOfPractitioners);
         log.info("Populated communications");
 
@@ -100,7 +104,6 @@ public class OcpDataLoadApplication {
 
         workbook.close();
         log.info("Workbook closed");
-
     }
 
     private static Map<String, String> retrieveOrganizations() {
@@ -158,7 +161,7 @@ public class OcpDataLoadApplication {
 
             log.info("practitionerRole : " + practitionerRole.getLogicalId() + " Value : " + practitionerRole.getCode().stream().findFirst().get().getDisplay());
 
-            practitionersMap.put(name.getLastName().trim(), practitionerDto.getLogicalId());
+            practitionersMap.put(name.getFirstName().trim()+" "+name.getLastName().trim(), practitionerDto.getLogicalId());
         }
 
         return practitionersMap;
