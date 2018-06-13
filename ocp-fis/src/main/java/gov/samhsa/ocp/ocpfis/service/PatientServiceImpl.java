@@ -277,16 +277,9 @@ public class PatientServiceImpl implements PatientService {
                     fhirClient.create().resource(flag).execute();
                 }));
 
-                //Create Episode of care
-                EpisodeOfCare episodeOfCare = FhirUtil.createEpisodeOfCare(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties, lookUpService);
-                MethodOutcome eOCMethodOutcome = fhirClient.create().resource(episodeOfCare).execute();
-
                 //Create To-Do task
                 Task task = FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
                 task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
-                Reference eocReference = new Reference();
-                eocReference.setReference(ResourceType.EpisodeOfCare + "/" + eOCMethodOutcome.getId().getIdPart());
-                task.setContext(eocReference);
 
                 fhirClient.create().resource(task).execute();
             } else {
