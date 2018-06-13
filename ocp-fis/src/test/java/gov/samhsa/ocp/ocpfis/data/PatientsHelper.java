@@ -26,82 +26,8 @@ import java.util.Optional;
 public class PatientsHelper {
 
     public static void process(Sheet patients, Map<String, String> mapOfPractitioners, Map<String, String> mapOfOrganizations) {
-        int rowNum = 0;
 
-        List<PatientDto> patientDtos = new ArrayList<>();
-        Map<String, String> genderCodeLookup = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/administrative-genders");
-        Map<String, String> birthSexLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-birthsexes");
-        Map<String, String> raceLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-races");
-        Map<String,String> ethnicityLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-ethnicities");
-        Map<String, String> languageLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/languages");
-        Map<String,String> identifierTypeLookup=CommonHelper.identifierTypeDtoValue(DataConstants.serverUrl + "lookups/identifier-systems");
-        for (Row row : patients) {
-            if (rowNum > 0) {
-                int j = 0;
-                PatientDto dto = new PatientDto();
-                NameDto nameDto = new NameDto();
-                IdentifierDto tempIdentifiereDto=new IdentifierDto();
-                for (Cell cell : row) {
-                    String cellValue = new DataFormatter().formatCellValue(cell);
-
-                    if (j == 0) {
-                        nameDto.setFirstName(cellValue);
-                    }
-                    else if (j == 1) {
-                        nameDto.setLastName(cellValue);
-                        dto.setName(Arrays.asList(nameDto));
-                    }
-                    else if (j == 2) {
-                        //TODO: fix the date issue
-                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-                        String date = "11/08/1980";
-                        LocalDate localDate = LocalDate.parse(date, formatter);
-                        dto.setBirthDate(localDate);
-                    }
-                    else if (j == 3) {
-                        dto.setGenderCode(genderCodeLookup.get(cellValue));
-                    }
-                    else if (j == 4) {
-                        dto.setBirthSex(birthSexLookup.get(cellValue));
-                    }
-                    else if(j==5){
-                        dto.setRace(raceLookup.get(cellValue));
-                    }
-                    else if(j==6){
-                        dto.setEthnicity(ethnicityLookup.get(cellValue));
-                    }
-                    else if(j==7){
-                        dto.setLanguage(languageLookup.get(cellValue));
-                    }
-                    else if(j==8){
-                        tempIdentifiereDto.setSystem(identifierTypeLookup.get(cellValue));
-                    }
-                    else if(j==9){
-                        tempIdentifiereDto.setValue(cellValue);
-                        dto.setIdentifier(Arrays.asList(tempIdentifiereDto));
-                    }
-                    else if(j==10){
-                        TelecomDto telecomDto=new TelecomDto();
-                        telecomDto.setSystem(java.util.Optional.of(ContactPointSystem.PHONE.toCode()));
-                        telecomDto.setUse(java.util.Optional.of(ContactPointUse.WORK.toCode()));
-                        telecomDto.setValue(java.util.Optional.ofNullable(cellValue));
-                        dto.setTelecoms(Arrays.asList(telecomDto));
-                    }
-                    else if(j==11){
-                        dto.setAddresses(CommonHelper.getAddresses(cellValue));
-                    }
-                    else if(j==12){
-                        dto.setOrganizationId(Optional.of(mapOfOrganizations.get(cellValue.trim())));
-                    }
-                    else if(j==13){
-                       dto.setPractitionerId(Optional.of(mapOfPractitioners.get(cellValue.trim())));
-                    }
-                    j++;
-                }
-                patientDtos.add(dto);
-            }
-            rowNum++;
-        }
+        List<PatientDto> patientDtos = retrieveSheet(patients, mapOfPractitioners, mapOfOrganizations);
 
         RestTemplate rt=new RestTemplate();
 
@@ -114,6 +40,90 @@ public class PatientsHelper {
                 e.printStackTrace();
             }
         });
+    }
+
+    private static List<PatientDto> retrieveSheet(Sheet patients, Map<String, String> mapOfPractitioners, Map<String, String> mapOfOrganizations) {
+        Map<String, String> genderCodeLookup = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/administrative-genders");
+        Map<String, String> birthSexLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-birthsexes");
+        Map<String, String> raceLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-races");
+        Map<String,String> ethnicityLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-ethnicities");
+        Map<String, String> languageLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/languages");
+        Map<String,String> identifierTypeLookup=CommonHelper.identifierTypeDtoValue(DataConstants.serverUrl + "lookups/identifier-systems");
+
+        List<PatientDto> patientDtos = new ArrayList<>();
+        int rowNum = 0;
+        for (Row row : patients) {
+            if (rowNum > 0) {
+                int j = 0;
+                PatientDto dto = new PatientDto();
+                processRow(mapOfPractitioners, mapOfOrganizations, genderCodeLookup, birthSexLookup, raceLookup, ethnicityLookup, languageLookup, identifierTypeLookup, row, j, dto);
+                patientDtos.add(dto);
+            }
+            rowNum++;
+        }
+        return patientDtos;
+    }
+
+    private static void processRow(Map<String, String> mapOfPractitioners, Map<String, String> mapOfOrganizations, Map<String, String> genderCodeLookup, Map<String, String> birthSexLookup, Map<String, String> raceLookup, Map<String, String> ethnicityLookup, Map<String, String> languageLookup, Map<String, String> identifierTypeLookup, Row row, int j, PatientDto dto) {
+        NameDto nameDto = new NameDto();
+        IdentifierDto tempIdentifiereDto=new IdentifierDto();
+        for (Cell cell : row) {
+            String cellValue = new DataFormatter().formatCellValue(cell);
+
+            if (j == 0) {
+                nameDto.setFirstName(cellValue);
+            }
+            else if (j == 1) {
+                nameDto.setLastName(cellValue);
+                dto.setName(Arrays.asList(nameDto));
+            }
+            else if (j == 2) {
+                //TODO: fix the date issue
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+                String date = "11/08/1980";
+                LocalDate localDate = LocalDate.parse(date, formatter);
+                dto.setBirthDate(localDate);
+            }
+            else if (j == 3) {
+                dto.setGenderCode(genderCodeLookup.get(cellValue));
+            }
+            else if (j == 4) {
+                dto.setBirthSex(birthSexLookup.get(cellValue));
+            }
+            else if(j==5){
+                dto.setRace(raceLookup.get(cellValue));
+            }
+            else if(j==6){
+                dto.setEthnicity(ethnicityLookup.get(cellValue));
+            }
+            else if(j==7){
+                dto.setLanguage(languageLookup.get(cellValue));
+            }
+            else if(j==8){
+                tempIdentifiereDto.setSystem(identifierTypeLookup.get(cellValue));
+            }
+            else if(j==9){
+                tempIdentifiereDto.setValue(cellValue);
+                dto.setIdentifier(Arrays.asList(tempIdentifiereDto));
+            }
+            else if(j==10){
+                TelecomDto telecomDto=new TelecomDto();
+                telecomDto.setSystem(Optional.of(ContactPointSystem.PHONE.toCode()));
+                telecomDto.setUse(Optional.of(ContactPointUse.WORK.toCode()));
+                telecomDto.setValue(Optional.ofNullable(cellValue));
+                dto.setTelecoms(Arrays.asList(telecomDto));
+            }
+            else if(j==11){
+                dto.setAddresses(CommonHelper.getAddresses(cellValue));
+            }
+            else if(j==12){
+                dto.setOrganizationId(Optional.of(mapOfOrganizations.get(cellValue.trim())));
+            }
+            else if(j==13){
+               dto.setPractitionerId(Optional.of(mapOfPractitioners.get(cellValue.trim())));
+            }
+            j++;
+        }
     }
 
 }
