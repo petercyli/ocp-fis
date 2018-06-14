@@ -13,6 +13,8 @@ security:
       clientId: ocp-fis
       clientSecret: changeit
       accessTokenUri: http://localhost:8080/uaa/oauth/token
+  basic:
+     enabled: false
 ocp-fis:
   fhir:
     serverUrl: http://ocp.consent2share.org/fhir/baseDstu3
