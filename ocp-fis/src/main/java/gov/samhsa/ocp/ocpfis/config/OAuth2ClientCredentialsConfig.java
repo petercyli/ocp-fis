@@ -10,7 +10,7 @@ import org.springframework.security.oauth2.config.annotation.web.configuration.E
 @EnableOAuth2Client
 public class OAuth2ClientCredentialsConfig {
 
-    @Value("${security.oauth2.client.access-token-uri}")
+    @Value("${security.oauth2.client.accessTokenUri}")
     private String accessTokenUri;
 
     @Value("${security.oauth2.client.clientId}")

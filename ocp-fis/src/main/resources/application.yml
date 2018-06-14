@@ -12,7 +12,7 @@ security:
     client:
       clientId: ocp-fis
       clientSecret: changeit
-      access-token-uri: http://localhost:8080/uaa/oauth/token
+      accessTokenUri: http://localhost:8080/uaa/oauth/token
 ocp-fis:
   fhir:
     serverUrl: http://ocp.consent2share.org/fhir/baseDstu3
