@@ -19,10 +19,10 @@ import java.nio.file.Paths;
 @Slf4j
 public class ValueSetHelper {
 
-    public static void process() {
+    public static void process(final String valueSetsDir) {
         Gson gson = new Gson();
 
-        File[] files = listFiles(new File("c://data//valuesets"));
+        File[] files = listFiles(new File(valueSetsDir));
 
         RestTemplate rt = new RestTemplate();
 
