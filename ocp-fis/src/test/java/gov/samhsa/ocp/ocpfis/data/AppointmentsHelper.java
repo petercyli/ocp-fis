@@ -59,7 +59,7 @@ public class AppointmentsHelper {
                     }else if(j==5){
                         dto.setTypeCode(typeCodeLookups.get(cellValue));
                     }else if(j==6){
-                        otherParticipant.setActorReference("Practitioner/"+mapOfPractitioners.get(cellValue.split(" ")[1]));
+                        otherParticipant.setActorReference("Practitioner/"+mapOfPractitioners.get(cellValue));
                         otherParticipant.setActorName(cellValue);
                     }else if(j==7){
                         otherParticipant.setParticipationTypeCode(participationTypes.get(cellValue).getCode());
@@ -77,7 +77,7 @@ public class AppointmentsHelper {
                         dto.setParticipant(participantDtos);
                     }else if(j==10){
                         dto.setCreatorName(cellValue);
-                        dto.setCreatorReference("Practitioner/"+mapOfPractitioners.get(cellValue.split(" ")[1]));
+                        dto.setCreatorReference("Practitioner/"+mapOfPractitioners.get(cellValue));
                     }
                     j++;
                 }

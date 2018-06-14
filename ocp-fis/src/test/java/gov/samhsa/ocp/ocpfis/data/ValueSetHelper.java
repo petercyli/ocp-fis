@@ -34,7 +34,7 @@ public class ValueSetHelper {
                 JsonParser parser = new JsonParser();
                 parser.parse(br);
 
-            } catch (JsonSyntaxException | IOException e) {
+            } catch (JsonSyntaxException | IOException e ) {
                 e.printStackTrace();
 
             }

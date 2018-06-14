@@ -32,18 +32,21 @@ public class CommunicationsHelper {
             if(rowNum>0){
                 int j=0;
                 CommunicationDto dto=new CommunicationDto();
-
+                String sentDateTime=null;
                 for(Cell cell:row){
                     String cellValue=new DataFormatter().formatCellValue(cell);
 
                     if(j==0){
                         ReferenceDto referenceDto=new ReferenceDto();
-                        referenceDto.setReference("Practitioner/"+mapOfPractitioners.get(cellValue.split(" ")[1]));
+                        referenceDto.setReference("Practitioner/"+mapOfPractitioners.get(cellValue));
                         referenceDto.setDisplay(cellValue);
                         dto.setSender(referenceDto);
                     }else if(j==1){
-                        dto.setSent(cellValue);
-                    }else if(j==3){
+                       sentDateTime=cellValue;
+                    }else if(j==2){
+                        sentDateTime=sentDateTime+" "+cellValue;
+                        dto.setSent(sentDateTime);
+                    } else if(j==3){
                         dto.setStatusCode(statusLookup.get(cellValue));
                     }else if(j==4){
                         dto.setCategoryCode(categoryValueSetLookup.get(cellValue).getCode());
@@ -62,7 +65,7 @@ public class CommunicationsHelper {
                         dto.setNote(cellValue);
                     }else if(j==9){
                         ReferenceDto referenceDto=new ReferenceDto();
-                        referenceDto.setReference("Practitioner/"+mapOfPractitioners.get(cellValue.split(" ")[1]));
+                        referenceDto.setReference("Practitioner/"+mapOfPractitioners.get(cellValue));
                         referenceDto.setDisplay(cellValue);
                         dto.setRecipient(Arrays.asList(referenceDto));
                     }else if(j==10){

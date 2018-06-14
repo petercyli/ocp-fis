@@ -388,19 +388,11 @@ public class LookUpServiceImpl implements LookUpService {
     @Override
     public List<ValueSetDto> getHealthcareServiceSpecialities() {
         List<ValueSetDto> healthcareServiceSpecialitiesCodes = new ArrayList<>();
-        ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY.getType());
-        boolean isAvailable = LookUpUtil.isValidResponseOrThrowException(response, LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY.getType(), false);
-        if (isAvailable) {
-            List<ValueSet.ValueSetExpansionContainsComponent> healthcareServiceCategoryList = response.getExpansion().getContains();
-            healthcareServiceSpecialitiesCodes = healthcareServiceCategoryList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        } else {
-            // try with different url
-            response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType());
+        ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType());
             if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType())) {
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
                 healthcareServiceSpecialitiesCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
             }
-        }
 
         log.info("Found " + healthcareServiceSpecialitiesCodes.size() + " healthcare service specialities.");
         return healthcareServiceSpecialitiesCodes;
