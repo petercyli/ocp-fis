@@ -42,7 +42,7 @@ public class PatientsHelper {
         });
     }
 
-    private static List<PatientDto> retrieveSheet(Sheet patients, Map<String, String> mapOfPractitioners, Map<String, String> mapOfOrganizations) {
+    public static List<PatientDto> retrieveSheet(Sheet patients, Map<String, String> mapOfPractitioners, Map<String, String> mapOfOrganizations) {
         Map<String, String> genderCodeLookup = CommonHelper.getLookup(DataConstants.serverUrl + "lookups/administrative-genders");
         Map<String, String> birthSexLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-birthsexes");
         Map<String, String> raceLookup=CommonHelper.getLookup(DataConstants.serverUrl + "lookups/us-core-races");

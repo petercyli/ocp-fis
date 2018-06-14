@@ -7,6 +7,8 @@ import gov.samhsa.ocp.ocpfis.data.model.practitioner.Code;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.Name;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.PractitionerRole;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.WrapperPractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -15,27 +17,82 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
 
 @Slf4j
 public class OcpDataLoadApplication {
 
-    private static final String XSLX_FILE = "C://data//OCP.xlsx";
+    private static String XSLX_FILE;
 
     public static void main(String[] args) throws IOException, InvalidFormatException {
+        String[] values = readPropertiesFile();
+
+        if(values.length == 3) {
+            populateFhirResources(values[0], values[1]);
+
+            populateUAA(values[0], values[2]);
+        } else {
+            log.error("Incorrect number of keys in the properties file");
+        }
+    }
+
+    private static String[] readPropertiesFile() {
+        Properties prop = new Properties();
+        String[] values = new String[3];
+        try (InputStream input = new FileInputStream("data.properties")) {
+            prop.load(input);
+
+            values[0] = prop.getProperty("xlsxfile");
+            values[1] = prop.getProperty("valuesetsdir");
+            values[2] = prop.getProperty("scriptsdir");
+
+        } catch (IOException e) {
+            log.error("Please provide a file data.properties at the root directory");
+        }
+        return values;
+
+    }
+
+    private static void populateUAA(final String XSLX_FILE, final String scriptsDir) throws IOException, InvalidFormatException {
+        //1. Create roles and scopes
+        RolesUAAHelper.createRoles();
+        log.info("Finished creating roles and scopes in UAA");
+
+        //2. Create ocpAdmin
+        OCPAdminUAAHelper.createOCPAdmin();
+
+        Workbook workbook = WorkbookFactory.create(new File(XSLX_FILE));
+
+        //Get all organizations
+        Map<String, String> organizationsMap = retrieveOrganizations();
+        log.info("Retrieved organizations");
+
+        //3. Populate Practitioners
+        Map<String, String> practitionersMap = retrievePractitioners();
+        List<PractitionerDto> practitionersSheet = PractitionersHelper.retrieveSheet(workbook.getSheet("Practitioners"), organizationsMap);
+        log.info("Retrieved practitioners");
+
+        PractitionerUAAHelper.createPractitioners(practitionersMap, practitionersSheet);
+        log.info("Finished creating practitioners in UAA");
+
+        //4. Populate Patients
+        Map<String, String> patientsMap = retrievePatients();
+        log.info("Retrieved patients");
+
+        List<PatientDto> patientsSheet = PatientsHelper.retrieveSheet(workbook.getSheet("Patient"), practitionersMap, organizationsMap);
+
+        PatientUAAHelper.createPatients(patientsMap, organizationsMap, patientsSheet);
+        log.info("Finished creating patients in UAA");
+    }
+
+    private static void populateFhirResources(final String XSLX_FILE, final String valueSetsDir) throws IOException, InvalidFormatException {
 
         //for intercepting the requests and debugging
-        //setFiddler();
+        setFiddler();
 
         //ValueSets
-        ValueSetHelper.process();
-
-
+        ValueSetHelper.process(valueSetsDir);
 
         //Create a workbook form excel file
         Workbook workbook = WorkbookFactory.create(new File(XSLX_FILE));
@@ -43,14 +100,13 @@ public class OcpDataLoadApplication {
         //Check number of sheets
         log.info("Number of sheets : " + workbook.getNumberOfSheets());
 
-       //Organizations
+        //Organizations
         Sheet organizations = workbook.getSheet("Organizations");
         OrganizationHelper.process(organizations);
 
         //Get all organizations
         Map<String, String> mapOrganizations = retrieveOrganizations();
         log.info("Retrieved organizations");
-
 
         Sheet locations = workbook.getSheet("Locations");
         LocationsHelper.process(locations, mapOrganizations);
@@ -69,10 +125,9 @@ public class OcpDataLoadApplication {
         PractitionersHelper.process(practitioners, mapOrganizations);
         log.info("Populated practitioners");
 
-
         Map<String, String> mapOfPractitioners = retrievePractitioners();
 
-       Sheet patients = workbook.getSheet("Patient");
+        Sheet patients = workbook.getSheet("Patient");
         PatientsHelper.process(patients, mapOfPractitioners, mapOrganizations);
         log.info("Populated patients");
 
@@ -94,7 +149,7 @@ public class OcpDataLoadApplication {
         TodosHelper.process(todos, mapOfPatients, mapOrganizations);
         log.info("Populated todosHelper");
 
-       Sheet communications = workbook.getSheet("Communication");
+        Sheet communications = workbook.getSheet("Communication");
         CommunicationsHelper.process(communications, mapOfPatients, mapOfPractitioners);
         log.info("Populated communications");
 
@@ -104,6 +159,7 @@ public class OcpDataLoadApplication {
 
         workbook.close();
         log.info("Workbook closed");
+
     }
 
     private static Map<String, String> retrieveOrganizations() {
@@ -161,7 +217,7 @@ public class OcpDataLoadApplication {
 
             log.info("practitionerRole : " + practitionerRole.getLogicalId() + " Value : " + practitionerRole.getCode().stream().findFirst().get().getDisplay());
 
-            practitionersMap.put(name.getFirstName().trim()+" "+name.getLastName().trim(), practitionerDto.getLogicalId());
+            practitionersMap.put(name.getFirstName().trim() + " " + name.getLastName().trim(), practitionerDto.getLogicalId());
         }
 
         return practitionersMap;
