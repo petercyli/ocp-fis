@@ -3,6 +3,10 @@ package gov.samhsa.ocp.ocpfis.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
+import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
+import org.springframework.security.oauth2.client.OAuth2ClientContext;
+import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
 
@@ -28,8 +32,16 @@ public class OAuth2ClientCredentialsConfig {
         return clientCredentialsResourceDetails;
     }
 
-//    @Bean
-//    public OAuth2RestTemplate createRestTemplate(OAuth2ClientContext oAuth2ClientContext) {
-//        return new OAuth2RestTemplate(clientCredentialsResourceDetails(), oAuth2ClientContext);
-//    }
+    @Primary
+    @Bean
+    public OAuth2ClientContext oAuth2ClientContext() {
+        return new DefaultOAuth2ClientContext();
+    }
+
+    @Bean
+    public OAuth2RestTemplate createRestTemplate(OAuth2ClientContext oAuth2ClientContext) {
+        return new OAuth2RestTemplate(clientCredentialsResourceDetails(), oAuth2ClientContext);
+    }
+
+
 }
