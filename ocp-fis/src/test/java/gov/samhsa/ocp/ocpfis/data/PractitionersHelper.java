@@ -160,6 +160,9 @@ public class PractitionersHelper {
 
                 dto.setIdentifiers(Arrays.asList(identifierDto));
 
+            } else if (j == 10) {
+                //UAA role
+                dto.setUaaRole(cellValue);
             }
 
             j++;
