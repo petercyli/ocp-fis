@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.data;
 
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
+import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
@@ -25,6 +26,16 @@ public class OrganizationHelper {
         int rowNum = 0;
 
         List<OrganizationDto> organizationDtos = new ArrayList<>();
+
+        OrganizationDto orgDto=new OrganizationDto();
+        orgDto.setName("Omnibus Care Plan (SAMSHA)");
+        orgDto.setAddresses(CommonHelper.getAddresses("5600 Fishers Lane| Rockville| MD| 20857|US"));
+        orgDto.setIdentifiers(CommonHelper.getIdentifiers("Organization Tax Id","530196960"));
+        List<TelecomDto> telecomDtos=new ArrayList<>();
+        telecomDtos.addAll(CommonHelper.getTelecoms("phone","(240)276-2827"));
+        telecomDtos.addAll(CommonHelper.getTelecoms("email","Kenneth.Salyards@SAMHSA.hhs.gov"));
+        orgDto.setTelecoms(telecomDtos);
+        organizationDtos.add(orgDto);
 
         for (Row row : organizations) {
             if (rowNum > 0) {
