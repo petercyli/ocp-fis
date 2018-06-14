@@ -16,12 +16,12 @@ public class FhirServiceConfig {
 
     private final FisProperties fisProperties;
 
-    private final OAuth2RestTemplate oAuth2RestTemplate;
+    @Autowired(required = false)
+    private OAuth2RestTemplate oAuth2RestTemplate;
 
     @Autowired
-    public FhirServiceConfig(FisProperties fisProperties, OAuth2RestTemplate oAuth2RestTemplate) {
+    public FhirServiceConfig(FisProperties fisProperties) {
         this.fisProperties = fisProperties;
-        this.oAuth2RestTemplate = oAuth2RestTemplate;
     }
 
     @Bean
@@ -34,7 +34,7 @@ public class FhirServiceConfig {
     @Bean
     public IGenericClient fhirClient() {
         IGenericClient fhirClient = fhirContext().newRestfulGenericClient(fisProperties.getFhir().getServerUrl());
-        if (fisProperties.getFhir().isServerSecurityEnabled()) {
+        if (fisProperties.getFhir().isServerSecurityEnabled() && oAuth2RestTemplate != null) {
             OAuth2AccessToken token = oAuth2RestTemplate.getAccessToken();
             BearerTokenAuthInterceptor authInterceptor = new BearerTokenAuthInterceptor(token.getValue());
             fhirClient.registerInterceptor(authInterceptor);
