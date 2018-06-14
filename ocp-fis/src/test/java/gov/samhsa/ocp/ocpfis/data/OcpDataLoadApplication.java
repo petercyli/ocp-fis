@@ -7,6 +7,8 @@ import gov.samhsa.ocp.ocpfis.data.model.practitioner.Code;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.Name;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.PractitionerRole;
 import gov.samhsa.ocp.ocpfis.data.model.practitioner.WrapperPractitionerDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -25,9 +27,60 @@ import java.util.Map;
 @Slf4j
 public class OcpDataLoadApplication {
 
-    private static final String XSLX_FILE = "C://data//OCP.xlsx";
+    private static String XSLX_FILE;
 
     public static void main(String[] args) throws IOException, InvalidFormatException {
+        populateFhirResources(args);
+
+        populateUAA(args);
+    }
+
+    private static void populateUAA(String[] args) throws IOException, InvalidFormatException {
+        if (args.length < 1) {
+            log.error("Enter the name of the file after the program");
+            System.exit(0);
+        }
+
+        //1. Create roles and scopes
+        RolesUAAHelper.createRoles();
+        log.info("Finished creating roles and scopes in UAA");
+
+        //2. Create ocpAdmin
+        OCPAdminUAAHelper.createOCPAdmin();
+
+        XSLX_FILE = args[0];
+        Workbook workbook = WorkbookFactory.create(new File(XSLX_FILE));
+
+        //Get all organizations
+        Map<String, String> organizationsMap = retrieveOrganizations();
+        log.info("Retrieved organizations");
+
+        //3. Populate Practitioners
+        Map<String, String> practitionersMap = retrievePractitioners();
+        List<PractitionerDto> practitionersSheet = PractitionersHelper.retrieveSheet(workbook.getSheet("Practitioners"), organizationsMap);
+        log.info("Retrieved practitioners");
+
+        PractitionerUAAHelper.createPractitioners(practitionersMap, practitionersSheet);
+        log.info("Finished creating practitioners in UAA");
+
+        //4. Populate Patients
+        Map<String, String> patientsMap = retrievePatients();
+        log.info("Retrieved patients");
+
+        List<PatientDto> patientsSheet = PatientsHelper.retrieveSheet(workbook.getSheet("Patient"), practitionersMap, organizationsMap);
+
+        PatientUAAHelper.createPatients(patientsMap, organizationsMap, patientsSheet);
+        log.info("Finished creating patients in UAA");
+
+    }
+
+    private static void populateFhirResources(String[] args) throws IOException, InvalidFormatException {
+        if (args.length < 1) {
+            log.error("Enter the name of the file after the program");
+            System.exit(0);
+        }
+
+        XSLX_FILE = args[0];
 
         //for intercepting the requests and debugging
         setFiddler();
@@ -158,7 +211,7 @@ public class OcpDataLoadApplication {
 
             log.info("practitionerRole : " + practitionerRole.getLogicalId() + " Value : " + practitionerRole.getCode().stream().findFirst().get().getDisplay());
 
-            practitionersMap.put(name.getLastName().trim(), practitionerDto.getLogicalId());
+            practitionersMap.put(name.getFirstName().trim() + " " + name.getLastName().trim(), practitionerDto.getLogicalId());
         }
 
         return practitionersMap;
