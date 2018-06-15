@@ -6,8 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.NotBlank;
-import org.hl7.fhir.dstu3.model.Consent;
-import org.hl7.fhir.dstu3.model.Identifier;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
@@ -96,6 +94,8 @@ public class FisProperties {
 
         @NotBlank
         private String serverUrl;
+        @NotNull
+        private boolean serverSecurityEnabled;
         @NotBlank
         private String clientSocketTimeoutInMs;
         @NotNull
