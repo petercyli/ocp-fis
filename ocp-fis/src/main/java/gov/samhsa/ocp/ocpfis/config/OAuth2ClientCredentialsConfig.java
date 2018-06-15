@@ -9,10 +9,8 @@ import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
-import org.springframework.security.oauth2.config.annotation.web.configuration.EnableOAuth2Client;
 
 @Configuration
-@EnableOAuth2Client
 @ConditionalOnProperty(value = "ocp-fis.fhir.serverSecurityEnabled")
 public class OAuth2ClientCredentialsConfig {
 
