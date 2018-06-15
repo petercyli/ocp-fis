@@ -10,17 +10,19 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 
+import java.util.Optional;
+
 @Configuration
 public class FhirServiceConfig {
 
     private final FisProperties fisProperties;
 
-    @Autowired(required = false)
-    private OAuth2RestTemplate oAuth2RestTemplate;
+    private Optional<OAuth2RestTemplate> oAuth2RestTemplate;
 
     @Autowired
-    public FhirServiceConfig(FisProperties fisProperties) {
+    public FhirServiceConfig(FisProperties fisProperties, Optional<OAuth2RestTemplate> oAuth2RestTemplate) {
         this.fisProperties = fisProperties;
+        this.oAuth2RestTemplate = oAuth2RestTemplate;
     }
 
     @Bean
@@ -34,7 +36,7 @@ public class FhirServiceConfig {
     public IGenericClient fhirClient() {
         IGenericClient fhirClient = fhirContext().newRestfulGenericClient(fisProperties.getFhir().getServerUrl());
         if (fisProperties.getFhir().isServerSecurityEnabled() && oAuth2RestTemplate != null) {
-            ClientCredentialsBearerTokenAuthInterceptor authInterceptor = new ClientCredentialsBearerTokenAuthInterceptor(oAuth2RestTemplate);
+            ClientCredentialsBearerTokenAuthInterceptor authInterceptor = new ClientCredentialsBearerTokenAuthInterceptor(oAuth2RestTemplate.get());
             fhirClient.registerInterceptor(authInterceptor);
         }
         return fhirClient;
