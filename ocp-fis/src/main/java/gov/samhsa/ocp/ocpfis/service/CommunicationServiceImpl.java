@@ -77,13 +77,8 @@ public class CommunicationServiceImpl implements CommunicationService {
         iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
 
         //Check for Patient
-        if (searchKey.equalsIgnoreCase("patientId")) {
-            if (organization.isPresent()) {
-                String eoc = episodeOfCareService.getEpisodeOfCaresForReference(searchValue, Optional.of(organization.get()), Optional.empty()).get(0).getReference();
-                iQuery.where(new ReferenceClientParam("patient").hasId(searchValue))
-                        .where(new ReferenceClientParam("context").hasId(eoc));
-            }
-        }
+        iQuery.where(new ReferenceClientParam("patient").hasId(searchValue));
+
         //Check for Communication
         if (searchKey.equalsIgnoreCase("communicationId"))
             iQuery.where(new TokenClientParam("_id").exactly().code(searchValue));
@@ -187,7 +182,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                         .build());
             }
 
-
+            //TODO: Remove this after data purge.
             if (communication.hasContext()) {
                 communicationDto.setContext(ReferenceDto.builder()
                         .reference((communication.getContext().getReference() != null && !communication.getContext().getReference().isEmpty()) ? communication.getContext().getReference() : null)
@@ -340,20 +335,6 @@ public class CommunicationServiceImpl implements CommunicationService {
             List<Reference> definitions = new ArrayList<>();
             definitions.add(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getDefinition()));
             communication.setDefinition(definitions);
-        }
-
-        //Set Episode Of Care as Context
-        if (communicationDto.getOrganization() != null) {
-            List<ReferenceDto> episodeOfCaresForReference = episodeOfCareService.getEpisodeOfCaresForReference(communicationDto.getSubject().getDisplay(), Optional.of(communicationDto.getOrganization().getReference()), Optional.empty());
-
-            if (!episodeOfCaresForReference.isEmpty()) {
-                communicationDto.setContext(episodeOfCaresForReference.get(0));
-            }
-        }
-
-        //Set context
-        if (communicationDto.getContext() != null) {
-            communication.setContext(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getContext()));
         }
 
         //Set Sent and Received Dates

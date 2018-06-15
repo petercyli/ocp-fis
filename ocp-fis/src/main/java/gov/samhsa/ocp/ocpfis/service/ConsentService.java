@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.AbstractCareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ConsentDto;
+import gov.samhsa.ocp.ocpfis.service.dto.DetailedConsentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.GeneralConsentRelatedFieldDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PdfDto;
@@ -12,13 +13,13 @@ import java.util.Optional;
 
 public interface ConsentService {
 
-    PageDto<ConsentDto> getConsents(Optional<String> patient, Optional<String> practitioner, Optional<String> status, Optional<Boolean> generalDesignation, Optional<Integer> pageNumber, Optional<Integer> pageSize);
+    PageDto<DetailedConsentDto> getConsents(Optional<String> patient, Optional<String> practitioner, Optional<String> status, Optional<Boolean> generalDesignation, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 
     void createConsent(ConsentDto consentDto);
 
     void updateConsent(String consentId,ConsentDto consentDto);
 
-    ConsentDto getConsentsById(String consentId);
+    DetailedConsentDto getConsentsById(String consentId);
 
     GeneralConsentRelatedFieldDto getGeneralConsentRelatedFields(String patient);
 

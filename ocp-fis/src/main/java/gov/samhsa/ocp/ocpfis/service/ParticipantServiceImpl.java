@@ -1,7 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
-import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
@@ -61,7 +60,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
             //refactor getPatientsByValue to match other apis
-            PageDto<PatientDto> pageDto = patientService.getPatientsByValue(Optional.ofNullable("name"), value,organization, showInActive, page, size, showAll);
+            PageDto<PatientDto> pageDto = patientService.getPatientsByValue(Optional.ofNullable("name"), value, organization, showInActive, page, size, showAll);
             participantsDto = convertPatientsToParticipantsDto(pageDto, participantType);
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
@@ -73,12 +72,16 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     private Optional<String> retrieveOrganization(String patientId) {
-        List<EpisodeOfCareDto> episodeOfCareDtos = episodeOfCareService.getEpisodeOfCares(patientId, Optional.empty());
-        if (!episodeOfCareDtos.isEmpty()) {
-            return Optional.of(episodeOfCareDtos.stream().findFirst().get().getManagingOrganization());
+        if (patientService.getPatientById(patientId).getOrganizationId() != null) {
+            return patientService.getPatientById(patientId).getOrganizationId();
+        } else {
+            //TODO: Remove this episode of cares after the next data purge.
+            List<EpisodeOfCareDto> episodeOfCareDtos = episodeOfCareService.getEpisodeOfCares(patientId, Optional.empty());
+            if (!episodeOfCareDtos.isEmpty()) {
+                return Optional.of(episodeOfCareDtos.stream().findFirst().get().getManagingOrganization());
+            }
+            return Optional.empty();
         }
-
-        return Optional.empty();
     }
 
     private PageDto<ParticipantSearchDto> convertPractitionersToParticipantsDto(PageDto<PractitionerDto> pageDto, ParticipantTypeEnum participantType) {
@@ -93,7 +96,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             ParticipantMemberDto memberDto = new ParticipantMemberDto();
 
             List<NameDto> nameList = dto.getName();
-            if(nameList != null && nameList.size() > 0) {
+            if (nameList != null && nameList.size() > 0) {
                 memberDto.setFirstName(Optional.of(nameList.get(0).getFirstName()));
                 memberDto.setLastName(Optional.of(nameList.get(0).getLastName()));
             }
@@ -170,7 +173,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
             ParticipantMemberDto memberDto = new ParticipantMemberDto();
             List<NameDto> nameList = dto.getName();
-            if(nameList != null && nameList.size() > 0) {
+            if (nameList != null && nameList.size() > 0) {
                 memberDto.setFirstName(Optional.of(nameList.get(0).getFirstName()));
                 memberDto.setLastName(Optional.of(nameList.get(0).getLastName()));
             }
