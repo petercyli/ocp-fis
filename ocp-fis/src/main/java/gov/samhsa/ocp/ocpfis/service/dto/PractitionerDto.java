@@ -27,4 +27,6 @@ public class PractitionerDto {
     private List<AddressDto> addresses;
 
     private List<PractitionerRoleDto> practitionerRoles;
+
+    private String uaaRole;
 }
