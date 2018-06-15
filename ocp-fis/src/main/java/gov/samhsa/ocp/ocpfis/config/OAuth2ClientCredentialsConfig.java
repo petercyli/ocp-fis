@@ -44,6 +44,4 @@ public class OAuth2ClientCredentialsConfig {
     public OAuth2RestTemplate createRestTemplate(OAuth2ClientContext oAuth2ClientContext) {
         return new OAuth2RestTemplate(clientCredentialsResourceDetails(), oAuth2ClientContext);
     }
-
-
 }
