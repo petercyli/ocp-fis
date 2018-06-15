@@ -35,7 +35,7 @@ public class FhirServiceConfig {
     @Bean
     public IGenericClient fhirClient() {
         IGenericClient fhirClient = fhirContext().newRestfulGenericClient(fisProperties.getFhir().getServerUrl());
-        if (fisProperties.getFhir().isServerSecurityEnabled() && oAuth2RestTemplate != null) {
+        if (fisProperties.getFhir().isServerSecurityEnabled() && oAuth2RestTemplate.isPresent()) {
             ClientCredentialsBearerTokenAuthInterceptor authInterceptor = new ClientCredentialsBearerTokenAuthInterceptor(oAuth2RestTemplate.get());
             fhirClient.registerInterceptor(authInterceptor);
         }
