@@ -78,9 +78,8 @@ public class PatientsHelper {
                 dto.setName(Arrays.asList(nameDto));
             }
             else if (j == 2) {
-                //TODO: fix the date issue
                 DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-                String date = "11/08/1980";
+                String date = cellValue;
                 LocalDate localDate = LocalDate.parse(date, formatter);
                 dto.setBirthDate(localDate);
             }
@@ -107,11 +106,19 @@ public class PatientsHelper {
                 dto.setIdentifier(Arrays.asList(tempIdentifiereDto));
             }
             else if(j==10){
+                List<TelecomDto> telecomDtos=new ArrayList<>();
                 TelecomDto telecomDto=new TelecomDto();
                 telecomDto.setSystem(Optional.of(ContactPointSystem.PHONE.toCode()));
                 telecomDto.setUse(Optional.of(ContactPointUse.WORK.toCode()));
                 telecomDto.setValue(Optional.ofNullable(cellValue));
-                dto.setTelecoms(Arrays.asList(telecomDto));
+                telecomDtos.add(telecomDto);
+
+                TelecomDto emailDto=new TelecomDto();
+                emailDto.setSystem(Optional.of(ContactPointSystem.EMAIL.toCode()));
+                emailDto.setUse(Optional.of(ContactPointUse.WORK.toCode()));
+                emailDto.setValue(Optional.of(dto.getName().stream().findFirst().get().getFirstName().toLowerCase() + "." + dto.getName().stream().findFirst().get().getLastName().toLowerCase()+"@ocpmail.com"));
+                telecomDtos.add(emailDto);
+                dto.setTelecoms(telecomDtos);
             }
             else if(j==11){
                 dto.setAddresses(CommonHelper.getAddresses(cellValue));
