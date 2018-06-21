@@ -236,7 +236,7 @@ public class PatientServiceImpl implements PatientService {
             } catch (FHIRException e) {
               return "";
             }
-        }).collect(toList());
+        }).distinct().collect(toList());
 
        if(types.isEmpty()){
            patientDto.setActivityTypes(null);
