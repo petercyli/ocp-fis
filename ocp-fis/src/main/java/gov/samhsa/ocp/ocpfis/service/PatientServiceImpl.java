@@ -286,6 +286,16 @@ public class PatientServiceImpl implements PatientService {
     @Override
     public void updatePatient(PatientDto patientDto) {
         if (!isDuplicateWhileUpdate(patientDto)) {
+            //Add mpi to the identifiers
+            List<IdentifierDto> identifierDtos=patientDto.getIdentifier();
+            Patient patientToGetMpi= fhirClient.read().resource(Patient.class).withId(patientDto.getId()).execute();
+            Optional<String> mrn= patientToGetMpi.getIdentifier().stream()
+                    .filter(p->p.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID()))
+                    .findFirst().map(Identifier::getValue);
+
+            mrn.ifPresent(m->identifierDtos.add(setUniqueIdentifierForPatient(m)));
+
+            patientDto.setIdentifier(identifierDtos);
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setId(new IdType(patientDto.getId()));
             patient.setGender(FhirUtil.getPatientGender(patientDto.getGenderCode()));
