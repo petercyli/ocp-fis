@@ -227,6 +227,23 @@ public class PatientServiceImpl implements PatientService {
         patientDto.setId(patient.getIdElement().getIdPart());
         patientDto.setMrn(patientDto.getIdentifier().stream().filter(iden->iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).findFirst().map(IdentifierDto::getValue));
         patientDto.setIdentifier(patientDto.getIdentifier().stream().filter(iden-> !iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).collect(toList()));
+        Bundle bundle= (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Task.class).where(new ReferenceClientParam("patient").hasId(patient.getIdElement().getIdPart())))
+                .returnBundle(Bundle.class).encodedJson().execute();
+       List<String> types = FhirUtil.getAllBundleComponentsAsList(bundle,Optional.empty(),fhirClient,fisProperties).stream().map(at->{
+            Task task= (Task) at.getResource();
+            try {
+                return task.getDefinitionReference().getDisplay();
+            } catch (FHIRException e) {
+              return "";
+            }
+        }).collect(toList());
+
+       if(types.isEmpty()){
+           patientDto.setActivityTypes(null);
+       }else {
+           patientDto.setActivityTypes(Optional.ofNullable(types));
+       }
+
         if (patient.getGender() != null)
             patientDto.setGenderCode(patient.getGender().toCode());
         mapExtensionFields(patient, patientDto);
