@@ -225,7 +225,8 @@ public class PatientServiceImpl implements PatientService {
     private PatientDto mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
         PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
         patientDto.setId(patient.getIdElement().getIdPart());
-
+        patientDto.setMrn(patientDto.getIdentifier().stream().filter(iden->iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).findFirst().map(IdentifierDto::getValue));
+        patientDto.setIdentifier(patientDto.getIdentifier().stream().filter(iden-> !iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).collect(toList()));
         if (patient.getGender() != null)
             patientDto.setGenderCode(patient.getGender().toCode());
         mapExtensionFields(patient, patientDto);
