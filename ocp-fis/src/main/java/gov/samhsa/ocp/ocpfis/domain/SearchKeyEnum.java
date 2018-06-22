@@ -36,12 +36,23 @@ public class SearchKeyEnum {
 
     public enum AppointmentSearchKey {
         /**
-         * Appointment be searched based on the following keys
+         * Appointments be searched based on the following keys
          */
         LOGICALID;
 
         public static boolean contains(String s) {
             return Arrays.stream(values()).anyMatch(appointmentSearchKey -> appointmentSearchKey.name().equalsIgnoreCase(s));
+        }
+    }
+
+    public enum AppointmentFilterKey {
+        /**
+         * Appointments be filtered based on the following keys
+         */
+        TODAY, WEEK, MONTH;
+
+        public static boolean contains(String s) {
+            return Arrays.stream(values()).anyMatch(AppointmentFilterKey -> AppointmentFilterKey.name().equalsIgnoreCase(s));
         }
     }
 

@@ -59,10 +59,11 @@ public class AppointmentController {
                                                    @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                    @RequestParam(value = "searchValue") Optional<String> searchValue,
                                                    @RequestParam(value = "showPastAppointments") Optional<Boolean> showPastAppointments,
+                                                   @RequestParam(value = "filterDateOption") Optional<String> filterDateOption,
                                                    @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc,
                                                    @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                    @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return appointmentService.getAppointments(statusList, requesterReference, patientId, practitionerId, searchKey, searchValue, showPastAppointments, sortByStartTimeAsc, pageNumber, pageSize);
+        return appointmentService.getAppointments(statusList, requesterReference, patientId, practitionerId, searchKey, searchValue, showPastAppointments, filterDateOption, sortByStartTimeAsc, pageNumber, pageSize);
     }
 
     @GetMapping("/appointments/search-with-no-pagination")
