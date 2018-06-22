@@ -137,4 +137,5 @@ public interface LookUpService {
 
     List<ValueSetDto> getEocStatus();
 
+    List<ValueSetDto> getEocType();
 }

@@ -848,7 +848,7 @@ public class LookUpServiceImpl implements LookUpService {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             policyholderRelationshipList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
-        log.info("Found " + policyholderRelationshipList.size() + " consent Action.");
+        log.info("Found " + policyholderRelationshipList.size() + " policy holder relationship.");
         return policyholderRelationshipList;
     }
 
@@ -860,7 +860,7 @@ public class LookUpServiceImpl implements LookUpService {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             fmStatusList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
-        log.info("Found " + fmStatusList.size() + " consent Action.");
+        log.info("Found " + fmStatusList.size() + " coverage Status.");
         return fmStatusList;
     }
 
@@ -872,7 +872,7 @@ public class LookUpServiceImpl implements LookUpService {
             List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
             coverageTypeList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
         }
-        log.info("Found " + coverageTypeList.size() + " consent Action.");
+        log.info("Found " + coverageTypeList.size() + " coverage type.");
         return coverageTypeList;
     }
 
@@ -886,6 +886,18 @@ public class LookUpServiceImpl implements LookUpService {
             }
             log.info("Found " + eocStatusList.size() + " episode of care Status");
             return eocStatusList;
+    }
+
+    @Override
+    public List<ValueSetDto> getEocType() {
+        List<ValueSetDto> eocTypeList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.EOC_TYPE.getUrlPath(), LookupPathUrls.EOC_TYPE.getType());
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.EOC_TYPE.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            eocTypeList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + eocTypeList.size() + " episode of care Types");
+        return eocTypeList;
     }
 
 

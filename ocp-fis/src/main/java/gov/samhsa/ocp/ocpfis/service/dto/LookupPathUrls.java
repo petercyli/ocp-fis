@@ -56,7 +56,8 @@ public enum LookupPathUrls {
     POLICYHOLDER_RELATIONSHIP("policyholder relationship", Constants.POLICYHOLDER_RELATIONSHIP_PATH),
     FM_STATUS("financial resource status code", Constants.FM_STATUS_PATH),
     COVERAGE_TYPE("coverage type", Constants.COVERAGE_TYPE_PATH),
-    EOC_STATUS("episode of care status", Constants.EOC_STATUS_PATH);
+    EOC_STATUS("episode of care status", Constants.EOC_STATUS_PATH),
+    EOC_TYPE("episode of care type", Constants.EOC_TYPE_PATH);
 
     private final String type;
     private final String urlPath;
@@ -130,6 +131,7 @@ public enum LookupPathUrls {
         static final String POLICYHOLDER_RELATIONSHIP_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/policyholder-relationship";
         static final String FM_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/fm-status";
         static final String COVERAGE_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/coverage-type";
-        static final String EOC_STATUS_PATH="/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/episode-of-care-status";
+        static final String EOC_STATUS_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/episode-of-care-status";
+        static final String EOC_TYPE_PATH = "/ValueSet/$expand?url=http://hl7.org/fhir/ValueSet/episodeofcare-type";
     }
 }

@@ -391,5 +391,8 @@ public class LookUpController {
         return lookUpService.getEocStatus();
     }
 
-
+    @GetMapping("/eoc-type")
+    public List<ValueSetDto> getEocType(){
+        return lookUpService.getEocType();
+    }
 }
