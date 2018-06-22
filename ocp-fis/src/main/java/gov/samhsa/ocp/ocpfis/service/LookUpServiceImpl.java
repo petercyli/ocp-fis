@@ -876,6 +876,19 @@ public class LookUpServiceImpl implements LookUpService {
         return coverageTypeList;
     }
 
+    @Override
+    public List<ValueSetDto> getEocStatus() {
+            List<ValueSetDto> eocStatusList = new ArrayList<>();
+            ValueSet response = getValueSets(LookupPathUrls.EOC_STATUS.getUrlPath(), LookupPathUrls.EOC_STATUS.getType());
+            if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.EOC_STATUS.getType())) {
+                List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+                eocStatusList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+            }
+            log.info("Found " + eocStatusList.size() + " episode of care Status");
+            return eocStatusList;
+    }
+
+
     private ValueSet getValueSets(String urlPath, String type) {
         ValueSet response;
         String url = fisProperties.getFhir().getServerUrl() + urlPath;
