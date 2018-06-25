@@ -11,6 +11,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
@@ -41,6 +42,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
@@ -55,6 +57,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private final FisProperties fisProperties;
 
+    private final PatientService patientService;
+
     private final String ACCEPTED_PARTICIPATION_STATUS = "accepted";
     private final String DECLINED_PARTICIPATION_STATUS = "declined";
     private final String TENTATIVE_PARTICIPATION_STATUS = "tentative";
@@ -63,10 +67,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final String REQUIRED = "required";
 
     @Autowired
-    public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
+    public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
+        this.patientService = patientService;
     }
 
     @Override
@@ -261,6 +266,67 @@ public class AppointmentServiceImpl implements AppointmentService {
         return retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
                         (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.empty()))).collect(toList());
+    }
+
+    @Override
+    public PageDto<AppointmentDto> getAppointmentsByPractitionerAndAssignedCareTeamPatients(String practitionerId, Optional<List<String>> statusList, Optional<String> requesterReference, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showPastAppointments, Optional<String> filterDateOption, Optional<Boolean> sortByStartTimeAsc, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfAppointmentsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Appointment.name());
+        Bundle firstPageAppointmentBundle;
+        Bundle otherPageAppointmentBundle;
+        boolean firstPage = true;
+
+        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
+
+        log.info("Searching Appointments for practitionerId = " + practitionerId.trim());
+        iQuery.where(new ReferenceClientParam("practitioner").hasId(practitionerId.trim()));
+
+        List<PatientDto> assignedPatients = patientService.getPatientsByPractitioner(Optional.of(practitionerId.trim()), Optional.empty(), Optional.empty());
+        Set<String> patientIds = getPatientIdSet(assignedPatients);
+
+        if(patientIds!= null && !patientIds.isEmpty()){
+            log.info("Searching for Patients assigned/belonging to Practitioner Id :" + practitionerId);
+            log.info("Number of Patients assigned/belonging to Practitioner Id (" + practitionerId + ") = " + patientIds.size());
+            iQuery.where(new ReferenceClientParam("patient").hasAnyOfIds(patientIds));
+        } else {
+            log.info("No Patient found assigned/belonging to Practitioner Id :" + practitionerId);
+        }
+
+        // Check if there are any additional search criteria
+        iQuery = addStatusSearchConditions(iQuery, statusList);
+
+        // Additional Search Key and Value
+        iQuery = addSearchKeyValueConditions(iQuery, searchKey, searchValue);
+
+        // Past appointments
+        iQuery = addShowPastAppointmentConditions(iQuery, showPastAppointments, filterDateOption);
+
+        //Check sort order
+        iQuery = addSortConditions(iQuery, sortByStartTimeAsc);
+
+        firstPageAppointmentBundle = PaginationUtil.getSearchBundleFirstPage(iQuery, numberOfAppointmentsPerPage, Optional.empty());
+
+        if (firstPageAppointmentBundle == null || firstPageAppointmentBundle.getEntry().isEmpty()) {
+            throw new ResourceNotFoundException("No Appointments were found in the FHIR server.");
+        }
+
+        otherPageAppointmentBundle = firstPageAppointmentBundle;
+
+        if (pageNumber.isPresent() && pageNumber.get() > 1 && otherPageAppointmentBundle.getLink(Bundle.LINK_NEXT) != null) {
+            firstPage = false;
+            otherPageAppointmentBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageAppointmentBundle, pageNumber.get(), numberOfAppointmentsPerPage);
+        }
+
+        List<Bundle.BundleEntryComponent> retrievedAppointments = otherPageAppointmentBundle.getEntry();
+
+        List<AppointmentDto> appointmentDtos = retrievedAppointments.stream()
+                .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
+                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), requesterReference))).collect(toList());
+
+        double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
+        int currentPage = firstPage ? 1 : pageNumber.get();
+
+        return new PageDto<>(appointmentDtos, numberOfAppointmentsPerPage, totalPages, currentPage, appointmentDtos.size(), otherPageAppointmentBundle.getTotal());
+
     }
 
     @Override
@@ -498,6 +564,13 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new BadRequestException("Unable to convert from the given Participation Status Code ", e);
         }
         return apt;
+    }
+
+    private Set<String> getPatientIdSet(List<PatientDto> patientDtoList){
+        if(patientDtoList != null && !patientDtoList.isEmpty()){
+            return patientDtoList.stream().map(p -> p.getId()).collect(Collectors.toSet());
+        }
+        return null;
     }
 }
 
