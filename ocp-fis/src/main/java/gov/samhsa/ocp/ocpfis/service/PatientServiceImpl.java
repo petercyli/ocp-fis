@@ -10,6 +10,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
+import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -48,8 +49,10 @@ import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -287,6 +290,19 @@ public class PatientServiceImpl implements PatientService {
                     fhirClient.create().resource(flag).execute();
                 }));
 
+                //Create episode of care for the patient
+                if(patientDto.getEpisodeOfCares()!=null && !patientDto.getEpisodeOfCares().isEmpty()){
+                    patientDto.getEpisodeOfCares().forEach(eoc->{
+                        ReferenceDto patientReference=new ReferenceDto();
+                        patientReference.setReference(ResourceType.Patient+"/"+methodOutcome.getId().getIdPart());
+                        patientDto.getName().stream().findAny().ifPresent(name->patientReference.setDisplay(name.getFirstName()+" "+name.getLastName()));
+                        eoc.setPatient(patientReference);
+                        eoc.setManagingOrganization(orgReference(patientDto.getOrganizationId()));
+                        EpisodeOfCare episodeOfCare = convertEpisodeOfCareDtoToEpisodeOfCare(eoc);
+                        fhirClient.create().resource(episodeOfCare).execute();
+                    });
+                }
+
                 //Create To-Do task
                 Task task = FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
                 task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
@@ -475,6 +491,28 @@ public class PatientServiceImpl implements PatientService {
                         patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreBirthSex()).getCode());
                     }
                 }));
+    }
+
+    private EpisodeOfCare convertEpisodeOfCareDtoToEpisodeOfCare(EpisodeOfCareDto episodeOfCareDto){
+        EpisodeOfCare episodeOfCare= new EpisodeOfCare();
+        try {
+            episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.fromCode(episodeOfCareDto.getStatus()));
+        } catch (FHIRException e) {
+            throw new BadRequestException("No such fhir status or type exist.");
+        }
+        episodeOfCare.setType(Arrays.asList(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(episodeOfCareDto.getType(),lookUpService.getEocType()))));
+        episodeOfCare.setPatient(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getPatient()));
+        episodeOfCare.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getManagingOrganization()));
+        Period period=new Period();
+        try {
+            period.setStart(DateUtil.convertStringToDate(episodeOfCareDto.getStartDate()));
+            period.setEnd(DateUtil.convertStringToDate(episodeOfCareDto.getEndDate()));
+        } catch (ParseException e) {
+            throw new BadRequestException("The start and end date of episode of care has wrong syntax.");
+        }
+        episodeOfCare.setPeriod(period);
+        episodeOfCare.setCareManager(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getCareManager()));
+        return episodeOfCare;
     }
 
     private Flag convertFlagDtoToFlag(Reference patientId, FlagDto flagDto) {
