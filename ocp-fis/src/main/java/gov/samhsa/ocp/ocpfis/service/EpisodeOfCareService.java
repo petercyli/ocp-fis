@@ -13,5 +13,4 @@ public interface EpisodeOfCareService {
 
     List<ReferenceDto> getEpisodeOfCaresForReference(String patient, Optional<String> organization, Optional<String> status);
 
-    void createEpisodeOfCare(EpisodeOfCareDto episodeOfCareDto);
 }

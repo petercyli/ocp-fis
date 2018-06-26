@@ -27,9 +27,4 @@ public class EpisodeOfCareController {
         return episodeOfCareService.getEpisodeOfCaresForReference(patient, organization, status);
     }
 
-    @PostMapping
-    public void createEpisodeOfCare(@Valid @RequestBody EpisodeOfCareDto episodeOfCareDto){
-        episodeOfCareService.createEpisodeOfCare(episodeOfCareDto);
-    }
-
 }

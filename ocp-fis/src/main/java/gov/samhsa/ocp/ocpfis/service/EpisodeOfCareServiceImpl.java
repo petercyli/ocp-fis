@@ -119,26 +119,7 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
 
     }
 
-    @Override
-    public void createEpisodeOfCare(EpisodeOfCareDto episodeOfCareDto) {
-      convertEpisodeOfCareDtoToEpisodeOfCare(episodeOfCareDto);
-    }
 
-    private EpisodeOfCare convertEpisodeOfCareDtoToEpisodeOfCare(EpisodeOfCareDto episodeOfCareDto){
-        EpisodeOfCare episodeOfCare= new EpisodeOfCare();
-        episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.valueOf(episodeOfCareDto.getStatus()));
-        episodeOfCare.setType(Arrays.asList(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(episodeOfCareDto.getType(),lookUpService.getEocType()))));
-        episodeOfCare.setPatient(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getPatient()));
-        episodeOfCare.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getManagingOrganization()));
-        Period period=new Period();
-        try {
-            period.setStart(DateUtil.convertStringToDate(episodeOfCareDto.getStartDate()));
-            period.setEnd(DateUtil.convertStringToDate(episodeOfCareDto.getEndDate()));
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        episodeOfCare.setPeriod(period);
-        episodeOfCare.setCareManager(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getCareManager()));
-        return episodeOfCare;
-    }
+
+
 }
