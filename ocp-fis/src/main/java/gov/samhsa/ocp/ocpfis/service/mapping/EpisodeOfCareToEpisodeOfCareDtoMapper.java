@@ -45,28 +45,38 @@ public class EpisodeOfCareToEpisodeOfCareDtoMapper {
 
         //patient
         if(episodeOfCare.getPatient() != null) {
-            dto.setPatient(episodeOfCare.getPatient().getReference().replace(ResourceType.Patient + "/", ""));
+            ReferenceDto referenceDto=new ReferenceDto();
+            referenceDto.setReference(episodeOfCare.getPatient().getReference());
+            referenceDto.setDisplay(episodeOfCare.getPatient().getDisplay());
+            dto.setPatient(referenceDto);
         }
 
         //managing organization
         if(episodeOfCare.getManagingOrganization() != null) {
-            dto.setManagingOrganization(episodeOfCare.getManagingOrganization().getReference().replace(ResourceType.Organization + "/", ""));
+            ReferenceDto referenceDto=new ReferenceDto();
+            referenceDto.setReference(episodeOfCare.getManagingOrganization().getReference());
+            referenceDto.setDisplay(episodeOfCare.getManagingOrganization().getDisplay());
+            dto.setManagingOrganization(referenceDto);
+
         }
 
         //start date
         Period period = episodeOfCare.getPeriod();
         if (period != null && period.getStart() != null) {
-            dto.setStart(DateUtil.convertDateToString(period.getStart()));
+            dto.setStartDate(DateUtil.convertDateToString(period.getStart()));
         }
 
         //end date
         if (period != null && period.getEnd() != null) {
-            dto.setEnd(DateUtil.convertDateToString(period.getEnd()));
+            dto.setEndDate(DateUtil.convertDateToString(period.getEnd()));
         }
 
         //care manager
         if(episodeOfCare.getCareManager() != null) {
-            dto.setCareManager(episodeOfCare.getCareManager().getReference().replace(ResourceType.Practitioner + "/", ""));
+            ReferenceDto referenceDto=new ReferenceDto();
+            referenceDto.setReference(episodeOfCare.getCareManager().getReference());
+            referenceDto.setDisplay(episodeOfCare.getCareManager().getDisplay());
+            dto.setCareManager(referenceDto);
         }
 
         return dto;
