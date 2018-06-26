@@ -7,20 +7,27 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.mapping.EpisodeOfCareToEpisodeOfCareDtoMapper;
+import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -110,5 +117,28 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
 
         return referenceDtos;
 
+    }
+
+    @Override
+    public void createEpisodeOfCare(EpisodeOfCareDto episodeOfCareDto) {
+      convertEpisodeOfCareDtoToEpisodeOfCare(episodeOfCareDto);
+    }
+
+    private EpisodeOfCare convertEpisodeOfCareDtoToEpisodeOfCare(EpisodeOfCareDto episodeOfCareDto){
+        EpisodeOfCare episodeOfCare= new EpisodeOfCare();
+        episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.valueOf(episodeOfCareDto.getStatus()));
+        episodeOfCare.setType(Arrays.asList(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(episodeOfCareDto.getType(),lookUpService.getEocType()))));
+        episodeOfCare.setPatient(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getPatient()));
+        episodeOfCare.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getManagingOrganization()));
+        Period period=new Period();
+        try {
+            period.setStart(DateUtil.convertStringToDate(episodeOfCareDto.getStartDate()));
+            period.setEnd(DateUtil.convertStringToDate(episodeOfCareDto.getEndDate()));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        episodeOfCare.setPeriod(period);
+        episodeOfCare.setCareManager(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getCareManager()));
+        return episodeOfCare;
     }
 }
