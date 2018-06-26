@@ -37,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -173,6 +174,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                                                    Optional<String> searchKey,
                                                    Optional<String> searchValue,
                                                    Optional<Boolean> showPastAppointments,
+                                                   Optional<String> filterDateOption,
                                                    Optional<Boolean> sortByStartTimeAsc,
                                                    Optional<Integer> pageNumber,
                                                    Optional<Integer> pageSize) {
@@ -198,7 +200,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         iQuery = addSearchKeyValueConditions(iQuery, searchKey, searchValue);
 
         // Past appointments
-        iQuery = addShowPastAppointmentConditions(iQuery, showPastAppointments);
+        iQuery = addShowPastAppointmentConditions(iQuery, showPastAppointments, filterDateOption);
 
         //Check sort order
         iQuery = addSortConditions(iQuery, sortByStartTimeAsc);
@@ -247,7 +249,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         iQuery = addSearchKeyValueConditions(iQuery, searchKey, searchValue);
 
         // Past appointments
-        iQuery = addShowPastAppointmentConditions(iQuery, showPastAppointments);
+        iQuery = addShowPastAppointmentConditions(iQuery, showPastAppointments, Optional.empty());
 
         //Check sort order
         iQuery = addSortConditions(iQuery, sortByStartTimeAsc);
@@ -335,17 +337,53 @@ public class AppointmentServiceImpl implements AppointmentService {
         return searchQuery;
     }
 
-    private IQuery addShowPastAppointmentConditions(IQuery searchQuery, Optional<Boolean> showPastAppointments) {
-        // showPastAppointments?
-        if (showPastAppointments.isPresent() && !showPastAppointments.get()) {
-            log.info("Search results will NOT include past appointments.");
-            searchQuery.where(Appointment.DATE.afterOrEquals().day(new Date()));
-        } else if (showPastAppointments.isPresent() && showPastAppointments.get()) {
-            log.info("Search results will include ONLY past appointments.");
-            searchQuery.where(Appointment.DATE.before().day(new Date()));
+    private IQuery addShowPastAppointmentConditions(IQuery searchQuery, Optional<Boolean> showPastAppointments, Optional<String> filterDateOption) {
+        if (filterDateOption.isPresent()) {
+            // Check for bad requests
+            if (!SearchKeyEnum.AppointmentFilterKey.contains(filterDateOption.get())) {
+                throw new BadRequestException("Unidentified filter option:" + filterDateOption.get());
+            }
+            Date today = new Date();
+            Calendar c = Calendar.getInstance();
+            c.setTime(today);
+            if (filterDateOption.get().equalsIgnoreCase(SearchKeyEnum.AppointmentFilterKey.TODAY.toString())) {
+                log.info("Searching TODAY's appointments");
+                searchQuery.where(Appointment.DATE.afterOrEquals().day(today));
+                c.add(Calendar.DATE, 1);
+                Date tomorrow = c.getTime();
+                searchQuery.where(Appointment.DATE.beforeOrEquals().day(tomorrow));
+            } else if (filterDateOption.get().equalsIgnoreCase(SearchKeyEnum.AppointmentFilterKey.WEEK.toString())) {
+                log.info("Searching this WEEK's appointments");
+                Calendar first = (Calendar) c.clone();
+                first.add(Calendar.DAY_OF_WEEK, first.getFirstDayOfWeek() - first.get(Calendar.DAY_OF_WEEK));
+                Calendar last = (Calendar) first.clone();
+                last.add(Calendar.DAY_OF_WEEK, 6);
+                Date startDate = first.getTime();
+                Date endDate = last.getTime();
+                searchQuery.where(Appointment.DATE.afterOrEquals().day(startDate));
+                searchQuery.where(Appointment.DATE.beforeOrEquals().day(endDate));
+            } else if (filterDateOption.get().equalsIgnoreCase(SearchKeyEnum.AppointmentFilterKey.MONTH.toString())) {
+                log.info("Searching this MONTH's appointments");
+                c.set(Calendar.DAY_OF_MONTH, 1);
+                Date startDate = c.getTime();
+                c.set(Calendar.DAY_OF_MONTH, c.getActualMaximum(Calendar.DAY_OF_MONTH));
+                Date endDate = c.getTime();
+                searchQuery.where(Appointment.DATE.afterOrEquals().day(startDate));
+                searchQuery.where(Appointment.DATE.beforeOrEquals().day(endDate));
+            }
         } else {
-            log.info("Search results will include past AND upcoming appointments.");
+            // showPastAppointments?
+            if (showPastAppointments.isPresent() && !showPastAppointments.get()) {
+                log.info("Search results will NOT include past appointments.");
+                searchQuery.where(Appointment.DATE.afterOrEquals().day(new Date()));
+            } else if (showPastAppointments.isPresent() && showPastAppointments.get()) {
+                log.info("Search results will include ONLY past appointments.");
+                searchQuery.where(Appointment.DATE.before().day(new Date()));
+            } else {
+                log.info("Search results will include past AND upcoming appointments.");
+            }
         }
+
         return searchQuery;
     }
 
@@ -455,8 +493,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                     }
                 }
             }
-        }
-        catch (FHIRException e) {
+        } catch (FHIRException e) {
             log.error("Unable to convert from the given Participation Status Code");
             throw new BadRequestException("Unable to convert from the given Participation Status Code ", e);
         }
