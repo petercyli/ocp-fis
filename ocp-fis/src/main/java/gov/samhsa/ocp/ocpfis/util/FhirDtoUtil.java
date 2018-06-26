@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.util;
 
+import gov.samhsa.ocp.ocpfis.service.dto.ActivityReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
@@ -27,11 +28,13 @@ public class FhirDtoUtil {
                 .replace(ResourceType.Organization + "/", "");
     }
 
-    public static ReferenceDto mapActivityDefinitionToReferenceDto(ActivityDefinition activityDefintion) {
-        ReferenceDto referenceDto = new ReferenceDto();
-        referenceDto.setReference(ResourceType.ActivityDefinition + "/" + activityDefintion.getIdElement().getIdPart());
-        referenceDto.setDisplay(activityDefintion.getName());
-        return referenceDto;
+
+    public static ActivityReferenceDto mapActivityDefinitionToActivityReferenceDto(ActivityDefinition activityDefintion) {
+        ActivityReferenceDto activityReferenceDto=new ActivityReferenceDto();
+        activityReferenceDto.setReference(ResourceType.ActivityDefinition + "/" + activityDefintion.getIdElement().getIdPart());
+        activityReferenceDto.setDisplay(activityDefintion.getName());
+        activityReferenceDto.setTitle(Optional.ofNullable(activityDefintion.getTitle()));
+        return activityReferenceDto;
     }
 
     public static ReferenceDto mapPatientToReferenceDto(Patient patient) {
