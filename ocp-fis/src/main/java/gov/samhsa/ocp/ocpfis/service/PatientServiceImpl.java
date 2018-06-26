@@ -358,6 +358,25 @@ public class PatientServiceImpl implements PatientService {
                     }
                 }));
 
+                //Update the episode of care
+                if(patientDto.getEpisodeOfCares()!=null && !patientDto.getEpisodeOfCares().isEmpty()){
+                    patientDto.getEpisodeOfCares().forEach(eoc->{
+                        ReferenceDto patientReference=new ReferenceDto();
+                        patientReference.setReference(ResourceType.Patient+"/"+patientDto.getId());
+                        patientDto.getName().stream().findAny().ifPresent(name->patientReference.setDisplay(name.getFirstName()+" "+name.getLastName()));
+                        eoc.setPatient(patientReference);
+                        eoc.setManagingOrganization(orgReference(patientDto.getOrganizationId()));
+                        EpisodeOfCare episodeOfCare = convertEpisodeOfCareDtoToEpisodeOfCare(eoc);
+                        if(eoc.getId()!=null) {
+                            episodeOfCare.setId(eoc.getId());
+                            fhirClient.update().resource(episodeOfCare).execute();
+                        }else{
+                            fhirClient.create().resource(episodeOfCare).execute();
+                        }
+                    });
+                }
+
+
             } else {
                 throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
             }
