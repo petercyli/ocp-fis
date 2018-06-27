@@ -277,18 +277,18 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
 
-        log.info("Searching Appointments for practitionerId = " + practitionerId.trim());
-        iQuery.where(new ReferenceClientParam("practitioner").hasId(practitionerId.trim()));
-
         List<PatientDto> assignedPatients = patientService.getPatientsByPractitioner(Optional.of(practitionerId.trim()), Optional.empty(), Optional.empty());
         Set<String> patientIds = getPatientIdSet(assignedPatients);
 
         if(patientIds!= null && !patientIds.isEmpty()){
             log.info("Searching for Patients assigned/belonging to Practitioner Id :" + practitionerId);
             log.info("Number of Patients assigned/belonging to Practitioner Id (" + practitionerId + ") = " + patientIds.size());
-            iQuery.where(new ReferenceClientParam("patient").hasAnyOfIds(patientIds));
+            patientIds.add(practitionerId);
+            iQuery.where(new ReferenceClientParam("actor").hasAnyOfIds(patientIds));
         } else {
             log.info("No Patient found assigned/belonging to Practitioner Id :" + practitionerId);
+            log.info("Hence, searching Appointments belonging to only Practitioner with Id = " + practitionerId.trim());
+            iQuery.where(new ReferenceClientParam("practitioner").hasId(practitionerId.trim()));
         }
 
         // Check if there are any additional search criteria
