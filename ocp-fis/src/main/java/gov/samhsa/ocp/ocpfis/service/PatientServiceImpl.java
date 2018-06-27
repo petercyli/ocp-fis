@@ -23,6 +23,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.mapping.EpisodeOfCareToEpisodeOfCareDtoMapper;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
@@ -144,11 +145,11 @@ public class PatientServiceImpl implements PatientService {
         firstPagePatientSearchBundle = (Bundle) PatientSearchQuery
                 .count(numberOfPatientsPerPage)
                 .revInclude(Flag.INCLUDE_PATIENT)
+                .revInclude(EpisodeOfCare.INCLUDE_PATIENT)
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
         log.debug("Patients Search Query to FHIR Server: END");
-
 
         if (showAll.isPresent() && showAll.get()) {
             List<PatientDto> patientDtos = convertAllBundleToSinglePatientDtoList(firstPagePatientSearchBundle, numberOfPatientsPerPage);
@@ -225,7 +226,7 @@ public class PatientServiceImpl implements PatientService {
         return true;
     }
 
-    private PatientDto mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
+    private PatientDto  mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
         PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
         patientDto.setId(patient.getIdElement().getIdPart());
         patientDto.setMrn(patientDto.getIdentifier().stream().filter(iden->iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).findFirst().map(IdentifierDto::getValue));
@@ -253,6 +254,9 @@ public class PatientServiceImpl implements PatientService {
         //Getting flags into the patient dto
         List<FlagDto> flagDtos = getFlagsForEachPatient(response, patient.getIdElement().getIdPart());
         patientDto.setFlags(Optional.ofNullable(flagDtos));
+
+        List<EpisodeOfCareDto> episodeOfCareDtos=getEocsForEachPatient(response,patient.getIdElement().getIdPart());
+        patientDto.setEpisodeOfCares(episodeOfCareDtos);
         return patientDto;
     }
 
@@ -390,6 +394,7 @@ public class PatientServiceImpl implements PatientService {
         Bundle patientBundle = fhirClient.search().forResource(Patient.class)
                 .where(new TokenClientParam("_id").exactly().code(patientId))
                 .revInclude(Flag.INCLUDE_PATIENT)
+                .revInclude(EpisodeOfCare.INCLUDE_PATIENT)
                 .returnBundle(Bundle.class)
                 .execute();
 
@@ -409,6 +414,9 @@ public class PatientServiceImpl implements PatientService {
         //Get Flags for the patient
         List<FlagDto> flagDtos = getFlagsForEachPatient(patientBundle.getEntry(), patientBundleEntry.getResource().getIdElement().getIdPart());
         patientDto.setFlags(Optional.ofNullable(flagDtos));
+
+        List<EpisodeOfCareDto> eocDtos=getEocsForEachPatient(patientBundle.getEntry(),patientBundleEntry.getResource().getIdElement().getIdPart());
+        patientDto.setEpisodeOfCares(eocDtos);
 
         mapExtensionFields(patient, patientDto);
 
@@ -459,6 +467,13 @@ public class PatientServiceImpl implements PatientService {
                     flagDto.setLogicalId(flag.getIdElement().getIdPart());
                     return flagDto;
                 }).collect(toList());
+    }
+
+    private List<EpisodeOfCareDto> getEocsForEachPatient(List<Bundle.BundleEntryComponent>  patientAndAllReferenceBundle, String patientId){
+        return patientAndAllReferenceBundle.stream().filter(patientWithAllReference->patientWithAllReference.getResource().getResourceType().equals(ResourceType.EpisodeOfCare))
+                .map(eocBundle->(EpisodeOfCare)eocBundle.getResource())
+                .filter(eoc->eoc.getPatient().getReference().equalsIgnoreCase("Patient/"+patientId))
+                .map(eoc->EpisodeOfCareToEpisodeOfCareDtoMapper.map(eoc)).collect(toList());
     }
 
     private void setExtensionFields(Patient patient, PatientDto patientDto) {
