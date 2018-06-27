@@ -225,6 +225,24 @@ public class PatientServiceImpl implements PatientService {
     private PatientDto mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
         PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
         patientDto.setId(patient.getIdElement().getIdPart());
+        patientDto.setMrn(patientDto.getIdentifier().stream().filter(iden->iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).findFirst().map(IdentifierDto::getValue));
+        patientDto.setIdentifier(patientDto.getIdentifier().stream().filter(iden-> !iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).collect(toList()));
+        Bundle bundle= (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Task.class).where(new ReferenceClientParam("patient").hasId(patient.getIdElement().getIdPart())))
+                .returnBundle(Bundle.class).encodedJson().execute();
+       List<String> types = FhirUtil.getAllBundleComponentsAsList(bundle,Optional.empty(),fhirClient,fisProperties).stream().map(at->{
+            Task task= (Task) at.getResource();
+            try {
+                return task.getDefinitionReference().getDisplay();
+            } catch (FHIRException e) {
+              return "";
+            }
+        }).distinct().collect(toList());
+
+       if(types.isEmpty()){
+           patientDto.setActivityTypes(null);
+       }else {
+           patientDto.setActivityTypes(Optional.ofNullable(types));
+       }
 
         if (patient.getGender() != null)
             patientDto.setGenderCode(patient.getGender().toCode());
@@ -286,6 +304,16 @@ public class PatientServiceImpl implements PatientService {
     @Override
     public void updatePatient(PatientDto patientDto) {
         if (!isDuplicateWhileUpdate(patientDto)) {
+            //Add mpi to the identifiers
+            List<IdentifierDto> identifierDtos=patientDto.getIdentifier();
+            Patient patientToGetMpi= fhirClient.read().resource(Patient.class).withId(patientDto.getId()).execute();
+            Optional<String> mrn= patientToGetMpi.getIdentifier().stream()
+                    .filter(p->p.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID()))
+                    .findFirst().map(Identifier::getValue);
+
+            mrn.ifPresent(m->identifierDtos.add(setUniqueIdentifierForPatient(m)));
+
+            patientDto.setIdentifier(identifierDtos);
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setId(new IdType(patientDto.getId()));
             patient.setGender(FhirUtil.getPatientGender(patientDto.getGenderCode()));
@@ -340,6 +368,8 @@ public class PatientServiceImpl implements PatientService {
         patientDto.setId(patient.getIdElement().getIdPart());
         patientDto.setBirthDate(patient.getBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
         patientDto.setGenderCode(patient.getGender().toCode());
+        patientDto.setMrn(patientDto.getIdentifier().stream().filter(iden->iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).findFirst().map(IdentifierDto::getValue));
+        patientDto.setIdentifier(patientDto.getIdentifier().stream().filter(iden-> !iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).collect(toList()));
 
         //Get Flags for the patient
         List<FlagDto> flagDtos = getFlagsForEachPatient(patientBundle.getEntry(), patientBundleEntry.getResource().getIdElement().getIdPart());
