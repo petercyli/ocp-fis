@@ -195,6 +195,11 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
             ).collect(Collectors.toList());
             eDto.setOptionalAttendees(optionalAttendeesList);
 
+            List<String> requiredAttendeesName = attendeesList.stream().map(NameAndEmailAddressDto::getName).collect(Collectors.toList());
+            List<String> optionalAttendeesName = optionalAttendeesList.stream().map(NameAndEmailAddressDto::getName).collect(Collectors.toList());
+            requiredAttendeesName.addAll(optionalAttendeesName);
+
+            eDto.setParticipantName(requiredAttendeesName);
             eDto.setMyResponse(apt.getMyResponseType().name());
             eDto.setCalUid(apt.getICalUid());
         }

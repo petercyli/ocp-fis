@@ -68,13 +68,27 @@ public class AppointmentController {
 
     @GetMapping("/appointments/search-with-no-pagination")
     public List<AppointmentDto> getAppointmentsWithNoPagination(@RequestParam Optional<List<String>> statusList,
-                                                   @RequestParam(value = "patientId") Optional<String> patientId,
-                                                   @RequestParam(value = "practitionerId") Optional<String> practitionerId,
+                                                                @RequestParam(value = "patientId") Optional<String> patientId,
+                                                                @RequestParam(value = "practitionerId") Optional<String> practitionerId,
+                                                                @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                                @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                                @RequestParam(value = "showPastAppointments") Optional<Boolean> showPastAppointments,
+                                                                @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc) {
+        return appointmentService.getAppointmentsWithNoPagination(statusList, patientId, practitionerId, searchKey, searchValue, showPastAppointments, sortByStartTimeAsc);
+    }
+
+    @GetMapping("/appointments/Practitioner/{practitionerId}/include-care-team-patient")
+    public PageDto<AppointmentDto> getAppointmentsByPractitionerAndAssignedCareTeamPatients(@PathVariable String practitionerId,
+                                                   @RequestParam Optional<List<String>> statusList,
+                                                   @RequestParam(value = "requesterReference") Optional<String> requesterReference,
                                                    @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                    @RequestParam(value = "searchValue") Optional<String> searchValue,
                                                    @RequestParam(value = "showPastAppointments") Optional<Boolean> showPastAppointments,
-                                                   @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc) {
-        return appointmentService.getAppointmentsWithNoPagination(statusList, patientId, practitionerId, searchKey, searchValue, showPastAppointments, sortByStartTimeAsc);
+                                                   @RequestParam(value = "filterDateOption") Optional<String> filterDateOption,
+                                                   @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc,
+                                                   @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                   @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+        return appointmentService.getAppointmentsByPractitionerAndAssignedCareTeamPatients(practitionerId, statusList, requesterReference, searchKey, searchValue, showPastAppointments, filterDateOption, sortByStartTimeAsc, pageNumber, pageSize);
     }
 
     @PutMapping("/appointments/{appointmentId}/cancel")

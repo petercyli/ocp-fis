@@ -36,6 +36,7 @@ public class AppointmentDto {
     private String creatorName;
 
     private List<AppointmentParticipantDto> participant;
+    private List<String> participantName;
 
     //These help to show the required menu options on the UI
     private boolean canCancel;
