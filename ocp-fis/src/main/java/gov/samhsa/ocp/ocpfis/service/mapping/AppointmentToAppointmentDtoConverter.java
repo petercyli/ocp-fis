@@ -95,6 +95,8 @@ public class AppointmentToAppointmentDtoConverter {
                 appointmentDto.setPatientId(resourceId);
             }
 
+            List<String>  participantName = appointmentDto.getParticipant().stream().map(AppointmentParticipantDto::getActorName).collect(toList());
+            appointmentDto.setParticipantName(participantName);
         }
 
         String duration = "";
