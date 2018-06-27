@@ -231,7 +231,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
-
+        log.info("Found " + otherPageAppointmentBundle.getTotal() + " appointments during search(getAppointments).");
         return new PageDto<>(appointmentDtos, numberOfAppointmentsPerPage, totalPages, currentPage, appointmentDtos.size(), otherPageAppointmentBundle.getTotal());
     }
 
@@ -262,7 +262,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
         List<Bundle.BundleEntryComponent> retrievedAppointments = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
-
+        log.info("Found " + bundle.getTotal() + " appointments during search(getAppointmentsWithNoPagination).");
         return retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
                         (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.empty()))).collect(toList());
@@ -277,6 +277,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
 
+        // Find all patients who have made the given Practitioner Id as their Care Team member
         List<PatientDto> assignedPatients = patientService.getPatientsByPractitioner(Optional.of(practitionerId.trim()), Optional.empty(), Optional.empty());
         Set<String> patientIds = getPatientIdSet(assignedPatients);
 
@@ -325,6 +326,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
+        log.info("Found " + otherPageAppointmentBundle.getTotal() + " appointments during search(getAppointmentsByPractitionerAndAssignedCareTeamPatients).");
         return new PageDto<>(appointmentDtos, numberOfAppointmentsPerPage, totalPages, currentPage, appointmentDtos.size(), otherPageAppointmentBundle.getTotal());
 
     }
@@ -568,7 +570,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private Set<String> getPatientIdSet(List<PatientDto> patientDtoList){
         if(patientDtoList != null && !patientDtoList.isEmpty()){
-            return patientDtoList.stream().map(p -> p.getId()).collect(Collectors.toSet());
+            return patientDtoList.stream().map(PatientDto::getId).collect(Collectors.toSet());
         }
         return null;
     }
