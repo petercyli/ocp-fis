@@ -32,4 +32,9 @@ public class OutlookCalendarDto {
     private boolean meeting;
     private boolean recurring;
     private boolean responseRequested;
+
+    //For UI
+    private List<String> allAttendeeName;
+    private List<String> requiredAttendeeName;
+    private List<String> optionalAttendeeName;
 }
