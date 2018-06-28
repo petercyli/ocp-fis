@@ -43,14 +43,17 @@ import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Period;
+import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
+import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,6 +79,7 @@ public class PatientServiceImpl implements PatientService {
     public static final String CODING_SYSTEM_BIRTHSEX = "http://hl7.org/fhir/v3/AdministrativeGender";
     public static final String EXTENSION_URL_BIRTHSEX = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex";
     public static final String TO_DO = "To-Do";
+    public static final int EPISODE_OF_CARE_END_PERIOD = 1;
 
     private final IGenericClient fhirClient;
     private final IParser iParser;
@@ -294,18 +298,9 @@ public class PatientServiceImpl implements PatientService {
                     fhirClient.create().resource(flag).execute();
                 }));
 
-                //Create episode of care for the patient
-                if(patientDto.getEpisodeOfCares()!=null && !patientDto.getEpisodeOfCares().isEmpty()){
-                    patientDto.getEpisodeOfCares().forEach(eoc->{
-                        ReferenceDto patientReference=new ReferenceDto();
-                        patientReference.setReference(ResourceType.Patient+"/"+methodOutcome.getId().getIdPart());
-                        patientDto.getName().stream().findAny().ifPresent(name->patientReference.setDisplay(name.getFirstName()+" "+name.getLastName()));
-                        eoc.setPatient(patientReference);
-                        eoc.setManagingOrganization(orgReference(patientDto.getOrganizationId()));
-                        EpisodeOfCare episodeOfCare = convertEpisodeOfCareDtoToEpisodeOfCare(eoc);
-                        fhirClient.create().resource(episodeOfCare).execute();
-                    });
-                }
+                //Create System generated Episode of Care.
+                createEpisodeOfCare(methodOutcome.getId().getIdPart(),patientDto);
+
 
                 //Create To-Do task
                 Task task = FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
@@ -370,6 +365,9 @@ public class PatientServiceImpl implements PatientService {
                         patientDto.getName().stream().findAny().ifPresent(name->patientReference.setDisplay(name.getFirstName()+" "+name.getLastName()));
                         eoc.setPatient(patientReference);
                         eoc.setManagingOrganization(orgReference(patientDto.getOrganizationId()));
+                        if(eoc.getCareManager()==null) {
+                            eoc.setCareManager(pracReference(patientDto.getPractitionerId()));
+                        }
                         EpisodeOfCare episodeOfCare = convertEpisodeOfCareDtoToEpisodeOfCare(eoc);
                         if(eoc.getId()!=null) {
                             episodeOfCare.setId(eoc.getId());
@@ -410,7 +408,9 @@ public class PatientServiceImpl implements PatientService {
         patientDto.setGenderCode(patient.getGender().toCode());
         patientDto.setMrn(patientDto.getIdentifier().stream().filter(iden->iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).findFirst().map(IdentifierDto::getValue));
         patientDto.setIdentifier(patientDto.getIdentifier().stream().filter(iden-> !iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).collect(toList()));
-
+        if(patient.hasManagingOrganization()){
+            patientDto.setOrganizationId(Optional.ofNullable(patient.getManagingOrganization().getReference().split("/")[1]));
+        }
         //Get Flags for the patient
         List<FlagDto> flagDtos = getFlagsForEachPatient(patientBundle.getEntry(), patientBundleEntry.getResource().getIdElement().getIdPart());
         patientDto.setFlags(Optional.ofNullable(flagDtos));
@@ -473,7 +473,7 @@ public class PatientServiceImpl implements PatientService {
         return patientAndAllReferenceBundle.stream().filter(patientWithAllReference->patientWithAllReference.getResource().getResourceType().equals(ResourceType.EpisodeOfCare))
                 .map(eocBundle->(EpisodeOfCare)eocBundle.getResource())
                 .filter(eoc->eoc.getPatient().getReference().equalsIgnoreCase("Patient/"+patientId))
-                .map(eoc->EpisodeOfCareToEpisodeOfCareDtoMapper.map(eoc)).collect(toList());
+                .map(eoc->EpisodeOfCareToEpisodeOfCareDtoMapper.map(eoc,lookUpService)).collect(toList());
     }
 
     private void setExtensionFields(Patient patient, PatientDto patientDto) {
@@ -547,6 +547,25 @@ public class PatientServiceImpl implements PatientService {
         episodeOfCare.setPeriod(period);
         episodeOfCare.setCareManager(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getCareManager()));
         return episodeOfCare;
+    }
+
+    private void createEpisodeOfCare(String patientId, PatientDto patientDto) {
+        EpisodeOfCare episodeOfCare = new EpisodeOfCare();
+        episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
+        CodeableConcept codeableConcept = new CodeableConcept();
+        codeableConcept.addCoding().setCode(EpisodeofcareType.HACC.toCode())
+                .setDisplay(EpisodeofcareType.HACC.getDisplay())
+                .setSystem(EpisodeofcareType.HACC.getSystem());
+        episodeOfCare.setType(Arrays.asList(codeableConcept));
+        Reference patient = new Reference();
+        patient.setReference("Patient/" + patientId);
+        patientDto.getName().stream().findFirst().ifPresent(name->patient.setDisplay(name.getFirstName()+" "+name.getLastName()));
+        episodeOfCare.setPatient(patient);
+        episodeOfCare.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(orgReference(patientDto.getOrganizationId())));
+        episodeOfCare.setCareManager(FhirDtoUtil.mapReferenceDtoToReference(pracReference(patientDto.getPractitionerId())));
+        episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
+        episodeOfCare.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(EPISODE_OF_CARE_END_PERIOD)));
+        fhirClient.create().resource(episodeOfCare).execute();
     }
 
     private Flag convertFlagDtoToFlag(Reference patientId, FlagDto flagDto) {
@@ -674,6 +693,14 @@ public class PatientServiceImpl implements PatientService {
         return referenceDto;
     }
 
+    private ReferenceDto pracReference(Optional<String> practitionerId){
+        ReferenceDto referenceDto=new ReferenceDto();
+        fhirClient.read().resource(Practitioner.class).withId(practitionerId.get()).execute().getName().stream().findAny()
+                .ifPresent(name-> referenceDto.setDisplay(name.getGiven().stream().findFirst().get().toString()+" " +name.getFamily()));
+        referenceDto.setReference("Practitioner/"+practitionerId.get());
+        return referenceDto;
+    }
+
 
     private boolean checkDuplicateInFhir(PatientDto patientDto) {
         return !patientsWithMatchedDuplicateCheckParameters(patientDto).isEmpty();
@@ -737,6 +764,7 @@ public class PatientServiceImpl implements PatientService {
                 .randomAlphanumeric((fisProperties.getPatient().getMrn().getLength())));
         return localIdIdBuilder.toString().toUpperCase();
     }
+
 
 }
 
