@@ -76,7 +76,7 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
 
             // Retrieve a collection of appointments by using the calendar view.
             FindItemsResults<Appointment> appointments = calendar.findAppointments(cView);
-
+            log.info("Found " + appointments.getTotalCount() + " Outlook appointments.");
             return appointments.getItems().stream().map(this::mapAppointmentToDto).collect(Collectors.toList());
         }
         catch (Exception e) {
@@ -194,6 +194,15 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
                     }
             ).collect(Collectors.toList());
             eDto.setOptionalAttendees(optionalAttendeesList);
+
+            List<String> requiredAttendeesName = attendeesList.stream().map(NameAndEmailAddressDto::getName).collect(Collectors.toList());
+            eDto.setRequiredAttendeeName(requiredAttendeesName);
+            List<String> optionalAttendeesName = optionalAttendeesList.stream().map(NameAndEmailAddressDto::getName).collect(Collectors.toList());
+            eDto.setOptionalAttendeeName(optionalAttendeesName);
+
+            //Merge the 2 lists
+            requiredAttendeesName.addAll(optionalAttendeesName);
+            eDto.setAllAttendeeName(requiredAttendeesName);
 
             eDto.setMyResponse(apt.getMyResponseType().name());
             eDto.setCalUid(apt.getICalUid());
