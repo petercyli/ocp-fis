@@ -1,8 +1,10 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
+import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -23,7 +25,7 @@ public class EpisodeOfCareToEpisodeOfCareDtoMapper {
 
     public static final String NA = "NA";
 
-    public static EpisodeOfCareDto map(EpisodeOfCare episodeOfCare) {
+    public static EpisodeOfCareDto map(EpisodeOfCare episodeOfCare, LookUpService lookUpService) {
         EpisodeOfCareDto dto = new EpisodeOfCareDto();
 
         //id
@@ -33,6 +35,7 @@ public class EpisodeOfCareToEpisodeOfCareDtoMapper {
         EpisodeOfCare.EpisodeOfCareStatus status = episodeOfCare.getStatus();
         if (status != null) {
             dto.setStatus(status.toCode());
+            dto.setStatusDisplay(FhirDtoUtil.getDisplayForCode(status.toCode(),lookUpService.getEocStatus()));
         }
 
         //type
@@ -40,7 +43,10 @@ public class EpisodeOfCareToEpisodeOfCareDtoMapper {
         CodeableConcept type = types.stream().findFirst().orElse(null);
         if (type != null) {
             List<Coding> codingList = type.getCoding();
-            codingList.stream().findFirst().ifPresent(it -> dto.setType(it.getCode()));
+            codingList.stream().findFirst().ifPresent(it -> {
+                dto.setType(it.getCode());
+                dto.setTypeDisplay(FhirDtoUtil.getDisplayForCode(it.getCode(), lookUpService.getEocType()));
+            });
         }
 
         //patient

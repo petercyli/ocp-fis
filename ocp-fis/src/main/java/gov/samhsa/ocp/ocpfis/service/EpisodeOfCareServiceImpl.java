@@ -71,7 +71,7 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
             if (eocCompoents != null) {
                 episodeOfCareDtos = eocCompoents.stream()
                         .map(it -> (EpisodeOfCare) it.getResource())
-                        .map(it -> EpisodeOfCareToEpisodeOfCareDtoMapper.map(it))
+                        .map(it -> EpisodeOfCareToEpisodeOfCareDtoMapper.map(it,lookUpService))
                         .collect(toList());
             }
         }
