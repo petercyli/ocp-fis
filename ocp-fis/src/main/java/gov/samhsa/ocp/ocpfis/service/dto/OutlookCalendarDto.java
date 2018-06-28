@@ -34,5 +34,7 @@ public class OutlookCalendarDto {
     private boolean responseRequested;
 
     //For UI
-    private List<String> participantName;
+    private List<String> allAttendeeName;
+    private List<String> requiredAttendeeName;
+    private List<String> optionalAttendeeName;
 }
