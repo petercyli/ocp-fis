@@ -9,6 +9,7 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
+import ca.uhn.fhir.validation.SingleValidationMessage;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
@@ -52,7 +53,7 @@ import org.hl7.fhir.dstu3.model.codesystems.TaskPerformerType;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -151,6 +152,12 @@ public class FhirUtil {
         }
 
         if (!validationResult.isSuccessful()) {
+            log.info("Listing the issues found when validating the " + fhirResourceName + "(" + actionAndResourceName +" ) :");
+            fhirResourceId.ifPresent(s -> log.info("FHIR Resource ID: " + s));
+            // Show the issues
+            for (SingleValidationMessage next : validationResult.getMessages()) {
+                log.error(" Next issue " + next.getSeverity() + " - " + next.getLocationString() + " - " + next.getMessage());
+            }
             throw new FHIRFormatErrorException(fhirResourceName + " validation was not successful" + validationResult.getMessages());
         }
     }
@@ -245,7 +252,7 @@ public class FhirUtil {
         CodeableConcept topic = new CodeableConcept();
         topic.addCoding().setCode(DefinitionTopic.TREATMENT.toCode()).setDisplay(DefinitionTopic.TREATMENT.getDisplay())
                 .setSystem(DefinitionTopic.TREATMENT.getSystem());
-        activityDefinition.setTopic(Arrays.asList(topic));
+        activityDefinition.setTopic(Collections.singletonList(topic));
 
         activityDefinition.setDate(java.sql.Date.valueOf(LocalDate.now()));
         activityDefinition.setPublisher("Organization/" + referenceOrganization);
@@ -273,7 +280,7 @@ public class FhirUtil {
         RelatedArtifact relatedArtifact = new RelatedArtifact();
         relatedArtifact.setType(RelatedArtifact.RelatedArtifactType.DOCUMENTATION);
         relatedArtifact.setDisplay("To-Do List");
-        activityDefinition.setRelatedArtifact(Arrays.asList(relatedArtifact));
+        activityDefinition.setRelatedArtifact(Collections.singletonList(relatedArtifact));
 
         return activityDefinition;
     }
@@ -286,7 +293,7 @@ public class FhirUtil {
         category.addCoding().setCode(CareTeamCategory.EPISODE.toCode())
                 .setSystem(CareTeamCategory.EPISODE.getSystem())
                 .setDisplay(CareTeamCategory.EPISODE.getDisplay());
-        careTeam.setCategory(Arrays.asList(category));
+        careTeam.setCategory(Collections.singletonList(category));
         careTeam.setStatus(CareTeam.CareTeamStatus.ACTIVE);
         careTeam.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
         careTeam.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(CARE_TEAM_END_DATE)));
@@ -323,7 +330,7 @@ public class FhirUtil {
         performerType.addCoding().setDisplay(TaskPerformerType.REQUESTER.getDisplay())
                 .setCode(TaskPerformerType.REQUESTER.toCode())
                 .setSystem(TaskPerformerType.REQUESTER.getSystem());
-        task.setPerformerType(Arrays.asList(performerType));
+        task.setPerformerType(Collections.singletonList(performerType));
 
         Reference patient = new Reference();
         patient.setReference("Patient/" + patientId);
@@ -350,7 +357,7 @@ public class FhirUtil {
         codeableConcept.addCoding().setCode(EpisodeofcareType.HACC.toCode())
                 .setDisplay(EpisodeofcareType.HACC.getDisplay())
                 .setSystem(EpisodeofcareType.HACC.getSystem());
-        episodeOfCare.setType(Arrays.asList(codeableConcept));
+        episodeOfCare.setType(Collections.singletonList(codeableConcept));
         Reference patient = new Reference();
         patient.setReference("Patient/" + patientId);
         episodeOfCare.setPatient(patient);
@@ -421,7 +428,7 @@ public class FhirUtil {
             abstractCareTeamDto.setDisplay(organization.getName());
             abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.ORGANIZATION);
             List<IdentifierDto> identifierDtos = organization.getIdentifier().stream()
-                    .map(identifier -> entireCovertIdentifierToIdentifierDto(identifier))
+                    .map(FhirUtil::entireCovertIdentifierToIdentifierDto)
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 
@@ -464,13 +471,11 @@ public class FhirUtil {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
             Practitioner practitioner = (Practitioner) pr.getResource();
             abstractCareTeamDto.setId(practitioner.getIdElement().getIdPart());
-            practitioner.getName().stream().findAny().ifPresent(humanName -> {
-                abstractCareTeamDto.setDisplay(humanName.getGiven().stream().findAny().get() + " " + humanName.getFamily());
-            });
+            practitioner.getName().stream().findAny().ifPresent(humanName -> abstractCareTeamDto.setDisplay(humanName.getGiven().stream().findAny().get() + " " + humanName.getFamily()));
 
             abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.PRACTITIONER);
             List<IdentifierDto> identifierDtos = practitioner.getIdentifier().stream()
-                    .map(identifier -> entireCovertIdentifierToIdentifierDto(identifier))
+                    .map(FhirUtil::entireCovertIdentifierToIdentifierDto)
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 
@@ -519,12 +524,10 @@ public class FhirUtil {
             abstractCareTeamDto.setId(relatedPerson.getIdElement().getIdPart());
 
             abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.RELATEDPERSON);
-            relatedPerson.getName().stream().findAny().ifPresent(humanName -> {
-                abstractCareTeamDto.setDisplay(humanName.getGiven().stream().findAny().get() + " " + humanName.getFamily());
-            });
+            relatedPerson.getName().stream().findAny().ifPresent(humanName -> abstractCareTeamDto.setDisplay(humanName.getGiven().stream().findAny().get() + " " + humanName.getFamily()));
 
             List<IdentifierDto> identifierDtos = relatedPerson.getIdentifier().stream()
-                    .map(identifier -> entireCovertIdentifierToIdentifierDto(identifier))
+                    .map(FhirUtil::entireCovertIdentifierToIdentifierDto)
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 
@@ -604,7 +607,7 @@ public class FhirUtil {
 
         if (identifier != null) {
             String systemOid = identifier.getSystem() != null ? identifier.getSystem() : "";
-            String systemDisplay = null;
+            String systemDisplay;
 
             try {
                 if (systemOid.startsWith(OID_TEXT) || systemOid.startsWith(URL_TEXT)) {
@@ -633,9 +636,9 @@ public class FhirUtil {
 
 
     public static List<String> participantIds(Optional<String> participantId,Optional<String> patientId, Optional<List<String>> careTeams, IGenericClient fhirClient){
-        List<String> participantIds=new ArrayList<>();
+        List<String> participantIds;
         if(participantId.isPresent()){
-            participantIds=Arrays.asList(participantId.get());
+            participantIds= Collections.singletonList(participantId.get());
         }else if(careTeams.isPresent()) {
             participantIds=getParticipantIdFromCareTeam(careTeams,fhirClient);
         }else{
