@@ -1,7 +1,8 @@
-package gov.samhsa.ocp.ocpfis.web;
+package gov.samhsa.ocp.ocpfis.controller;
 
 import gov.samhsa.ocp.ocpfis.service.EpisodeOfCareService;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.web.EpisodeOfCareController;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Ignore;
