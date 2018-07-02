@@ -53,6 +53,7 @@ import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
@@ -99,6 +100,9 @@ public class PatientServiceImpl implements PatientService {
         this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
     }
+
+    @Autowired
+    private CoverageServiceImpl coverageService;
 
     @Override
     public List<PatientDto> getPatients() {
@@ -384,6 +388,15 @@ public class PatientServiceImpl implements PatientService {
                         }
                     });
                 }
+
+                //Update the coverage
+                patientDto.getCoverages().ifPresent(coverages->coverages.forEach(coverageDto->{
+                    if(coverageDto.getLogicalId() !=null) {
+                        coverageService.updateCoverage(coverageDto.getLogicalId(),coverageDto);
+                    }else{
+                        coverageService.createCoverage(coverageDto);
+                    }
+                }));
 
 
             } else {
