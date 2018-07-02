@@ -10,6 +10,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
+import gov.samhsa.ocp.ocpfis.service.dto.CoverageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
@@ -23,6 +24,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.mapping.CoverageToCoverageDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.EpisodeOfCareToEpisodeOfCareDtoMapper;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
@@ -35,6 +37,7 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Coverage;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Flag;
@@ -150,6 +153,7 @@ public class PatientServiceImpl implements PatientService {
                 .count(numberOfPatientsPerPage)
                 .revInclude(Flag.INCLUDE_PATIENT)
                 .revInclude(EpisodeOfCare.INCLUDE_PATIENT)
+                .revInclude(Coverage.INCLUDE_BENEFICIARY)
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
@@ -258,6 +262,9 @@ public class PatientServiceImpl implements PatientService {
         //Getting flags into the patient dto
         List<FlagDto> flagDtos = getFlagsForEachPatient(response, patient.getIdElement().getIdPart());
         patientDto.setFlags(Optional.ofNullable(flagDtos));
+
+        List<CoverageDto> coverageDtos=getConveragesForEachPatient(response,patient.getIdElement().getIdPart());
+        patientDto.setCoverages(Optional.ofNullable(coverageDtos));
 
         List<EpisodeOfCareDto> episodeOfCareDtos=getEocsForEachPatient(response,patient.getIdElement().getIdPart());
         patientDto.setEpisodeOfCares(episodeOfCareDtos);
@@ -393,6 +400,7 @@ public class PatientServiceImpl implements PatientService {
                 .where(new TokenClientParam("_id").exactly().code(patientId))
                 .revInclude(Flag.INCLUDE_PATIENT)
                 .revInclude(EpisodeOfCare.INCLUDE_PATIENT)
+                .revInclude(Coverage.INCLUDE_BENEFICIARY)
                 .returnBundle(Bundle.class)
                 .execute();
 
@@ -417,6 +425,9 @@ public class PatientServiceImpl implements PatientService {
 
         List<EpisodeOfCareDto> eocDtos=getEocsForEachPatient(patientBundle.getEntry(),patientBundleEntry.getResource().getIdElement().getIdPart());
         patientDto.setEpisodeOfCares(eocDtos);
+
+        List<CoverageDto> coverageDtos=getConveragesForEachPatient(patientBundle.getEntry(),patientBundleEntry.getResource().getIdElement().getIdPart());
+        patientDto.setCoverages(Optional.ofNullable(coverageDtos));
 
         mapExtensionFields(patient, patientDto);
 
@@ -476,6 +487,13 @@ public class PatientServiceImpl implements PatientService {
                 .map(eoc->EpisodeOfCareToEpisodeOfCareDtoMapper.map(eoc,lookUpService)).collect(toList());
     }
 
+    private List<CoverageDto> getConveragesForEachPatient(List<Bundle.BundleEntryComponent> patientAndAllReferenceBundle, String patientId){
+        return patientAndAllReferenceBundle.stream().filter(patientWithAllReference->patientWithAllReference.getResource().getResourceType().equals(ResourceType.Coverage))
+                .map(coverageBundle-> (Coverage) coverageBundle.getResource())
+                .filter(coverage->coverage.getBeneficiary().getReference().equalsIgnoreCase("Patient/"+patientId))
+                .map(coverage -> CoverageToCoverageDtoMap.map(coverage))
+                .collect(toList());
+    }
     private void setExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = new ArrayList<>();
 
