@@ -63,6 +63,8 @@ public class PatientDto {
 
     private List<EpisodeOfCareDto> episodeOfCares;
 
+    private Optional<List<CoverageDto>> coverages;
+
     private Optional<List<FlagDto>> flags;
 
     Optional<String> organizationId;
