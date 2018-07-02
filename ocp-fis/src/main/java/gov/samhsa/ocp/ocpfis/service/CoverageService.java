@@ -11,6 +11,8 @@ public interface CoverageService {
 
     void createCoverage(CoverageDto coverageDto);
 
+    void updateCoverage(String id,CoverageDto coverageDto);
+
     List<ReferenceDto> getSubscriberOptions(String patientId);
 
     PageDto<CoverageDto> getCoverages(String patientId, Optional<Integer> pageNumber, Optional<Integer> pageSize);
