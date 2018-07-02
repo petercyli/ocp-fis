@@ -11,6 +11,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.mapping.CoverageToCoverageDtoMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
@@ -124,7 +125,7 @@ public class CoverageServiceImpl implements CoverageService {
 
         List<CoverageDto> coverageDtos=retrievedCoverages.stream().map(cov-> {
             Coverage coverage = (Coverage) cov.getResource();
-            return convertCoverageToCoverageDto(coverage);
+            return CoverageToCoverageDtoMap.map(coverage);
         }).collect(Collectors.toList());
 
         double totalPages = Math.ceil((double) otherPageCoverageBundle.getTotal() / numberOfCoveragePerPage);
@@ -167,29 +168,5 @@ public class CoverageServiceImpl implements CoverageService {
             return coverage.getSubscriberId();
         }).filter(id -> id.equalsIgnoreCase(coverageDto.getSubscriberId().trim())).collect(Collectors.toList()).isEmpty();
 
-    }
-
-    private CoverageDto convertCoverageToCoverageDto(Coverage coverage){
-        CoverageDto coverageDto=new CoverageDto();
-        coverageDto.setLogicalId(coverage.getIdElement().getIdPart());
-        coverageDto.setStatus(coverage.getStatus().toCode());
-        coverageDto.setStatusDisplay(Optional.of(coverage.getStatus().getDisplay()));
-        coverage.getType().getCoding().stream().findAny().ifPresent(coding -> {
-            coverageDto.setType(coding.getCode());
-            coverageDto.setTypeDisplay(Optional.ofNullable(coding.getDisplay()));
-        });
-
-        coverageDto.setSubscriber(FhirDtoUtil.convertReferenceToReferenceDto(coverage.getSubscriber()));
-        coverageDto.setSubscriberId(coverage.getSubscriberId());
-        coverageDto.setBeneficiary(FhirDtoUtil.convertReferenceToReferenceDto(coverage.getBeneficiary()));
-        coverage.getRelationship().getCoding().stream().findAny().ifPresent(coding->{
-            coverageDto.setRelationship(coding.getCode());
-            coverageDto.setRelationshipDisplay(Optional.ofNullable(coding.getDisplay()));
-        });
-
-        coverageDto.setStartDate(DateUtil.convertDateToString(coverage.getPeriod().getStart()));
-        coverageDto.setEndDate(DateUtil.convertDateToString(coverage.getPeriod().getEnd()));
-
-        return coverageDto;
     }
 }
