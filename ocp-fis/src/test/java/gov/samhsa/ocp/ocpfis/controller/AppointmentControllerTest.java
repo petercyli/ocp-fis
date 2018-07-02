@@ -86,6 +86,30 @@ public class AppointmentControllerTest {
     }
 
     @Test
+    public void testGetAppointmentsWithNoPagination() throws Exception {
+        //Arrange
+        AppointmentDto dto = createAppointmentDto();
+        List<AppointmentDto> dtos = new ArrayList<>();
+        dtos.add(dto);
+        List<String> statusList = Arrays.asList("active");
+        String patientId= "10";
+        String practitionerId = "10";
+        String searchKey = "10";
+        String searchValue = "10";
+        Boolean pastAppt = true;
+        Boolean sortStartTime = true;
+        Mockito.when(appointmentService.getAppointmentsWithNoPagination(Optional.of(statusList),Optional.of(patientId),Optional.of(practitionerId),Optional.of(searchKey),
+                Optional.of(searchValue),Optional.of(pastAppt), Optional.of(sortStartTime))).thenReturn(dtos);
+
+        //Act
+        RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/appointments/search-with-no-pagination?patientId=10&practitionerId=10&searchKey=10&searchValue=10&showPastAppointments=true&sortByStartTimeAsc=true&statusList=active");
+        MvcResult result = mockMvc.perform(requestBuilder).andReturn();
+
+        //Assert
+        Assert.assertThat(result.getResponse().getContentAsString(), CoreMatchers.containsString("patient name"));
+    }
+
+    @Test
     public void testCreateAppointment() throws Exception {
         //Arrange
         doNothing().when(appointmentService).createAppointment(isA(AppointmentDto.class));
