@@ -1,7 +1,8 @@
-package gov.samhsa.ocp.ocpfis.web;
+package gov.samhsa.ocp.ocpfis.controller;
 
 import gov.samhsa.ocp.ocpfis.service.OutlookCalendarService;
 import gov.samhsa.ocp.ocpfis.service.dto.OutlookCalendarDto;
+import gov.samhsa.ocp.ocpfis.web.OutlookCalendarController;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Ignore;
