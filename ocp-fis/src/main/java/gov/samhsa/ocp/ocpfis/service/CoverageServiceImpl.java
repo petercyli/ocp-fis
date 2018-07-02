@@ -12,6 +12,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.CoverageToCoverageDtoMap;
+import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CoverageDtoToCoverageMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
@@ -63,7 +64,7 @@ public class CoverageServiceImpl implements CoverageService {
     @Override
     public void createCoverage(CoverageDto coverageDto) {
         if (!isDuplicateWhileCreate(coverageDto)) {
-            Coverage coverage = convertCoverageDtoToCoverage(coverageDto);
+            Coverage coverage = CoverageDtoToCoverageMap.map(coverageDto,lookUpService);
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, coverage, Optional.empty(), ResourceType.Coverage.name(), "Create Coverage");
             //Create
@@ -71,6 +72,16 @@ public class CoverageServiceImpl implements CoverageService {
         } else {
             throw new DuplicateResourceFoundException("Coverage already exists for given subscriber id and beneficiary.");
         }
+    }
+
+    @Override
+    public void updateCoverage(String id, CoverageDto coverageDto) {
+        Coverage coverage=CoverageDtoToCoverageMap.map(coverageDto,lookUpService);
+        coverage.setId(id);
+        //Validate
+        FhirUtil.validateFhirResource(fhirValidator,coverage,Optional.empty(),ResourceType.Coverage.name(),"Update Coverage");
+        //Update
+        FhirUtil.updateFhirResource(fhirClient,coverage,ResourceType.Coverage.name());
     }
 
     @Override
@@ -132,31 +143,6 @@ public class CoverageServiceImpl implements CoverageService {
         int currentPage = firstPage ? 1 : pageNumber.get();
 
         return new PageDto<>(coverageDtos,numberOfCoveragePerPage,totalPages,currentPage,coverageDtos.size(),otherPageCoverageBundle.getTotal());
-    }
-
-
-    private Coverage convertCoverageDtoToCoverage(CoverageDto coverageDto) {
-        Coverage coverage = new Coverage();
-        try {
-            coverage.setStatus(Coverage.CoverageStatus.fromCode(coverageDto.getStatus()));
-        } catch (FHIRException e) {
-            throw new ResourceNotFoundException("Status code not found");
-        }
-        coverage.setType(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(coverageDto.getType(),lookUpService.getCoverageType())));
-        coverage.setSubscriber(FhirDtoUtil.mapReferenceDtoToReference(coverageDto.getSubscriber()));
-        coverage.setSubscriberId(coverageDto.getSubscriberId());
-        coverage.setBeneficiary(FhirDtoUtil.mapReferenceDtoToReference(coverageDto.getBeneficiary()));
-        coverage.setRelationship(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(coverageDto.getRelationship(),lookUpService.getPolicyholderRelationship())));
-
-        Period period = new Period();
-        try {
-            period.setStart((coverageDto.getStartDate() != null) ? DateUtil.convertStringToDate(coverageDto.getStartDate()) : null);
-            period.setEnd((coverageDto.getEndDate() != null) ? DateUtil.convertStringToDate(coverageDto.getEndDate()) : null);
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        coverage.setPeriod(period);
-        return coverage;
     }
 
     private boolean isDuplicateWhileCreate(CoverageDto coverageDto) {
