@@ -134,4 +134,8 @@ public interface LookUpService {
     List<ValueSetDto> getFmStatus();
 
     List<ValueSetDto> getCoverageType();
+
+    List<ValueSetDto> getEocStatus();
+
+    List<ValueSetDto> getEocType();
 }
