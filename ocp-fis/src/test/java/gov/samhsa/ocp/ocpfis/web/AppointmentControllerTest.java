@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.controller;
+package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.AppointmentService;
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
