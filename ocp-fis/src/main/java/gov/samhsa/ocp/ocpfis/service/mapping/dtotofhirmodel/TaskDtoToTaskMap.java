@@ -58,6 +58,11 @@ public class TaskDtoToTaskMap {
             task.getRequester().setOnBehalfOf(mapReferenceDtoToReference(taskDto.getOrganization()));
         }
 
+        //Set Context
+        if(taskDto.getContext()!=null){
+            task.setContext(mapReferenceDtoToReference(taskDto.getContext()));
+        }
+
         //Set PerformerType
         if (taskDto.getPerformerType() != null) {
             List<CodeableConcept> codeableConcepts = new ArrayList<>();

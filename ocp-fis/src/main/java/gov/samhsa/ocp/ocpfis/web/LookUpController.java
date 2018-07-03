@@ -385,4 +385,14 @@ public class LookUpController {
     public List<ValueSetDto> getCoverageType() {
         return lookUpService.getCoverageType();
     }
+
+    @GetMapping("/eoc-status")
+    public List<ValueSetDto> getEocStatus(){
+        return lookUpService.getEocStatus();
+    }
+
+    @GetMapping("/eoc-type")
+    public List<ValueSetDto> getEocType(){
+        return lookUpService.getEocType();
+    }
 }

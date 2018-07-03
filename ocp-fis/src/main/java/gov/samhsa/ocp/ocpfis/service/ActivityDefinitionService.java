@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ActivityReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 
@@ -15,7 +16,7 @@ public interface ActivityDefinitionService {
 
     void updateActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId, String activityDefinitionId);
 
-    List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner);
+    List<ActivityReferenceDto> getActivityDefinitionsByPractitioner(String practitioner);
 
     ActivityDefinitionDto getActivityDefinitionById(String id);
 

@@ -1,8 +1,10 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
+import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -23,7 +25,7 @@ public class EpisodeOfCareToEpisodeOfCareDtoMapper {
 
     public static final String NA = "NA";
 
-    public static EpisodeOfCareDto map(EpisodeOfCare episodeOfCare) {
+    public static EpisodeOfCareDto map(EpisodeOfCare episodeOfCare, LookUpService lookUpService) {
         EpisodeOfCareDto dto = new EpisodeOfCareDto();
 
         //id
@@ -33,6 +35,7 @@ public class EpisodeOfCareToEpisodeOfCareDtoMapper {
         EpisodeOfCare.EpisodeOfCareStatus status = episodeOfCare.getStatus();
         if (status != null) {
             dto.setStatus(status.toCode());
+            dto.setStatusDisplay(FhirDtoUtil.getDisplayForCode(status.toCode(),lookUpService.getEocStatus()));
         }
 
         //type
@@ -40,33 +43,46 @@ public class EpisodeOfCareToEpisodeOfCareDtoMapper {
         CodeableConcept type = types.stream().findFirst().orElse(null);
         if (type != null) {
             List<Coding> codingList = type.getCoding();
-            codingList.stream().findFirst().ifPresent(it -> dto.setType(it.getCode()));
+            codingList.stream().findFirst().ifPresent(it -> {
+                dto.setType(it.getCode());
+                dto.setTypeDisplay(FhirDtoUtil.getDisplayForCode(it.getCode(), lookUpService.getEocType()));
+            });
         }
 
         //patient
         if(episodeOfCare.getPatient() != null) {
-            dto.setPatient(episodeOfCare.getPatient().getReference().replace(ResourceType.Patient + "/", ""));
+            ReferenceDto referenceDto=new ReferenceDto();
+            referenceDto.setReference(episodeOfCare.getPatient().getReference());
+            referenceDto.setDisplay(episodeOfCare.getPatient().getDisplay());
+            dto.setPatient(referenceDto);
         }
 
         //managing organization
         if(episodeOfCare.getManagingOrganization() != null) {
-            dto.setManagingOrganization(episodeOfCare.getManagingOrganization().getReference().replace(ResourceType.Organization + "/", ""));
+            ReferenceDto referenceDto=new ReferenceDto();
+            referenceDto.setReference(episodeOfCare.getManagingOrganization().getReference());
+            referenceDto.setDisplay(episodeOfCare.getManagingOrganization().getDisplay());
+            dto.setManagingOrganization(referenceDto);
+
         }
 
         //start date
         Period period = episodeOfCare.getPeriod();
         if (period != null && period.getStart() != null) {
-            dto.setStart(DateUtil.convertDateToString(period.getStart()));
+            dto.setStartDate(DateUtil.convertDateToString(period.getStart()));
         }
 
         //end date
         if (period != null && period.getEnd() != null) {
-            dto.setEnd(DateUtil.convertDateToString(period.getEnd()));
+            dto.setEndDate(DateUtil.convertDateToString(period.getEnd()));
         }
 
         //care manager
         if(episodeOfCare.getCareManager() != null) {
-            dto.setCareManager(episodeOfCare.getCareManager().getReference().replace(ResourceType.Practitioner + "/", ""));
+            ReferenceDto referenceDto=new ReferenceDto();
+            referenceDto.setReference(episodeOfCare.getCareManager().getReference());
+            referenceDto.setDisplay(episodeOfCare.getCareManager().getDisplay());
+            dto.setCareManager(referenceDto);
         }
 
         return dto;
