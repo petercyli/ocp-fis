@@ -152,11 +152,11 @@ public class FhirUtil {
         }
 
         if (!validationResult.isSuccessful()) {
-            log.info("Listing the issues found when validating the " + fhirResourceName + "(" + actionAndResourceName +" ) :");
+            log.info("Listing the issues found when validating the " + fhirResourceName + "(" + actionAndResourceName +") :");
             fhirResourceId.ifPresent(s -> log.info("FHIR Resource ID: " + s));
             // Show the issues
             for (SingleValidationMessage next : validationResult.getMessages()) {
-                log.error(" Next issue " + next.getSeverity() + " - " + next.getLocationString() + " - " + next.getMessage());
+                log.error("Next issue (" + next.getSeverity() + ") - " + next.getLocationString() + " - " + next.getMessage());
             }
             throw new FHIRFormatErrorException(fhirResourceName + " validation was not successful" + validationResult.getMessages());
         }
