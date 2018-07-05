@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.CoverageService;
 import gov.samhsa.ocp.ocpfis.service.dto.CoverageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
@@ -24,6 +25,11 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import static org.mockito.Matchers.isA;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 @RunWith(SpringRunner.class)
 @WebMvcTest(value = CoverageController.class, secure = false)
@@ -69,6 +75,19 @@ public class CoverageControllerTest {
 
         //Assert
         Assert.assertThat(result.getResponse().getContentAsString(), CoreMatchers.containsString("active"));
+    }
+
+    @Test
+    public void testUpdateCoverage() throws Exception {
+        //Arrange
+        CoverageDto dto = createCoverageDto();
+        doNothing().when(coverageService).createCoverage(isA(CoverageDto.class));
+
+        //Act
+        coverageService.createCoverage(dto);
+
+        //Assert
+        verify(coverageService, times(1)).createCoverage(dto);
     }
 
     private CoverageDto createCoverageDto() {
