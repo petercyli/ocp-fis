@@ -8,6 +8,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ActivityReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -178,16 +179,16 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     }
 
     @Override
-    public List<ReferenceDto> getActivityDefinitionsByPractitioner(String practitioner) {
+    public List<ActivityReferenceDto> getActivityDefinitionsByPractitioner(String practitioner) {
         List<ReferenceDto> referenceOrganizationDtos = organizationService.getOrganizationsByPractitioner(practitioner);
 
         return referenceOrganizationDtos.stream()
-                .flatMap(it -> getActivityDefinitionByOrganization(FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Organization)).stream())
+                .flatMap(it -> getActivityDefinitionTitleByOrganization(FhirDtoUtil.getIdFromReferenceDto(it, ResourceType.Organization)).stream())
                 .collect(toList());
     }
 
-    private List<ReferenceDto> getActivityDefinitionByOrganization(String organization) {
-        List<ReferenceDto> activityDefinitions = new ArrayList<>();
+    private List<ActivityReferenceDto> getActivityDefinitionTitleByOrganization(String organization){
+        List<ActivityReferenceDto> activityDefinitions = new ArrayList<>();
 
         Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
                 .where(new StringClientParam("publisher").matches().value(ResourceType.Organization + "/" + organization))
@@ -201,12 +202,13 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             if (activityDefinitionComponents != null) {
                 activityDefinitions = activityDefinitionComponents.stream()
                         .map(it -> (ActivityDefinition) it.getResource())
-                        .map(it -> FhirDtoUtil.mapActivityDefinitionToReferenceDto(it))
+                        .map(it -> FhirDtoUtil.mapActivityDefinitionToActivityReferenceDto(it))
                         .collect(toList());
             }
         }
 
         return activityDefinitions;
+
     }
 
     private IQuery addAdditionalSearchConditions(IQuery activityDefinitionsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {

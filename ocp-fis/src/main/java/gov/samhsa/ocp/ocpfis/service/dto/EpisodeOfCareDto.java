@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Optional;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -14,15 +16,19 @@ public class EpisodeOfCareDto {
 
     String status;
 
+    Optional<String> statusDisplay;
+
     String type;
 
-    String patient;
+    Optional<String> typeDisplay;
 
-    String managingOrganization;
+    ReferenceDto patient;
 
-    String start;
+    ReferenceDto managingOrganization;
 
-    String end;
+    String startDate;
 
-    String careManager;
+    String endDate;
+
+    ReferenceDto careManager;
 }
