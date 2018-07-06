@@ -39,11 +39,9 @@ import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.RelatedArtifact;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
-import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.dstu3.model.Timing;
 import org.hl7.fhir.dstu3.model.Type;
-import org.hl7.fhir.dstu3.model.codesystems.CareTeamCategory;
 import org.hl7.fhir.dstu3.model.codesystems.ContactPointSystem;
 import org.hl7.fhir.dstu3.model.codesystems.DefinitionTopic;
 import org.hl7.fhir.dstu3.model.codesystems.TaskPerformerType;
@@ -61,8 +59,6 @@ import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 @Slf4j
 public class FhirUtil {
     public static final int ACTIVITY_DEFINITION_FREQUENCY = 1;
-    public static final int CARE_TEAM_END_DATE = 1;
-    public static final String CARE_MANAGER_CODE = "CAREMNGR";
     public static final int PAGE_NUMBER = 2;
 
     public static final String OID_TEXT = "urn:oid:";
@@ -119,13 +115,6 @@ public class FhirUtil {
                 .stream()
                 .anyMatch(identifier -> identifier.getValue().equalsIgnoreCase(searchValue));
 
-    }
-
-    public static boolean checkParticipantRole(List<CareTeam.CareTeamParticipantComponent> components, String role) {
-        return components.stream()
-                .filter(it -> it.getMember().getReference().contains(ResourceType.Practitioner.toString()))
-                .map(it -> FhirUtil.getRoleFromCodeableConcept(it.getRole()))
-                .anyMatch(t -> t.contains(role));
     }
 
     public static boolean isStringNotNullAndNotEmpty(String givenString) {
@@ -213,25 +202,6 @@ public class FhirUtil {
         return ext;
     }
 
-    public static Optional<Coding> convertExtensionToCoding(Extension extension) {
-        Optional<Coding> coding = Optional.empty();
-
-        Type type = extension.getValue();
-        if (type != null) {
-            if (type instanceof CodeableConcept) {
-                CodeableConcept codeableConcept = (CodeableConcept) type;
-
-                List<Coding> codingList = codeableConcept.getCoding();
-
-                if (codingList != null) {
-                    coding = Optional.of(codingList.get(0));
-                }
-            }
-        }
-
-        return coding;
-    }
-
     public static ActivityDefinition createToDoActivityDefinition(String referenceOrganization, FisProperties fisProperties, LookUpService lookUpService, IGenericClient fhirClient) {
         ActivityDefinition activityDefinition = new ActivityDefinition();
         activityDefinition.setVersion(fisProperties.getActivityDefinition().getVersion());
@@ -275,35 +245,6 @@ public class FhirUtil {
         activityDefinition.setRelatedArtifact(Collections.singletonList(relatedArtifact));
 
         return activityDefinition;
-    }
-
-    public static void createCareTeam(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties, LookUpService lookUpService) {
-        CareTeam careTeam = new CareTeam();
-        //CareTeam Name
-        careTeam.setName("Org" + organizationId + practitionerId + patientId);
-        CodeableConcept category = new CodeableConcept();
-        category.addCoding().setCode(CareTeamCategory.EPISODE.toCode())
-                .setSystem(CareTeamCategory.EPISODE.getSystem())
-                .setDisplay(CareTeamCategory.EPISODE.getDisplay());
-        careTeam.setCategory(Collections.singletonList(category));
-        careTeam.setStatus(CareTeam.CareTeamStatus.ACTIVE);
-        careTeam.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-        careTeam.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(CARE_TEAM_END_DATE)));
-
-        Reference patientReference = new Reference();
-        patientReference.setReference("Patient/" + patientId);
-        careTeam.setSubject(patientReference);
-
-        Reference practitioner = new Reference();
-        practitioner.setReference("Practitioner/" + practitionerId);
-        Reference organization = new Reference();
-        organization.setReference("Organization/" + organizationId);
-        CodeableConcept codeableConcept = new CodeableConcept();
-        ValueSetDto valueSetDto = FhirDtoUtil.convertCodeToValueSetDto(CARE_MANAGER_CODE, lookUpService.getProviderRole());
-        codeableConcept.addCoding().setCode(valueSetDto.getCode()).setDisplay(valueSetDto.getDisplay());
-        careTeam.addParticipant().setMember(practitioner).setRole(codeableConcept).setOnBehalfOf(organization);
-
-        fhirClient.create().resource(careTeam).execute();
     }
 
     public static Task createToDoTask(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties) {
@@ -560,13 +501,6 @@ public class FhirUtil {
         if (address.hasState())
             addressDto.setStateCode(address.getState());
         return addressDto;
-    }
-
-    public static IdentifierDto covertIdentifierToIdentifierDto(Identifier identifier) {
-        IdentifierDto identifierDto = new IdentifierDto();
-        identifierDto.setSystem(identifier.hasSystem() ? identifier.getSystem() : null);
-        identifierDto.setValue(identifier.hasValue() ? identifier.getValue() : null);
-        return identifierDto;
     }
 
     public static IdentifierDto entireCovertIdentifierToIdentifierDto(Identifier identifier) {
