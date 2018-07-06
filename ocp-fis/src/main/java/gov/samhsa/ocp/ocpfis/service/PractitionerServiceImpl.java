@@ -356,6 +356,7 @@ public class PractitionerServiceImpl implements PractitionerService {
     @Override
     public void updatePractitioner(String practitionerId, PractitionerDto practitionerDto) {
         Practitioner existingPractitioner = fhirClient.read().resource(Practitioner.class).withId(practitionerId.trim()).execute();
+        practitionerDto.setLogicalId(practitionerId.trim());
 
         if (!isDuplicateWhileUpdate(practitionerDto)) {
             Practitioner updatedPractitioner = modelMapper.map(practitionerDto, Practitioner.class);
