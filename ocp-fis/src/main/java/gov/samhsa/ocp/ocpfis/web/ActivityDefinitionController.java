@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.ActivityDefinitionService;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ActivityReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +54,7 @@ public class ActivityDefinitionController {
     }
 
     @GetMapping("/activity-definitions")
-    public List<ReferenceDto> getActivityDefinitionsByPractitioner(@RequestParam(value = "practitioner") String practitioner) {
+    public List<ActivityReferenceDto> getActivityDefinitionsByPractitioner(@RequestParam(value = "practitioner") String practitioner) {
         return activityDefinitionService.getActivityDefinitionsByPractitioner(practitioner);
     }
 

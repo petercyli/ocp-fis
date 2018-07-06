@@ -78,7 +78,7 @@ public class ParticipantServiceImpl implements ParticipantService {
             //TODO: Remove this episode of cares after the next data purge.
             List<EpisodeOfCareDto> episodeOfCareDtos = episodeOfCareService.getEpisodeOfCares(patientId, Optional.empty());
             if (!episodeOfCareDtos.isEmpty()) {
-                return Optional.of(episodeOfCareDtos.stream().findFirst().get().getManagingOrganization());
+                return Optional.of(episodeOfCareDtos.stream().findFirst().get().getManagingOrganization().getReference());
             }
             return Optional.empty();
         }

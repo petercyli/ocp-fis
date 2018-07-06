@@ -10,6 +10,8 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
+import gov.samhsa.ocp.ocpfis.service.dto.CoverageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -22,6 +24,8 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.mapping.CoverageToCoverageDtoMap;
+import gov.samhsa.ocp.ocpfis.service.mapping.EpisodeOfCareToEpisodeOfCareDtoMapper;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
@@ -33,6 +37,7 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Coverage;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Flag;
@@ -41,15 +46,21 @@ import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Period;
+import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
+import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.text.ParseException;
+import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -72,6 +83,7 @@ public class PatientServiceImpl implements PatientService {
     public static final String CODING_SYSTEM_BIRTHSEX = "http://hl7.org/fhir/v3/AdministrativeGender";
     public static final String EXTENSION_URL_BIRTHSEX = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex";
     public static final String TO_DO = "To-Do";
+    public static final int EPISODE_OF_CARE_END_PERIOD = 1;
 
     private final IGenericClient fhirClient;
     private final IParser iParser;
@@ -88,6 +100,9 @@ public class PatientServiceImpl implements PatientService {
         this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
     }
+
+    @Autowired
+    private CoverageServiceImpl coverageService;
 
     @Override
     public List<PatientDto> getPatients() {
@@ -141,11 +156,12 @@ public class PatientServiceImpl implements PatientService {
         firstPagePatientSearchBundle = (Bundle) PatientSearchQuery
                 .count(numberOfPatientsPerPage)
                 .revInclude(Flag.INCLUDE_PATIENT)
+                .revInclude(EpisodeOfCare.INCLUDE_PATIENT)
+                .revInclude(Coverage.INCLUDE_BENEFICIARY)
                 .returnBundle(Bundle.class)
                 .encodedJson()
                 .execute();
         log.debug("Patients Search Query to FHIR Server: END");
-
 
         if (showAll.isPresent() && showAll.get()) {
             List<PatientDto> patientDtos = convertAllBundleToSinglePatientDtoList(firstPagePatientSearchBundle, numberOfPatientsPerPage);
@@ -222,7 +238,7 @@ public class PatientServiceImpl implements PatientService {
         return true;
     }
 
-    private PatientDto mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
+    private PatientDto  mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
         PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
         patientDto.setId(patient.getIdElement().getIdPart());
         patientDto.setMrn(patientDto.getIdentifier().stream().filter(iden->iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).findFirst().map(IdentifierDto::getValue));
@@ -250,6 +266,12 @@ public class PatientServiceImpl implements PatientService {
         //Getting flags into the patient dto
         List<FlagDto> flagDtos = getFlagsForEachPatient(response, patient.getIdElement().getIdPart());
         patientDto.setFlags(Optional.ofNullable(flagDtos));
+
+        List<CoverageDto> coverageDtos=getConveragesForEachPatient(response,patient.getIdElement().getIdPart());
+        patientDto.setCoverages(Optional.ofNullable(coverageDtos));
+
+        List<EpisodeOfCareDto> episodeOfCareDtos=getEocsForEachPatient(response,patient.getIdElement().getIdPart());
+        patientDto.setEpisodeOfCares(episodeOfCareDtos);
         return patientDto;
     }
 
@@ -286,6 +308,10 @@ public class PatientServiceImpl implements PatientService {
                     Flag flag = convertFlagDtoToFlag(patientId, flagDto);
                     fhirClient.create().resource(flag).execute();
                 }));
+
+                //Create System generated Episode of Care.
+                createEpisodeOfCare(methodOutcome.getId().getIdPart(),patientDto);
+
 
                 //Create To-Do task
                 Task task = FhirUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
@@ -342,6 +368,37 @@ public class PatientServiceImpl implements PatientService {
                     }
                 }));
 
+                //Update the episode of care
+                if(patientDto.getEpisodeOfCares()!=null && !patientDto.getEpisodeOfCares().isEmpty()){
+                    patientDto.getEpisodeOfCares().forEach(eoc->{
+                        ReferenceDto patientReference=new ReferenceDto();
+                        patientReference.setReference(ResourceType.Patient+"/"+patientDto.getId());
+                        patientDto.getName().stream().findAny().ifPresent(name->patientReference.setDisplay(name.getFirstName()+" "+name.getLastName()));
+                        eoc.setPatient(patientReference);
+                        eoc.setManagingOrganization(orgReference(patientDto.getOrganizationId()));
+                        if(eoc.getCareManager()==null) {
+                            eoc.setCareManager(pracReference(patientDto.getPractitionerId()));
+                        }
+                        EpisodeOfCare episodeOfCare = convertEpisodeOfCareDtoToEpisodeOfCare(eoc);
+                        if(eoc.getId()!=null) {
+                            episodeOfCare.setId(eoc.getId());
+                            fhirClient.update().resource(episodeOfCare).execute();
+                        }else{
+                            fhirClient.create().resource(episodeOfCare).execute();
+                        }
+                    });
+                }
+
+                //Update the coverage
+                patientDto.getCoverages().ifPresent(coverages->coverages.forEach(coverageDto->{
+                    if(coverageDto.getLogicalId() !=null) {
+                        coverageService.updateCoverage(coverageDto.getLogicalId(),coverageDto);
+                    }else{
+                        coverageService.createCoverage(coverageDto);
+                    }
+                }));
+
+
             } else {
                 throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
             }
@@ -355,6 +412,8 @@ public class PatientServiceImpl implements PatientService {
         Bundle patientBundle = fhirClient.search().forResource(Patient.class)
                 .where(new TokenClientParam("_id").exactly().code(patientId))
                 .revInclude(Flag.INCLUDE_PATIENT)
+                .revInclude(EpisodeOfCare.INCLUDE_PATIENT)
+                .revInclude(Coverage.INCLUDE_BENEFICIARY)
                 .returnBundle(Bundle.class)
                 .execute();
 
@@ -370,10 +429,18 @@ public class PatientServiceImpl implements PatientService {
         patientDto.setGenderCode(patient.getGender().toCode());
         patientDto.setMrn(patientDto.getIdentifier().stream().filter(iden->iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).findFirst().map(IdentifierDto::getValue));
         patientDto.setIdentifier(patientDto.getIdentifier().stream().filter(iden-> !iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystemOID())).collect(toList()));
-
+        if(patient.hasManagingOrganization()){
+            patientDto.setOrganizationId(Optional.ofNullable(patient.getManagingOrganization().getReference().split("/")[1]));
+        }
         //Get Flags for the patient
         List<FlagDto> flagDtos = getFlagsForEachPatient(patientBundle.getEntry(), patientBundleEntry.getResource().getIdElement().getIdPart());
         patientDto.setFlags(Optional.ofNullable(flagDtos));
+
+        List<EpisodeOfCareDto> eocDtos=getEocsForEachPatient(patientBundle.getEntry(),patientBundleEntry.getResource().getIdElement().getIdPart());
+        patientDto.setEpisodeOfCares(eocDtos);
+
+        List<CoverageDto> coverageDtos=getConveragesForEachPatient(patientBundle.getEntry(),patientBundleEntry.getResource().getIdElement().getIdPart());
+        patientDto.setCoverages(Optional.ofNullable(coverageDtos));
 
         mapExtensionFields(patient, patientDto);
 
@@ -426,6 +493,20 @@ public class PatientServiceImpl implements PatientService {
                 }).collect(toList());
     }
 
+    private List<EpisodeOfCareDto> getEocsForEachPatient(List<Bundle.BundleEntryComponent>  patientAndAllReferenceBundle, String patientId){
+        return patientAndAllReferenceBundle.stream().filter(patientWithAllReference->patientWithAllReference.getResource().getResourceType().equals(ResourceType.EpisodeOfCare))
+                .map(eocBundle->(EpisodeOfCare)eocBundle.getResource())
+                .filter(eoc->eoc.getPatient().getReference().equalsIgnoreCase("Patient/"+patientId))
+                .map(eoc->EpisodeOfCareToEpisodeOfCareDtoMapper.map(eoc,lookUpService)).collect(toList());
+    }
+
+    private List<CoverageDto> getConveragesForEachPatient(List<Bundle.BundleEntryComponent> patientAndAllReferenceBundle, String patientId){
+        return patientAndAllReferenceBundle.stream().filter(patientWithAllReference->patientWithAllReference.getResource().getResourceType().equals(ResourceType.Coverage))
+                .map(coverageBundle-> (Coverage) coverageBundle.getResource())
+                .filter(coverage->coverage.getBeneficiary().getReference().equalsIgnoreCase("Patient/"+patientId))
+                .map(coverage -> CoverageToCoverageDtoMap.map(coverage))
+                .collect(toList());
+    }
     private void setExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = new ArrayList<>();
 
@@ -475,6 +556,47 @@ public class PatientServiceImpl implements PatientService {
                         patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreBirthSex()).getCode());
                     }
                 }));
+    }
+
+    private EpisodeOfCare convertEpisodeOfCareDtoToEpisodeOfCare(EpisodeOfCareDto episodeOfCareDto){
+        EpisodeOfCare episodeOfCare= new EpisodeOfCare();
+        try {
+            episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.fromCode(episodeOfCareDto.getStatus()));
+        } catch (FHIRException e) {
+            throw new BadRequestException("No such fhir status or type exist.");
+        }
+        episodeOfCare.setType(Arrays.asList(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(episodeOfCareDto.getType(),lookUpService.getEocType()))));
+        episodeOfCare.setPatient(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getPatient()));
+        episodeOfCare.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getManagingOrganization()));
+        Period period=new Period();
+        try {
+            period.setStart(DateUtil.convertStringToDate(episodeOfCareDto.getStartDate()));
+            period.setEnd(DateUtil.convertStringToDate(episodeOfCareDto.getEndDate()));
+        } catch (ParseException e) {
+            throw new BadRequestException("The start and end date of episode of care has wrong syntax.");
+        }
+        episodeOfCare.setPeriod(period);
+        episodeOfCare.setCareManager(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getCareManager()));
+        return episodeOfCare;
+    }
+
+    private void createEpisodeOfCare(String patientId, PatientDto patientDto) {
+        EpisodeOfCare episodeOfCare = new EpisodeOfCare();
+        episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
+        CodeableConcept codeableConcept = new CodeableConcept();
+        codeableConcept.addCoding().setCode(EpisodeofcareType.HACC.toCode())
+                .setDisplay(EpisodeofcareType.HACC.getDisplay())
+                .setSystem(EpisodeofcareType.HACC.getSystem());
+        episodeOfCare.setType(Arrays.asList(codeableConcept));
+        Reference patient = new Reference();
+        patient.setReference("Patient/" + patientId);
+        patientDto.getName().stream().findFirst().ifPresent(name->patient.setDisplay(name.getFirstName()+" "+name.getLastName()));
+        episodeOfCare.setPatient(patient);
+        episodeOfCare.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(orgReference(patientDto.getOrganizationId())));
+        episodeOfCare.setCareManager(FhirDtoUtil.mapReferenceDtoToReference(pracReference(patientDto.getPractitionerId())));
+        episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
+        episodeOfCare.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(EPISODE_OF_CARE_END_PERIOD)));
+        fhirClient.create().resource(episodeOfCare).execute();
     }
 
     private Flag convertFlagDtoToFlag(Reference patientId, FlagDto flagDto) {
@@ -602,6 +724,14 @@ public class PatientServiceImpl implements PatientService {
         return referenceDto;
     }
 
+    private ReferenceDto pracReference(Optional<String> practitionerId){
+        ReferenceDto referenceDto=new ReferenceDto();
+        fhirClient.read().resource(Practitioner.class).withId(practitionerId.get()).execute().getName().stream().findAny()
+                .ifPresent(name-> referenceDto.setDisplay(name.getGiven().stream().findFirst().get().toString()+" " +name.getFamily()));
+        referenceDto.setReference("Practitioner/"+practitionerId.get());
+        return referenceDto;
+    }
+
 
     private boolean checkDuplicateInFhir(PatientDto patientDto) {
         return !patientsWithMatchedDuplicateCheckParameters(patientDto).isEmpty();
@@ -665,6 +795,7 @@ public class PatientServiceImpl implements PatientService {
                 .randomAlphanumeric((fisProperties.getPatient().getMrn().getLength())));
         return localIdIdBuilder.toString().toUpperCase();
     }
+
 
 }
 
