@@ -42,8 +42,9 @@ public class ParticipantController {
     @GetMapping
     public List<ParticipantReferenceDto> getCareTeamParticipants(@RequestParam(value = "patient") String patient,
                                                                  @RequestParam(value = "roles", required = false) Optional<List<String>> roles,
+                                                                 @RequestParam(value="value", required=false) Optional<String> name,
                                                                  @RequestParam(value = "communication", required = false) Optional<String> communication)  {
-        return careTeamService.getCareTeamParticipants(patient, roles, communication);
+        return careTeamService.getCareTeamParticipants(patient, roles, name, communication);
     }
 
 }
