@@ -7,14 +7,12 @@ import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
-import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
@@ -312,21 +310,18 @@ public class PractitionerServiceImpl implements PractitionerService {
     @Override
     public void createPractitioner(PractitionerDto practitionerDto) {
         //Check Duplicate Identifier
-
-
         //When there is no duplicate identifier, practitioner gets created
         if (!hasDuplicateIdentifier(practitionerDto)) {
             //Create Fhir Practitioner
             Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
             practitioner.setActive(true);
 
-            final ValidationResult validationResult = fhirValidator.validateWithResult(practitioner);
+            // Validate
+            FhirUtil.validateFhirResource(fhirValidator, practitioner, Optional.empty(), ResourceType.Practitioner.name(), "Create Practitioner");
 
-            if (!validationResult.isSuccessful()) {
-                throw new FHIRFormatErrorException("FHIR Practitioner Validation was not successful " + validationResult.getMessages());
-            }
+            //Create
+            MethodOutcome methodOutcome = FhirUtil.createFhirResource(fhirClient, practitioner, ResourceType.Practitioner.name());
 
-            MethodOutcome methodOutcome = fhirClient.create().resource(practitioner).execute();
             //Assign fhir Practitioner resource id.
             Reference practitionerId = new Reference();
             practitionerId.setReference("Practitioner/" + methodOutcome.getId().getIdPart());
@@ -363,20 +358,17 @@ public class PractitionerServiceImpl implements PractitionerService {
         Practitioner existingPractitioner = fhirClient.read().resource(Practitioner.class).withId(practitionerId.trim()).execute();
 
         if (!isDuplicateWhileUpdate(practitionerDto)) {
-            Practitioner updatedpractitioner = modelMapper.map(practitionerDto, Practitioner.class);
-            existingPractitioner.setIdentifier(updatedpractitioner.getIdentifier());
-            existingPractitioner.setName(updatedpractitioner.getName());
-            existingPractitioner.setTelecom(updatedpractitioner.getTelecom());
-            existingPractitioner.setAddress(updatedpractitioner.getAddress());
+            Practitioner updatedPractitioner = modelMapper.map(practitionerDto, Practitioner.class);
+            existingPractitioner.setIdentifier(updatedPractitioner.getIdentifier());
+            existingPractitioner.setName(updatedPractitioner.getName());
+            existingPractitioner.setTelecom(updatedPractitioner.getTelecom());
+            existingPractitioner.setAddress(updatedPractitioner.getAddress());
 
-            final ValidationResult validationResult = fhirValidator.validateWithResult(existingPractitioner);
+            // Validate
+            FhirUtil.validateFhirResource(fhirValidator, existingPractitioner, Optional.of(practitionerId), ResourceType.Practitioner.name(), "Update Practitioner");
 
-            if (!validationResult.isSuccessful()) {
-                throw new FHIRFormatErrorException("FHIR Practitioner Validation was not successful " + validationResult.getMessages());
-            }
-
-            MethodOutcome methodOutcome = fhirClient.update().resource(existingPractitioner)
-                    .execute();
+            //Update
+            MethodOutcome methodOutcome = FhirUtil.updateFhirResource(fhirClient, existingPractitioner, "Update Practitioner");
 
             //Assign fhir Practitioner resource id.
             Reference practitionerReference = new Reference();
@@ -388,29 +380,28 @@ public class PractitionerServiceImpl implements PractitionerService {
                         PractitionerRole practitionerRole;
                         practitionerRole = modelMapper.map(practitionerRoleDto, PractitionerRole.class);
 
-                        //Set practitioner
+                        //Set Practitioner
                         practitionerRole.setPractitioner(practitionerReference);
 
-                        //set Code
+                        //Set Code
                         CodeableConcept codeCodeableConcept = new CodeableConcept();
                         codeCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getCode().get(0), Coding.class));
                         practitionerRole.setCode(Collections.singletonList(codeCodeableConcept));
 
-                        //set Specialty
+                        //Set Specialty
                         CodeableConcept specialtyCodeableConcept = new CodeableConcept();
                         specialtyCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getSpecialty().get(0), Coding.class));
                         practitionerRole.setSpecialty(Collections.singletonList(specialtyCodeableConcept));
                         practitionerRoles.add(practitionerRole);
                         if (practitionerRoleDto.getLogicalId() != null) {
                             practitionerRole.setId(practitionerRoleDto.getLogicalId());
-                            fhirClient.update().resource(practitionerRole).execute();
+                            //Update
+                            FhirUtil.updateFhirResource(fhirClient, practitionerRole, "Update Practitioner Role");
                         } else
-                            fhirClient.create().resource(practitionerRole).execute();
-
+                            //Create
+                            FhirUtil.createFhirResource(fhirClient, practitionerRole, ResourceType.PractitionerRole.name());
                     }
             );
-
-
         } else {
             throw new DuplicateResourceFoundException("Practitioner with the same Identifier is already present");
         }
