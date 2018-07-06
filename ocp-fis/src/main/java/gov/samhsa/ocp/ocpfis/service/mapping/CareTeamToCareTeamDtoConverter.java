@@ -108,6 +108,15 @@ public class CareTeamToCareTeamDtoConverter {
         return careTeamDto;
     }
 
+    public static List<ReferenceDto> mapToParticipants(CareTeam careTeam, Optional<List<String>> roles, Optional<String> name){
+        List<ReferenceDto> participants=mapToParticipants(careTeam,roles);
+        if(name.isPresent()){
+            participants=participants.stream().filter(participant->participant.getDisplay().toLowerCase().contains(name.get().toLowerCase())).collect(toList());
+        }
+
+        return participants;
+    }
+
     public static List<ReferenceDto> mapToParticipants(CareTeam careTeam, Optional<List<String>> roles) {
         return careTeam.getParticipant().stream()
                 .map(it -> {

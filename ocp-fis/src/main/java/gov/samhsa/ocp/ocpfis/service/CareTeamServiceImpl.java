@@ -292,7 +292,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public List<ParticipantReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles, Optional<String> communication) {
+    public List<ParticipantReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles, Optional<String> name, Optional<String> communication) {
         List<ReferenceDto> participantsByRoles = new ArrayList<>();
         List<ParticipantReferenceDto> participantsSelected = new ArrayList<>();
 
@@ -311,7 +311,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
 
                 participantsByRoles = careTeams.stream()
-                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles).stream()).collect(toList());
+                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles,name).stream()).collect(toList());
+
             }
         }
 
