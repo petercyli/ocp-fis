@@ -106,7 +106,12 @@ public class TaskToTaskDtoMap {
             }
         }
 
-        //TODO: redo context field
+        if(task.hasContext()){
+            taskDto.setContext(ReferenceDto.builder()
+                    .reference((task.getContext().hasReference())? task.getContext().getReference(): null)
+                    .display((task.getContext().hasDisplay())? task.getContext().getDisplay():null)
+                    .build());
+        }
 
         if (task.hasLastModified()) {
             taskDto.setLastModified(DateUtil.convertDateToLocalDate(task.getLastModified()));

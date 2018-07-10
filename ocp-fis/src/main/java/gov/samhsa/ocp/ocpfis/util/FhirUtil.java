@@ -31,7 +31,6 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.Enumerations;
-import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Organization;
@@ -41,14 +40,11 @@ import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.RelatedArtifact;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
-import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.dstu3.model.Timing;
 import org.hl7.fhir.dstu3.model.Type;
-import org.hl7.fhir.dstu3.model.codesystems.CareTeamCategory;
 import org.hl7.fhir.dstu3.model.codesystems.ContactPointSystem;
 import org.hl7.fhir.dstu3.model.codesystems.DefinitionTopic;
-import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.dstu3.model.codesystems.TaskPerformerType;
 
 import java.time.LocalDate;
@@ -64,9 +60,6 @@ import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 @Slf4j
 public class FhirUtil {
     public static final int ACTIVITY_DEFINITION_FREQUENCY = 1;
-    public static final int CARE_TEAM_END_DATE = 1;
-    public static final int EPISODE_OF_CARE_END_PERIOD = 1;
-    public static final String CARE_MANAGER_CODE = "CAREMNGR";
     public static final int PAGE_NUMBER = 2;
 
     public static final String OID_TEXT = "urn:oid:";
@@ -125,13 +118,6 @@ public class FhirUtil {
 
     }
 
-    public static boolean checkParticipantRole(List<CareTeam.CareTeamParticipantComponent> components, String role) {
-        return components.stream()
-                .filter(it -> it.getMember().getReference().contains(ResourceType.Practitioner.toString()))
-                .map(it -> FhirUtil.getRoleFromCodeableConcept(it.getRole()))
-                .anyMatch(t -> t.contains(role));
-    }
-
     public static boolean isStringNotNullAndNotEmpty(String givenString) {
         return givenString != null && !givenString.trim().isEmpty();
     }
@@ -162,20 +148,22 @@ public class FhirUtil {
         }
     }
 
-    public static void createFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String fhirResourceName) {
+    public static MethodOutcome createFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String fhirResourceName) {
         try {
             MethodOutcome serverResponse = fhirClient.create().resource(fhirResource).execute();
             log.info("Created a new " + fhirResourceName + " : " + serverResponse.getId().getIdPart());
+            return serverResponse;
         } catch (BaseServerResponseException e) {
             log.error("Could NOT create " + fhirResourceName);
             throw new FHIRClientException("FHIR Client returned with an error while creating the " + fhirResourceName + " : " + e.getMessage());
         }
     }
 
-    public static void updateFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String actionAndResourceName) {
+    public static MethodOutcome updateFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String actionAndResourceName) {
         try {
             MethodOutcome serverResponse = fhirClient.update().resource(fhirResource).execute();
             log.info(actionAndResourceName + " was successful for Id: " + serverResponse.getId().getIdPart());
+            return serverResponse;
         } catch (BaseServerResponseException e) {
             log.error("Could NOT " + actionAndResourceName + " with Id: " + fhirResource.getIdElement().getIdPart());
             throw new FHIRClientException("FHIR Client returned with an error during" + actionAndResourceName + " : " + e.getMessage());
@@ -189,9 +177,9 @@ public class FhirUtil {
         return searchQuery;
     }
 
-    public static IQuery searchNoCache(IGenericClient fhirClient, Class resourceType, Optional<Boolean> sortByLastUpdatedTimeDesc){
+    public static IQuery searchNoCache(IGenericClient fhirClient, Class resourceType, Optional<Boolean> sortByLastUpdatedTimeDesc) {
         IQuery iQuery;
-        if(sortByLastUpdatedTimeDesc.isPresent() && sortByLastUpdatedTimeDesc.get()){
+        if (sortByLastUpdatedTimeDesc.isPresent() && sortByLastUpdatedTimeDesc.get()) {
             iQuery = fhirClient.search().forResource(resourceType).sort().descending(PARAM_LASTUPDATED);
         } else {
             iQuery = fhirClient.search().forResource(resourceType);
@@ -199,8 +187,8 @@ public class FhirUtil {
         return setNoCacheControlDirective(iQuery);
     }
 
-    public static IQuery setLastUpdatedTimeSortOrder(IQuery searchQuery, Boolean isDescending){
-        if(isDescending){
+    public static IQuery setLastUpdatedTimeSortOrder(IQuery searchQuery, Boolean isDescending) {
+        if (isDescending) {
             searchQuery.sort().descending(PARAM_LASTUPDATED);
         } else {
             searchQuery.sort().ascending(PARAM_LASTUPDATED);
@@ -219,25 +207,6 @@ public class FhirUtil {
         ext.setUrl(url);
         ext.setValue(t);
         return ext;
-    }
-
-    public static Optional<Coding> convertExtensionToCoding(Extension extension) {
-        Optional<Coding> coding = Optional.empty();
-
-        Type type = extension.getValue();
-        if (type != null) {
-            if (type instanceof CodeableConcept) {
-                CodeableConcept codeableConcept = (CodeableConcept) type;
-
-                List<Coding> codingList = codeableConcept.getCoding();
-
-                if (codingList != null) {
-                    coding = Optional.of(codingList.get(0));
-                }
-            }
-        }
-
-        return coding;
     }
 
     public static ActivityDefinition createToDoActivityDefinition(String referenceOrganization, FisProperties fisProperties, LookUpService lookUpService, IGenericClient fhirClient) {
@@ -285,35 +254,6 @@ public class FhirUtil {
         return activityDefinition;
     }
 
-    public static void createCareTeam(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties, LookUpService lookUpService) {
-        CareTeam careTeam = new CareTeam();
-        //CareTeam Name
-        careTeam.setName("Org" + organizationId + practitionerId + patientId);
-        CodeableConcept category = new CodeableConcept();
-        category.addCoding().setCode(CareTeamCategory.EPISODE.toCode())
-                .setSystem(CareTeamCategory.EPISODE.getSystem())
-                .setDisplay(CareTeamCategory.EPISODE.getDisplay());
-        careTeam.setCategory(Collections.singletonList(category));
-        careTeam.setStatus(CareTeam.CareTeamStatus.ACTIVE);
-        careTeam.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-        careTeam.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(CARE_TEAM_END_DATE)));
-
-        Reference patientReference = new Reference();
-        patientReference.setReference("Patient/" + patientId);
-        careTeam.setSubject(patientReference);
-
-        Reference practitioner = new Reference();
-        practitioner.setReference("Practitioner/" + practitionerId);
-        Reference organization = new Reference();
-        organization.setReference("Organization/" + organizationId);
-        CodeableConcept codeableConcept = new CodeableConcept();
-        ValueSetDto valueSetDto = FhirDtoUtil.convertCodeToValueSetDto(CARE_MANAGER_CODE, lookUpService.getProviderRole());
-        codeableConcept.addCoding().setCode(valueSetDto.getCode()).setDisplay(valueSetDto.getDisplay());
-        careTeam.addParticipant().setMember(practitioner).setRole(codeableConcept).setOnBehalfOf(organization);
-
-        fhirClient.create().resource(careTeam).execute();
-    }
-
     public static Task createToDoTask(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties) {
         Task task = new Task();
 
@@ -340,37 +280,14 @@ public class FhirUtil {
         Reference reference = new Reference();
         reference.setReference("Practitioner/" + practitionerId);
 
-        Task.TaskRequesterComponent taskRequesterComponent=new Task.TaskRequesterComponent();
-        Reference organizationReference=new Reference();
-        organizationReference.setReference("Organization/"+organizationId);
+        Task.TaskRequesterComponent taskRequesterComponent = new Task.TaskRequesterComponent();
+        Reference organizationReference = new Reference();
+        organizationReference.setReference("Organization/" + organizationId);
         taskRequesterComponent.setAgent(reference).setOnBehalfOf(organizationReference);
 
         task.setRequester(taskRequesterComponent);
 
         return task;
-    }
-
-    public static EpisodeOfCare createEpisodeOfCare(String patientId, String practitionerId, String organizationId, IGenericClient fhirClient, FisProperties fisProperties, LookUpService lookUpService) {
-        EpisodeOfCare episodeOfCare = new EpisodeOfCare();
-        episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
-        CodeableConcept codeableConcept = new CodeableConcept();
-        codeableConcept.addCoding().setCode(EpisodeofcareType.HACC.toCode())
-                .setDisplay(EpisodeofcareType.HACC.getDisplay())
-                .setSystem(EpisodeofcareType.HACC.getSystem());
-        episodeOfCare.setType(Collections.singletonList(codeableConcept));
-        Reference patient = new Reference();
-        patient.setReference("Patient/" + patientId);
-        episodeOfCare.setPatient(patient);
-        Reference managingOrganization = new Reference();
-        managingOrganization.setReference("Organization/" + organizationId);
-        episodeOfCare.setManagingOrganization(managingOrganization);
-        Reference careManager = new Reference();
-        careManager.setReference("Practitioner/" + practitionerId);
-        episodeOfCare.setCareManager(careManager);
-        episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-        episodeOfCare.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(EPISODE_OF_CARE_END_PERIOD)));
-
-        return episodeOfCare;
     }
 
     public static ReferenceDto getRelatedActivityDefinition(String organizationId, String definitionDisplay, IGenericClient fhirClient, FisProperties fisProperties) {
@@ -412,16 +329,16 @@ public class FhirUtil {
 
     }
 
-    public static List<AbstractCareTeamDto> getOrganizationActors(Optional<String> patientId, Optional<String> name, Optional<String> organizationId, Optional<List<String>> careTeams, IGenericClient fhirClient, FisProperties fisProperties){
+    public static List<AbstractCareTeamDto> getOrganizationActors(Optional<String> patientId, Optional<String> name, Optional<String> organizationId, Optional<List<String>> careTeams, IGenericClient fhirClient, FisProperties fisProperties) {
         Bundle organizationBundle = fhirClient.search().forResource(Organization.class)
-                .where(new TokenClientParam("_id").exactly().codes(participantIds(organizationId,patientId, careTeams, fhirClient)))
+                .where(new TokenClientParam("_id").exactly().codes(participantIds(organizationId, patientId, careTeams, fhirClient)))
                 .where(new RichStringClientParam("name").matches().value(name.orElse("")))
                 .returnBundle(Bundle.class)
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
                 .execute();
         List<Bundle.BundleEntryComponent> organizationBundleEntryList = getAllBundleComponentsAsList(organizationBundle, Optional.empty(), fhirClient, fisProperties);
 
-       return organizationBundleEntryList.stream().map(org -> {
+        return organizationBundleEntryList.stream().map(org -> {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
             Organization organization = (Organization) org.getResource();
             abstractCareTeamDto.setId(organization.getIdElement().getIdPart());
@@ -437,17 +354,17 @@ public class FhirUtil {
                 abstractCareTeamDto.setAddress(addressDto);
             });
 
-            if(organization.hasTelecom()) {
+            if (organization.hasTelecom()) {
                 organization.getTelecom().stream()
                         .filter(telecom -> {
-                            if(telecom.hasSystem())
+                            if (telecom.hasSystem())
                                 return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString());
-                             return false;
+                            return false;
                         })
                         .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
 
                 organization.getTelecom().stream().filter(telecom -> {
-                    if(telecom.hasSystem())
+                    if (telecom.hasSystem())
                         return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString());
                     return false;
                 })
@@ -457,9 +374,9 @@ public class FhirUtil {
         }).distinct().collect(Collectors.toList());
     }
 
-    public static List<AbstractCareTeamDto> getPractitionerActors(Optional<String> patientId, Optional<String> name, Optional<String> practitionerId, Optional<List<String>> careTeams, IGenericClient fhirClient, FisProperties fisProperties){
+    public static List<AbstractCareTeamDto> getPractitionerActors(Optional<String> patientId, Optional<String> name, Optional<String> practitionerId, Optional<List<String>> careTeams, IGenericClient fhirClient, FisProperties fisProperties) {
         Bundle practitionerBundle = fhirClient.search().forResource(Practitioner.class)
-                .where(new TokenClientParam("_id").exactly().codes(participantIds(practitionerId,patientId, careTeams, fhirClient)))
+                .where(new TokenClientParam("_id").exactly().codes(participantIds(practitionerId, patientId, careTeams, fhirClient)))
                 .where(new RichStringClientParam("name").matches().value(name.orElse("")))
                 .returnBundle(Bundle.class)
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
@@ -485,32 +402,31 @@ public class FhirUtil {
                     }
             );
 
-            if(practitioner.hasTelecom()) {
+            if (practitioner.hasTelecom()) {
                 practitioner.getTelecom().stream()
                         .filter(telecom -> {
-                            if(telecom.hasSystem())
+                            if (telecom.hasSystem())
                                 return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString());
                             return false;
                         })
                         .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
 
                 practitioner.getTelecom().stream().filter(telecom -> {
-                    if(telecom.hasSystem())
+                    if (telecom.hasSystem())
                         return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString());
                     return false;
                 })
                         .findAny().ifPresent(email -> abstractCareTeamDto.setEmail(Optional.ofNullable(email.getValue())));
             }
-                return abstractCareTeamDto;
+            return abstractCareTeamDto;
 
         }).distinct().collect(Collectors.toList());
     }
 
-
-    public static List<AbstractCareTeamDto> getRelatedPersonActors(Optional<String> patientId, Optional<String> name, Optional<String> relatedPersonId, Optional<List<String>> careTeams, IGenericClient fhirClient, FisProperties fisProperties){
+    public static List<AbstractCareTeamDto> getRelatedPersonActors(Optional<String> patientId, Optional<String> name, Optional<String> relatedPersonId, Optional<List<String>> careTeams, IGenericClient fhirClient, FisProperties fisProperties) {
 
         Bundle relatedBundle = fhirClient.search().forResource(RelatedPerson.class)
-                .where(new TokenClientParam("_id").exactly().codes(participantIds(relatedPersonId,patientId, careTeams, fhirClient)))
+                .where(new TokenClientParam("_id").exactly().codes(participantIds(relatedPersonId, patientId, careTeams, fhirClient)))
                 .where(new RichStringClientParam("name").matches().value(name.orElse("")))
                 .returnBundle(Bundle.class)
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
@@ -518,7 +434,7 @@ public class FhirUtil {
 
         List<Bundle.BundleEntryComponent> relatedPersonBundleEntryList = FhirUtil.getAllBundleComponentsAsList(relatedBundle, Optional.empty(), fhirClient, fisProperties);
 
-        return  relatedPersonBundleEntryList.stream().map(rp -> {
+        return relatedPersonBundleEntryList.stream().map(rp -> {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
             RelatedPerson relatedPerson = (RelatedPerson) rp.getResource();
             abstractCareTeamDto.setId(relatedPerson.getIdElement().getIdPart());
@@ -537,17 +453,17 @@ public class FhirUtil {
                     }
             );
 
-            if(relatedPerson.hasTelecom()) {
+            if (relatedPerson.hasTelecom()) {
                 relatedPerson.getTelecom().stream()
                         .filter(telecom -> {
-                            if(telecom.hasSystem())
+                            if (telecom.hasSystem())
                                 return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.PHONE.toString());
                             return false;
                         })
                         .findAny().ifPresent(phone -> abstractCareTeamDto.setPhoneNumber(Optional.ofNullable(phone.getValue())));
 
                 relatedPerson.getTelecom().stream().filter(telecom -> {
-                    if(telecom.hasSystem())
+                    if (telecom.hasSystem())
                         return telecom.getSystem().getDisplay().equalsIgnoreCase(ContactPointSystem.EMAIL.toString());
                     return false;
                 })
@@ -557,7 +473,7 @@ public class FhirUtil {
         }).distinct().collect(Collectors.toList());
     }
 
-    public static List<String> getCareTeamParticipantIdsFromPatient(Optional<String> patientId,IGenericClient fhirClient) {
+    public static List<String> getCareTeamParticipantIdsFromPatient(Optional<String> patientId, IGenericClient fhirClient) {
         List<String> participantIds = new ArrayList<>();
         if (patientId.isPresent()) {
             Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class).where(new ReferenceClientParam("patient").hasId(patientId.get()))
@@ -574,7 +490,6 @@ public class FhirUtil {
         }
         return participantIds;
     }
-
 
     public static AddressDto convertAddressToAddressDto(Address address) {
         AddressDto addressDto = new AddressDto();
@@ -593,13 +508,6 @@ public class FhirUtil {
         if (address.hasState())
             addressDto.setStateCode(address.getState());
         return addressDto;
-    }
-
-    public static IdentifierDto covertIdentifierToIdentifierDto(Identifier identifier) {
-        IdentifierDto identifierDto = new IdentifierDto();
-        identifierDto.setSystem(identifier.hasSystem() ? identifier.getSystem() : null);
-        identifierDto.setValue(identifier.hasValue() ? identifier.getValue() : null);
-        return identifierDto;
     }
 
     public static IdentifierDto entireCovertIdentifierToIdentifierDto(Identifier identifier) {
@@ -633,24 +541,22 @@ public class FhirUtil {
         return identifierDto;
     }
 
-
-
-    public static List<String> participantIds(Optional<String> participantId,Optional<String> patientId, Optional<List<String>> careTeams, IGenericClient fhirClient){
+    public static List<String> participantIds(Optional<String> participantId, Optional<String> patientId, Optional<List<String>> careTeams, IGenericClient fhirClient) {
         List<String> participantIds;
-        if(participantId.isPresent()){
-            participantIds= Collections.singletonList(participantId.get());
-        }else if(careTeams.isPresent()) {
-            participantIds=getParticipantIdFromCareTeam(careTeams,fhirClient);
-        }else{
-            participantIds=getCareTeamParticipantIdsFromPatient(patientId,fhirClient);
+        if (participantId.isPresent()) {
+            participantIds = Collections.singletonList(participantId.get());
+        } else if (careTeams.isPresent()) {
+            participantIds = getParticipantIdFromCareTeam(careTeams, fhirClient);
+        } else {
+            participantIds = getCareTeamParticipantIdsFromPatient(patientId, fhirClient);
         }
         return participantIds;
     }
 
-    public static List<String> getParticipantIdFromCareTeam(Optional<List<String>> careTeams,IGenericClient fhirClient){
-        Bundle bundle= fhirClient.search().forResource(CareTeam.class).where(new TokenClientParam("_id").exactly().codes(careTeams.get())).returnBundle(Bundle.class).execute();
+    public static List<String> getParticipantIdFromCareTeam(Optional<List<String>> careTeams, IGenericClient fhirClient) {
+        Bundle bundle = fhirClient.search().forResource(CareTeam.class).where(new TokenClientParam("_id").exactly().codes(careTeams.get())).returnBundle(Bundle.class).execute();
 
-       return bundle.getEntry().stream().map(ct-> (CareTeam) ct.getResource()).flatMap(ct->ct.getParticipant().stream().map(par->par.getMember().getReference().split("/")[1])).distinct().collect(Collectors.toList());
+        return bundle.getEntry().stream().map(ct -> (CareTeam) ct.getResource()).flatMap(ct -> ct.getParticipant().stream().map(par -> par.getMember().getReference().split("/")[1])).distinct().collect(Collectors.toList());
 
     }
 }
