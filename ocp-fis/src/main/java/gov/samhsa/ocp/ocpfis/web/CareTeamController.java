@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.CareTeamService;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,5 +56,15 @@ public class CareTeamController {
                                                       @RequestParam Optional<Integer> pageNumber,
                                                       @RequestParam Optional<Integer> pageSize) {
         return careTeamService.getCareTeamsByPatientAndOrganization(patient, organization, status, pageNumber, pageSize);
+    }
+
+    @PutMapping("/{careTeamId}/add-relatedPerson")
+    public void addCareTeam(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
+        careTeamService.addRelatedPerson(careTeamId, participantDto);
+    }
+
+    @PutMapping("/{careTeamId}/remove-relatedPerson")
+    public void removeCareTeam(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
+        careTeamService.removeRelatedPerson(careTeamId,participantDto);
     }
 }
