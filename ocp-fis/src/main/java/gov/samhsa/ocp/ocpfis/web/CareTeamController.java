@@ -59,12 +59,12 @@ public class CareTeamController {
     }
 
     @PutMapping("/{careTeamId}/add-relatedPerson")
-    public void addCareTeam(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
+    public void addRelatedPerson(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
         careTeamService.addRelatedPerson(careTeamId, participantDto);
     }
 
     @PutMapping("/{careTeamId}/remove-relatedPerson")
-    public void removeCareTeam(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
+    public void removeRelatedPerson(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
         careTeamService.removeRelatedPerson(careTeamId,participantDto);
     }
 }
