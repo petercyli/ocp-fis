@@ -96,6 +96,8 @@ public class FisProperties {
         private String serverUrl;
         @NotNull
         private boolean serverSecurityEnabled;
+        @NotNull
+        private boolean validateResourceAgainstStructureDefinition;
         @NotBlank
         private String clientSocketTimeoutInMs;
         @NotNull
