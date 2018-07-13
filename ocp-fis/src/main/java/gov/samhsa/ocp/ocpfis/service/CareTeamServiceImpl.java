@@ -46,7 +46,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-import static java.util.stream.Collectors.summarizingDouble;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -145,7 +144,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         List<Bundle.BundleEntryComponent> retrievedCareTeamMembers = otherPageCareTeamBundle.getEntry();
 
-        List<CareTeam> careTeams =  retrievedCareTeamMembers
+        List<CareTeam> careTeams = retrievedCareTeamMembers
                 .stream()
                 .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.CareTeam))
                 .map(retrievedCareTeamMember -> (CareTeam) retrievedCareTeamMember.getResource())
@@ -316,7 +315,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
 
                 participantsByRoles = careTeams.stream()
-                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles,name).stream()).collect(toList());
+                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles, name).stream()).collect(toList());
 
             }
         }
@@ -406,18 +405,18 @@ public class CareTeamServiceImpl implements CareTeamService {
         List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
         List<CareTeam> careTeams = components.stream()
-                    .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
-                    .map(it -> (CareTeam) it.getResource())
-                    .filter(it -> {
-                        if(organization.isPresent()) {
-                            List<Reference> managingOrganizations = it.getManagingOrganization();
-                            return managingOrganizations.stream().anyMatch(managingOrganization -> managingOrganization.getReference().contains(organization.get()));
-                        } else {
-                            //do not filter
-                            return true;
-                        }
-                    })
-                    .collect(toList());
+                .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
+                .map(it -> (CareTeam) it.getResource())
+                .filter(it -> {
+                    if (organization.isPresent()) {
+                        List<Reference> managingOrganizations = it.getManagingOrganization();
+                        return managingOrganizations.stream().anyMatch(managingOrganization -> managingOrganization.getReference().contains(organization.get()));
+                    } else {
+                        //do not filter
+                        return true;
+                    }
+                })
+                .collect(toList());
 
         List<CareTeamDto> careTeamDtos = careTeams.stream()
                 .map(this::convertCareTeamToCareTeamDto)
@@ -428,7 +427,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     @Override
     public void addRelatedPerson(String careTeamId, ParticipantDto participantDto) {
-        CareTeam careTeam= fhirClient.read().resource(CareTeam.class).withId(careTeamId).execute();
+        CareTeam careTeam = fhirClient.read().resource(CareTeam.class).withId(careTeamId).execute();
 
         List<CareTeam.CareTeamParticipantComponent> components = careTeam.getParticipant();
         components.add(convertParticipantDtoToParticipant(participantDto));
@@ -440,10 +439,10 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     @Override
     public void removeRelatedPerson(String careTeamId, ParticipantDto participantDto) {
-        CareTeam careTeam=fhirClient.read().resource(CareTeam.class).withId(careTeamId).execute();
+        CareTeam careTeam = fhirClient.read().resource(CareTeam.class).withId(careTeamId).execute();
 
-        List<CareTeam.CareTeamParticipantComponent> components=careTeam.getParticipant();
-        components.removeIf(com->com.getMember().getReference().split("/")[1].equals(participantDto.getMemberId()));
+        List<CareTeam.CareTeamParticipantComponent> components = careTeam.getParticipant();
+        components.removeIf(com -> com.getMember().getReference().split("/")[1].equals(participantDto.getMemberId()));
 
         careTeam.setParticipant(components);
 
@@ -453,23 +452,45 @@ public class CareTeamServiceImpl implements CareTeamService {
 
     @Override
     public List<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId) {
-       CareTeam careTeam = fhirClient.read().resource(CareTeam.class).withId(careTeamId).execute();
-       String patientId= careTeam.getSubject().getReference().split("/")[1];
+        CareTeamDto careTeamDto = getCareTeamById(careTeamId);
+        List<ParticipantDto> participantInCareTeam=careTeamDto.getParticipants();
+
+        //Get all the relatedPerson for the patient
         Bundle relatedPersonForPatientBundle = fhirClient.search().forResource(RelatedPerson.class)
-                .where(new ReferenceClientParam("patient").hasId(patientId))
+                .where(new ReferenceClientParam("patient").hasId(careTeamDto.getSubjectId()))
                 .returnBundle(Bundle.class)
                 .execute();
 
-      List<ParticipantDto> participantDtoFromRelatedPersons=  FhirUtil.getAllBundleComponentsAsList(relatedPersonForPatientBundle,Optional.empty(),fhirClient,fisProperties)
-            .stream().map(rp->(RelatedPerson)rp.getResource())
-            .map(rp->{
-                ParticipantDto participantDto=new ParticipantDto();
-                return participantDto;
-            }).collect(toList());
-      return participantDtoFromRelatedPersons;
+
+        List<ParticipantDto> participantDtoFromRelatedPersons = FhirUtil.getAllBundleComponentsAsList(relatedPersonForPatientBundle, Optional.empty(), fhirClient, fisProperties)
+                .stream().map(rp -> (RelatedPerson) rp.getResource())
+                .map(rp -> {
+                    ParticipantDto participantDto = new ParticipantDto();
+                    participantDto.setMemberType(ParticipantTypeEnum.relatedPerson.getCode());
+                    rp.getName().stream().findFirst().ifPresent(r -> {
+                        participantDto.setMemberLastName(Optional.ofNullable(r.getFamily()));
+                        r.getGiven().stream().findFirst().ifPresent(given -> participantDto.setMemberFirstName(Optional.ofNullable(given.toString())));
+                    });
+                    participantDto.setMemberId(rp.getIdElement().getIdPart());
+                    participantDto.setIsInCareTeam(Optional.of(false));
+                    return participantDto; }).collect(toList());
 
 
+        List<ParticipantDto> participantDtoList=new ArrayList<>();
+               participantDtoFromRelatedPersons.forEach(rp->{
+                    String memberId=rp.getMemberId();
+                    Optional<ParticipantDto> participantDto=participantInCareTeam.stream().filter(p->p.getMemberId().equalsIgnoreCase(memberId)).findFirst();
+                    if(participantDto.isPresent()){
+                        ParticipantDto par=participantDto.get();
+                       par.setIsInCareTeam(Optional.of(true));
+                       participantDtoList.add(par);
+                    }else{
+                        ParticipantDto par=rp;
+                        participantDtoList.add(par);
+                    }
+                });
 
+                return participantDtoList;
     }
 
     private CareTeamDto convertCareTeamToCareTeamDto(CareTeam careTeam) {
@@ -532,31 +553,31 @@ public class CareTeamServiceImpl implements CareTeamService {
         }
     }
 
-    private CareTeam.CareTeamParticipantComponent convertParticipantDtoToParticipant(ParticipantDto participantDto){
+    private CareTeam.CareTeamParticipantComponent convertParticipantDtoToParticipant(ParticipantDto participantDto) {
 
-            CareTeam.CareTeamParticipantComponent careTeamParticipant = new CareTeam.CareTeamParticipantComponent();
+        CareTeam.CareTeamParticipantComponent careTeamParticipant = new CareTeam.CareTeamParticipantComponent();
 
-            String memberType = participantDto.getMemberType();
+        String memberType = participantDto.getMemberType();
 
-            if(memberType.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
-                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.practitioner.getName() + "/" + participantDto.getMemberId());
+        if (memberType.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
+            careTeamParticipant.getMember().setReference(ParticipantTypeEnum.practitioner.getName() + "/" + participantDto.getMemberId());
 
-            } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
-                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.patient.getName() + "/" + participantDto.getMemberId());
+        } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
+            careTeamParticipant.getMember().setReference(ParticipantTypeEnum.patient.getName() + "/" + participantDto.getMemberId());
 
-            } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.organization.getCode())) {
-                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.organization.getName() + "/" + participantDto.getMemberId());
+        } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.organization.getCode())) {
+            careTeamParticipant.getMember().setReference(ParticipantTypeEnum.organization.getName() + "/" + participantDto.getMemberId());
 
-            } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
-                careTeamParticipant.getMember().setReference(ParticipantTypeEnum.relatedPerson.getName() + "/" + participantDto.getMemberId());
-            }
+        } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
+            careTeamParticipant.getMember().setReference(ParticipantTypeEnum.relatedPerson.getName() + "/" + participantDto.getMemberId());
+        }
 
-            Coding codingRoleCode = new Coding();
-            codingRoleCode.setCode(participantDto.getRoleCode());
-            CodeableConcept codeableConceptRoleCode = new CodeableConcept().addCoding(codingRoleCode);
-            careTeamParticipant.setRole(codeableConceptRoleCode);
+        Coding codingRoleCode = new Coding();
+        codingRoleCode.setCode(participantDto.getRoleCode());
+        CodeableConcept codeableConceptRoleCode = new CodeableConcept().addCoding(codingRoleCode);
+        careTeamParticipant.setRole(codeableConceptRoleCode);
 
-            Period participantPeriod = new Period();
+        Period participantPeriod = new Period();
         try {
             participantPeriod.setStart(DateUtil.convertStringToDate(participantDto.getStartDate()));
             participantPeriod.setEnd(DateUtil.convertStringToDate(participantDto.getEndDate()));
@@ -564,7 +585,7 @@ public class CareTeamServiceImpl implements CareTeamService {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-            return careTeamParticipant;
+        return careTeamParticipant;
     }
 
 
