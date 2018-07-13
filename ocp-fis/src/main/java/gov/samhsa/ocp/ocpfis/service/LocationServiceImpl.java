@@ -26,9 +26,11 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Location;
+import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.UriType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -196,6 +198,9 @@ public class LocationServiceImpl implements LocationService {
         }
 
         // Validate
+        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+            setProfileMetaData(fhirClient, fhirLocation);
+        }
         FhirUtil.validateFhirResource(fhirValidator, fhirLocation, Optional.empty(), ResourceType.Location.name(), "Create Location");
 
         //Create
@@ -229,6 +234,9 @@ public class LocationServiceImpl implements LocationService {
         }
 
         // Validate
+        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+            setProfileMetaData(fhirClient, existingFhirLocation);
+        }
         FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Update Location");
 
         //Update
@@ -240,6 +248,12 @@ public class LocationServiceImpl implements LocationService {
         log.info("Inactivating the location Id: " + locationId);
         Location existingFhirLocation = readLocationFromServer(locationId);
         existingFhirLocation.setStatus(Location.LocationStatus.INACTIVE);
+
+        // Validate
+        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+            setProfileMetaData(fhirClient, existingFhirLocation);
+        }
+        FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Inactivate Location");
 
         //Update the resource
         FhirUtil.updateFhirResource(fhirClient, existingFhirLocation, "Inactivate Location");
@@ -454,5 +468,14 @@ public class LocationServiceImpl implements LocationService {
                 .filter(identifier->identifier.getSystem().equalsIgnoreCase(KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getUri()))
                 .findFirst();
     }
+
+    private void setProfileMetaData(IGenericClient fhirClient, Location fhirLocation){
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Location.toString());
+        if(uriList !=null && !uriList.isEmpty()){
+            Meta meta = new Meta().setProfile(uriList);
+            fhirLocation.setMeta(meta);
+        }
+    }
+
 }
 
