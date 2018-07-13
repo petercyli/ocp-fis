@@ -49,9 +49,9 @@ public class CareTeamController {
         return careTeamService.getCareTeamById(careTeamId);
     }
 
-    @GetMapping("/{careTeamId}/related-persons")
-    public PageDto<ParticipantDto> getRelatedPersonsForEdit(@PathVariable String careTeamId, @RequestParam Optional<Integer> pageNumber, @RequestParam Optional<Integer> pageSize){
-        return careTeamService.getRelatedPersonsByIdForEdit(careTeamId, pageNumber, pageSize);
+    @GetMapping("/{careTeamId}/related-persons/search")
+    public PageDto<ParticipantDto> getRelatedPersonsForEdit(@PathVariable String careTeamId, @RequestParam Optional<String> name, @RequestParam Optional<Integer> pageNumber, @RequestParam Optional<Integer> pageSize){
+        return careTeamService.getRelatedPersonsByIdForEdit(careTeamId, name, pageNumber, pageSize);
     }
 
     @GetMapping
