@@ -63,12 +63,12 @@ public class CareTeamController {
         return careTeamService.getCareTeamsByPatientAndOrganization(patient, organization, status, pageNumber, pageSize);
     }
 
-    @PutMapping("/{careTeamId}/add-relatedPerson")
+    @PutMapping("/{careTeamId}/add-related-person")
     public void addRelatedPerson(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
         careTeamService.addRelatedPerson(careTeamId, participantDto);
     }
 
-    @PutMapping("/{careTeamId}/remove-relatedPerson")
+    @PutMapping("/{careTeamId}/remove-related-person")
     public void removeRelatedPerson(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
         careTeamService.removeRelatedPerson(careTeamId,participantDto);
     }
