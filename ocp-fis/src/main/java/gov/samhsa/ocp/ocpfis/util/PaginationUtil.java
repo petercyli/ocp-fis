@@ -134,6 +134,10 @@ public final class PaginationUtil {
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getCommunication().getPagination().getMaxSize()).orElse(fisProperties.getCommunication().getPagination().getDefaultSize());
                 break;
+            case "CARETEAM":
+                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
+                        s <= fisProperties.getCareTeam().getPagination().getMaxSize()).orElse(fisProperties.getCareTeam().getPagination().getDefaultSize());
+                break;
             case "CONSENT":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getConsent().getPagination().getMaxSize()).orElse(fisProperties.getConsent().getPagination().getDefaultSize());
@@ -141,10 +145,6 @@ public final class PaginationUtil {
             case "LOCATION":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
-                break;
-            case "CARETEAM":
-                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
-                        s <= fisProperties.getCareTeam().getPagination().getMaxSize()).orElse(fisProperties.getCareTeam().getPagination().getDefaultSize());
                 break;
             case "HEALTHCARESERVICE":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
