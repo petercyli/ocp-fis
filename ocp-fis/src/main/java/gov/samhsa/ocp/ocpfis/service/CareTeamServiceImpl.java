@@ -451,6 +451,27 @@ public class CareTeamServiceImpl implements CareTeamService {
         fhirClient.update().resource(careTeam).execute();
     }
 
+    @Override
+    public List<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId) {
+       CareTeam careTeam = fhirClient.read().resource(CareTeam.class).withId(careTeamId).execute();
+       String patientId= careTeam.getSubject().getReference().split("/")[1];
+        Bundle relatedPersonForPatientBundle = fhirClient.search().forResource(RelatedPerson.class)
+                .where(new ReferenceClientParam("patient").hasId(patientId))
+                .returnBundle(Bundle.class)
+                .execute();
+
+      List<ParticipantDto> participantDtoFromRelatedPersons=  FhirUtil.getAllBundleComponentsAsList(relatedPersonForPatientBundle,Optional.empty(),fhirClient,fisProperties)
+            .stream().map(rp->(RelatedPerson)rp.getResource())
+            .map(rp->{
+                ParticipantDto participantDto=new ParticipantDto();
+                return participantDto;
+            }).collect(toList());
+      return participantDtoFromRelatedPersons;
+
+
+
+    }
+
     private CareTeamDto convertCareTeamToCareTeamDto(CareTeam careTeam) {
         final CareTeamDto careTeamDto = CareTeamToCareTeamDtoConverter.map(careTeam);
 

@@ -49,6 +49,11 @@ public class CareTeamController {
         return careTeamService.getCareTeamById(careTeamId);
     }
 
+    @GetMapping("/{careTeamId}/related-persons")
+    public List<ParticipantDto> getRelatedPersonsForEdit(@PathVariable String careTeamId){
+        return careTeamService.getRelatedPersonsByIdForEdit(careTeamId);
+    }
+
     @GetMapping
     public PageDto<CareTeamDto> getCareTeamsByPatientAndOrganization(@RequestParam String patient,
                                                       @RequestParam Optional<String> organization,

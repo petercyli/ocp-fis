@@ -28,4 +28,6 @@ public interface CareTeamService {
     void addRelatedPerson(String careTeamId, ParticipantDto participantDto);
 
     void removeRelatedPerson(String careTeamId, ParticipantDto participantDto);
+
+    List<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId);
 }
