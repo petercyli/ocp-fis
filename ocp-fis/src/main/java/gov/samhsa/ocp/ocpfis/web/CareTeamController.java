@@ -50,8 +50,8 @@ public class CareTeamController {
     }
 
     @GetMapping("/{careTeamId}/related-persons")
-    public List<ParticipantDto> getRelatedPersonsForEdit(@PathVariable String careTeamId){
-        return careTeamService.getRelatedPersonsByIdForEdit(careTeamId);
+    public PageDto<ParticipantDto> getRelatedPersonsForEdit(@PathVariable String careTeamId, @RequestParam Optional<Integer> pageNumber, @RequestParam Optional<Integer> pageSize){
+        return careTeamService.getRelatedPersonsByIdForEdit(careTeamId, pageNumber, pageSize);
     }
 
     @GetMapping

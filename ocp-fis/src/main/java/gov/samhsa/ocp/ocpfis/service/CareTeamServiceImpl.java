@@ -451,7 +451,8 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public List<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId) {
+    public PageDto<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId,Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfRelatedPersonPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.RelatedPerson.name());
         CareTeamDto careTeamDto = getCareTeamById(careTeamId);
         List<ParticipantDto> participantInCareTeam=careTeamDto.getParticipants();
 
@@ -490,7 +491,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                     }
                 });
 
-                return participantDtoList;
+                return (PageDto<ParticipantDto>) PaginationUtil.applyPaginationForCustomArrayList(participantDtoList, numberOfRelatedPersonPerPage, pageNumber, false);
     }
 
     private CareTeamDto convertCareTeamToCareTeamDto(CareTeam careTeam) {

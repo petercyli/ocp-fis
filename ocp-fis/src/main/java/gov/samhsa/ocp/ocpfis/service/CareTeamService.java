@@ -29,5 +29,5 @@ public interface CareTeamService {
 
     void removeRelatedPerson(String careTeamId, ParticipantDto participantDto);
 
-    List<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId);
+    PageDto<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 }
