@@ -29,10 +29,12 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
+import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.UriType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -86,6 +88,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Set created Date
         appointment.setCreated(new Date());
         //Validate
+        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
+            setProfileMetaData(fhirClient, appointment);
+        }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.empty(), ResourceType.Appointment.name(), "Create Appointment");
         //Create
         FhirUtil.createFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
@@ -97,10 +102,16 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("Updating appointmentId: " + appointmentId);
         //Validate if the request body has all the mandatory fields
         validateAppointDtoFromRequest(appointmentDto);
+
         //Map
         final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false, Optional.of(appointmentId));
+
         //Validate
+        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
+            setProfileMetaData(fhirClient, appointment);
+        }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Update Appointment");
+
         //Update
         FhirUtil.updateFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
     }
@@ -281,7 +292,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<PatientDto> assignedPatients = patientService.getPatientsByPractitioner(Optional.of(practitionerId.trim()), Optional.empty(), Optional.empty());
         Set<String> patientIds = getPatientIdSet(assignedPatients);
 
-        if(patientIds!= null && !patientIds.isEmpty()){
+        if (patientIds != null && !patientIds.isEmpty()) {
             log.info("Searching for Patients assigned/belonging to Practitioner Id :" + practitionerId);
             log.info("Number of Patients assigned/belonging to Practitioner Id (" + practitionerId + ") = " + patientIds.size());
             patientIds.add(practitionerId);
@@ -336,6 +347,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
         //Cancel
         appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+
+        //Validate
+        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
+            setProfileMetaData(fhirClient, appointment);
+        }
+        FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Cancel Appointment");
+
         //Update the resource
         FhirUtil.updateFhirResource(fhirClient, appointment, "Cancel Appointment");
     }
@@ -346,6 +364,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Accept
         appointment = setParticipantAction(appointment, actorReference, "ACCEPT");
         appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+
+        //Validate
+        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
+            setProfileMetaData(fhirClient, appointment);
+        }
+        FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Accept Appointment");
+
         //Update the resource
         FhirUtil.updateFhirResource(fhirClient, appointment, "Accept Appointment");
     }
@@ -356,6 +381,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Decline
         appointment = setParticipantAction(appointment, actorReference, "DECLINE");
         appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+
+        //Validate
+        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
+            setProfileMetaData(fhirClient, appointment);
+        }
+        FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Decline Appointment");
+
         //Update the resource
         FhirUtil.updateFhirResource(fhirClient, appointment, "Decline Appointment");
     }
@@ -366,6 +398,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Tentatively Accept
         appointment = setParticipantAction(appointment, actorReference, "TENTATIVE");
         appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+
+        //Validate
+        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
+            setProfileMetaData(fhirClient, appointment);
+        }
+        FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Tentatively Accept Appointment");
+
         //Update the resource
         FhirUtil.updateFhirResource(fhirClient, appointment, "TentativelyAccept Appointment");
     }
@@ -473,6 +512,10 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new PreconditionFailedException("AppointmentDto is NULL!!");
         }
 
+//        if (FhirUtil.isStringNullOrEmpty(appointmentDto.getDescription())) {
+//            missingFields = missingFields + "description, ";
+//        }
+
         if (FhirUtil.isStringNullOrEmpty(appointmentDto.getTypeCode())) {
             missingFields = missingFields + "typeCode, ";
         }
@@ -568,11 +611,19 @@ public class AppointmentServiceImpl implements AppointmentService {
         return apt;
     }
 
-    private Set<String> getPatientIdSet(List<PatientDto> patientDtoList){
-        if(patientDtoList != null && !patientDtoList.isEmpty()){
+    private Set<String> getPatientIdSet(List<PatientDto> patientDtoList) {
+        if (patientDtoList != null && !patientDtoList.isEmpty()) {
             return patientDtoList.stream().map(PatientDto::getId).collect(Collectors.toSet());
         }
         return null;
+    }
+
+    private void setProfileMetaData(IGenericClient fhirClient, Appointment appointment) {
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Appointment.toString());
+        if (uriList != null && !uriList.isEmpty()) {
+            Meta meta = new Meta().setProfile(uriList);
+            appointment.setMeta(meta);
+        }
     }
 }
 
