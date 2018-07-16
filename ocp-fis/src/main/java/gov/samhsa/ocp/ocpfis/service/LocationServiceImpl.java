@@ -44,9 +44,9 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class LocationServiceImpl implements LocationService {
-    final static String ORGANIZATION_TAX_ID_URI= "urn:oid:2.16.840.1.113883.4.4";
+    final static String ORGANIZATION_TAX_ID_URI = "urn:oid:2.16.840.1.113883.4.4";
 
-    final static String ORGANIZATION_TAX_ID_DISPLAY= "Organization Tax ID";
+    final static String ORGANIZATION_TAX_ID_DISPLAY = "Organization Tax ID";
 
     private final ModelMapper modelMapper;
 
@@ -198,7 +198,7 @@ public class LocationServiceImpl implements LocationService {
         }
 
         // Validate
-        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
             setProfileMetaData(fhirClient, fhirLocation);
         }
         FhirUtil.validateFhirResource(fhirValidator, fhirLocation, Optional.empty(), ResourceType.Location.name(), "Create Location");
@@ -234,7 +234,7 @@ public class LocationServiceImpl implements LocationService {
         }
 
         // Validate
-        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
             setProfileMetaData(fhirClient, existingFhirLocation);
         }
         FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Update Location");
@@ -250,7 +250,7 @@ public class LocationServiceImpl implements LocationService {
         existingFhirLocation.setStatus(Location.LocationStatus.INACTIVE);
 
         // Validate
-        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
             setProfileMetaData(fhirClient, existingFhirLocation);
         }
         FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Inactivate Location");
@@ -299,8 +299,7 @@ public class LocationServiceImpl implements LocationService {
 
         try {
             existingFhirLocation = fhirClient.read().resource(Location.class).withId(locationId.trim()).execute();
-        }
-        catch (BaseServerResponseException e) {
+        } catch (BaseServerResponseException e) {
             log.error("FHIR Client returned with an error while reading the location with ID: " + locationId);
             throw new ResourceNotFoundException("FHIR Client returned with an error while reading the location:" + e.getMessage());
         }
@@ -330,25 +329,25 @@ public class LocationServiceImpl implements LocationService {
         List<Bundle.BundleEntryComponent> bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
 
         if (bundle != null && !bundle.isEmpty()) {
-            List<Identifier> identifierList=bundle.stream().flatMap(loc-> {
-                Location location= (Location) loc.getResource();
-               return location.getIdentifier().stream();
+            List<Identifier> identifierList = bundle.stream().flatMap(loc -> {
+                Location location = (Location) loc.getResource();
+                return location.getIdentifier().stream();
             }).collect(Collectors.toList());
-            identifierList.stream().filter(identifier -> !identifier.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY)).findAny().ifPresent(ids-> {
+            identifierList.stream().filter(identifier -> !identifier.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY)).findAny().ifPresent(ids -> {
                         throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
                     }
             );
         }
     }
 
-    private void checkForDuplicateLocationBasedOnOrganizationTaxId(String organizationId, LocationDto locationDto){
+    private void checkForDuplicateLocationBasedOnOrganizationTaxId(String organizationId, LocationDto locationDto) {
         fhirClient.read().resource(Organization.class).withId(organizationId).execute().getIdentifier().stream()
                 .filter(identifier -> identifier.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_URI)).findAny().ifPresent(identifier -> {
             locationDto.getIdentifiers().stream().filter(identifierDto -> identifierDto.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY))
                     .findAny().ifPresent(identifierDto -> {
                 if (!identifierDto.getValue().replaceAll(" ", "")
                         .replaceAll("-", "").trim().equalsIgnoreCase(identifier.getValue().replaceAll(" ", "")
-                                .replaceAll("-", "").trim())){
+                                .replaceAll("-", "").trim())) {
                     throw new DuplicateResourceFoundException("The organization id is different from the original organization.");
                 }
             });
@@ -371,12 +370,12 @@ public class LocationServiceImpl implements LocationService {
         List<Bundle.BundleEntryComponent> bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
 
         if (bundle != null && bundle.size() > 1) {
-         String iS=bundle.stream().map(loc->{
-                Location location= (Location) loc.getResource();
+            String iS = bundle.stream().map(loc -> {
+                Location location = (Location) loc.getResource();
                 return location.getIdentifier().stream().findFirst().get().getSystem();
             }).findFirst().get();
 
-            if(!iS.equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY)) {
+            if (!iS.equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY)) {
                 throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
             }
         } else if (bundle != null && bundle.size() == 1) {
@@ -391,19 +390,19 @@ public class LocationServiceImpl implements LocationService {
         List<Bundle.BundleEntryComponent> bundleEntry;
         if (identifierSystem != null && !identifierSystem.trim().isEmpty()
                 && identifierValue != null && !identifierValue.trim().isEmpty()) {
-                Bundle bundle=fhirClient.search().forResource(Location.class).returnBundle(Bundle.class).execute();
-                bundleEntry= FhirUtil.getAllBundleComponentsAsList(bundle,Optional.empty(),fhirClient,fisProperties).stream().filter(location->{
-                    Location l= (Location) location.getResource();
-                    return l.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(identifierSystem) && identifier.getValue().replaceAll(" ", "")
-                            .replaceAll("-", "").trim()
-                            .equalsIgnoreCase(identifierValue.replaceAll(" ", "").replaceAll("-", "").trim()));
-                }).collect(Collectors.toList());
+            Bundle bundle = fhirClient.search().forResource(Location.class).returnBundle(Bundle.class).execute();
+            bundleEntry = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().filter(location -> {
+                Location l = (Location) location.getResource();
+                return l.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(identifierSystem) && identifier.getValue().replaceAll(" ", "")
+                        .replaceAll("-", "").trim()
+                        .equalsIgnoreCase(identifierValue.replaceAll(" ", "").replaceAll("-", "").trim()));
+            }).collect(Collectors.toList());
         } else if (identifierValue != null && !identifierValue.trim().isEmpty()) {
-           Bundle bundle = fhirClient.search().forResource(Location.class)
+            Bundle bundle = fhirClient.search().forResource(Location.class)
                     .where(new TokenClientParam("identifier").exactly().code(identifierValue.trim()))
                     .returnBundle(Bundle.class)
                     .execute();
-           bundleEntry=bundle.getEntry();
+            bundleEntry = bundle.getEntry();
         } else {
             throw new BadRequestException("Found no valid identifierSystem and/or identifierValue");
         }
@@ -433,8 +432,7 @@ public class LocationServiceImpl implements LocationService {
                 if (validLocationStatus.getDisplay().equalsIgnoreCase(locationDto.getStatus())) {
                     try {
                         return Location.LocationStatus.fromCode(locationDto.getStatus());
-                    }
-                    catch (FHIRException fe) {
+                    } catch (FHIRException fe) {
                         log.error("Could not convert Location Status");
                     }
                 }
@@ -460,18 +458,18 @@ public class LocationServiceImpl implements LocationService {
         return null;
     }
 
-    private Optional<IdentifierDto> getOrganizationIdentifier(String organizationId){
-        Organization organization=fhirClient.read().resource(Organization.class).withId(organizationId).execute();
+    private Optional<IdentifierDto> getOrganizationIdentifier(String organizationId) {
+        Organization organization = fhirClient.read().resource(Organization.class).withId(organizationId).execute();
 
-        OrganizationDto organizationDto=modelMapper.map(organization,OrganizationDto.class);
+        OrganizationDto organizationDto = modelMapper.map(organization, OrganizationDto.class);
         return organizationDto.getIdentifiers().stream()
-                .filter(identifier->identifier.getSystem().equalsIgnoreCase(KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getUri()))
+                .filter(identifier -> identifier.getSystem().equalsIgnoreCase(KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getUri()))
                 .findFirst();
     }
 
-    private void setProfileMetaData(IGenericClient fhirClient, Location fhirLocation){
+    private void setProfileMetaData(IGenericClient fhirClient, Location fhirLocation) {
         List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Location.toString());
-        if(uriList !=null && !uriList.isEmpty()){
+        if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             fhirLocation.setMeta(meta);
         }
