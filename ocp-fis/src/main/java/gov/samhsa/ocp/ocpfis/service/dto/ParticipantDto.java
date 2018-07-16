@@ -36,4 +36,6 @@ public class ParticipantDto {
     private String onBehalfOfId;
 
     private String onBehalfOfName;
+
+    private Optional<Boolean> isInCareTeam;
 }
