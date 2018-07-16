@@ -22,9 +22,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
+import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.UriType;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -312,6 +314,9 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         fhirHealthcareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
 
         // Validate
+        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+            setProfileMetaData(fhirClient, fhirHealthcareService);
+        }
         FhirUtil.validateFhirResource(fhirValidator, fhirHealthcareService, Optional.empty(), ResourceType.HealthcareService.name(), "Create Healthcare Service");
 
         //Create
@@ -346,6 +351,9 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         }
 
         // Validate
+        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+            setProfileMetaData(fhirClient, existingHealthcareService);
+        }
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
 
         //Update
@@ -359,6 +367,13 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         existingHealthcareService.setActive(false);
         //Also, remove all locations
         existingHealthcareService.setLocation(null);
+
+        // Validate
+        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+            setProfileMetaData(fhirClient, existingHealthcareService);
+        }
+        FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
+
         //Update
         FhirUtil.updateFhirResource(fhirClient, existingHealthcareService, "Inactivate Healthcare Service");
     }
@@ -398,6 +413,9 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 locationIdList.forEach(locationId -> assignedLocations.add(new Reference("Location/" + locationId)));
 
                 //Validate
+                if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+                    setProfileMetaData(fhirClient, existingHealthcareService);
+                }
                 FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Assign location to a Healthcare Service");
 
                 //Update
@@ -414,6 +432,9 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         List<Reference> assignedLocations = existingHealthcareService.getLocation();
         assignedLocations.removeIf(locRef -> locationIdList.contains(locRef.getReference().substring(9).trim()));
         //Validate
+        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
+            setProfileMetaData(fhirClient, existingHealthcareService);
+        }
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Unassign location to a Healthcare Service");
 
         //Update
@@ -619,6 +640,14 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             log.info("Search healthcare service : No additional search criteria entered.");
         }
         return healthcareServicesSearchQuery;
+    }
+
+    private void setProfileMetaData(IGenericClient fhirClient, HealthcareService healthcareService){
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.HealthcareService.toString());
+        if(uriList !=null && !uriList.isEmpty()){
+            Meta meta = new Meta().setProfile(uriList);
+            healthcareService.setMeta(meta);
+        }
     }
 }
 
