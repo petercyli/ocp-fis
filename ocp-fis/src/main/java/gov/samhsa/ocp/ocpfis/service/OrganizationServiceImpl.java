@@ -7,14 +7,11 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
-import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
-import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
-import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
@@ -25,9 +22,11 @@ import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.UriType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -214,19 +213,34 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         //When there is no duplicate identifier, the organization gets created
         if (existingNumberOfOrganizations == 0) {
-            //Create Fhir Organization
+            // Map
             Organization fhirOrganization = modelMapper.map(organizationDto, Organization.class);
             fhirOrganization.setActive(Boolean.TRUE);
 
-            final ValidationResult validationResult = fhirValidator.validateWithResult(fhirOrganization);
-            if (validationResult.isSuccessful()) {
-                MethodOutcome serverResponse = fhirClient.create().resource(fhirOrganization).execute();
-                log.info("Successfully created a new organization :" + serverResponse.getId().getIdPart());
-                ActivityDefinition activityDefinition = FhirUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(), fisProperties, lookUpService, fhirClient);
-                fhirClient.create().resource(activityDefinition).execute();
-            } else {
-                throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
+            // Validate
+            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
+                setOrganizationProfileMetaData(fhirClient, fhirOrganization);
             }
+            FhirUtil.validateFhirResource(fhirValidator, fhirOrganization, Optional.empty(), ResourceType.Organization.name(), "Create Organization");
+
+            //Create
+            MethodOutcome serverResponse = FhirUtil.createFhirResource(fhirClient, fhirOrganization, ResourceType.Organization.name());
+
+            // Add TO DO Activity Definition
+            ActivityDefinition activityDefinition = FhirUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(), fisProperties, lookUpService, fhirClient);
+
+            // Validate TO DO Activity Definition
+            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
+                setActivityDefinitionProfileMetaData(fhirClient, activityDefinition);
+            }
+            FhirUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.empty(), ResourceType.ActivityDefinition.name(), "Create ActivityDefinition (when creating an Organization)");
+
+            //Create TO DO Activity Definition
+            FhirUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
+
+
+            fhirClient.create().resource(activityDefinition).execute();
+
         } else {
             throw new DuplicateResourceFoundException("Organization with the Identifier " + identifier + " is already present.");
         }
@@ -246,17 +260,14 @@ public class OrganizationServiceImpl implements OrganizationService {
             existingOrganization.setAddress(updatedOrganization.getAddress());
             existingOrganization.setActive(updatedOrganization.getActive());
 
-            // Validate the resource
-            final ValidationResult validationResult = fhirValidator.validateWithResult(existingOrganization);
-            if (validationResult.isSuccessful()) {
-                log.info("Update Organization: Validation successful? " + validationResult.isSuccessful() + " for OrganizationID:" + organizationId);
-
-                fhirClient.update().resource(existingOrganization)
-                        .execute();
-                log.info("Organization successfully updated");
-            } else {
-                throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
+            // Validate
+            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
+                setOrganizationProfileMetaData(fhirClient, existingOrganization);
             }
+            FhirUtil.validateFhirResource(fhirValidator, existingOrganization, Optional.of(organizationId), ResourceType.Organization.name(), "Update Organization");
+
+            //Update
+            FhirUtil.updateFhirResource(fhirClient, existingOrganization, "Update Organization");
         } else {
             throw new DuplicateResourceFoundException("Organization with the Identifier " + organizationId + " is already present.");
         }
@@ -311,13 +322,15 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     private void setOrganizationStatusToInactive(Organization existingFhirOrganization) {
         existingFhirOrganization.setActive(false);
-        try {
-            MethodOutcome serverResponse = fhirClient.update().resource(existingFhirOrganization).execute();
-            log.info("Inactivated the organization :" + serverResponse.getId().getIdPart());
-        } catch (BaseServerResponseException e) {
-            log.error("Could NOT inactivate organization");
-            throw new FHIRClientException("FHIR Client returned with an error while inactivating the organization:" + e.getMessage());
+
+        // Validate
+        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
+            setOrganizationProfileMetaData(fhirClient, existingFhirOrganization);
         }
+        FhirUtil.validateFhirResource(fhirValidator, existingFhirOrganization, Optional.of(existingFhirOrganization.getId()), ResourceType.Organization.name(), "Update Organization");
+
+        //Update
+        FhirUtil.updateFhirResource(fhirClient, existingFhirOrganization, "Inactivate Organization");
     }
 
     private List<OrganizationDto> convertAllBundleToSingleOrganizationDtoList(Bundle firstPageOrganizationSearchBundle, int numberOBundlePerPage) {
@@ -357,6 +370,22 @@ public class OrganizationServiceImpl implements OrganizationService {
                     return oRes.getIdElement().getIdPart().equalsIgnoreCase(organization.getIdElement().getIdPart());
                 });
             }
+        }
+    }
+
+    private void setOrganizationProfileMetaData(IGenericClient fhirClient, Organization organization) {
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Organization.toString());
+        if (uriList != null && !uriList.isEmpty()) {
+            Meta meta = new Meta().setProfile(uriList);
+            organization.setMeta(meta);
+        }
+    }
+
+    private void setActivityDefinitionProfileMetaData(IGenericClient fhirClient, ActivityDefinition activityDefinition) {
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.ActivityDefinition.toString());
+        if (uriList != null && !uriList.isEmpty()) {
+            Meta meta = new Meta().setProfile(uriList);
+            activityDefinition.setMeta(meta);
         }
     }
 
