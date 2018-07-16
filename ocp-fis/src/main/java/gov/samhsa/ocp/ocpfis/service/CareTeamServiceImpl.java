@@ -24,6 +24,7 @@ import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
@@ -451,16 +452,18 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public PageDto<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId,Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId, Optional<String> name, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfRelatedPersonPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.RelatedPerson.name());
         CareTeamDto careTeamDto = getCareTeamById(careTeamId);
-        List<ParticipantDto> participantInCareTeam=careTeamDto.getParticipants();
+        List<ParticipantDto> participantInCareTeam = careTeamDto.getParticipants();
 
         //Get all the relatedPerson for the patient
-        Bundle relatedPersonForPatientBundle = fhirClient.search().forResource(RelatedPerson.class)
-                .where(new ReferenceClientParam("patient").hasId(careTeamDto.getSubjectId()))
-                .returnBundle(Bundle.class)
-                .execute();
+        IQuery iQuery = fhirClient.search().forResource(RelatedPerson.class)
+                .where(new ReferenceClientParam("patient").hasId(careTeamDto.getSubjectId()));
+
+
+        name.ifPresent(n->iQuery.where(new RichStringClientParam("name").contains().value(name.get().trim())));
+        Bundle relatedPersonForPatientBundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
 
         List<ParticipantDto> participantDtoFromRelatedPersons = FhirUtil.getAllBundleComponentsAsList(relatedPersonForPatientBundle, Optional.empty(), fhirClient, fisProperties)
@@ -474,24 +477,25 @@ public class CareTeamServiceImpl implements CareTeamService {
                     });
                     participantDto.setMemberId(rp.getIdElement().getIdPart());
                     participantDto.setIsInCareTeam(Optional.of(false));
-                    return participantDto; }).collect(toList());
+                    return participantDto;
+                }).collect(toList());
 
 
-        List<ParticipantDto> participantDtoList=new ArrayList<>();
-               participantDtoFromRelatedPersons.forEach(rp->{
-                    String memberId=rp.getMemberId();
-                    Optional<ParticipantDto> participantDto=participantInCareTeam.stream().filter(p->p.getMemberId().equalsIgnoreCase(memberId)).findFirst();
-                    if(participantDto.isPresent()){
-                        ParticipantDto par=participantDto.get();
-                       par.setIsInCareTeam(Optional.of(true));
-                       participantDtoList.add(par);
-                    }else{
-                        ParticipantDto par=rp;
-                        participantDtoList.add(par);
-                    }
-                });
+        List<ParticipantDto> participantDtoList = new ArrayList<>();
+        participantDtoFromRelatedPersons.forEach(rp -> {
+            String memberId = rp.getMemberId();
+            Optional<ParticipantDto> participantDto = participantInCareTeam.stream().filter(p -> p.getMemberId().equalsIgnoreCase(memberId)).findFirst();
+            if (participantDto.isPresent()) {
+                ParticipantDto par = participantDto.get();
+                par.setIsInCareTeam(Optional.of(true));
+                participantDtoList.add(par);
+            } else {
+                ParticipantDto par = rp;
+                participantDtoList.add(par);
+            }
+        });
 
-                return (PageDto<ParticipantDto>) PaginationUtil.applyPaginationForCustomArrayList(participantDtoList, numberOfRelatedPersonPerPage, pageNumber, false);
+        return (PageDto<ParticipantDto>) PaginationUtil.applyPaginationForCustomArrayList(participantDtoList, numberOfRelatedPersonPerPage, pageNumber, false);
     }
 
     private CareTeamDto convertCareTeamToCareTeamDto(CareTeam careTeam) {
