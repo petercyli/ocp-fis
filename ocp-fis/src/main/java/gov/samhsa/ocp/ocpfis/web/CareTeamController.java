@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.CareTeamService;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -48,6 +49,11 @@ public class CareTeamController {
         return careTeamService.getCareTeamById(careTeamId);
     }
 
+    @GetMapping("/{careTeamId}/related-persons/search")
+    public PageDto<ParticipantDto> getRelatedPersonsForEdit(@PathVariable String careTeamId, @RequestParam Optional<String> name, @RequestParam Optional<Integer> pageNumber, @RequestParam Optional<Integer> pageSize){
+        return careTeamService.getRelatedPersonsByIdForEdit(careTeamId, name, pageNumber, pageSize);
+    }
+
     @GetMapping
     public PageDto<CareTeamDto> getCareTeamsByPatientAndOrganization(@RequestParam String patient,
                                                       @RequestParam Optional<String> organization,
@@ -55,5 +61,15 @@ public class CareTeamController {
                                                       @RequestParam Optional<Integer> pageNumber,
                                                       @RequestParam Optional<Integer> pageSize) {
         return careTeamService.getCareTeamsByPatientAndOrganization(patient, organization, status, pageNumber, pageSize);
+    }
+
+    @PutMapping("/{careTeamId}/add-related-person")
+    public void addRelatedPerson(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
+        careTeamService.addRelatedPerson(careTeamId, participantDto);
+    }
+
+    @PutMapping("/{careTeamId}/remove-related-person")
+    public void removeRelatedPerson(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
+        careTeamService.removeRelatedPerson(careTeamId,participantDto);
     }
 }
