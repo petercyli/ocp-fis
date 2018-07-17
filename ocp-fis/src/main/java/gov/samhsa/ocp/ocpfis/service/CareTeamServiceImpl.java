@@ -8,6 +8,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.CareTeamFieldEnum;
+import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
@@ -23,11 +24,15 @@ import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
@@ -140,7 +145,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         List<Bundle.BundleEntryComponent> retrievedCareTeamMembers = otherPageCareTeamBundle.getEntry();
 
-        List<CareTeam> careTeams =  retrievedCareTeamMembers
+        List<CareTeam> careTeams = retrievedCareTeamMembers
                 .stream()
                 .filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.CareTeam))
                 .map(retrievedCareTeamMember -> (CareTeam) retrievedCareTeamMember.getResource())
@@ -292,7 +297,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     @Override
-    public List<ParticipantReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles, Optional<String> communication) {
+    public List<ParticipantReferenceDto> getCareTeamParticipants(String patient, Optional<List<String>> roles, Optional<String> name, Optional<String> communication) {
         List<ReferenceDto> participantsByRoles = new ArrayList<>();
         List<ParticipantReferenceDto> participantsSelected = new ArrayList<>();
 
@@ -311,7 +316,8 @@ public class CareTeamServiceImpl implements CareTeamService {
 
 
                 participantsByRoles = careTeams.stream()
-                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles).stream()).collect(toList());
+                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles, name).stream()).collect(toList());
+
             }
         }
 
@@ -400,24 +406,96 @@ public class CareTeamServiceImpl implements CareTeamService {
         List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
         List<CareTeam> careTeams = components.stream()
-                    .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
-                    .map(it -> (CareTeam) it.getResource())
-                    .filter(it -> {
-                        if(organization.isPresent()) {
-                            List<Reference> managingOrganizations = it.getManagingOrganization();
-                            return managingOrganizations.stream().anyMatch(managingOrganization -> managingOrganization.getReference().contains(organization.get()));
-                        } else {
-                            //do not filter
-                            return true;
-                        }
-                    })
-                    .collect(toList());
+                .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
+                .map(it -> (CareTeam) it.getResource())
+                .filter(it -> {
+                    if (organization.isPresent()) {
+                        List<Reference> managingOrganizations = it.getManagingOrganization();
+                        return managingOrganizations.stream().anyMatch(managingOrganization -> managingOrganization.getReference().contains(organization.get()));
+                    } else {
+                        //do not filter
+                        return true;
+                    }
+                })
+                .collect(toList());
 
         List<CareTeamDto> careTeamDtos = careTeams.stream()
                 .map(this::convertCareTeamToCareTeamDto)
                 .collect(toList());
 
         return (PageDto<CareTeamDto>) PaginationUtil.applyPaginationForCustomArrayList(careTeamDtos, numberOfCareTeamsPerPage, pageNumber, false);
+    }
+
+    @Override
+    public void addRelatedPerson(String careTeamId, ParticipantDto participantDto) {
+        CareTeam careTeam = fhirClient.read().resource(CareTeam.class).withId(careTeamId).execute();
+
+        List<CareTeam.CareTeamParticipantComponent> components = careTeam.getParticipant();
+        components.add(convertParticipantDtoToParticipant(participantDto));
+        careTeam.setParticipant(components);
+        validate(careTeam);
+        fhirClient.update().resource(careTeam).execute();
+
+    }
+
+    @Override
+    public void removeRelatedPerson(String careTeamId, ParticipantDto participantDto) {
+        CareTeam careTeam = fhirClient.read().resource(CareTeam.class).withId(careTeamId).execute();
+
+        List<CareTeam.CareTeamParticipantComponent> components = careTeam.getParticipant();
+        components.removeIf(com -> com.getMember().getReference().split("/")[1].equals(participantDto.getMemberId()));
+
+        careTeam.setParticipant(components);
+
+        validate(careTeam);
+        fhirClient.update().resource(careTeam).execute();
+    }
+
+    @Override
+    public PageDto<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId, Optional<String> name, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        int numberOfRelatedPersonPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.RelatedPerson.name());
+        CareTeamDto careTeamDto = getCareTeamById(careTeamId);
+        List<ParticipantDto> participantInCareTeam = careTeamDto.getParticipants();
+
+        //Get all the relatedPerson for the patient
+        IQuery iQuery = fhirClient.search().forResource(RelatedPerson.class)
+                .where(new ReferenceClientParam("patient").hasId(careTeamDto.getSubjectId()));
+
+
+        name.ifPresent(n->iQuery.where(new RichStringClientParam("name").contains().value(name.get().trim())));
+        Bundle relatedPersonForPatientBundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
+
+
+        List<ParticipantDto> participantDtoFromRelatedPersons = FhirUtil.getAllBundleComponentsAsList(relatedPersonForPatientBundle, Optional.empty(), fhirClient, fisProperties)
+                .stream().map(rp -> (RelatedPerson) rp.getResource())
+                .map(rp -> {
+                    ParticipantDto participantDto = new ParticipantDto();
+                    participantDto.setMemberType(ParticipantTypeEnum.relatedPerson.getCode());
+                    rp.getName().stream().findFirst().ifPresent(r -> {
+                        participantDto.setMemberLastName(Optional.ofNullable(r.getFamily()));
+                        r.getGiven().stream().findFirst().ifPresent(given -> participantDto.setMemberFirstName(Optional.ofNullable(given.toString())));
+                    });
+                    participantDto.setMemberId(rp.getIdElement().getIdPart());
+                    participantDto.setIsInCareTeam(Optional.of(false));
+                    return participantDto;
+                }).collect(toList());
+
+
+        List<ParticipantDto> participantDtoList = new ArrayList<>();
+        participantDtoFromRelatedPersons.forEach(rp -> {
+            String memberId = rp.getMemberId();
+            Optional<ParticipantDto> participantDto = participantInCareTeam.stream().filter(p -> p.getMemberId().equalsIgnoreCase(memberId)).findFirst();
+            if (participantDto.isPresent()) {
+                ParticipantDto par = participantDto.get();
+                par.setIsInCareTeam(Optional.of(true));
+                participantDtoList.add(par);
+            } else {
+                ParticipantDto par = rp;
+                participantDtoList.add(par);
+            }
+        });
+
+        return (PageDto<ParticipantDto>) PaginationUtil.applyPaginationForCustomArrayList(participantDtoList, numberOfRelatedPersonPerPage, pageNumber, false);
     }
 
     private CareTeamDto convertCareTeamToCareTeamDto(CareTeam careTeam) {
@@ -478,6 +556,41 @@ public class CareTeamServiceImpl implements CareTeamService {
         if (!validationResult.isSuccessful()) {
             throw new FHIRFormatErrorException("FHIR CareTeam validation is not successful" + validationResult.getMessages());
         }
+    }
+
+    private CareTeam.CareTeamParticipantComponent convertParticipantDtoToParticipant(ParticipantDto participantDto) {
+
+        CareTeam.CareTeamParticipantComponent careTeamParticipant = new CareTeam.CareTeamParticipantComponent();
+
+        String memberType = participantDto.getMemberType();
+
+        if (memberType.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
+            careTeamParticipant.getMember().setReference(ParticipantTypeEnum.practitioner.getName() + "/" + participantDto.getMemberId());
+
+        } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
+            careTeamParticipant.getMember().setReference(ParticipantTypeEnum.patient.getName() + "/" + participantDto.getMemberId());
+
+        } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.organization.getCode())) {
+            careTeamParticipant.getMember().setReference(ParticipantTypeEnum.organization.getName() + "/" + participantDto.getMemberId());
+
+        } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
+            careTeamParticipant.getMember().setReference(ParticipantTypeEnum.relatedPerson.getName() + "/" + participantDto.getMemberId());
+        }
+
+        Coding codingRoleCode = new Coding();
+        codingRoleCode.setCode(participantDto.getRoleCode());
+        CodeableConcept codeableConceptRoleCode = new CodeableConcept().addCoding(codingRoleCode);
+        careTeamParticipant.setRole(codeableConceptRoleCode);
+
+        Period participantPeriod = new Period();
+        try {
+            participantPeriod.setStart(DateUtil.convertStringToDate(participantDto.getStartDate()));
+            participantPeriod.setEnd(DateUtil.convertStringToDate(participantDto.getEndDate()));
+            careTeamParticipant.setPeriod(participantPeriod);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return careTeamParticipant;
     }
 
 
