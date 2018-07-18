@@ -239,11 +239,18 @@ public class FhirUtil {
             return structureDefinitionList.stream().map(StructureDefinition::getUrlElement).collect(Collectors.toList());
         } else {
             //Return URI List from ENUM
-            log.info("Getting URL from ENUM for " + resource);
-            String url = StructureDefinitionEnum.valueOf(resource.toUpperCase()).getUrl();
-            if (url != null && !url.isEmpty()) {
-                return Collections.singletonList(new UriType(url));
+            log.info("No StructureDefinition found...Getting URL from ENUM for " + resource);
+            try{
+                String url = StructureDefinitionEnum.valueOf(resource.toUpperCase()).getUrl();
+                if (url != null && !url.isEmpty()) {
+                    return Collections.singletonList(new UriType(url));
+                }
+            }catch (Exception e){
+                log.error("Neither StructureDefinition nor ENUM constant found");
+                // Don't get stuck here
+                return null;
             }
+
         }
         return null;
     }
