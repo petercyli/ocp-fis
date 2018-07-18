@@ -129,22 +129,17 @@ public class FhirUtil {
     public static boolean isStringNullOrEmpty(String givenString) {
         return givenString == null || givenString.trim().isEmpty();
     }
-    public static List<UriType> getURIList(IGenericClient fhirClient, String resource){
+
+    public static List<UriType> getURIList(IGenericClient fhirClient, String resource) {
         Bundle structureDefinitionBundle = null;
 
         switch (resource.toUpperCase()) {
-            case "ACTIVITYDEFINITION":
-                structureDefinitionBundle = fhirClient.search().forResource(StructureDefinition.class)
-                        .where(new TokenClientParam("type").exactly().code("ActivityDefinition"))
-                        .returnBundle(Bundle.class)
-                        .execute();
-                break;
             case "APPOINTMENT":
                 structureDefinitionBundle = fhirClient.search().forResource(StructureDefinition.class)
                         .where(new TokenClientParam("type").exactly().code("Appointment"))
                         .returnBundle(Bundle.class)
                         .execute();
-              break;
+                break;
             case "CARETEAM":
                 structureDefinitionBundle = fhirClient.search().forResource(StructureDefinition.class)
                         .where(new TokenClientParam("type").exactly().code("CareTeam"))
@@ -156,13 +151,13 @@ public class FhirUtil {
                         .where(new TokenClientParam("type").exactly().code("Communication"))
                         .returnBundle(Bundle.class)
                         .execute();
-               break;
+                break;
             case "CONSENT":
                 structureDefinitionBundle = fhirClient.search().forResource(StructureDefinition.class)
                         .where(new TokenClientParam("type").exactly().code("Consent"))
                         .returnBundle(Bundle.class)
                         .execute();
-               break;
+                break;
             case "COVERAGE":
                 structureDefinitionBundle = fhirClient.search().forResource(StructureDefinition.class)
                         .where(new TokenClientParam("type").exactly().code("Coverage"))
@@ -204,7 +199,7 @@ public class FhirUtil {
                         .where(new TokenClientParam("type").exactly().code("Patient"))
                         .returnBundle(Bundle.class)
                         .execute();
-               break;
+                break;
             case "PRACTITIONER":
                 structureDefinitionBundle = fhirClient.search().forResource(StructureDefinition.class)
                         .where(new TokenClientParam("type").exactly().code("Practitioner"))
@@ -246,7 +241,7 @@ public class FhirUtil {
             //Return URI List from ENUM
             log.info("Getting URL from ENUM for " + resource);
             String url = StructureDefinitionEnum.valueOf(resource.toUpperCase()).getUrl();
-            if(url != null && !url.isEmpty()){
+            if (url != null && !url.isEmpty()) {
                 return Collections.singletonList(new UriType(url));
             }
         }

@@ -9,12 +9,12 @@ public enum StructureDefinitionEnum {
     ORGANIZATION("http://hl7.org/fhir/us/core/StructureDefinition/us-core-organization"),
 
     //Custom OCP Structure Definition
-    ACTIVITYDEFINITION("http://hl7.org/fhir/StructureDefinition/ocp-activitydefinition"),
     APPOINTMENT("http://hl7.org/fhir/StructureDefinition/ocp-appointment"),
 
     COMMUNICATION("http://hl7.org/fhir/StructureDefinition/ocp-communication"),
     CONSENT("http://hl7.org/fhir/StructureDefinition/c2s-consent"),
     COVERAGE("http://hl7.org/fhir/StructureDefinition/ocp-coverage"),
+
     EPISODEOFCARE("http://hl7.org/fhir/StructureDefinition/ocp-episodeofcare"),
     FLAG("http://hl7.org/fhir/StructureDefinition/ocp-flag"),
     HEALTHCARESERVICE("http://hl7.org/fhir/StructureDefinition/ocp-healthcareservice"),
@@ -22,6 +22,7 @@ public enum StructureDefinitionEnum {
     PATIENT("http://hl7.org/fhir/StructureDefinition/ocp-patient"),
     PRACTITIONER("http://hl7.org/fhir/StructureDefinition/ocp-practitioner"),
     PRACTITIONERROLE("http://hl7.org/fhir/StructureDefinition/ocp-practitionerrole"),
+
     RELATEDPERSON("http://hl7.org/fhir/StructureDefinition/ocp-relatedperson"),
     TASK("http://hl7.org/fhir/StructureDefinition/ocp-task");
 
