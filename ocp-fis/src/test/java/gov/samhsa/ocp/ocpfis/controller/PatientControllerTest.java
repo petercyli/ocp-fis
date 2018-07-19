@@ -78,13 +78,13 @@ public class PatientControllerTest {
     public void testCreatePatient() {
         //Arrange
         PatientDto dto = createPatientDto();
-        //doNothing().when(patientService).createPatient(isA(PatientDto.class));
+        doNothing().when(patientService).createPatient(isA(PatientDto.class), Mockito.any(Optional.class));
 
         //Act
-        //patientService.createPatient(dto);
+        patientService.createPatient(dto, Optional.of("Practitioner/123"));
 
         //Assert
-        //verify(patientService, times(1)).createPatient(dto);
+        verify(patientService, times(1)).createPatient(dto, Optional.of("Practitioner/123"));
     }
 
     @Test
