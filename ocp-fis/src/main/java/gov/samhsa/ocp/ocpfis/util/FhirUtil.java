@@ -364,6 +364,8 @@ public class FhirUtil {
 
         Timing timing = new Timing();
         timing.getRepeat().setDurationMax(fisProperties.getDefaultMaxDuration());
+        timing.getRepeat().setDuration(fisProperties.getDefaultMaxDuration());
+        timing.getRepeat().setDurationUnit(Timing.UnitsOfTime.MO);
         timing.getRepeat().setFrequency(ACTIVITY_DEFINITION_FREQUENCY);
         activityDefinition.setTiming(timing);
 
