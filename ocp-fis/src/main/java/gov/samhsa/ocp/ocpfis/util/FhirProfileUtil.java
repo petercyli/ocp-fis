@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.CareTeam;
+import org.hl7.fhir.dstu3.model.Communication;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Meta;
@@ -89,6 +90,14 @@ public class FhirProfileUtil {
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             practitionerRole.setMeta(meta);
+        }
+    }
+
+    public static void setCommunicationProfileMetaData(IGenericClient fhirClient, Communication communication) {
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Communication.toString());
+        if (uriList != null && !uriList.isEmpty()) {
+            Meta meta = new Meta().setProfile(uriList);
+            communication.setMeta(meta);
         }
     }
 }

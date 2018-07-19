@@ -14,6 +14,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +30,6 @@ import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.exceptions.FHIRException;
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -47,8 +47,6 @@ import static java.util.stream.Collectors.toList;
 @Slf4j
 public class CommunicationServiceImpl implements CommunicationService {
 
-    private final ModelMapper modelMapper;
-
     private final IGenericClient fhirClient;
 
     private final FhirValidator fhirValidator;
@@ -57,16 +55,12 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     private final FisProperties fisProperties;
 
-    private final EpisodeOfCareService episodeOfCareService;
-
     @Autowired
-    public CommunicationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, EpisodeOfCareService episodeOfCareService) {
-        this.modelMapper = modelMapper;
+    public CommunicationServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
-        this.episodeOfCareService = episodeOfCareService;
     }
 
     public PageDto<CommunicationDto> getCommunications(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<String> organization, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
@@ -248,10 +242,13 @@ public class CommunicationServiceImpl implements CommunicationService {
         try {
             final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             communication.setSent(DateUtil.convertLocalDateTimeToUTCDate(LocalDateTime.now()));
+            //Set Profile Meta Data
+            FhirProfileUtil.setCommunicationProfileMetaData(fhirClient, communication);
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.empty(), ResourceType.Communication.name(), "Create Communication");
             //Create
             FhirUtil.createFhirResource(fhirClient, communication, ResourceType.Communication.name());
+
         } catch (ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while create a communication:" + e.getMessage());
         }
@@ -263,7 +260,8 @@ public class CommunicationServiceImpl implements CommunicationService {
         try {
             Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             communication.setId(communicationId);
-
+            //Set Profile Meta Data
+            FhirProfileUtil.setCommunicationProfileMetaData(fhirClient, communication);
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, communication, Optional.of(communicationId), ResourceType.Communication.name(), "Update Communication");
             //Update
@@ -365,6 +363,4 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         return communication;
     }
-
-
 }
