@@ -17,6 +17,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
@@ -26,11 +27,9 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Location;
-import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.UriType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -199,7 +198,8 @@ public class LocationServiceImpl implements LocationService {
 
         // Validate
         if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            setProfileMetaData(fhirClient, fhirLocation);
+            //Set Profile Meta Data
+            FhirProfileUtil.setLocationProfileMetaData(fhirClient, fhirLocation);
         }
         FhirUtil.validateFhirResource(fhirValidator, fhirLocation, Optional.empty(), ResourceType.Location.name(), "Create Location");
 
@@ -235,7 +235,8 @@ public class LocationServiceImpl implements LocationService {
 
         // Validate
         if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            setProfileMetaData(fhirClient, existingFhirLocation);
+            //Set Profile Meta Data
+            FhirProfileUtil.setLocationProfileMetaData(fhirClient, existingFhirLocation);
         }
         FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Update Location");
 
@@ -251,7 +252,8 @@ public class LocationServiceImpl implements LocationService {
 
         // Validate
         if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            setProfileMetaData(fhirClient, existingFhirLocation);
+            //Set Profile Meta Data
+            FhirProfileUtil.setLocationProfileMetaData(fhirClient, existingFhirLocation);
         }
         FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Inactivate Location");
 
@@ -466,14 +468,5 @@ public class LocationServiceImpl implements LocationService {
                 .filter(identifier -> identifier.getSystem().equalsIgnoreCase(KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getUri()))
                 .findFirst();
     }
-
-    private void setProfileMetaData(IGenericClient fhirClient, Location fhirLocation) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Location.toString());
-        if (uriList != null && !uriList.isEmpty()) {
-            Meta meta = new Meta().setProfile(uriList);
-            fhirLocation.setMeta(meta);
-        }
-    }
-
 }
 

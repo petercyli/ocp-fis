@@ -21,6 +21,7 @@ import gov.samhsa.ocp.ocpfis.service.mapping.CareTeamToCareTeamDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AppointmentDtoToAppointmentConverter;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -29,12 +30,10 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
-import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.UriType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -89,7 +88,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment.setCreated(new Date());
         //Validate
         if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            setProfileMetaData(fhirClient, appointment);
+            //Set Profile Meta Data
+            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
         }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.empty(), ResourceType.Appointment.name(), "Create Appointment");
         //Create
@@ -108,7 +108,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         //Validate
         if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            setProfileMetaData(fhirClient, appointment);
+            //Set Profile Meta Data
+            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
         }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Update Appointment");
 
@@ -350,7 +351,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         //Validate
         if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            setProfileMetaData(fhirClient, appointment);
+            //Set Profile Meta Data
+            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
         }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Cancel Appointment");
 
@@ -367,7 +369,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         //Validate
         if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            setProfileMetaData(fhirClient, appointment);
+            //Set Profile Meta Data
+            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
         }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Accept Appointment");
 
@@ -384,7 +387,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         //Validate
         if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            setProfileMetaData(fhirClient, appointment);
+            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
         }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Decline Appointment");
 
@@ -401,7 +404,8 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         //Validate
         if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            setProfileMetaData(fhirClient, appointment);
+            //Set Profile Meta Data
+            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
         }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Tentatively Accept Appointment");
 
@@ -512,9 +516,9 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new PreconditionFailedException("AppointmentDto is NULL!!");
         }
 
-//        if (FhirUtil.isStringNullOrEmpty(appointmentDto.getDescription())) {
-//            missingFields = missingFields + "description, ";
-//        }
+        if (FhirUtil.isStringNullOrEmpty(appointmentDto.getDescription())) {
+            missingFields = missingFields + "description, ";
+        }
 
         if (FhirUtil.isStringNullOrEmpty(appointmentDto.getTypeCode())) {
             missingFields = missingFields + "typeCode, ";
@@ -616,14 +620,6 @@ public class AppointmentServiceImpl implements AppointmentService {
             return patientDtoList.stream().map(PatientDto::getId).collect(Collectors.toSet());
         }
         return null;
-    }
-
-    private void setProfileMetaData(IGenericClient fhirClient, Appointment appointment) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Appointment.toString());
-        if (uriList != null && !uriList.isEmpty()) {
-            Meta meta = new Meta().setProfile(uriList);
-            appointment.setMeta(meta);
-        }
     }
 }
 
