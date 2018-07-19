@@ -49,8 +49,8 @@ public class PatientController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createPatient(@Valid @RequestBody PatientDto patientDto) {
-        patientService.createPatient(patientDto);
+    public void createPatient(@Valid @RequestBody PatientDto patientDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser) {
+        patientService.createPatient(patientDto, loggedInUser);
         log.info("Patient successfully created");
     }
 

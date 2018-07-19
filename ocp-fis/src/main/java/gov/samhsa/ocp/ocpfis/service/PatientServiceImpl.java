@@ -9,6 +9,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CoverageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
@@ -30,6 +31,7 @@ import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.RandomStringUtils;
@@ -91,14 +93,16 @@ public class PatientServiceImpl implements PatientService {
     private final FhirValidator fhirValidator;
     private final FisProperties fisProperties;
     private final LookUpService lookUpService;
+    private final ProvenanceUtil provenanceUtil;
 
-    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
+    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService, ProvenanceUtil provenanceUtil) {
         this.fhirClient = fhirClient;
         this.iParser = iParser;
         this.modelMapper = modelMapper;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Autowired
@@ -276,8 +280,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public void createPatient(PatientDto patientDto) {
-
+    public void createPatient(PatientDto patientDto, Optional<String> loggedInUser) {
         if (!checkDuplicatePatientOfSameOrganization(patientDto)) {
             if (checkDuplicateInFhir(patientDto)) {
                 patientDto.getIdentifier().add(setUniqueIdentifierForPatient(patientsWithMatchedDuplicateCheckParameters(patientDto).stream()
@@ -318,6 +321,8 @@ public class PatientServiceImpl implements PatientService {
                 task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
 
                 fhirClient.create().resource(task).execute();
+
+                provenanceUtil.createProvenance(ResourceType.Patient.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
             } else {
                 throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
             }

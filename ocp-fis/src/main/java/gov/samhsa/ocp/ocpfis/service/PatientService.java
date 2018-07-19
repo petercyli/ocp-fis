@@ -17,7 +17,7 @@ public interface PatientService {
 
     PageDto<PatientDto> getPatientsByPractitioner(Optional<String> practitioner, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 
-    void createPatient(PatientDto patientDto);
+    void createPatient(PatientDto patientDto, Optional<String> loggedInUser);
 
     void updatePatient(PatientDto patientDto);
 
