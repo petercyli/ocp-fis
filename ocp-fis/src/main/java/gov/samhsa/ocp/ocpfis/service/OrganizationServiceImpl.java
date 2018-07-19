@@ -237,9 +237,6 @@ public class OrganizationServiceImpl implements OrganizationService {
             //Create TO DO Activity Definition
             FhirUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
 
-
-            fhirClient.create().resource(activityDefinition).execute();
-
         } else {
             throw new DuplicateResourceFoundException("Organization with the Identifier " + identifier + " is already present.");
         }
