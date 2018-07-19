@@ -14,6 +14,7 @@ import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.dstu3.model.UriType;
 
 import java.util.List;
@@ -99,6 +100,14 @@ public class FhirProfileUtil {
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             communication.setMeta(meta);
+        }
+    }
+
+    public static void setTaskProfileMetaData(IGenericClient fhirClient, Task task) {
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Task.toString());
+        if (uriList != null && !uriList.isEmpty()) {
+            Meta meta = new Meta().setProfile(uriList);
+            task.setMeta(meta);
         }
     }
 }

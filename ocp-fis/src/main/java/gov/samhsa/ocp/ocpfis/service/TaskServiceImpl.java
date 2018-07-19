@@ -6,11 +6,11 @@ import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.DateRangeEnum;
 import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
-import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
@@ -23,17 +23,15 @@ import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TaskDtoToTaskMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
-import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -52,7 +50,6 @@ import java.util.stream.Collectors;
 
 import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
-import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 
@@ -61,6 +58,7 @@ import static java.util.stream.Collectors.toList;
 public class TaskServiceImpl implements TaskService {
 
     private final IGenericClient fhirClient;
+    private final FhirValidator fhirValidator;
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
     private final ActivityDefinitionService activityDefinitionService;
@@ -71,11 +69,12 @@ public class TaskServiceImpl implements TaskService {
 
     @Autowired
     public TaskServiceImpl(IGenericClient fhirClient,
-                           LookUpService lookUpService,
+                           FhirValidator fhirValidator, LookUpService lookUpService,
                            FisProperties fisProperties,
                            ActivityDefinitionService activityDefinitionService,
                            PatientService patientService) {
         this.fhirClient = fhirClient;
+        this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.activityDefinitionService = activityDefinitionService;
@@ -185,7 +184,7 @@ public class TaskServiceImpl implements TaskService {
 
         if (patient.isPresent() && !isTodoList.isPresent()) {
             TaskDto toDoTaskDto = getToDoTaskDto(practitioner, patient, organization, definition);
-            if(isIntermediateStatuses(toDoTaskDto)) {
+            if (isIntermediateStatuses(toDoTaskDto)) {
                 if (!taskDtos.stream()
                         .map(taskDto -> taskDto.getLogicalId())
                         .collect(toList())
@@ -208,7 +207,14 @@ public class TaskServiceImpl implements TaskService {
             //authoredOn
             task.setAuthoredOn(java.sql.Date.valueOf(LocalDate.now()));
 
-            fhirClient.create().resource(task).execute();
+            //Set Profile Meta Data
+            FhirProfileUtil.setTaskProfileMetaData(fhirClient, task);
+
+            //Validate
+            FhirUtil.validateFhirResource(fhirValidator, task, Optional.empty(), ResourceType.Task.name(), "Create Task");
+
+            //Create
+            FhirUtil.createFhirResource(fhirClient, task, ResourceType.Task.name());
         } else {
             throw new DuplicateResourceFoundException("Duplicate task is already present.");
         }
@@ -238,7 +244,14 @@ public class TaskServiceImpl implements TaskService {
         //authoredOn
         task.setAuthoredOn(existingTask.getAuthoredOn());
 
-        fhirClient.update().resource(task).execute();
+        //Set Profile Meta Data
+        FhirProfileUtil.setTaskProfileMetaData(fhirClient, task);
+
+        //Validate
+        FhirUtil.validateFhirResource(fhirValidator, task, Optional.of(taskId), ResourceType.Task.name(), "Update Task");
+
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, task, "Update Task");
     }
 
     @Override
@@ -254,7 +267,14 @@ public class TaskServiceImpl implements TaskService {
     public void deactivateTask(String taskId) {
         Task task = fhirClient.read().resource(Task.class).withId(taskId.trim()).execute();
         task.setStatus(Task.TaskStatus.CANCELLED);
-        fhirClient.update().resource(task).execute();
+        //Set Profile Meta Data
+        FhirProfileUtil.setTaskProfileMetaData(fhirClient, task);
+
+        //Validate
+        FhirUtil.validateFhirResource(fhirValidator, task, Optional.of(taskId), ResourceType.Task.name(), "Deactivate Task");
+
+        //Update the resource
+        FhirUtil.updateFhirResource(fhirClient, task, "Deactivate Task");
     }
 
     @Override
@@ -397,7 +417,7 @@ public class TaskServiceImpl implements TaskService {
         TaskDto exitingTask = getTaskById(newTaskDto.getLogicalId());
 
         //if existing status is final and new status is not final, it is not allowed
-        if(finalStatuses.contains(exitingTask.getStatus().getCode()) && !finalStatuses.contains(newTaskDto.getStatus().getCode())) {
+        if (finalStatuses.contains(exitingTask.getStatus().getCode()) && !finalStatuses.contains(newTaskDto.getStatus().getCode())) {
             return false;
         }
 
@@ -406,7 +426,7 @@ public class TaskServiceImpl implements TaskService {
             return true;
         }
 
-        List<Task.TaskStatus> allowedStatuses =  taskStatuses.get(Task.TaskStatus.fromCode(exitingTask.getStatus().getCode()));
+        List<Task.TaskStatus> allowedStatuses = taskStatuses.get(Task.TaskStatus.fromCode(exitingTask.getStatus().getCode()));
 
         return allowedStatuses.stream().anyMatch(t -> t.toCode().equals(newTaskDto.getStatus().getCode()));
     }
@@ -613,7 +633,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private boolean filterByStatus(Optional<List<String>> statusList, TaskDto t) {
-        if(statusList.isPresent() && !statusList.get().isEmpty()) {
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
             return isGivenStatuses(t, statusList.get());
         } else {
             return isIntermediateStatuses(t);
@@ -625,7 +645,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private boolean isIntermediateStatuses(TaskDto t) {
-        boolean result =  !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
+        boolean result = !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
                 && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode());
         return result;
     }
@@ -727,7 +747,7 @@ public class TaskServiceImpl implements TaskService {
 
         List<TaskDto> subtasks = this.getMainAndSubTasks(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(taskDto.getLogicalId()), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
 
-        if(subtasks != null && subtasks.isEmpty()) {
+        if (subtasks != null && subtasks.isEmpty()) {
             return true;
         }
 
