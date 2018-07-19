@@ -13,22 +13,18 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.CoverageToCoverageDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CoverageDtoToCoverageMap;
-import gov.samhsa.ocp.ocpfis.util.DateUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Coverage;
 import org.hl7.fhir.dstu3.model.Patient;
-import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -37,7 +33,6 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class CoverageServiceImpl implements CoverageService {
-
 
     private final IGenericClient fhirClient;
 
@@ -49,22 +44,25 @@ public class CoverageServiceImpl implements CoverageService {
 
     private final ModelMapper modelMapper;
 
-    @Autowired
-    private RelatedPersonService relatedPersonService;
+    private final RelatedPersonService relatedPersonService;
 
     @Autowired
-    public CoverageServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, ModelMapper modelMapper) {
+    public CoverageServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, ModelMapper modelMapper, RelatedPersonService relatedPersonService) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.modelMapper = modelMapper;
+        this.relatedPersonService = relatedPersonService;
     }
 
     @Override
     public void createCoverage(CoverageDto coverageDto) {
         if (!isDuplicateWhileCreate(coverageDto)) {
-            Coverage coverage = CoverageDtoToCoverageMap.map(coverageDto,lookUpService);
+            Coverage coverage = CoverageDtoToCoverageMap.map(coverageDto, lookUpService);
+
+            //Set Profile Meta Data
+            FhirProfileUtil.setCoverageProfileMetaData(fhirClient, coverage);
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, coverage, Optional.empty(), ResourceType.Coverage.name(), "Create Coverage");
             //Create
@@ -76,12 +74,14 @@ public class CoverageServiceImpl implements CoverageService {
 
     @Override
     public void updateCoverage(String id, CoverageDto coverageDto) {
-        Coverage coverage=CoverageDtoToCoverageMap.map(coverageDto,lookUpService);
+        Coverage coverage = CoverageDtoToCoverageMap.map(coverageDto, lookUpService);
         coverage.setId(id);
+        //Set Profile Meta Data
+        FhirProfileUtil.setCoverageProfileMetaData(fhirClient, coverage);
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator,coverage,Optional.empty(),ResourceType.Coverage.name(),"Update Coverage");
+        FhirUtil.validateFhirResource(fhirValidator, coverage, Optional.empty(), ResourceType.Coverage.name(), "Update Coverage");
         //Update
-        FhirUtil.updateFhirResource(fhirClient,coverage,ResourceType.Coverage.name());
+        FhirUtil.updateFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
     }
 
     @Override
@@ -108,33 +108,33 @@ public class CoverageServiceImpl implements CoverageService {
 
     @Override
     public PageDto<CoverageDto> getCoverages(String patientId, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
-        int numberOfCoveragePerPage= PaginationUtil.getValidPageSize(fisProperties,pageSize,ResourceType.Coverage.name());
+        int numberOfCoveragePerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Coverage.name());
         Bundle firstPageCoverageBundle;
         Bundle otherPageCoverageBundle;
-        boolean firstPage=true;
+        boolean firstPage = true;
 
         //Getting list of coverages
-        IQuery iQuery=FhirUtil.searchNoCache(fhirClient,Coverage.class,Optional.empty());
+        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Coverage.class, Optional.empty());
 
         iQuery.where(new ReferenceClientParam("beneficiary").hasId(patientId));
 
 
-        firstPageCoverageBundle=PaginationUtil.getSearchBundleFirstPage(iQuery,numberOfCoveragePerPage,Optional.empty());
+        firstPageCoverageBundle = PaginationUtil.getSearchBundleFirstPage(iQuery, numberOfCoveragePerPage, Optional.empty());
 
-        if(firstPageCoverageBundle ==null || firstPageCoverageBundle.getEntry().isEmpty()){
+        if (firstPageCoverageBundle == null || firstPageCoverageBundle.getEntry().isEmpty()) {
             throw new ResourceNotFoundException("No Coverages were found in the FHIR server.");
         }
 
         otherPageCoverageBundle = firstPageCoverageBundle;
 
-        if(pageNumber.isPresent() && pageNumber.get() > 1 && otherPageCoverageBundle.getLink(Bundle.LINK_NEXT) !=null){
-            firstPage=false;
-            otherPageCoverageBundle=PaginationUtil.getSearchBundleAfterFirstPage(fhirClient,fisProperties,firstPageCoverageBundle,pageNumber.get(),numberOfCoveragePerPage);
+        if (pageNumber.isPresent() && pageNumber.get() > 1 && otherPageCoverageBundle.getLink(Bundle.LINK_NEXT) != null) {
+            firstPage = false;
+            otherPageCoverageBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPageCoverageBundle, pageNumber.get(), numberOfCoveragePerPage);
         }
 
-        List<Bundle.BundleEntryComponent> retrievedCoverages=otherPageCoverageBundle.getEntry();
+        List<Bundle.BundleEntryComponent> retrievedCoverages = otherPageCoverageBundle.getEntry();
 
-        List<CoverageDto> coverageDtos=retrievedCoverages.stream().map(cov-> {
+        List<CoverageDto> coverageDtos = retrievedCoverages.stream().map(cov -> {
             Coverage coverage = (Coverage) cov.getResource();
             return CoverageToCoverageDtoMap.map(coverage);
         }).collect(Collectors.toList());
@@ -142,7 +142,7 @@ public class CoverageServiceImpl implements CoverageService {
         double totalPages = Math.ceil((double) otherPageCoverageBundle.getTotal() / numberOfCoveragePerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
-        return new PageDto<>(coverageDtos,numberOfCoveragePerPage,totalPages,currentPage,coverageDtos.size(),otherPageCoverageBundle.getTotal());
+        return new PageDto<>(coverageDtos, numberOfCoveragePerPage, totalPages, currentPage, coverageDtos.size(), otherPageCoverageBundle.getTotal());
     }
 
     private boolean isDuplicateWhileCreate(CoverageDto coverageDto) {

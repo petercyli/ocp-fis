@@ -6,6 +6,7 @@ import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.Communication;
+import org.hl7.fhir.dstu3.model.Coverage;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Meta;
@@ -62,7 +63,6 @@ public class FhirProfileUtil {
         }
     }
 
-
     public static void setOrganizationProfileMetaData(IGenericClient fhirClient, Organization organization) {
         List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Organization.toString());
         if (uriList != null && !uriList.isEmpty()) {
@@ -108,6 +108,14 @@ public class FhirProfileUtil {
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             task.setMeta(meta);
+        }
+    }
+
+    public static void setCoverageProfileMetaData(IGenericClient fhirClient, Coverage coverage) {
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Coverage.toString());
+        if (uriList != null && !uriList.isEmpty()) {
+            Meta meta = new Meta().setProfile(uriList);
+            coverage.setMeta(meta);
         }
     }
 }
