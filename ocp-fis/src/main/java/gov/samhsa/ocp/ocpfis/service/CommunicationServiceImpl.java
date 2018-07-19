@@ -277,20 +277,22 @@ public class CommunicationServiceImpl implements CommunicationService {
         communication.setNotDone(communicationDto.isNotDone());
 
         //Set Subject
-        if (communicationDto.getSubject() != null) {
+        if (communicationDto.getSubject() != null && FhirUtil.isStringNotNullAndNotEmpty(communicationDto.getSubject().getReference())) {
             communication.setSubject(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSubject()));
         }
 
         //Set Sender
-        communication.setSender(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSender()));
+        if(communicationDto.getSender() != null && FhirUtil.isStringNotNullAndNotEmpty(communicationDto.getSender().getReference())){
+            communication.setSender(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSender()));
+        }
 
         //Set Status
-        if (communicationDto.getStatusCode() != null) {
+        if (communicationDto.getStatusCode() != null && FhirUtil.isStringNotNullAndNotEmpty(communicationDto.getStatusCode())) {
             communication.setStatus(Communication.CommunicationStatus.valueOf(communicationDto.getStatusCode().toUpperCase().replaceAll("-", "")));
         }
 
         //Set Category
-        if (communicationDto.getCategoryCode() != null) {
+        if (communicationDto.getCategoryCode() != null && FhirUtil.isStringNotNullAndNotEmpty(communicationDto.getCategoryCode())) {
             ValueSetDto category = FhirDtoUtil.convertCodeToValueSetDto(communicationDto.getCategoryCode(), lookUpService.getCommunicationCategory());
             List<CodeableConcept> categories = new ArrayList<>();
             categories.add(FhirDtoUtil.convertValuesetDtoToCodeableConcept(category));
@@ -298,7 +300,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
 
         //Set Medium
-        if (communicationDto.getMediumCode() != null) {
+        if (communicationDto.getMediumCode() != null  && FhirUtil.isStringNotNullAndNotEmpty(communicationDto.getMediumCode())) {
             ValueSetDto medium = FhirDtoUtil.convertCodeToValueSetDto(communicationDto.getMediumCode(), lookUpService.getCommunicationMedium());
             List<CodeableConcept> mediums = new ArrayList<>();
             mediums.add(FhirDtoUtil.convertValuesetDtoToCodeableConcept(medium));
@@ -336,15 +338,15 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
 
         //Set Sent and Received Dates
-        if (communicationDto.getSent() != null) {
+        if (communicationDto.getSent() != null && FhirUtil.isStringNotNullAndNotEmpty(communicationDto.getSent())) {
             communication.setSent(DateUtil.convertStringToDateTime(communicationDto.getSent()));
         }
 
-        if (communicationDto.getReceived() != null)
+        if (communicationDto.getReceived() != null && FhirUtil.isStringNotNullAndNotEmpty(communicationDto.getReceived()))
             communication.setReceived(DateUtil.convertStringToDateTime(communicationDto.getReceived()));
 
         //Set Note
-        if (communicationDto.getNote() != null) {
+        if (communicationDto.getNote() != null && FhirUtil.isStringNotNullAndNotEmpty(communicationDto.getNote())) {
             Annotation note = new Annotation();
             note.setText(communicationDto.getNote());
             List<Annotation> notes = new ArrayList<>();
@@ -353,7 +355,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
 
         //Set Message
-        if (communicationDto.getPayloadContent() != null) {
+        if (communicationDto.getPayloadContent() != null && FhirUtil.isStringNotNullAndNotEmpty(communicationDto.getPayloadContent())) {
             StringType newType = new StringType(communicationDto.getPayloadContent());
             Communication.CommunicationPayloadComponent messagePayload = new Communication.CommunicationPayloadComponent(newType);
             List<Communication.CommunicationPayloadComponent> payloads = new ArrayList<>();
