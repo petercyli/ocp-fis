@@ -12,6 +12,7 @@ import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
+import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.UriType;
 
@@ -36,11 +37,11 @@ public class FhirProfileUtil {
         }
     }
 
-    public static void setRelatedPersonProfileMetaData(IGenericClient fhirClient, CareTeam careTeam) {
+    public static void setRelatedPersonProfileMetaData(IGenericClient fhirClient, RelatedPerson relatedPerson) {
         List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.RelatedPerson.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
-            careTeam.setMeta(meta);
+            relatedPerson.setMeta(meta);
         }
     }
 
