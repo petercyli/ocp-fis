@@ -86,11 +86,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, true, Optional.empty());
         //Set created Date
         appointment.setCreated(new Date());
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
         //Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
-        }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.empty(), ResourceType.Appointment.name(), "Create Appointment");
         //Create
         FhirUtil.createFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
@@ -106,11 +104,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Map
         final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false, Optional.of(appointmentId));
 
-        //Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
+
+        // Validate
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Update Appointment");
 
         //Update
@@ -349,11 +346,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Cancel
         appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
 
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
+
         //Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
-        }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Cancel Appointment");
 
         //Update the resource
@@ -367,11 +363,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment = setParticipantAction(appointment, actorReference, "ACCEPT");
         appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
 
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
+
         //Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
-        }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Accept Appointment");
 
         //Update the resource
@@ -385,10 +380,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment = setParticipantAction(appointment, actorReference, "DECLINE");
         appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
 
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
+
         //Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
-        }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Decline Appointment");
 
         //Update the resource
@@ -402,11 +397,10 @@ public class AppointmentServiceImpl implements AppointmentService {
         appointment = setParticipantAction(appointment, actorReference, "TENTATIVE");
         appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
 
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
+
         //Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
-        }
         FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Tentatively Accept Appointment");
 
         //Update the resource

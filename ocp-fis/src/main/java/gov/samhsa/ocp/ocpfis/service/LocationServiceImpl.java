@@ -195,12 +195,10 @@ public class LocationServiceImpl implements LocationService {
         if (locationDto.getManagingLocationLogicalId() != null && !locationDto.getManagingLocationLogicalId().trim().isEmpty()) {
             fhirLocation.setPartOf(new Reference("Location/" + locationDto.getManagingLocationLogicalId().trim()));
         }
+        //Set Profile Meta Data
+        FhirProfileUtil.setLocationProfileMetaData(fhirClient, fhirLocation);
 
-        // Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setLocationProfileMetaData(fhirClient, fhirLocation);
-        }
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, fhirLocation, Optional.empty(), ResourceType.Location.name(), "Create Location");
 
         //Create
@@ -233,11 +231,9 @@ public class LocationServiceImpl implements LocationService {
             existingFhirLocation.setPartOf(null);
         }
 
-        // Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setLocationProfileMetaData(fhirClient, existingFhirLocation);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setLocationProfileMetaData(fhirClient, existingFhirLocation);
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Update Location");
 
         //Update
@@ -250,11 +246,10 @@ public class LocationServiceImpl implements LocationService {
         Location existingFhirLocation = readLocationFromServer(locationId);
         existingFhirLocation.setStatus(Location.LocationStatus.INACTIVE);
 
-        // Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setLocationProfileMetaData(fhirClient, existingFhirLocation);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setLocationProfileMetaData(fhirClient, existingFhirLocation);
+
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Inactivate Location");
 
         //Update the resource

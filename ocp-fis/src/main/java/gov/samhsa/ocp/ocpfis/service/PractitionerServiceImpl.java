@@ -317,11 +317,10 @@ public class PractitionerServiceImpl implements PractitionerService {
             Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
             practitioner.setActive(true);
 
-            // Validate
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                //Set Profile Meta Data
-                FhirProfileUtil.setPractitionerProfileMetaData(fhirClient, practitioner);
-            }
+            //Set Profile Meta Data
+            FhirProfileUtil.setPractitionerProfileMetaData(fhirClient, practitioner);
+
+            //Validate
             FhirUtil.validateFhirResource(fhirValidator, practitioner, Optional.empty(), ResourceType.Practitioner.name(), "Create Practitioner");
 
             //Create
@@ -349,11 +348,10 @@ public class PractitionerServiceImpl implements PractitionerService {
                         specialtyCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getSpecialty().get(0), Coding.class));
                         practitionerRole.setSpecialty(Collections.singletonList(specialtyCodeableConcept));
 
-                        // Validate
-                        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                            //Set Profile Meta Data
-                            FhirProfileUtil.setPractitionerRoleProfileMetaData(fhirClient, practitionerRole);
-                        }
+                        //Set Profile Meta Data
+                        FhirProfileUtil.setPractitionerRoleProfileMetaData(fhirClient, practitionerRole);
+
+                        //Validate
                         FhirUtil.validateFhirResource(fhirValidator, practitionerRole, Optional.empty(), ResourceType.PractitionerRole.name(), "Create Practitioner Role");
 
                         //Create
@@ -377,11 +375,10 @@ public class PractitionerServiceImpl implements PractitionerService {
             existingPractitioner.setTelecom(updatedPractitioner.getTelecom());
             existingPractitioner.setAddress(updatedPractitioner.getAddress());
 
-            // Validate
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                //Set Profile Meta Data
-                FhirProfileUtil.setPractitionerProfileMetaData(fhirClient, existingPractitioner);
-            }
+            //Set Profile Meta Data
+            FhirProfileUtil.setPractitionerProfileMetaData(fhirClient, existingPractitioner);
+
+            //Validate
             FhirUtil.validateFhirResource(fhirValidator, existingPractitioner, Optional.of(practitionerId), ResourceType.Practitioner.name(), "Update Practitioner");
 
             //Update
@@ -409,11 +406,8 @@ public class PractitionerServiceImpl implements PractitionerService {
                         specialtyCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getSpecialty().get(0), Coding.class));
                         practitionerRole.setSpecialty(Collections.singletonList(specialtyCodeableConcept));
 
-                        // Validate
-                        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                            //Set Profile Meta Data
-                            FhirProfileUtil.setPractitionerRoleProfileMetaData(fhirClient, practitionerRole);
-                        }
+                        //Set Profile Meta Data
+                        FhirProfileUtil.setPractitionerRoleProfileMetaData(fhirClient, practitionerRole);
 
                         if (practitionerRoleDto.getLogicalId() != null) {
                             practitionerRole.setId(practitionerRoleDto.getLogicalId());

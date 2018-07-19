@@ -216,11 +216,10 @@ public class OrganizationServiceImpl implements OrganizationService {
             Organization fhirOrganization = modelMapper.map(organizationDto, Organization.class);
             fhirOrganization.setActive(Boolean.TRUE);
 
-            // Validate
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                //Set Profile Meta Data
-                FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, fhirOrganization);
-            }
+            //Set Profile Meta Data
+            FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, fhirOrganization);
+
+            //Validate
             FhirUtil.validateFhirResource(fhirValidator, fhirOrganization, Optional.empty(), ResourceType.Organization.name(), "Create Organization");
 
             //Create
@@ -229,11 +228,10 @@ public class OrganizationServiceImpl implements OrganizationService {
             // Add TO DO Activity Definition
             ActivityDefinition activityDefinition = FhirUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(), fisProperties, lookUpService, fhirClient);
 
-            // Validate TO DO Activity Definition
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                //Set Profile Meta Data
-                FhirProfileUtil.setActivityDefinitionProfileMetaData(fhirClient, activityDefinition);
-            }
+            //Set Profile Meta Data
+            FhirProfileUtil.setActivityDefinitionProfileMetaData(fhirClient, activityDefinition);
+
+            //Validate
             FhirUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.empty(), ResourceType.ActivityDefinition.name(), "Create ActivityDefinition (when creating an Organization)");
 
             //Create TO DO Activity Definition
@@ -261,11 +259,10 @@ public class OrganizationServiceImpl implements OrganizationService {
             existingOrganization.setAddress(updatedOrganization.getAddress());
             existingOrganization.setActive(updatedOrganization.getActive());
 
-            // Validate
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                //Set Profile Meta Data
-                FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, existingOrganization);
-            }
+            //Set Profile Meta Data
+            FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, existingOrganization);
+
+            //Validate
             FhirUtil.validateFhirResource(fhirValidator, existingOrganization, Optional.of(organizationId), ResourceType.Organization.name(), "Update Organization");
 
             //Update
@@ -325,11 +322,10 @@ public class OrganizationServiceImpl implements OrganizationService {
     private void setOrganizationStatusToInactive(Organization existingFhirOrganization) {
         existingFhirOrganization.setActive(false);
 
-        // Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, existingFhirOrganization);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, existingFhirOrganization);
+
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, existingFhirOrganization, Optional.of(existingFhirOrganization.getId()), ResourceType.Organization.name(), "Update Organization");
 
         //Update

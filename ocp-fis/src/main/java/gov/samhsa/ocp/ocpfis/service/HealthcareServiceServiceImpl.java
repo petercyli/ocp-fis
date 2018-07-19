@@ -312,11 +312,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         fhirHealthcareService.setActive(Boolean.TRUE);
         fhirHealthcareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
 
-        // Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, fhirHealthcareService);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, fhirHealthcareService);
+
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, fhirHealthcareService, Optional.empty(), ResourceType.HealthcareService.name(), "Create Healthcare Service");
 
         //Create
@@ -350,11 +349,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             existingHealthcareService.setLocation(null);
         }
 
-        // Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
+
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
 
         //Update
@@ -369,11 +367,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         //Also, remove all locations
         existingHealthcareService.setLocation(null);
 
-        // Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
+
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
 
         //Update
@@ -414,11 +411,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             if (allChecksPassed) {
                 locationIdList.forEach(locationId -> assignedLocations.add(new Reference("Location/" + locationId)));
 
+                //Set Profile Meta Data
+                FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
+
                 //Validate
-                if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                    //Set Profile Meta Data
-                    FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
-                }
                 FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Assign location to a Healthcare Service");
 
                 //Update
@@ -434,11 +430,11 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         HealthcareService existingHealthcareService = readHealthcareServiceFromServer(healthcareServiceId);
         List<Reference> assignedLocations = existingHealthcareService.getLocation();
         assignedLocations.removeIf(locRef -> locationIdList.contains(locRef.getReference().substring(9).trim()));
+
+        //Set Profile Meta Data
+        FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
+
         //Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
-        }
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Unassign location to a Healthcare Service");
 
         //Update

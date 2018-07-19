@@ -75,11 +75,10 @@ public class CareTeamServiceImpl implements CareTeamService {
         try {
             final CareTeam careTeam = CareTeamDtoToCareTeamConverter.map(careTeamDto);
 
+            //Set Profile Meta Data
+            FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
+
             //Validate
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                //Set Profile Meta Data
-                FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
-            }
             FhirUtil.validateFhirResource(fhirValidator, careTeam, Optional.empty(), ResourceType.CareTeam.name(), "Create CareTeam");
 
             //Create
@@ -95,11 +94,10 @@ public class CareTeamServiceImpl implements CareTeamService {
             careTeamDto.setId(careTeamId);
             final CareTeam careTeam = CareTeamDtoToCareTeamConverter.map(careTeamDto);
 
+            //Set Profile Meta Data
+            FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
+
             //Validate
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                //Set Profile Meta Data
-                FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
-            }
             FhirUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam");
 
             //Update
@@ -443,11 +441,10 @@ public class CareTeamServiceImpl implements CareTeamService {
         components.add(convertParticipantDtoToParticipant(participantDto));
         careTeam.setParticipant(components);
 
+        //Set Profile Meta Data
+        FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
+
         //Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
-        }
         FhirUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam(Add Related Person)");
 
         //Update
@@ -460,14 +457,12 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         List<CareTeam.CareTeamParticipantComponent> components = careTeam.getParticipant();
         components.removeIf(com -> com.getMember().getReference().split("/")[1].equals(participantDto.getMemberId()));
-
         careTeam.setParticipant(components);
 
+        //Set Profile Meta Data
+        FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
+
         //Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            //Set Profile Meta Data
-            FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
-        }
         FhirUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam(Remove Related Person)");
 
         //Update
