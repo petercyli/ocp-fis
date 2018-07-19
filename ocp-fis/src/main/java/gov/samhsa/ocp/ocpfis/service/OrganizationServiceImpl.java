@@ -247,7 +247,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         log.info("Updating the Organization with Id:" + organizationId);
 
         Organization existingOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
-
+        organizationDto.setLogicalId(organizationId);
         if (!isDuplicateWhileUpdate(organizationDto)) {
             Organization updatedOrganization = modelMapper.map(organizationDto, Organization.class);
             existingOrganization.setIdentifier(updatedOrganization.getIdentifier());
