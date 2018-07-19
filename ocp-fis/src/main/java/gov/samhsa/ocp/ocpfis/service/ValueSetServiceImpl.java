@@ -21,7 +21,7 @@ import org.hl7.fhir.utilities.xhtml.XhtmlNode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -48,6 +48,7 @@ public class ValueSetServiceImpl implements ValueSetService {
         try {
             log.info(valueSetDto.getId());
             ValueSet valueSet = map(valueSetDto);
+            //Intentionally using update method to force the ID coming in from the DTO
             FhirUtil.updateFhirResource(fhirClient, valueSet, ResourceType.ValueSet.name());
 
         } catch (Exception e) {
@@ -110,8 +111,8 @@ public class ValueSetServiceImpl implements ValueSetService {
                     ContactPoint.ContactPointSystem contactPointSystem = ContactPoint.ContactPointSystem.fromCode(telecomDto.getSystem());
                     contactPoint.setSystem(contactPointSystem);
                     contactPoint.setValue(telecomDto.getValue());
-                    contactDetail.setTelecom(Arrays.asList(contactPoint));
-                    valueSet.setContact(Arrays.asList(contactDetail));
+                    contactDetail.setTelecom(Collections.singletonList(contactPoint));
+                    valueSet.setContact(Collections.singletonList(contactDetail));
                 }
             }
         }
@@ -132,8 +133,8 @@ public class ValueSetServiceImpl implements ValueSetService {
                 Coding coding = new Coding();
                 coding.setSystem(oCoding.get().getSystem());
                 coding.setCode(oCoding.get().getCode());
-                codeableConcept.setCoding(Arrays.asList(coding));
-                valueSet.setJurisdiction(Arrays.asList(codeableConcept));
+                codeableConcept.setCoding(Collections.singletonList(coding));
+                valueSet.setJurisdiction(Collections.singletonList(codeableConcept));
             }
         }
 
