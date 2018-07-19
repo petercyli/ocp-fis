@@ -15,6 +15,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
@@ -23,14 +24,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.StringType;
-import org.hl7.fhir.dstu3.model.UriType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -318,10 +317,10 @@ public class PractitionerServiceImpl implements PractitionerService {
             Practitioner practitioner = modelMapper.map(practitionerDto, Practitioner.class);
             practitioner.setActive(true);
 
-            // Validate
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                setPractitionerProfileMetaData(fhirClient, practitioner);
-            }
+            //Set Profile Meta Data
+            FhirProfileUtil.setPractitionerProfileMetaData(fhirClient, practitioner);
+
+            //Validate
             FhirUtil.validateFhirResource(fhirValidator, practitioner, Optional.empty(), ResourceType.Practitioner.name(), "Create Practitioner");
 
             //Create
@@ -349,10 +348,10 @@ public class PractitionerServiceImpl implements PractitionerService {
                         specialtyCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getSpecialty().get(0), Coding.class));
                         practitionerRole.setSpecialty(Collections.singletonList(specialtyCodeableConcept));
 
-                        // Validate
-                        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                            setPractitionerRoleProfileMetaData(fhirClient, practitionerRole);
-                        }
+                        //Set Profile Meta Data
+                        FhirProfileUtil.setPractitionerRoleProfileMetaData(fhirClient, practitionerRole);
+
+                        //Validate
                         FhirUtil.validateFhirResource(fhirValidator, practitionerRole, Optional.empty(), ResourceType.PractitionerRole.name(), "Create Practitioner Role");
 
                         //Create
@@ -376,10 +375,10 @@ public class PractitionerServiceImpl implements PractitionerService {
             existingPractitioner.setTelecom(updatedPractitioner.getTelecom());
             existingPractitioner.setAddress(updatedPractitioner.getAddress());
 
-            // Validate
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                setPractitionerProfileMetaData(fhirClient, existingPractitioner);
-            }
+            //Set Profile Meta Data
+            FhirProfileUtil.setPractitionerProfileMetaData(fhirClient, existingPractitioner);
+
+            //Validate
             FhirUtil.validateFhirResource(fhirValidator, existingPractitioner, Optional.of(practitionerId), ResourceType.Practitioner.name(), "Update Practitioner");
 
             //Update
@@ -407,10 +406,8 @@ public class PractitionerServiceImpl implements PractitionerService {
                         specialtyCodeableConcept.addCoding(modelMapper.map(practitionerRoleDto.getSpecialty().get(0), Coding.class));
                         practitionerRole.setSpecialty(Collections.singletonList(specialtyCodeableConcept));
 
-                        // Validate
-                        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                            setPractitionerRoleProfileMetaData(fhirClient, practitionerRole);
-                        }
+                        //Set Profile Meta Data
+                        FhirProfileUtil.setPractitionerRoleProfileMetaData(fhirClient, practitionerRole);
 
                         if (practitionerRoleDto.getLogicalId() != null) {
                             practitionerRole.setId(practitionerRoleDto.getLogicalId());
@@ -558,22 +555,6 @@ public class PractitionerServiceImpl implements PractitionerService {
                     return pRes.getIdElement().getIdPart().equalsIgnoreCase(practitioner.getIdElement().getIdPart());
                 });
             }
-        }
-    }
-
-    private void setPractitionerProfileMetaData(IGenericClient fhirClient, Practitioner practitioner) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Practitioner.toString());
-        if (uriList != null && !uriList.isEmpty()) {
-            Meta meta = new Meta().setProfile(uriList);
-            practitioner.setMeta(meta);
-        }
-    }
-
-    private void setPractitionerRoleProfileMetaData(IGenericClient fhirClient, PractitionerRole practitionerRole) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.PractitionerRole.toString());
-        if (uriList != null && !uriList.isEmpty()) {
-            Meta meta = new Meta().setProfile(uriList);
-            practitionerRole.setMeta(meta);
         }
     }
 }

@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.controller;
+package gov.samhsa.ocp.ocpfis.web;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;

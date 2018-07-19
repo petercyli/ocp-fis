@@ -15,6 +15,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
@@ -22,11 +23,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
-import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.Resource;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.UriType;
 import org.hl7.fhir.instance.model.api.IBaseBundle;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -313,10 +312,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         fhirHealthcareService.setActive(Boolean.TRUE);
         fhirHealthcareService.setProvidedBy(new Reference("Organization/" + organizationId.trim()));
 
-        // Validate
-        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
-            setProfileMetaData(fhirClient, fhirHealthcareService);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, fhirHealthcareService);
+
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, fhirHealthcareService, Optional.empty(), ResourceType.HealthcareService.name(), "Create Healthcare Service");
 
         //Create
@@ -350,10 +349,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             existingHealthcareService.setLocation(null);
         }
 
-        // Validate
-        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
-            setProfileMetaData(fhirClient, existingHealthcareService);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
+
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
 
         //Update
@@ -368,10 +367,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         //Also, remove all locations
         existingHealthcareService.setLocation(null);
 
-        // Validate
-        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
-            setProfileMetaData(fhirClient, existingHealthcareService);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
+
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
 
         //Update
@@ -412,10 +411,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             if (allChecksPassed) {
                 locationIdList.forEach(locationId -> assignedLocations.add(new Reference("Location/" + locationId)));
 
+                //Set Profile Meta Data
+                FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
+
                 //Validate
-                if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
-                    setProfileMetaData(fhirClient, existingHealthcareService);
-                }
                 FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Assign location to a Healthcare Service");
 
                 //Update
@@ -431,10 +430,11 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         HealthcareService existingHealthcareService = readHealthcareServiceFromServer(healthcareServiceId);
         List<Reference> assignedLocations = existingHealthcareService.getLocation();
         assignedLocations.removeIf(locRef -> locationIdList.contains(locRef.getReference().substring(9).trim()));
+
+        //Set Profile Meta Data
+        FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
+
         //Validate
-        if(fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()){
-            setProfileMetaData(fhirClient, existingHealthcareService);
-        }
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Unassign location to a Healthcare Service");
 
         //Update
@@ -447,8 +447,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
         try {
             existingHealthcareService = fhirClient.read().resource(HealthcareService.class).withId(healthcareServiceId.trim()).execute();
-        }
-        catch (BaseServerResponseException e) {
+        } catch (BaseServerResponseException e) {
             log.error("FHIR Client returned with an error while reading the Healthcare Service with ID: " + healthcareServiceId);
             throw new ResourceNotFoundException("FHIR Client returned with an error while reading the Healthcare Service: " + e.getMessage());
         }
@@ -488,8 +487,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                         try {
                             Location locationFromServer = fhirClient.read().resource(Location.class).withId(locLogicalId.trim()).execute();
                             locName = locationFromServer.getName().trim();
-                        }
-                        catch (BaseServerResponseException e) {
+                        } catch (BaseServerResponseException e) {
                             log.error("FHIR Client returned with an error while reading the location with ID: " + locLogicalId);
                             throw new ResourceNotFoundException("FHIR Client returned with an error while reading the location:" + e.getMessage());
                         }
@@ -567,23 +565,23 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
     }
 
-    private void checkDuplicateHealthcareServiceExistsDuringUpdate(String organizationId, String healthcareServiceId, String categorySystem, String categoryCode, String typeSystem, String typeCode,String healthcareServiceName) {
+    private void checkDuplicateHealthcareServiceExistsDuringUpdate(String organizationId, String healthcareServiceId, String categorySystem, String categoryCode, String typeSystem, String typeCode, String healthcareServiceName) {
         Bundle bundle = getHealthCareServiceBundleBasedOnCategoryAndType(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
 
-        List<Bundle.BundleEntryComponent> bundleEntryComponents=FhirUtil.getAllBundleComponentsAsList(bundle,Optional.empty(),fhirClient,fisProperties);
+        List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
-        if(!bundleEntryComponents.isEmpty()){
-            List<Bundle.BundleEntryComponent> bundleEntryComponentList= bundleEntryComponents.stream().filter(bundleEntryComponent ->{
-                HealthcareService healthcareService= (HealthcareService) bundleEntryComponent.getResource();
-                 return healthcareService.getName().equalsIgnoreCase(healthcareServiceName);
+        if (!bundleEntryComponents.isEmpty()) {
+            List<Bundle.BundleEntryComponent> bundleEntryComponentList = bundleEntryComponents.stream().filter(bundleEntryComponent -> {
+                HealthcareService healthcareService = (HealthcareService) bundleEntryComponent.getResource();
+                return healthcareService.getName().equalsIgnoreCase(healthcareServiceName);
             }).collect(Collectors.toList());
 
-            if(bundleEntryComponentList.size()==1){
-                String logicalId=bundleEntryComponentList.stream().findFirst().get().getResource().getIdElement().getIdPart();
-                if(!healthcareServiceId.trim().equalsIgnoreCase(logicalId.trim())){
+            if (bundleEntryComponentList.size() == 1) {
+                String logicalId = bundleEntryComponentList.stream().findFirst().get().getResource().getIdElement().getIdPart();
+                if (!healthcareServiceId.trim().equalsIgnoreCase(logicalId.trim())) {
                     throw new DuplicateResourceFoundException("A Healtcare Service already exists.");
                 }
-            }else if(bundleEntryComponentList.size()>1){
+            } else if (bundleEntryComponentList.size() > 1) {
                 throw new DuplicateResourceFoundException("A Healthcare Service already exists.");
             }
         }
@@ -640,14 +638,6 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             log.info("Search healthcare service : No additional search criteria entered.");
         }
         return healthcareServicesSearchQuery;
-    }
-
-    private void setProfileMetaData(IGenericClient fhirClient, HealthcareService healthcareService){
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.HealthcareService.toString());
-        if(uriList !=null && !uriList.isEmpty()){
-            Meta meta = new Meta().setProfile(uriList);
-            healthcareService.setMeta(meta);
-        }
     }
 }
 

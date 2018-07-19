@@ -15,6 +15,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
@@ -22,11 +23,9 @@ import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.UriType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -217,10 +216,10 @@ public class OrganizationServiceImpl implements OrganizationService {
             Organization fhirOrganization = modelMapper.map(organizationDto, Organization.class);
             fhirOrganization.setActive(Boolean.TRUE);
 
-            // Validate
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                setOrganizationProfileMetaData(fhirClient, fhirOrganization);
-            }
+            //Set Profile Meta Data
+            FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, fhirOrganization);
+
+            //Validate
             FhirUtil.validateFhirResource(fhirValidator, fhirOrganization, Optional.empty(), ResourceType.Organization.name(), "Create Organization");
 
             //Create
@@ -229,17 +228,14 @@ public class OrganizationServiceImpl implements OrganizationService {
             // Add TO DO Activity Definition
             ActivityDefinition activityDefinition = FhirUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(), fisProperties, lookUpService, fhirClient);
 
-            // Validate TO DO Activity Definition
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                setActivityDefinitionProfileMetaData(fhirClient, activityDefinition);
-            }
+            //Set Profile Meta Data
+            FhirProfileUtil.setActivityDefinitionProfileMetaData(fhirClient, activityDefinition);
+
+            //Validate
             FhirUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.empty(), ResourceType.ActivityDefinition.name(), "Create ActivityDefinition (when creating an Organization)");
 
             //Create TO DO Activity Definition
             FhirUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
-
-
-            fhirClient.create().resource(activityDefinition).execute();
 
         } else {
             throw new DuplicateResourceFoundException("Organization with the Identifier " + identifier + " is already present.");
@@ -251,7 +247,7 @@ public class OrganizationServiceImpl implements OrganizationService {
         log.info("Updating the Organization with Id:" + organizationId);
 
         Organization existingOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
-
+        organizationDto.setLogicalId(organizationId);
         if (!isDuplicateWhileUpdate(organizationDto)) {
             Organization updatedOrganization = modelMapper.map(organizationDto, Organization.class);
             existingOrganization.setIdentifier(updatedOrganization.getIdentifier());
@@ -260,10 +256,10 @@ public class OrganizationServiceImpl implements OrganizationService {
             existingOrganization.setAddress(updatedOrganization.getAddress());
             existingOrganization.setActive(updatedOrganization.getActive());
 
-            // Validate
-            if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-                setOrganizationProfileMetaData(fhirClient, existingOrganization);
-            }
+            //Set Profile Meta Data
+            FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, existingOrganization);
+
+            //Validate
             FhirUtil.validateFhirResource(fhirValidator, existingOrganization, Optional.of(organizationId), ResourceType.Organization.name(), "Update Organization");
 
             //Update
@@ -323,10 +319,10 @@ public class OrganizationServiceImpl implements OrganizationService {
     private void setOrganizationStatusToInactive(Organization existingFhirOrganization) {
         existingFhirOrganization.setActive(false);
 
-        // Validate
-        if (fisProperties.getFhir().isValidateResourceAgainstStructureDefinition()) {
-            setOrganizationProfileMetaData(fhirClient, existingFhirOrganization);
-        }
+        //Set Profile Meta Data
+        FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, existingFhirOrganization);
+
+        //Validate
         FhirUtil.validateFhirResource(fhirValidator, existingFhirOrganization, Optional.of(existingFhirOrganization.getId()), ResourceType.Organization.name(), "Update Organization");
 
         //Update
@@ -372,21 +368,4 @@ public class OrganizationServiceImpl implements OrganizationService {
             }
         }
     }
-
-    private void setOrganizationProfileMetaData(IGenericClient fhirClient, Organization organization) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Organization.toString());
-        if (uriList != null && !uriList.isEmpty()) {
-            Meta meta = new Meta().setProfile(uriList);
-            organization.setMeta(meta);
-        }
-    }
-
-    private void setActivityDefinitionProfileMetaData(IGenericClient fhirClient, ActivityDefinition activityDefinition) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.ActivityDefinition.toString());
-        if (uriList != null && !uriList.isEmpty()) {
-            Meta meta = new Meta().setProfile(uriList);
-            activityDefinition.setMeta(meta);
-        }
-    }
-
 }
