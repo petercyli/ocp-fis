@@ -62,7 +62,7 @@ import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 
 @Slf4j
-public class FhirUtil {
+public class FhirOperationUtil {
     public static final int ACTIVITY_DEFINITION_FREQUENCY = 1;
     public static final int PAGE_NUMBER = 2;
 
@@ -477,7 +477,7 @@ public class FhirUtil {
             abstractCareTeamDto.setDisplay(organization.getName());
             abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.ORGANIZATION);
             List<IdentifierDto> identifierDtos = organization.getIdentifier().stream()
-                    .map(FhirUtil::entireCovertIdentifierToIdentifierDto)
+                    .map(FhirOperationUtil::entireCovertIdentifierToIdentifierDto)
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 
@@ -514,7 +514,7 @@ public class FhirUtil {
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
                 .execute();
 
-        List<Bundle.BundleEntryComponent> practitionerBundleEntryList = FhirUtil.getAllBundleComponentsAsList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> practitionerBundleEntryList = FhirOperationUtil.getAllBundleComponentsAsList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
 
         return practitionerBundleEntryList.stream().map(pr -> {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
@@ -524,7 +524,7 @@ public class FhirUtil {
 
             abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.PRACTITIONER);
             List<IdentifierDto> identifierDtos = practitioner.getIdentifier().stream()
-                    .map(FhirUtil::entireCovertIdentifierToIdentifierDto)
+                    .map(FhirOperationUtil::entireCovertIdentifierToIdentifierDto)
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 
@@ -564,7 +564,7 @@ public class FhirUtil {
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
                 .execute();
 
-        List<Bundle.BundleEntryComponent> relatedPersonBundleEntryList = FhirUtil.getAllBundleComponentsAsList(relatedBundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> relatedPersonBundleEntryList = FhirOperationUtil.getAllBundleComponentsAsList(relatedBundle, Optional.empty(), fhirClient, fisProperties);
 
         return relatedPersonBundleEntryList.stream().map(rp -> {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
@@ -575,7 +575,7 @@ public class FhirUtil {
             relatedPerson.getName().stream().findAny().ifPresent(humanName -> abstractCareTeamDto.setDisplay(humanName.getGiven().stream().findAny().get() + " " + humanName.getFamily()));
 
             List<IdentifierDto> identifierDtos = relatedPerson.getIdentifier().stream()
-                    .map(FhirUtil::entireCovertIdentifierToIdentifierDto)
+                    .map(FhirOperationUtil::entireCovertIdentifierToIdentifierDto)
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 

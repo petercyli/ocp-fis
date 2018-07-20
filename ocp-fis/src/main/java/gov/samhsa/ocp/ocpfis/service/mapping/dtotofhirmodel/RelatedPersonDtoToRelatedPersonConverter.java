@@ -2,7 +2,7 @@ package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -25,12 +25,12 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         RelatedPerson relatedPerson = new RelatedPerson();
 
         //id
-        if (FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getRelatedPersonId())) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getRelatedPersonId())) {
             relatedPerson.setId(relatedPersonDto.getRelatedPersonId());
         }
 
         //identifier
-        if (FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getIdentifierType()) && FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getIdentifierValue())) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getIdentifierType()) && FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getIdentifierValue())) {
             Identifier identifier = new Identifier();
             identifier.setSystem(relatedPersonDto.getIdentifierType());
             identifier.setValue(relatedPersonDto.getIdentifierValue());
@@ -41,12 +41,12 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         relatedPerson.setActive(relatedPersonDto.isActive());
 
         //patient
-        if (FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getPatient())) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getPatient())) {
             relatedPerson.getPatient().setReference("Patient/" + relatedPersonDto.getPatient());
         }
 
         //relationship
-        if (FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getRelationshipCode()) && FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getRelationshipValue())) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getRelationshipCode()) && FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getRelationshipValue())) {
             Coding codingRelationship = new Coding();
             codingRelationship.setCode(relatedPersonDto.getRelationshipCode());
             codingRelationship.setDisplay(relatedPersonDto.getRelationshipValue());
@@ -55,7 +55,7 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         }
 
         //name
-        if (FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getFirstName()) && FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getLastName())) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getFirstName()) && FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getLastName())) {
             HumanName humanName = new HumanName().addGiven(relatedPersonDto.getFirstName()).setFamily(relatedPersonDto.getLastName());
             relatedPerson.setName(Collections.singletonList(humanName));
         }
@@ -75,13 +75,13 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         }
 
         //gender
-        if (FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getGenderCode())) {
-            Enumerations.AdministrativeGender gender = FhirUtil.getPatientGender(relatedPersonDto.getGenderCode());
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getGenderCode())) {
+            Enumerations.AdministrativeGender gender = FhirOperationUtil.getPatientGender(relatedPersonDto.getGenderCode());
             relatedPerson.setGender(gender);
         }
 
         //birthdate
-        if (FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getBirthDate())) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getBirthDate())) {
             relatedPerson.setBirthDate(DateUtil.convertStringToDate(relatedPersonDto.getBirthDate()));
         }
 
@@ -103,7 +103,7 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         }
 
         //period
-        if (FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getStartDate()) && FhirUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getEndDate())) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getStartDate()) && FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getEndDate())) {
             Period period = new Period();
             period.setStart(DateUtil.convertStringToDate(relatedPersonDto.getStartDate()));
             period.setEnd(DateUtil.convertStringToDate(relatedPersonDto.getEndDate()));

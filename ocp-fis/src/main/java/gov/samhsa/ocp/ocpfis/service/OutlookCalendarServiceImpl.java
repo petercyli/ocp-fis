@@ -6,7 +6,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.OutlookCalendarDto;
 import gov.samhsa.ocp.ocpfis.service.exception.NotAuthorizedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import lombok.extern.slf4j.Slf4j;
 import microsoft.exchange.webservices.data.autodiscover.IAutodiscoverRedirectionUrl;
 import microsoft.exchange.webservices.data.autodiscover.exception.AutodiscoverLocalException;
@@ -154,13 +154,13 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
             eDto.setLocation(apt.getLocation());
 
             if (apt.getOrganizer() != null) {
-                if (FhirUtil.isStringNotNullAndNotEmpty(apt.getOrganizer().getAddress())) {
+                if (FhirOperationUtil.isStringNotNullAndNotEmpty(apt.getOrganizer().getAddress())) {
                     eDto.setOrganizerEmail(apt.getOrganizer().getAddress());
                 } else {
                     eDto.setOrganizerEmail("");
                 }
 
-                if (FhirUtil.isStringNotNullAndNotEmpty(apt.getOrganizer().getName())) {
+                if (FhirOperationUtil.isStringNotNullAndNotEmpty(apt.getOrganizer().getName())) {
                     eDto.setOrganizerName(apt.getOrganizer().getName());
                 } else {
                     eDto.setOrganizerName("");

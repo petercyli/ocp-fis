@@ -18,7 +18,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
@@ -77,7 +77,7 @@ public class LocationServiceImpl implements LocationService {
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class);
 
         //Set Sort order
-        locationsSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(locationsSearchQuery, true);
+        locationsSearchQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(locationsSearchQuery, true);
 
         // Check if there are any additional search criteria
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
@@ -112,7 +112,7 @@ public class LocationServiceImpl implements LocationService {
         IQuery locationsSearchQuery = fhirClient.search().forResource(Location.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
         //Set Sort order
-        locationsSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(locationsSearchQuery, true);
+        locationsSearchQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(locationsSearchQuery, true);
 
         // Check if there are any additional search criteria
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
@@ -199,10 +199,10 @@ public class LocationServiceImpl implements LocationService {
         FhirProfileUtil.setLocationProfileMetaData(fhirClient, fhirLocation);
 
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, fhirLocation, Optional.empty(), ResourceType.Location.name(), "Create Location");
+        FhirOperationUtil.validateFhirResource(fhirValidator, fhirLocation, Optional.empty(), ResourceType.Location.name(), "Create Location");
 
         //Create
-        FhirUtil.createFhirResource(fhirClient, fhirLocation, ResourceType.Location.name());
+        FhirOperationUtil.createFhirResource(fhirClient, fhirLocation, ResourceType.Location.name());
     }
 
     @Override
@@ -234,10 +234,10 @@ public class LocationServiceImpl implements LocationService {
         //Set Profile Meta Data
         FhirProfileUtil.setLocationProfileMetaData(fhirClient, existingFhirLocation);
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Update Location");
+        FhirOperationUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Update Location");
 
         //Update
-        FhirUtil.updateFhirResource(fhirClient, existingFhirLocation, "Update Location");
+        FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Update Location");
     }
 
     @Override
@@ -250,10 +250,10 @@ public class LocationServiceImpl implements LocationService {
         FhirProfileUtil.setLocationProfileMetaData(fhirClient, existingFhirLocation);
 
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Inactivate Location");
+        FhirOperationUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Inactivate Location");
 
         //Update the resource
-        FhirUtil.updateFhirResource(fhirClient, existingFhirLocation, "Inactivate Location");
+        FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Inactivate Location");
     }
 
 
@@ -388,7 +388,7 @@ public class LocationServiceImpl implements LocationService {
         if (identifierSystem != null && !identifierSystem.trim().isEmpty()
                 && identifierValue != null && !identifierValue.trim().isEmpty()) {
             Bundle bundle = fhirClient.search().forResource(Location.class).returnBundle(Bundle.class).execute();
-            bundleEntry = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().filter(location -> {
+            bundleEntry = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().filter(location -> {
                 Location l = (Location) location.getResource();
                 return l.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(identifierSystem) && identifier.getValue().replaceAll(" ", "")
                         .replaceAll("-", "").trim()

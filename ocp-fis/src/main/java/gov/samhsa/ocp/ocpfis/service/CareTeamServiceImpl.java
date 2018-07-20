@@ -21,7 +21,7 @@ import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CareTeamDtoToCareTea
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
@@ -79,10 +79,10 @@ public class CareTeamServiceImpl implements CareTeamService {
             FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
 
             //Validate
-            FhirUtil.validateFhirResource(fhirValidator, careTeam, Optional.empty(), ResourceType.CareTeam.name(), "Create CareTeam");
+            FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.empty(), ResourceType.CareTeam.name(), "Create CareTeam");
 
             //Create
-            FhirUtil.createFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+            FhirOperationUtil.createFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
         } catch (FHIRException | ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while creating a care team:" + e.getMessage());
         }
@@ -98,10 +98,10 @@ public class CareTeamServiceImpl implements CareTeamService {
             FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
 
             //Validate
-            FhirUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam");
+            FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam");
 
             //Update
-            FhirUtil.updateFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+            FhirOperationUtil.updateFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
 
         } catch (FHIRException | ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while updating a care team:" + e.getMessage());
@@ -115,7 +115,7 @@ public class CareTeamServiceImpl implements CareTeamService {
         IQuery iQuery = fhirClient.search().forResource(CareTeam.class);
 
         //Set Sort order
-        iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
+        iQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(iQuery, true);
 
         //Check for patient
         if (searchType.equalsIgnoreCase("patientId"))
@@ -409,7 +409,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
         Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
-        List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> components = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
         List<CareTeam> careTeams = components.stream()
                 .filter(it -> it.getResource().getResourceType().equals(ResourceType.CareTeam))
@@ -445,10 +445,10 @@ public class CareTeamServiceImpl implements CareTeamService {
         FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
 
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam(Add Related Person)");
+        FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam(Add Related Person)");
 
         //Update
-        FhirUtil.updateFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+        FhirOperationUtil.updateFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
     }
 
     @Override
@@ -463,10 +463,10 @@ public class CareTeamServiceImpl implements CareTeamService {
         FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
 
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam(Remove Related Person)");
+        FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam(Remove Related Person)");
 
         //Update
-        FhirUtil.updateFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+        FhirOperationUtil.updateFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
     }
 
     @Override
@@ -484,7 +484,7 @@ public class CareTeamServiceImpl implements CareTeamService {
         Bundle relatedPersonForPatientBundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
 
-        List<ParticipantDto> participantDtoFromRelatedPersons = FhirUtil.getAllBundleComponentsAsList(relatedPersonForPatientBundle, Optional.empty(), fhirClient, fisProperties)
+        List<ParticipantDto> participantDtoFromRelatedPersons = FhirOperationUtil.getAllBundleComponentsAsList(relatedPersonForPatientBundle, Optional.empty(), fhirClient, fisProperties)
                 .stream().map(rp -> (RelatedPerson) rp.getResource())
                 .map(rp -> {
                     ParticipantDto participantDto = new ParticipantDto();
@@ -547,7 +547,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                     Reference member = component.getMember();
                     String role = "";
                     if (member.getReference().contains(ResourceType.Practitioner.toString())) {
-                        role = FhirUtil.getRoleFromCodeableConcept(component.getRole());
+                        role = FhirOperationUtil.getRoleFromCodeableConcept(component.getRole());
                     }
                     return role;
                 })

@@ -7,7 +7,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.valueset.Include;
 import gov.samhsa.ocp.ocpfis.service.dto.valueset.Jurisdiction;
 import gov.samhsa.ocp.ocpfis.service.dto.valueset.Telecom;
 import gov.samhsa.ocp.ocpfis.service.dto.valueset.ValueSetDto;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -49,7 +49,7 @@ public class ValueSetServiceImpl implements ValueSetService {
             log.info(valueSetDto.getId());
             ValueSet valueSet = map(valueSetDto);
             //Intentionally using update method to force the ID coming in from the DTO
-            FhirUtil.updateFhirResource(fhirClient, valueSet, ResourceType.ValueSet.name());
+            FhirOperationUtil.updateFhirResource(fhirClient, valueSet, ResourceType.ValueSet.name());
 
         } catch (Exception e) {
             e.printStackTrace();

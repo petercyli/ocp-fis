@@ -5,8 +5,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;

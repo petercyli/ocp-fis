@@ -16,7 +16,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +69,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         IQuery healthcareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class);
 
         //Set Sort order
-        healthcareServicesSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(healthcareServicesSearchQuery, true);
+        healthcareServicesSearchQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(healthcareServicesSearchQuery, true);
 
         //Check for healthcare service status
         if (statusList.isPresent() && statusList.get().size() == 1) {
@@ -129,7 +129,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         IQuery healthcareServicesSearchQuery = fhirClient.search().forResource(HealthcareService.class).where(new ReferenceClientParam("organization").hasId(organizationResourceId));
 
         //Set Sort order
-        healthcareServicesSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(healthcareServicesSearchQuery, true);
+        healthcareServicesSearchQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(healthcareServicesSearchQuery, true);
 
         //Check for healthcare service status
         if (statusList.isPresent() && statusList.get().size() == 1) {
@@ -191,7 +191,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 .where(new ReferenceClientParam("location").hasId(locationId));
 
         //Set Sort order
-        healthcareServiceQuery = FhirUtil.setLastUpdatedTimeSortOrder(healthcareServiceQuery, true);
+        healthcareServiceQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(healthcareServiceQuery, true);
 
         //Check for healthcare service status
         if (statusList.isPresent() && statusList.get().size() == 1) {
@@ -316,10 +316,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, fhirHealthcareService);
 
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, fhirHealthcareService, Optional.empty(), ResourceType.HealthcareService.name(), "Create Healthcare Service");
+        FhirOperationUtil.validateFhirResource(fhirValidator, fhirHealthcareService, Optional.empty(), ResourceType.HealthcareService.name(), "Create Healthcare Service");
 
         //Create
-        FhirUtil.createFhirResource(fhirClient, fhirHealthcareService, ResourceType.HealthcareService.name());
+        FhirOperationUtil.createFhirResource(fhirClient, fhirHealthcareService, ResourceType.HealthcareService.name());
     }
 
     @Override
@@ -353,10 +353,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
 
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
+        FhirOperationUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
 
         //Update
-        FhirUtil.updateFhirResource(fhirClient, existingHealthcareService, "Update Healthcare Service");
+        FhirOperationUtil.updateFhirResource(fhirClient, existingHealthcareService, "Update Healthcare Service");
     }
 
     @Override
@@ -371,10 +371,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
 
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
+        FhirOperationUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
 
         //Update
-        FhirUtil.updateFhirResource(fhirClient, existingHealthcareService, "Inactivate Healthcare Service");
+        FhirOperationUtil.updateFhirResource(fhirClient, existingHealthcareService, "Inactivate Healthcare Service");
     }
 
     @Override
@@ -415,10 +415,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                 FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
 
                 //Validate
-                FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Assign location to a Healthcare Service");
+                FhirOperationUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Assign location to a Healthcare Service");
 
                 //Update
-                FhirUtil.updateFhirResource(fhirClient, existingHealthcareService, "Assign Location to a Healthcare Service");
+                FhirOperationUtil.updateFhirResource(fhirClient, existingHealthcareService, "Assign Location to a Healthcare Service");
             }
         } else {
             throw new BadRequestException("Cannot assign the given location(s) to Healthcare Service, because not all location(s) from the query params belonged to the organization ID: " + organizationResourceId);
@@ -435,10 +435,10 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         FhirProfileUtil.setHealthCareServiceProfileMetaData(fhirClient, existingHealthcareService);
 
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Unassign location to a Healthcare Service");
+        FhirOperationUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Unassign location to a Healthcare Service");
 
         //Update
-        FhirUtil.updateFhirResource(fhirClient, existingHealthcareService, "Unassign Location to a Healthcare Service");
+        FhirOperationUtil.updateFhirResource(fhirClient, existingHealthcareService, "Unassign Location to a Healthcare Service");
     }
 
 
@@ -537,7 +537,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         Bundle bundle = getHealthCareServiceBundleBasedOnCategoryAndType(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
 
         if (bundle != null && !bundle.getEntry().isEmpty()) {
-            List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties)
+            List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties)
                     .stream().filter(res -> {
                         HealthcareService healthcareService = (HealthcareService) res.getResource();
                         return healthcareService.getName().equalsIgnoreCase(healthcareServiceName);
@@ -568,7 +568,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     private void checkDuplicateHealthcareServiceExistsDuringUpdate(String organizationId, String healthcareServiceId, String categorySystem, String categoryCode, String typeSystem, String typeCode, String healthcareServiceName) {
         Bundle bundle = getHealthCareServiceBundleBasedOnCategoryAndType(organizationId, categorySystem, categoryCode, typeSystem, typeCode);
 
-        List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> bundleEntryComponents = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
         if (!bundleEntryComponents.isEmpty()) {
             List<Bundle.BundleEntryComponent> bundleEntryComponentList = bundleEntryComponents.stream().filter(bundleEntryComponent -> {

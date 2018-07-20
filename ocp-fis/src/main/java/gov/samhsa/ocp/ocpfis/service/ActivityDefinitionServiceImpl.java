@@ -21,7 +21,7 @@ import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.ActivityDefinitionDt
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
@@ -77,7 +77,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         IQuery activityDefinitionsSearchQuery = fhirClient.search().forResource(ActivityDefinition.class).where(new StringClientParam("publisher").matches().value("Organization/" + organizationResourceId));
 
         //Set Sort order
-        activityDefinitionsSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(activityDefinitionsSearchQuery, true);
+        activityDefinitionsSearchQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(activityDefinitionsSearchQuery, true);
 
         // Check if there are any additional search criteria
         activityDefinitionsSearchQuery = addAdditionalSearchConditions(activityDefinitionsSearchQuery, searchKey, searchValue);
@@ -159,10 +159,10 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             FhirProfileUtil.setActivityDefinitionProfileMetaData(fhirClient, activityDefinition);
 
             //Validate
-            FhirUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.empty(), ResourceType.ActivityDefinition.name(), "Create ActivityDefinition");
+            FhirOperationUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.empty(), ResourceType.ActivityDefinition.name(), "Create ActivityDefinition");
 
             //Create
-            FhirUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
+            FhirOperationUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
 
         } else {
             throw new DuplicateResourceFoundException("Duplicate Activity Definition is already present.");
@@ -181,10 +181,10 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         FhirProfileUtil.setActivityDefinitionProfileMetaData(fhirClient, activityDefinition);
 
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.of(activityDefinitionId), ResourceType.ActivityDefinition.name(), "Update ActivityDefinition");
+        FhirOperationUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.of(activityDefinitionId), ResourceType.ActivityDefinition.name(), "Update ActivityDefinition");
 
         //Update
-        FhirUtil.updateFhirResource(fhirClient, activityDefinition, "Update ActivityDefinition");
+        FhirOperationUtil.updateFhirResource(fhirClient, activityDefinition, "Update ActivityDefinition");
     }
 
     @Override

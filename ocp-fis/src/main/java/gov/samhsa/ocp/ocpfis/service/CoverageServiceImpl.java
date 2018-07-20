@@ -14,7 +14,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.CoverageToCoverageDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CoverageDtoToCoverageMap;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -64,9 +64,9 @@ public class CoverageServiceImpl implements CoverageService {
             //Set Profile Meta Data
             FhirProfileUtil.setCoverageProfileMetaData(fhirClient, coverage);
             //Validate
-            FhirUtil.validateFhirResource(fhirValidator, coverage, Optional.empty(), ResourceType.Coverage.name(), "Create Coverage");
+            FhirOperationUtil.validateFhirResource(fhirValidator, coverage, Optional.empty(), ResourceType.Coverage.name(), "Create Coverage");
             //Create
-            FhirUtil.createFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
+            FhirOperationUtil.createFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
         } else {
             throw new DuplicateResourceFoundException("Coverage already exists for given subscriber id and beneficiary.");
         }
@@ -79,9 +79,9 @@ public class CoverageServiceImpl implements CoverageService {
         //Set Profile Meta Data
         FhirProfileUtil.setCoverageProfileMetaData(fhirClient, coverage);
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, coverage, Optional.empty(), ResourceType.Coverage.name(), "Update Coverage");
+        FhirOperationUtil.validateFhirResource(fhirValidator, coverage, Optional.empty(), ResourceType.Coverage.name(), "Update Coverage");
         //Update
-        FhirUtil.updateFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
+        FhirOperationUtil.updateFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
     }
 
     @Override
@@ -114,7 +114,7 @@ public class CoverageServiceImpl implements CoverageService {
         boolean firstPage = true;
 
         //Getting list of coverages
-        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Coverage.class, Optional.empty());
+        IQuery iQuery = FhirOperationUtil.searchNoCache(fhirClient, Coverage.class, Optional.empty());
 
         iQuery.where(new ReferenceClientParam("beneficiary").hasId(patientId));
 
@@ -146,7 +146,7 @@ public class CoverageServiceImpl implements CoverageService {
     }
 
     private boolean isDuplicateWhileCreate(CoverageDto coverageDto) {
-        Bundle bundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(Coverage.class)
+        Bundle bundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(Coverage.class)
                 .where(new ReferenceClientParam("beneficiary").hasId(coverageDto.getBeneficiary().getReference())))
                 .returnBundle(Bundle.class).execute();
         return !bundle.getEntry().stream().map(bundleEntryComponent -> {

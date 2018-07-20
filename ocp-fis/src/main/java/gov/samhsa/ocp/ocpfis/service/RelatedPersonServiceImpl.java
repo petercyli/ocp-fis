@@ -15,7 +15,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.RelatedPersonToRelatedPersonDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.RelatedPersonDtoToRelatedPersonConverter;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +54,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
         IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class).where(new ReferenceClientParam("patient").hasId("Patient/" + patientId));
 
         //Set Sort order
-        relatedPersonIQuery = FhirUtil.setLastUpdatedTimeSortOrder(relatedPersonIQuery, true);
+        relatedPersonIQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(relatedPersonIQuery, true);
         if (searchKey.isPresent()) {
             if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.RelatedPersonSearchKey.NAME.name())) {
                 relatedPersonIQuery.where(new RichStringClientParam("name").contains().value(searchValue.get().trim()));
@@ -126,10 +126,10 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
             FhirProfileUtil.setRelatedPersonProfileMetaData(fhirClient, relatedPerson);
 
             //Validate
-            FhirUtil.validateFhirResource(fhirValidator, relatedPerson, Optional.empty(), ResourceType.RelatedPerson.name(), "Create RelatedPerson");
+            FhirOperationUtil.validateFhirResource(fhirValidator, relatedPerson, Optional.empty(), ResourceType.RelatedPerson.name(), "Create RelatedPerson");
 
             //Create
-            FhirUtil.createFhirResource(fhirClient, relatedPerson, ResourceType.RelatedPerson.name());
+            FhirOperationUtil.createFhirResource(fhirClient, relatedPerson, ResourceType.RelatedPerson.name());
 
         } catch (ParseException e) {
 
@@ -148,10 +148,10 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
             FhirProfileUtil.setRelatedPersonProfileMetaData(fhirClient, relatedPerson);
 
             //Validate
-            FhirUtil.validateFhirResource(fhirValidator, relatedPerson, Optional.of(relatedPersonId), ResourceType.RelatedPerson.name(), "Update RelatedPerson");
+            FhirOperationUtil.validateFhirResource(fhirValidator, relatedPerson, Optional.of(relatedPersonId), ResourceType.RelatedPerson.name(), "Update RelatedPerson");
 
             //Update the resource
-            FhirUtil.updateFhirResource(fhirClient, relatedPerson, "Update RelatedPerson");
+            FhirOperationUtil.updateFhirResource(fhirClient, relatedPerson, "Update RelatedPerson");
 
         } catch (ParseException e) {
 
@@ -161,7 +161,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     private void checkForDuplicates(RelatedPersonDto relatedPersonDto, String patientId) {
-        Bundle relatedPersonBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(RelatedPerson.class)
+        Bundle relatedPersonBundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(RelatedPerson.class)
                 .where(RelatedPerson.IDENTIFIER.exactly().systemAndIdentifier(relatedPersonDto.getIdentifierType(), relatedPersonDto.getIdentifierValue()))
                 .where(new TokenClientParam("patient").exactly().code(patientId)))
                 .returnBundle(Bundle.class)
@@ -171,12 +171,12 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
         if (!relatedPersonBundle.getEntry().isEmpty()) {
             throw new DuplicateResourceFoundException("RelatedPerson already exists with the given Identifier Type and Identifier Value");
         } else {
-            Bundle rPBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(RelatedPerson.class)
+            Bundle rPBundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(RelatedPerson.class)
                     .where(new TokenClientParam("patient").exactly().code(patientId)))
                     .returnBundle(Bundle.class)
                     .execute();
 
-            if (!FhirUtil.getAllBundleComponentsAsList(rPBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(relatedP -> {
+            if (!FhirOperationUtil.getAllBundleComponentsAsList(rPBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(relatedP -> {
                 RelatedPerson rp = (RelatedPerson) relatedP.getResource();
                 return rp.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(relatedPersonDto.getIdentifierType()) && identifier.getValue().replaceAll(" ", "")
                         .replaceAll("-", "").trim()
@@ -192,7 +192,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     private List<RelatedPersonDto> convertAllBundleToSingleRelatedPersonDtoList(Bundle firstPageSearchBundle, int numberOBundlePerPage) {
-        return FhirUtil.getAllBundleComponentsAsList(firstPageSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties)
+        return FhirOperationUtil.getAllBundleComponentsAsList(firstPageSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties)
                 .stream().map(this::convertToRelatedPerson)
                 .collect(toList());
     }
