@@ -68,5 +68,19 @@ public class PractitionerController {
         return practitionerService.getPractitionerByName(practitionerName);
     }
 
+    @PutMapping("/{practitionerId}/assign")
+    public void assignLocationsToPractitioner(@PathVariable String practitionerId,
+                                              @RequestParam(value="organizationId") String organizationId,
+                                              @RequestParam(value="locationId") String locationId){
+        practitionerService.assignLocationToPractitioner(practitionerId, organizationId, locationId);
+    }
+
+    @PutMapping("/{practitionerId}/unassign")
+    public void unassignLocationToPractitioner(@PathVariable String practitionerId,
+                                                 @RequestParam(value="organizationId") String organizationId,
+                                                 @RequestParam(value="locationId") String locationId){
+        practitionerService.unassignLocationToPractitioner(practitionerId,organizationId,locationId);
+    }
+
 
 }
