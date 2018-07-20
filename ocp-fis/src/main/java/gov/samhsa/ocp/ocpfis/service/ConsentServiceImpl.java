@@ -25,6 +25,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentRevocationPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -41,7 +42,6 @@ import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.codesystems.ConsentStatus;
 import org.hl7.fhir.dstu3.model.codesystems.V3ActReason;
 import org.hl7.fhir.exceptions.FHIRException;
-import org.hl7.fhir.r4.model.codesystems.V3ActCode;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -53,7 +53,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static java.util.stream.Collectors.toList;
@@ -110,7 +109,7 @@ public class ConsentServiceImpl implements ConsentService {
 
         IQuery finalConsentQueryWithCareTeam = consentQueryWithCareTeam;
 
-        if(!status.isPresent()) {
+        if (!status.isPresent()) {
             practitioner.ifPresent(pr -> {
                 if (!getCareTeamIdsFromPractitioner(pr).isEmpty()) {
                     finalConsentQueryWithCareTeam.where(new ReferenceClientParam("actor").hasAnyOfIds(getCareTeamIdsFromPractitioner(pr)));
@@ -121,21 +120,21 @@ public class ConsentServiceImpl implements ConsentService {
         // Disable caching to get latest data
         consentQueryWithCareTeam = FhirUtil.setNoCacheControlDirective(finalConsentQueryWithCareTeam);
 
-        Bundle consentBundleWithCareTeam= (Bundle) consentQueryWithCareTeam.returnBundle(Bundle.class).execute();
+        Bundle consentBundleWithCareTeam = (Bundle) consentQueryWithCareTeam.returnBundle(Bundle.class).execute();
 
-        List<Bundle.BundleEntryComponent> consentBundleEntryWithCareTeam = FhirUtil.getAllBundleComponentsAsList(consentBundleWithCareTeam,Optional.of(numberOfConsentsPerPage),fhirClient,fisProperties);
+        List<Bundle.BundleEntryComponent> consentBundleEntryWithCareTeam = FhirUtil.getAllBundleComponentsAsList(consentBundleWithCareTeam, Optional.of(numberOfConsentsPerPage), fhirClient, fisProperties);
 
-        List<Bundle.BundleEntryComponent> bundleEntryComponentList=new ArrayList<>();
+        List<Bundle.BundleEntryComponent> bundleEntryComponentList = new ArrayList<>();
 
-        if(!practitioner.isPresent()){
+        if (!practitioner.isPresent()) {
             bundleEntryComponentList.addAll(consentBundleEntryWithCareTeam);
         }
 
         //Get consent according to the practitioner.
-        practitioner.ifPresent(pr->{
-            Bundle bundle= (Bundle) getConsentIQuery(patient,Optional.empty(),status,generalDesignation).returnBundle(Bundle.class).execute();
-            List<Bundle.BundleEntryComponent> consents=FhirUtil.getAllBundleComponentsAsList(bundle, Optional.ofNullable(numberOfConsentsPerPage),fhirClient,fisProperties)
-                    .stream().filter(cs-> {
+        practitioner.ifPresent(pr -> {
+            Bundle bundle = (Bundle) getConsentIQuery(patient, Optional.empty(), status, generalDesignation).returnBundle(Bundle.class).execute();
+            List<Bundle.BundleEntryComponent> consents = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.of(numberOfConsentsPerPage), fhirClient, fisProperties)
+                    .stream().filter(cs -> {
                                 Consent consent = (Consent) cs.getResource();
                                 return !consent.getActor().stream()
                                         .filter(ac -> ac.getReference().getReference()
@@ -151,10 +150,10 @@ public class ConsentServiceImpl implements ConsentService {
 
         // Map to DTO
         List<DetailedConsentDto> consentDtosList = bundleEntryComponentList.stream().map(this::convertConsentBundleEntryToConsentDto).filter(
-            consent-> !consent.getStatus().equalsIgnoreCase(ConsentStatus.ENTEREDINERROR.toString())
+                consent -> !consent.getStatus().equalsIgnoreCase(ConsentStatus.ENTEREDINERROR.toString())
         ).collect(toList());
 
-        return (PageDto<DetailedConsentDto>) PaginationUtil.applyPaginationForCustomArrayList(consentDtosList, numberOfConsentsPerPage,pageNumber, false);
+        return (PageDto<DetailedConsentDto>) PaginationUtil.applyPaginationForCustomArrayList(consentDtosList, numberOfConsentsPerPage, pageNumber, false);
 
     }
 
@@ -239,10 +238,12 @@ public class ConsentServiceImpl implements ConsentService {
             }
         } else {
             Consent consent = consentDtoToConsent(Optional.empty(), consentDto);
+            //Set Profile Meta Data
+            FhirProfileUtil.setConsentProfileMetaData(fhirClient, consent);
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, consent, Optional.empty(), ResourceType.Consent.name(), "Create Consent");
-
-            fhirClient.create().resource(consent).execute();
+            //Create
+            FhirUtil.createFhirResource(fhirClient, consent, ResourceType.Consent.name());
         }
     }
 
@@ -253,10 +254,14 @@ public class ConsentServiceImpl implements ConsentService {
             Consent consent = consentDtoToConsent(Optional.of(consentId), consentDto);
             consent.setId(consentId);
 
+            //Set Profile Meta Data
+            FhirProfileUtil.setConsentProfileMetaData(fhirClient, consent);
+
             //Validate
             FhirUtil.validateFhirResource(fhirValidator, consent, Optional.of(consentId), ResourceType.Consent.name(), "Update Consent");
 
-            fhirClient.update().resource(consent).execute();
+            //Update
+            FhirUtil.updateFhirResource(fhirClient, consent, ResourceType.Consent.name());
         } else {
             throw new DuplicateResourceFoundException("This patient already has a general designation consent.");
         }
@@ -290,10 +295,10 @@ public class ConsentServiceImpl implements ConsentService {
         Consent consent = (Consent) fhirConsentDtoModel.getResource();
 
         //setting medical info type
-        if(consentDto.getMedicalInformation() != null){
-            int totalMedicalInfo = lookUpService.getSecurityLabel() != null?
+        if (consentDto.getMedicalInformation() != null) {
+            int totalMedicalInfo = lookUpService.getSecurityLabel() != null ?
                     lookUpService.getSecurityLabel().size() : 0;
-            if(consentDto.getMedicalInformation().size() < lookUpService.getSecurityLabel().size()){
+            if (consentDto.getMedicalInformation().size() < lookUpService.getSecurityLabel().size()) {
                 consentDto.setConsentMedicalInfoType(ConsentMedicalInfoType.SHARE_SPECIFIC);
             } else {
                 consentDto.setConsentMedicalInfoType(ConsentMedicalInfoType.SHARE_ALL);
@@ -365,18 +370,22 @@ public class ConsentServiceImpl implements ConsentService {
         String patientID = detailedConsentDto.getPatient().getReference().replace("Patient/", "");
         PatientDto patientDto = patientService.getPatientById(patientID);
 
-
         try {
-            log.info("Updating consent: Generating the attested PDF");
+            log.info("Attest consent: Generating the attested PDF");
             byte[] pdfBytes = consentPdfGenerator.generateConsentPdf(detailedConsentDto, patientDto, operatedByPatient);
             consent.setSource(addAttachment(pdfBytes));
 
         } catch (IOException e) {
             throw new ConsentPdfGenerationException(e);
         }
-        //consent.getSourceAttachment().getData();
-        log.info("Updating consent: Saving the consent into the FHIR server.");
-        fhirClient.update().resource(consent).execute();
+        //Set Profile Meta Data
+        FhirProfileUtil.setConsentProfileMetaData(fhirClient, consent);
+
+        //Validate
+        FhirUtil.validateFhirResource(fhirValidator, consent, Optional.of(consentId), ResourceType.Consent.name(), "Attest Consent");
+
+        //Update
+        FhirUtil.updateFhirResource(fhirClient, consent, ResourceType.Consent.name());
     }
 
     @Override
@@ -392,16 +401,21 @@ public class ConsentServiceImpl implements ConsentService {
         PatientDto patientDto = patientService.getPatientById(patientID);
 
         try {
-            log.info("Updating consent: Generating the revocation PDF");
+            log.info("Revoke consent: Generating the Revocation PDF");
             byte[] pdfBytes = consentRevocationPdfGenerator.generateConsentRevocationPdf(detailedConsentDto, patientDto, operatedByPatient);
             consent.setSource(addAttachment(pdfBytes));
 
         } catch (IOException e) {
             throw new ConsentPdfGenerationException(e);
         }
-        //consent.getSourceAttachment().getData();
-        log.info("Updating consent: Saving the consent into the FHIR server.");
-        fhirClient.update().resource(consent).execute();
+        //Set Profile Meta Data
+        FhirProfileUtil.setConsentProfileMetaData(fhirClient, consent);
+
+        //Validate
+        FhirUtil.validateFhirResource(fhirValidator, consent, Optional.of(consentId), ResourceType.Consent.name(), "Revoke Consent");
+
+        //Update
+        FhirUtil.updateFhirResource(fhirClient, consent, ResourceType.Consent.name());
     }
 
     private Attachment addAttachment(byte[] pdfBytes) {
@@ -551,7 +565,7 @@ public class ConsentServiceImpl implements ConsentService {
         if (consentDto.isGeneralDesignation()) {
             // share all
             exceptComponent.setSecurityLabel(getIncludeCodingList(lookUpService.getSecurityLabel()));
-         } else {
+        } else {
             // share the one user selects
             exceptComponent.setSecurityLabel(getIncludeCodingList(consentDto.getMedicalInformation()));
         }

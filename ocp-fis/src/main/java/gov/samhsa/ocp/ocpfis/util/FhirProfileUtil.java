@@ -6,6 +6,7 @@ import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.Communication;
+import org.hl7.fhir.dstu3.model.Consent;
 import org.hl7.fhir.dstu3.model.Coverage;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
@@ -116,6 +117,14 @@ public class FhirProfileUtil {
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             coverage.setMeta(meta);
+        }
+    }
+
+    public static void setConsentProfileMetaData(IGenericClient fhirClient, Consent consent) {
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Consent.toString());
+        if (uriList != null && !uriList.isEmpty()) {
+            Meta meta = new Meta().setProfile(uriList);
+            consent.setMeta(meta);
         }
     }
 }
