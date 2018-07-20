@@ -15,8 +15,9 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
@@ -226,7 +227,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             MethodOutcome serverResponse = FhirOperationUtil.createFhirResource(fhirClient, fhirOrganization, ResourceType.Organization.name());
 
             // Add TO DO Activity Definition
-            ActivityDefinition activityDefinition = FhirOperationUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(), fisProperties, lookUpService, fhirClient);
+            ActivityDefinition activityDefinition = FhirResourceUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(), fisProperties, lookUpService, fhirClient);
 
             //Set Profile Meta Data
             FhirProfileUtil.setActivityDefinitionProfileMetaData(fhirClient, activityDefinition);

@@ -23,8 +23,9 @@ import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TaskDtoToTaskMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
@@ -377,7 +378,7 @@ public class TaskServiceImpl implements TaskService {
             //If TO_DO definition type and TO_DO task is not present.
             if (definition.get().equalsIgnoreCase(TO_DO) && taskReferenceList.isEmpty() && practitioner.isPresent() && organization.isPresent()) {
                 //Creating To-Do Task
-                Task task = FhirOperationUtil.createToDoTask(patient, practitioner.get(), organization.get(), fhirClient, fisProperties);
+                Task task = FhirResourceUtil.createToDoTask(patient, practitioner.get(), organization.get(), fhirClient, fisProperties);
 
                 IQuery activityDefinitionQuery = fhirClient.search().forResource(ActivityDefinition.class)
                         .where(new StringClientParam("publisher").matches().value("Organization/" + organization.get()))
@@ -389,14 +390,14 @@ public class TaskServiceImpl implements TaskService {
 
                 //Create Activity Definition is not present.
                 if (activityDefinitionBundle.getEntry().isEmpty()) {
-                    ActivityDefinition activityDefinition = FhirOperationUtil.createToDoActivityDefinition(organization.get(), fisProperties, lookUpService, fhirClient);
+                    ActivityDefinition activityDefinition = FhirResourceUtil.createToDoActivityDefinition(organization.get(), fisProperties, lookUpService, fhirClient);
                     MethodOutcome adOutcome = fhirClient.create().resource(activityDefinition).execute();
                     ReferenceDto adReference = new ReferenceDto();
                     adReference.setReference("ActivityDefinition/" + adOutcome.getId().getIdPart());
                     adReference.setDisplay(TO_DO);
                     task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(adReference));
                 } else {
-                    task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirOperationUtil.getRelatedActivityDefinition(organization.get(), definition.get(), fhirClient, fisProperties)));
+                    task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirResourceUtil.getRelatedActivityDefinition(organization.get(), definition.get(), fhirClient, fisProperties)));
                 }
 
                 MethodOutcome methodOutcome = fhirClient.create().resource(task).execute();

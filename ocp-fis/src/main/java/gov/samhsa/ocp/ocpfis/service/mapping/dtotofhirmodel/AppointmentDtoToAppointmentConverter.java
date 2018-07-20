@@ -5,7 +5,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
@@ -46,7 +46,7 @@ public final class AppointmentDtoToAppointmentConverter {
 
             //Type
             if (isStringNotNullAndNotEmpty(appointmentDto.getTypeCode())) {
-                CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirOperationUtil.getCoding(appointmentDto.getTypeCode(), null, null));
+                CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(appointmentDto.getTypeCode(), null, null));
                 appointment.setAppointmentType(codeableConcept);
             }
 
@@ -72,16 +72,16 @@ public final class AppointmentDtoToAppointmentConverter {
 
                     //Participation Type
                     if (isStringNotNullAndNotEmpty(participant.getParticipationTypeCode())) {
-                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirOperationUtil.getCoding(participant.getParticipationTypeCode(), participant.getParticipationTypeDisplay(), participant.getParticipationTypeSystem()));
+                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(participant.getParticipationTypeCode(), participant.getParticipationTypeDisplay(), participant.getParticipationTypeSystem()));
                         participantModel.setType(Collections.singletonList(codeableConcept));
                     } else if (isCreate) {
                         //By default, add participants as "attender"
-                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirOperationUtil.getCoding("ATND", "attender", "http://hl7.org/fhir/v3/ParticipationType"));
+                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding("ATND", "attender", "http://hl7.org/fhir/v3/ParticipationType"));
                         participantModel.setType(Collections.singletonList(codeableConcept));
                     }
 
                     //Participation Status
-                    if(isCreate){
+                    if (isCreate) {
                         participantModel.setStatus(Appointment.ParticipationStatus.fromCode(NEEDS_ACTION_PARTICIPATION_STATUS));
                     } else if (isStringNotNullAndNotEmpty(participant.getParticipationStatusCode())) {
                         Appointment.ParticipationStatus status = Appointment.ParticipationStatus.fromCode(participant.getParticipationStatusCode().trim());
@@ -115,7 +115,7 @@ public final class AppointmentDtoToAppointmentConverter {
                     Appointment.AppointmentParticipantComponent creatorParticipantModel = new Appointment.AppointmentParticipantComponent();
 
                     //Participation Type
-                    CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirOperationUtil.getCoding("AUT", "author (originator)", "http://hl7.org/fhir/v3/ParticipationType"));
+                    CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding("AUT", "author (originator)", "http://hl7.org/fhir/v3/ParticipationType"));
                     creatorParticipantModel.setType(Collections.singletonList(codeableConcept));
 
                     //Participation Status
@@ -137,8 +137,7 @@ public final class AppointmentDtoToAppointmentConverter {
                 appointment.setParticipant(participantList);
             }
             return appointment;
-        }
-        catch (FHIRException e) {
+        } catch (FHIRException e) {
             log.error("Unable to convert from the given code to valueSet");
             throw new BadRequestException("Invalid values in the request Dto ", e);
         }

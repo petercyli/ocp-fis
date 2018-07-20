@@ -25,8 +25,9 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentPdfGenerator;
 import gov.samhsa.ocp.ocpfis.service.pdf.ConsentRevocationPdfGenerator;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Attachment;
@@ -272,13 +273,13 @@ public class ConsentServiceImpl implements ConsentService {
         int numberOfActorsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Consent.name());
 
         //Getting List of practitioners
-        List<AbstractCareTeamDto> abstractCareTeamDtoList = FhirOperationUtil.getPractitionerActors(patientId, name, Optional.empty(), Optional.empty(), fhirClient, fisProperties);
+        List<AbstractCareTeamDto> abstractCareTeamDtoList = FhirResourceUtil.getPractitionerActors(patientId, name, Optional.empty(), Optional.empty(), fhirClient, fisProperties);
 
         //Add organizations
-        abstractCareTeamDtoList.addAll(FhirOperationUtil.getOrganizationActors(patientId, name, Optional.empty(), Optional.empty(), fhirClient, fisProperties));
+        abstractCareTeamDtoList.addAll(FhirResourceUtil.getOrganizationActors(patientId, name, Optional.empty(), Optional.empty(), fhirClient, fisProperties));
 
         //Add related Person
-        abstractCareTeamDtoList.addAll(FhirOperationUtil.getRelatedPersonActors(patientId, name, Optional.empty(), Optional.empty(), fhirClient, fisProperties));
+        abstractCareTeamDtoList.addAll(FhirResourceUtil.getRelatedPersonActors(patientId, name, Optional.empty(), Optional.empty(), fhirClient, fisProperties));
 
         actorType.ifPresent(type -> abstractCareTeamDtoList.removeIf(actors -> !actors.getCareTeamType().toString().equalsIgnoreCase(type)));
         actorsAlreadyAssigned.ifPresent(actorsAlreadyPresent -> abstractCareTeamDtoList.removeIf(abstractCareTeamDto -> actorsAlreadyPresent.contains(abstractCareTeamDto.getId())));
@@ -660,33 +661,33 @@ public class ConsentServiceImpl implements ConsentService {
     private DetailedConsentDto convertConsentDtoToDetailedConsentDto(ConsentDto consentDto) {
 
         List<AbstractCareTeamDto> fromOrganizationActors = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("Organization"))
-                .map(actor -> FhirOperationUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/", "")), Optional.empty(), fhirClient, fisProperties)
+                .map(actor -> FhirResourceUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(toList());
 
         List<AbstractCareTeamDto> fromPractitionerActors = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("Practitioner"))
-                .map(actor -> FhirOperationUtil.getPractitionerActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
+                .map(actor -> FhirResourceUtil.getPractitionerActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(toList());
 
         List<AbstractCareTeamDto> fromRelatedPersons = consentDto.getFromActor().stream().filter(ac -> ac.getReference().contains("RelatedPerson"))
-                .map(actor -> FhirOperationUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/", "")), Optional.empty(), fhirClient, fisProperties)
+                .map(actor -> FhirResourceUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(toList());
 
 
         List<AbstractCareTeamDto> toOrganizationActors = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("Organization"))
-                .map(actor -> FhirOperationUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/", "")), Optional.empty(), fhirClient, fisProperties)
+                .map(actor -> FhirResourceUtil.getOrganizationActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Organization/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(toList());
 
         List<AbstractCareTeamDto> toPractitionerActors = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("Practitioner"))
-                .map(actor -> FhirOperationUtil.getPractitionerActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
+                .map(actor -> FhirResourceUtil.getPractitionerActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("Practitioner/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(toList());
 
         List<AbstractCareTeamDto> toRelatedPersons = consentDto.getToActor().stream().filter(ac -> ac.getReference().contains("RelatedPerson"))
-                .map(actor -> FhirOperationUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/", "")), Optional.empty(), fhirClient, fisProperties)
+                .map(actor -> FhirResourceUtil.getRelatedPersonActors(Optional.empty(), Optional.empty(), Optional.of(actor.getReference().replace("RelatedPerson/", "")), Optional.empty(), fhirClient, fisProperties)
                         .stream().findAny().get()
                 ).collect(toList());
 

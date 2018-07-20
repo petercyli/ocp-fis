@@ -20,8 +20,9 @@ import gov.samhsa.ocp.ocpfis.service.mapping.CareTeamToCareTeamDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CareTeamDtoToCareTeamConverter;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
@@ -547,7 +548,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                     Reference member = component.getMember();
                     String role = "";
                     if (member.getReference().contains(ResourceType.Practitioner.toString())) {
-                        role = FhirOperationUtil.getRoleFromCodeableConcept(component.getRole());
+                        role = FhirResourceUtil.getRoleFromCodeableConcept(component.getRole());
                     }
                     return role;
                 })

@@ -14,8 +14,8 @@ import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Annotation;
@@ -282,7 +282,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
 
         //Set Sender
-        if(communicationDto.getSender() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getSender().getReference())){
+        if (communicationDto.getSender() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getSender().getReference())) {
             communication.setSender(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSender()));
         }
 
@@ -300,7 +300,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
 
         //Set Medium
-        if (communicationDto.getMediumCode() != null  && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getMediumCode())) {
+        if (communicationDto.getMediumCode() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getMediumCode())) {
             ValueSetDto medium = FhirDtoUtil.convertCodeToValueSetDto(communicationDto.getMediumCode(), lookUpService.getCommunicationMedium());
             List<CodeableConcept> mediums = new ArrayList<>();
             mediums.add(FhirDtoUtil.convertValuesetDtoToCodeableConcept(medium));

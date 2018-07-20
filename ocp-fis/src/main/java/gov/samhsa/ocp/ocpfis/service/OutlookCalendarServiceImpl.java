@@ -78,8 +78,7 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
             FindItemsResults<Appointment> appointments = calendar.findAppointments(cView);
             log.info("Found " + appointments.getTotalCount() + " Outlook appointments.");
             return appointments.getItems().stream().map(this::mapAppointmentToDto).collect(Collectors.toList());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Exception occurred either when binding the service or when finding appointments from calendar view", e);
             throw new ResourceNotFoundException("Exception occurred either when binding the service or when finding appointments from calendar view", e);
         }
@@ -98,45 +97,36 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
         try {
             service.autodiscoverUrl(emailAddress, new RedirectionUrlCallback());
             log.info("Auto discover URL complete");
-        }
-        catch (AutodiscoverLocalException ale)
-        {
+        } catch (AutodiscoverLocalException ale) {
             log.error("Failed to set URL using AutoDiscover", ale.getMessage());
             // throw new NotAuthorizedException("Failed to set URL using AutoDiscover");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new NotAuthorizedException("Failed to set URL using AutoDiscover");
         }
 
-        if(service.getUrl() == null || service.getUrl().getPath().isEmpty()){
+        if (service.getUrl() == null || service.getUrl().getPath().isEmpty()) {
             throw new NotAuthorizedException("URL is not set.");
         }
 
-        try{
+        try {
             // Once we have the URL, try a ConvertId operation to check if we can access the service. We expect that
             // the user will be authenticated and that we will get an error code due to the invalid format. Expect a
             // ServiceResponseException.
             service.convertId(new AlternateId(IdFormat.EwsId, "Placeholder", emailAddress), IdFormat.EwsId);
-        }
-        catch (FormatException fe) {
+        } catch (FormatException fe) {
             // The user principal name is in a bad format.
             log.error("Please enter your credentials in UPN format.", fe.getMessage());
-        }
-        catch (ServiceResponseException sre)
-        {
+        } catch (ServiceResponseException sre) {
             // The credentials were authenticated. We expect this exception since we are providing intentional bad data for ConvertId
             log.info("Successfully connected to EWS.");
             authenticated = true;
-        }
-        catch (ServiceRequestException sreq)
-        {
+        } catch (ServiceRequestException sreq) {
             throw new NotAuthorizedException("ServiceRequestException: The credentials were not authenticated.", sreq);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new NotAuthorizedException("Exception: The credentials were not authenticated.", e);
         }
 
-        if(authenticated){
+        if (authenticated) {
             return service;
         } else {
             throw new NotAuthorizedException("The credentials were not authenticated.");
@@ -206,11 +196,9 @@ public class OutlookCalendarServiceImpl implements OutlookCalendarService {
 
             eDto.setMyResponse(apt.getMyResponseType().name());
             eDto.setCalUid(apt.getICalUid());
-        }
-        catch (ServiceLocalException e) {
+        } catch (ServiceLocalException e) {
             log.error("ServiceLocalException when converting EWS Appointment to DTO", e);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Exception when converting EWS Appointment to DTO", e);
         }
         return eDto;

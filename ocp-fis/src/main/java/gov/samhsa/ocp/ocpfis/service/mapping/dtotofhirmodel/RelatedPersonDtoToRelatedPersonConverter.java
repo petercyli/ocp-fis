@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -76,7 +77,7 @@ public class RelatedPersonDtoToRelatedPersonConverter {
 
         //gender
         if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getGenderCode())) {
-            Enumerations.AdministrativeGender gender = FhirOperationUtil.getPatientGender(relatedPersonDto.getGenderCode());
+            Enumerations.AdministrativeGender gender = FhirResourceUtil.getPatientGender(relatedPersonDto.getGenderCode());
             relatedPerson.setGender(gender);
         }
 

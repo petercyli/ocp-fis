@@ -388,10 +388,10 @@ public class LookUpServiceImpl implements LookUpService {
     public List<ValueSetDto> getHealthcareServiceSpecialities() {
         List<ValueSetDto> healthcareServiceSpecialitiesCodes = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType());
-            if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType())) {
-                List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-                healthcareServiceSpecialitiesCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-            }
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType())) {
+            List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
+            healthcareServiceSpecialitiesCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        }
 
         log.info("Found " + healthcareServiceSpecialitiesCodes.size() + " healthcare service specialities.");
         return healthcareServiceSpecialitiesCodes;
@@ -878,14 +878,14 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getEocStatus() {
-            List<ValueSetDto> eocStatusList = new ArrayList<>();
-            ValueSet response = getValueSets(LookupPathUrls.EOC_STATUS.getUrlPath(), LookupPathUrls.EOC_STATUS.getType());
-            if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.EOC_STATUS.getType())) {
-                List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-                eocStatusList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-            }
-            log.info("Found " + eocStatusList.size() + " episode of care Status");
-            return eocStatusList;
+        List<ValueSetDto> eocStatusList = new ArrayList<>();
+        ValueSet response = getValueSets(LookupPathUrls.EOC_STATUS.getUrlPath(), LookupPathUrls.EOC_STATUS.getType());
+        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.EOC_STATUS.getType())) {
+            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
+            eocStatusList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
+        }
+        log.info("Found " + eocStatusList.size() + " episode of care Status");
+        return eocStatusList;
     }
 
     @Override

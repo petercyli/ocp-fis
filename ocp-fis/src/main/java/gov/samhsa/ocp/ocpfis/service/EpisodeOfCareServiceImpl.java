@@ -62,7 +62,7 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
             if (eocCompoents != null) {
                 episodeOfCareDtos = eocCompoents.stream()
                         .map(it -> (EpisodeOfCare) it.getResource())
-                        .map(it -> EpisodeOfCareToEpisodeOfCareDtoMapper.map(it,lookUpService))
+                        .map(it -> EpisodeOfCareToEpisodeOfCareDtoMapper.map(it, lookUpService))
                         .collect(toList());
             }
         }
@@ -93,13 +93,13 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
                 referenceDtos = eocComponents.stream()
                         .map(it -> (EpisodeOfCare) it.getResource())
                         .map(it -> {
-                            ReferenceDto referenceDto=new ReferenceDto();
-                            referenceDto.setReference("EpisodeOfCare/"+it.getIdElement().getIdPart());
-                            Patient p=fhirClient.read().resource(Patient.class).withId(patient).execute();
-                            String name=p.getName().stream().findAny().get().getGiven().stream().findAny().get()+p.getName().stream().findAny().get().getFamily();
-                            Organization org=fhirClient.read().resource(Organization.class).withId(it.getManagingOrganization().getReference().split("/")[1]).execute();
-                            String orgName=org.getName();
-                            referenceDto.setDisplay(name+"-"+orgName);
+                            ReferenceDto referenceDto = new ReferenceDto();
+                            referenceDto.setReference("EpisodeOfCare/" + it.getIdElement().getIdPart());
+                            Patient p = fhirClient.read().resource(Patient.class).withId(patient).execute();
+                            String name = p.getName().stream().findAny().get().getGiven().stream().findAny().get() + p.getName().stream().findAny().get().getFamily();
+                            Organization org = fhirClient.read().resource(Organization.class).withId(it.getManagingOrganization().getReference().split("/")[1]).execute();
+                            String orgName = org.getName();
+                            referenceDto.setDisplay(name + "-" + orgName);
                             return referenceDto;
                         })
                         .collect(toList());
@@ -109,8 +109,6 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
         return referenceDtos;
 
     }
-
-
 
 
 }
