@@ -37,11 +37,6 @@ ocp-fis:
   communication:
     pagination:
       default-size: 20
-  consent:
-    identifier-system: https://bhits.github.io/consent2share/
-    codeSystem: http://hl7.org/fhir/v3/ActCode
-    pagination:
-      default-size: 20
   location:
     pagination:
       default-size: 20
