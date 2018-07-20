@@ -257,31 +257,31 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     @Override
     public String getPractitionerByName(String name) {
-        Bundle bundle=fhirClient.search().forResource(Practitioner.class)
+        Bundle bundle = fhirClient.search().forResource(Practitioner.class)
                 .where(new RichStringClientParam("name").matches().value(name))
                 .returnBundle(Bundle.class)
                 .execute();
 
-        List<Bundle.BundleEntryComponent> bundleEntryComponents=bundle.getEntry();
+        List<Bundle.BundleEntryComponent> bundleEntryComponents = bundle.getEntry();
 
-        if(!bundleEntryComponents.isEmpty()){
+        if (!bundleEntryComponents.isEmpty()) {
             return bundleEntryComponents.get(0).getResource().getIdElement().getIdPart();
-        }else{
+        } else {
             return null;
         }
     }
 
     @Override
     public void assignLocationToPractitioner(String practitionerId, String organizationId, String locationId) {
-        Location location=fhirClient.read().resource(Location.class).withId(locationId).execute();
-        Bundle practitionerRoleBundle=fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId(practitionerId))
+        Location location = fhirClient.read().resource(Location.class).withId(locationId).execute();
+        Bundle practitionerRoleBundle = fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId(practitionerId))
                 .where(new ReferenceClientParam("organization").hasId(organizationId)).returnBundle(Bundle.class).execute();
 
-        practitionerRoleBundle.getEntry().stream().findAny().ifPresent(role->{
-            PractitionerRole practitionerRole= (PractitionerRole) role.getResource();
-            List<Reference> locations= practitionerRole.getLocation();
-            ReferenceDto referenceDto=new ReferenceDto();
-            referenceDto.setReference("Location/"+locationId);
+        practitionerRoleBundle.getEntry().stream().findAny().ifPresent(role -> {
+            PractitionerRole practitionerRole = (PractitionerRole) role.getResource();
+            List<Reference> locations = practitionerRole.getLocation();
+            ReferenceDto referenceDto = new ReferenceDto();
+            referenceDto.setReference("Location/" + locationId);
             referenceDto.setDisplay(location.getName());
             locations.add(FhirDtoUtil.mapReferenceDtoToReference(referenceDto));
             practitionerRole.setLocation(locations);
@@ -291,13 +291,13 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     @Override
     public void unassignLocationToPractitioner(String practitionerId, String organizationId, String locationId) {
-        Bundle practitionerRoleBundle=fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId(practitionerId))
+        Bundle practitionerRoleBundle = fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId(practitionerId))
                 .where(new ReferenceClientParam("organization").hasId(organizationId)).returnBundle(Bundle.class).execute();
 
-        practitionerRoleBundle.getEntry().stream().findAny().ifPresent(role->{
-            PractitionerRole practitionerRole= (PractitionerRole) role.getResource();
-            List<Reference> locations= practitionerRole.getLocation();
-            locations.removeIf(location->location.getReference().split("/")[1].equalsIgnoreCase(locationId));
+        practitionerRoleBundle.getEntry().stream().findAny().ifPresent(role -> {
+            PractitionerRole practitionerRole = (PractitionerRole) role.getResource();
+            List<Reference> locations = practitionerRole.getLocation();
+            locations.removeIf(location -> location.getReference().split("/")[1].equalsIgnoreCase(locationId));
             practitionerRole.setLocation(locations);
             fhirClient.update().resource(practitionerRole).execute();
         });

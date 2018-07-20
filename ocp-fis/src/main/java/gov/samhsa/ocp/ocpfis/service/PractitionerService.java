@@ -25,4 +25,8 @@ PractitionerService {
     PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(String organization, Optional<String> role, Optional<Integer> pageNumber,Optional<Integer> pageSize);
 
     String getPractitionerByName(String name);
+
+    void assignLocationToPractitioner(String practitionerId, String organizationId, String locationId);
+
+    void unassignLocationToPractitioner(String practitionerId, String organizationId, String locationId);
 }
