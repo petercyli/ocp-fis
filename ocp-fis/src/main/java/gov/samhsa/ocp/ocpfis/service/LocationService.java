@@ -28,7 +28,7 @@ public interface LocationService {
      * @param size
      * @return
      */
-    PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
+    PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<String> assignedToPractitioner, Optional<Integer> page, Optional<Integer> size);
 
     /**
      * @param locationId
