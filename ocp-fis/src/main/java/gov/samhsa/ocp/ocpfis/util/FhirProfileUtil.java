@@ -8,10 +8,13 @@ import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.Communication;
 import org.hl7.fhir.dstu3.model.Consent;
 import org.hl7.fhir.dstu3.model.Coverage;
+import org.hl7.fhir.dstu3.model.EpisodeOfCare;
+import org.hl7.fhir.dstu3.model.Flag;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Meta;
 import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
@@ -125,6 +128,30 @@ public class FhirProfileUtil {
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             consent.setMeta(meta);
+        }
+    }
+
+    public static void setPatientProfileMetaData(IGenericClient fhirClient, Patient patient) {
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Patient.toString());
+        if (uriList != null && !uriList.isEmpty()) {
+            Meta meta = new Meta().setProfile(uriList);
+            patient.setMeta(meta);
+        }
+    }
+
+    public static void setFlagProfileMetaData(IGenericClient fhirClient, Flag flag) {
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Flag.toString());
+        if (uriList != null && !uriList.isEmpty()) {
+            Meta meta = new Meta().setProfile(uriList);
+            flag.setMeta(meta);
+        }
+    }
+
+    public static void setEpisodeOfCareProfileMetaData(IGenericClient fhirClient, EpisodeOfCare episodeOfCare) {
+        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.EpisodeOfCare.toString());
+        if (uriList != null && !uriList.isEmpty()) {
+            Meta meta = new Meta().setProfile(uriList);
+            episodeOfCare.setMeta(meta);
         }
     }
 }
