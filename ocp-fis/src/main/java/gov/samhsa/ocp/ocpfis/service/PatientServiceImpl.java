@@ -26,8 +26,9 @@ import gov.samhsa.ocp.ocpfis.service.mapping.CoverageToCoverageDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.EpisodeOfCareToEpisodeOfCareDtoMapper;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
@@ -65,8 +66,6 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
-import static gov.samhsa.ocp.ocpfis.util.FhirOperationUtil.createExtension;
-import static gov.samhsa.ocp.ocpfis.util.FhirOperationUtil.getCoding;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -229,9 +228,9 @@ public class PatientServiceImpl implements PatientService {
         //returning everything if searchKey is not present, change to false later.
         if (searchKey.isPresent() && searchValue.isPresent()) {
             if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
-                return FhirOperationUtil.checkPatientName(patient, searchValue.get());
+                return FhirResourceUtil.checkPatientName(patient, searchValue.get());
             } else if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.IDENTIFIER.name())) {
-                return FhirOperationUtil.checkPatientId(patient, searchValue.get());
+                return FhirResourceUtil.checkPatientId(patient, searchValue.get());
             }
         }
         return true;
@@ -290,7 +289,7 @@ public class PatientServiceImpl implements PatientService {
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(orgReference(patientDto.getOrganizationId())));
             patient.setActive(Boolean.TRUE);
-            patient.setGender(FhirOperationUtil.getPatientGender(patientDto.getGenderCode()));
+            patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
@@ -318,8 +317,8 @@ public class PatientServiceImpl implements PatientService {
             }));
 
             //Create To-Do task
-            Task task = FhirOperationUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
-            task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirOperationUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
+            Task task = FhirResourceUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
+            task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirResourceUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
             //Set Profile Meta Data
             FhirProfileUtil.setTaskProfileMetaData(fhirClient, task);
             //Validate
@@ -348,7 +347,7 @@ public class PatientServiceImpl implements PatientService {
             patientDto.setIdentifier(identifierDtos);
             final Patient patient = modelMapper.map(patientDto, Patient.class);
             patient.setId(new IdType(patientDto.getId()));
-            patient.setGender(FhirOperationUtil.getPatientGender(patientDto.getGenderCode()));
+            patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
             setExtensionFields(patient, patientDto);
@@ -536,29 +535,29 @@ public class PatientServiceImpl implements PatientService {
 
         //language
         if (patientDto.getLanguage() != null && !patientDto.getLanguage().isEmpty()) {
-            Coding langCoding = getCoding(patientDto.getLanguage(), "", CODING_SYSTEM_LANGUAGE);
-            Extension langExtension = createExtension(EXTENSION_URL_LANGUAGE, new CodeableConcept().addCoding(langCoding));
+            Coding langCoding = FhirResourceUtil.getCoding(patientDto.getLanguage(), "", CODING_SYSTEM_LANGUAGE);
+            Extension langExtension = FhirResourceUtil.createExtension(EXTENSION_URL_LANGUAGE, new CodeableConcept().addCoding(langCoding));
             extensionList.add(langExtension);
         }
 
         //race
         if (patientDto.getRace() != null && !patientDto.getRace().isEmpty()) {
-            Coding raceCoding = getCoding(patientDto.getRace(), "", CODING_SYSTEM_RACE);
-            Extension raceExtension = createExtension(EXTENSION_URL_RACE, new CodeableConcept().addCoding(raceCoding));
+            Coding raceCoding = FhirResourceUtil.getCoding(patientDto.getRace(), "", CODING_SYSTEM_RACE);
+            Extension raceExtension = FhirResourceUtil.createExtension(EXTENSION_URL_RACE, new CodeableConcept().addCoding(raceCoding));
             extensionList.add(raceExtension);
         }
 
         //ethnicity
         if (patientDto.getEthnicity() != null && !patientDto.getEthnicity().isEmpty()) {
-            Coding ethnicityCoding = getCoding(patientDto.getEthnicity(), "", CODING_SYSTEM_ETHNICITY);
-            Extension ethnicityExtension = createExtension(EXTENSION_URL_ETHNICITY, new CodeableConcept().addCoding(ethnicityCoding));
+            Coding ethnicityCoding = FhirResourceUtil.getCoding(patientDto.getEthnicity(), "", CODING_SYSTEM_ETHNICITY);
+            Extension ethnicityExtension = FhirResourceUtil.createExtension(EXTENSION_URL_ETHNICITY, new CodeableConcept().addCoding(ethnicityCoding));
             extensionList.add(ethnicityExtension);
         }
 
         //us-core-birthsex
         if (patientDto.getBirthSex() != null && !patientDto.getBirthSex().isEmpty()) {
-            Coding birthSexCoding = getCoding(patientDto.getBirthSex(), "", CODING_SYSTEM_BIRTHSEX);
-            Extension birthSexExtension = createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthSexCoding));
+            Coding birthSexCoding = FhirResourceUtil.getCoding(patientDto.getBirthSex(), "", CODING_SYSTEM_BIRTHSEX);
+            Extension birthSexExtension = FhirResourceUtil.createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthSexCoding));
             extensionList.add(birthSexExtension);
         }
 
