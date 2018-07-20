@@ -28,7 +28,7 @@ import java.util.List;
 public class FhirProfileUtil {
 
     public static void setAppointmentProfileMetaData(IGenericClient fhirClient, Appointment appointment) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Appointment.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.Appointment.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             appointment.setMeta(meta);
@@ -36,7 +36,7 @@ public class FhirProfileUtil {
     }
 
     public static void setCareTeamProfileMetaData(IGenericClient fhirClient, CareTeam careTeam) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.CareTeam.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.CareTeam.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             careTeam.setMeta(meta);
@@ -44,7 +44,7 @@ public class FhirProfileUtil {
     }
 
     public static void setRelatedPersonProfileMetaData(IGenericClient fhirClient, RelatedPerson relatedPerson) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.RelatedPerson.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.RelatedPerson.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             relatedPerson.setMeta(meta);
@@ -52,7 +52,7 @@ public class FhirProfileUtil {
     }
 
     public static void setHealthCareServiceProfileMetaData(IGenericClient fhirClient, HealthcareService healthcareService){
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.HealthcareService.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.HealthcareService.toString());
         if(uriList !=null && !uriList.isEmpty()){
             Meta meta = new Meta().setProfile(uriList);
             healthcareService.setMeta(meta);
@@ -60,7 +60,7 @@ public class FhirProfileUtil {
     }
 
     public static void setLocationProfileMetaData(IGenericClient fhirClient, Location fhirLocation) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Location.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.Location.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             fhirLocation.setMeta(meta);
@@ -68,7 +68,7 @@ public class FhirProfileUtil {
     }
 
     public static void setOrganizationProfileMetaData(IGenericClient fhirClient, Organization organization) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Organization.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.Organization.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             organization.setMeta(meta);
@@ -76,7 +76,7 @@ public class FhirProfileUtil {
     }
 
     public static void setActivityDefinitionProfileMetaData(IGenericClient fhirClient, ActivityDefinition activityDefinition) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.ActivityDefinition.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.ActivityDefinition.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             activityDefinition.setMeta(meta);
@@ -84,7 +84,7 @@ public class FhirProfileUtil {
     }
 
     public static void setPractitionerProfileMetaData(IGenericClient fhirClient, Practitioner practitioner) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Practitioner.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.Practitioner.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             practitioner.setMeta(meta);
@@ -92,7 +92,7 @@ public class FhirProfileUtil {
     }
 
     public static void setPractitionerRoleProfileMetaData(IGenericClient fhirClient, PractitionerRole practitionerRole) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.PractitionerRole.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.PractitionerRole.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             practitionerRole.setMeta(meta);
@@ -100,7 +100,7 @@ public class FhirProfileUtil {
     }
 
     public static void setCommunicationProfileMetaData(IGenericClient fhirClient, Communication communication) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Communication.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.Communication.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             communication.setMeta(meta);
@@ -108,7 +108,7 @@ public class FhirProfileUtil {
     }
 
     public static void setTaskProfileMetaData(IGenericClient fhirClient, Task task) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Task.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.Task.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             task.setMeta(meta);
@@ -116,7 +116,7 @@ public class FhirProfileUtil {
     }
 
     public static void setCoverageProfileMetaData(IGenericClient fhirClient, Coverage coverage) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Coverage.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.Coverage.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             coverage.setMeta(meta);
@@ -124,7 +124,7 @@ public class FhirProfileUtil {
     }
 
     public static void setConsentProfileMetaData(IGenericClient fhirClient, Consent consent) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Consent.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.Consent.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             consent.setMeta(meta);
@@ -132,7 +132,7 @@ public class FhirProfileUtil {
     }
 
     public static void setPatientProfileMetaData(IGenericClient fhirClient, Patient patient) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Patient.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.Patient.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             patient.setMeta(meta);
@@ -140,7 +140,7 @@ public class FhirProfileUtil {
     }
 
     public static void setFlagProfileMetaData(IGenericClient fhirClient, Flag flag) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.Flag.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.Flag.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             flag.setMeta(meta);
@@ -148,7 +148,7 @@ public class FhirProfileUtil {
     }
 
     public static void setEpisodeOfCareProfileMetaData(IGenericClient fhirClient, EpisodeOfCare episodeOfCare) {
-        List<UriType> uriList = FhirUtil.getURIList(fhirClient, ResourceType.EpisodeOfCare.toString());
+        List<UriType> uriList = FhirOperationUtil.getURIList(fhirClient, ResourceType.EpisodeOfCare.toString());
         if (uriList != null && !uriList.isEmpty()) {
             Meta meta = new Meta().setProfile(uriList);
             episodeOfCare.setMeta(meta);
