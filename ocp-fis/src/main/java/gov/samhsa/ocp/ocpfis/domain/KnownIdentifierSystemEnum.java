@@ -14,7 +14,7 @@ public enum KnownIdentifierSystemEnum {
     SSN("http://hl7.org/fhir/sid/us-ssn", "2.16.840.1.113883.4.1", "SSN", IdentifierTypeEnum.SB, Optional.empty()),
     MEDICARE_NUMBER("http://hl7.org/fhir/sid/us-medicare", "2.16.840.1.113883.4.572", "Medicare Number", IdentifierTypeEnum.SB, Optional.empty()),
     TAX_ID_INDIVIDUAL("urn:oid:2.16.840.1.113883.4.2", "2.16.840.1.113883.4.2", "Individual Tax ID", IdentifierTypeEnum.TAX, Optional.empty()),
-    Passport("urn:oid:2.16.840.1.113883.4.330", "2.16.840.1.113883.4.330", "Passport Number", IdentifierTypeEnum.PPN, Optional.empty()),
+    PASSPORT("urn:oid:2.16.840.1.113883.4.330", "2.16.840.1.113883.4.330", "Passport Number", IdentifierTypeEnum.PPN, Optional.empty()),
     DL("urn:oid:2.16.840.1.113883.4.3", "2.16.840.1.113883.4.3", "United States Driver License Number", IdentifierTypeEnum.DL, Optional.empty()),
     TAX_ID_ORGANIZATION("urn:oid:2.16.840.1.113883.4.4", "2.16.840.1.113883.4.4", "Organization Tax ID", IdentifierTypeEnum.TAX, Optional.empty()),
     NPI("http://hl7.org/fhir/sid/us-npi", "2.16.840.1.113883.4.6", "NPI", IdentifierTypeEnum.PRN, Optional.empty()),
