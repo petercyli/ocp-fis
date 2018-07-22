@@ -19,7 +19,7 @@ public interface PatientService {
 
     void createPatient(PatientDto patientDto, Optional<String> loggedInUser);
 
-    void updatePatient(PatientDto patientDto);
+    void updatePatient(PatientDto patientDto, Optional<String> loggedInUser);
 
     PatientDto getPatientById(String patientId);
 }

@@ -318,7 +318,9 @@ public class PatientServiceImpl implements PatientService {
 
                 fhirClient.create().resource(task).execute();
 
-                provenanceUtil.createProvenance(ResourceType.Patient.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+                if(fisProperties.isProvenanceEnabled()) {
+                    provenanceUtil.createProvenance(ResourceType.Patient.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+                }
             } else {
                 throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
             }
@@ -329,7 +331,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public void updatePatient(PatientDto patientDto) {
+    public void updatePatient(PatientDto patientDto, Optional<String> loggedInUser) {
         if (!isDuplicateWhileUpdate(patientDto)) {
             //Add mpi to the identifiers
             List<IdentifierDto> identifierDtos=patientDto.getIdentifier();
@@ -399,7 +401,9 @@ public class PatientServiceImpl implements PatientService {
                     }
                 }));
 
-
+                if(fisProperties.isProvenanceEnabled()) {
+                    provenanceUtil.createProvenance(ResourceType.Patient.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+                }
             } else {
                 throw new FHIRFormatErrorException("FHIR Patient Validation is not successful" + validationResult.getMessages());
             }

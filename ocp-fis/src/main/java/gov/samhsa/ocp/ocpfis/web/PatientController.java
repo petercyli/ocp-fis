@@ -56,8 +56,8 @@ public class PatientController {
 
     @PutMapping
     @ResponseStatus(HttpStatus.OK)
-    public void updatePatient(@Valid @RequestBody PatientDto patientDto) {
-        patientService.updatePatient(patientDto);
+    public void updatePatient(@Valid @RequestBody PatientDto patientDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser) {
+        patientService.updatePatient(patientDto, loggedInUser);
         log.info("Patient successfully updated");
     }
 

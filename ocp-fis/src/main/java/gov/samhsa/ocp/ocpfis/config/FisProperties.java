@@ -85,6 +85,9 @@ public class FisProperties {
     @Valid
     private Coverage coverage;
 
+    @NotNull
+    private boolean provenanceEnabled;
+
     @Data
     public static class Fhir {
 
