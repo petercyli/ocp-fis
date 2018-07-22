@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
@@ -7,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameLogicalIdIdentifiersDto;
@@ -17,6 +19,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -47,13 +50,15 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     private final IGenericClient fhirClient;
     private final FhirValidator fhirValidator;
     private final FisProperties fisProperties;
+    private final ProvenanceUtil provenanceUtil;
 
     @Autowired
-    public HealthcareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
+    public HealthcareServiceServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, ProvenanceUtil provenanceUtil) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
@@ -301,7 +306,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     }
 
     @Override
-    public void createHealthcareService(String organizationId, HealthcareServiceDto healthcareServiceDto) {
+    public void createHealthcareService(String organizationId, HealthcareServiceDto healthcareServiceDto, Optional<String> loggedInUser) {
         log.info("Creating Healthcare Service for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate Healthcare Service exists based on the Identifiers provided.");
 
@@ -315,11 +320,16 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         FhirUtil.validateFhirResource(fhirValidator, fhirHealthcareService, Optional.empty(), ResourceType.HealthcareService.name(), "Create Healthcare Service");
 
         //Create
-        FhirUtil.createFhirResource(fhirClient, fhirHealthcareService, ResourceType.HealthcareService.name());
+        MethodOutcome methodOutcome = FhirUtil.createFhirResource(fhirClient, fhirHealthcareService, ResourceType.HealthcareService.name());
+
+        //Provenance
+        if(fisProperties.isProvenanceEnabled()) {
+            provenanceUtil.createProvenance(ResourceType.HealthcareService.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+        }
     }
 
     @Override
-    public void updateHealthcareService(String organizationId, String healthcareServiceId, HealthcareServiceDto healthcareServiceDto) {
+    public void updateHealthcareService(String organizationId, String healthcareServiceId, HealthcareServiceDto healthcareServiceDto, Optional<String> loggedInUser) {
         log.info("Updating healthcareService Id: " + healthcareServiceId + " for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate healthcareService(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateHealthcareServiceBasedOnTypesDuringUpdate(healthcareServiceDto, healthcareServiceId, organizationId);
@@ -349,7 +359,12 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         FhirUtil.validateFhirResource(fhirValidator, existingHealthcareService, Optional.of(healthcareServiceId), ResourceType.HealthcareService.name(), "Update Healthcare Service");
 
         //Update
-        FhirUtil.updateFhirResource(fhirClient, existingHealthcareService, "Update Healthcare Service");
+        MethodOutcome methodOutcome = FhirUtil.updateFhirResource(fhirClient, existingHealthcareService, "Update Healthcare Service");
+
+        //Provenance
+        if(fisProperties.isProvenanceEnabled()) {
+            provenanceUtil.createProvenance(ResourceType.HealthcareService.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+        }
     }
 
     @Override
