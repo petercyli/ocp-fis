@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
@@ -17,6 +18,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
@@ -54,12 +56,15 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     private final FisProperties fisProperties;
 
+    private final ProvenanceUtil provenanceUtil;
+
     @Autowired
-    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
+    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService, ProvenanceUtil provenanceUtil) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
@@ -308,7 +313,7 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     @Override
-    public void createPractitioner(PractitionerDto practitionerDto) {
+    public void createPractitioner(PractitionerDto practitionerDto, Optional<String> loggedInUser) {
         //Check Duplicate Identifier
         //When there is no duplicate identifier, practitioner gets created
         if (!hasDuplicateIdentifier(practitionerDto)) {
@@ -348,13 +353,18 @@ public class PractitionerServiceImpl implements PractitionerService {
                         fhirClient.create().resource(practitionerRole).execute();
                     }
             );
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(ResourceType.Practitioner.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+            }
+
         } else {
             throw new DuplicateResourceFoundException("Practitioner with the same Identifier is already present.");
         }
     }
 
     @Override
-    public void updatePractitioner(String practitionerId, PractitionerDto practitionerDto) {
+    public void updatePractitioner(String practitionerId, PractitionerDto practitionerDto, Optional<String> loggedInUser) {
         Practitioner existingPractitioner = fhirClient.read().resource(Practitioner.class).withId(practitionerId.trim()).execute();
         practitionerDto.setLogicalId(practitionerId.trim());
 
@@ -403,6 +413,11 @@ public class PractitionerServiceImpl implements PractitionerService {
                             FhirUtil.createFhirResource(fhirClient, practitionerRole, ResourceType.PractitionerRole.name());
                     }
             );
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(ResourceType.Practitioner.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+            }
+
         } else {
             throw new DuplicateResourceFoundException("Practitioner with the same Identifier is already present");
         }
