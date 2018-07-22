@@ -9,6 +9,7 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -20,6 +21,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
@@ -50,14 +52,17 @@ public class OrganizationServiceImpl implements OrganizationService {
     private final FisProperties fisProperties;
 
     private final LookUpService lookUpService;
+    private final ProvenanceUtil provenanceUtil;
+
 
     @Autowired
-    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
+    public OrganizationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService, ProvenanceUtil provenanceUtil) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
@@ -206,7 +211,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
 
     @Override
-    public void createOrganization(OrganizationDto organizationDto) {
+    public void createOrganization(OrganizationDto organizationDto, Optional<String> loggedInUser) {
 
         //Check Duplicate Identifier
         int existingNumberOfOrganizations = this.getOrganizationsCountByIdentifier(organizationDto.getIdentifiers().get(0).getSystem(), organizationDto.getIdentifiers().get(0).getValue());
@@ -224,6 +229,11 @@ public class OrganizationServiceImpl implements OrganizationService {
                 log.info("Successfully created a new organization :" + serverResponse.getId().getIdPart());
                 ActivityDefinition activityDefinition = FhirUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(), fisProperties, lookUpService, fhirClient);
                 fhirClient.create().resource(activityDefinition).execute();
+
+                if(fisProperties.isProvenanceEnabled()) {
+                    provenanceUtil.createProvenance(ResourceType.Organization.name() + "/" + serverResponse.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+                }
+
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
@@ -233,7 +243,7 @@ public class OrganizationServiceImpl implements OrganizationService {
     }
 
     @Override
-    public void updateOrganization(String organizationId, OrganizationDto organizationDto) {
+    public void updateOrganization(String organizationId, OrganizationDto organizationDto, Optional<String> loggedInUser) {
         log.info("Updating the Organization with Id:" + organizationId);
 
         Organization existingOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
@@ -251,9 +261,13 @@ public class OrganizationServiceImpl implements OrganizationService {
             if (validationResult.isSuccessful()) {
                 log.info("Update Organization: Validation successful? " + validationResult.isSuccessful() + " for OrganizationID:" + organizationId);
 
-                fhirClient.update().resource(existingOrganization)
-                        .execute();
+                MethodOutcome methodOutcome = fhirClient.update().resource(existingOrganization).execute();
                 log.info("Organization successfully updated");
+
+                if(fisProperties.isProvenanceEnabled()) {
+                    provenanceUtil.createProvenance(ResourceType.Organization.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+                }
+
             } else {
                 throw new FHIRFormatErrorException("FHIR Organization Validation is not successful" + validationResult.getMessages());
             }
