@@ -341,31 +341,6 @@ public class LookUpController {
         return lookUpService.getFlagCategory();
     }
 
-    @GetMapping("/consent-state-codes")
-    public List<ValueSetDto> getConsentStateCodes() {
-        return lookUpService.getConsentStateCodes();
-    }
-
-    @GetMapping("/consent-category")
-    public List<ValueSetDto> getConsentCategory() {
-        return lookUpService.getConsentCategory();
-    }
-
-    @GetMapping("/security-role-type")
-    public List<ValueSetDto> getSecurityRole() {
-        return lookUpService.getSecurityRole();
-    }
-
-    @GetMapping("/consent-action")
-    public List<ValueSetDto> getConsentAction() {
-        return lookUpService.getConsentAction();
-    }
-
-    @GetMapping("/purpose-of-use")
-    public List<ValueSetDto> getPurposeOfUse() {
-        return lookUpService.getPurposeOfUse();
-    }
-
     @GetMapping("/security-label")
     public List<ValueSetDto> getSecurityLabel() {
         return lookUpService.getSecurityLabel();
@@ -387,12 +362,12 @@ public class LookUpController {
     }
 
     @GetMapping("/eoc-status")
-    public List<ValueSetDto> getEocStatus(){
+    public List<ValueSetDto> getEocStatus() {
         return lookUpService.getEocStatus();
     }
 
     @GetMapping("/eoc-type")
-    public List<ValueSetDto> getEocType(){
+    public List<ValueSetDto> getEocType() {
         return lookUpService.getEocType();
     }
 }
