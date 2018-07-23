@@ -59,7 +59,8 @@ import org.springframework.stereotype.Service;
 import java.text.ParseException;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -80,18 +81,18 @@ public class PatientServiceImpl implements PatientService {
     private final FhirValidator fhirValidator;
     private final FisProperties fisProperties;
     private final LookUpService lookUpService;
+    private final CoverageServiceImpl coverageService;
 
-    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
+    @Autowired
+    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService, CoverageServiceImpl coverageService) {
         this.fhirClient = fhirClient;
         this.iParser = iParser;
         this.modelMapper = modelMapper;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
+        this.coverageService = coverageService;
     }
-
-    @Autowired
-    private CoverageServiceImpl coverageService;
 
     @Override
     public List<PatientDto> getPatients() {
@@ -244,9 +245,9 @@ public class PatientServiceImpl implements PatientService {
         }).distinct().collect(toList());
 
         if (types.isEmpty()) {
-            patientDto.setActivityTypes(null);
+            patientDto.setActivityTypes(Optional.empty());
         } else {
-            patientDto.setActivityTypes(Optional.ofNullable(types));
+            patientDto.setActivityTypes(Optional.of(types));
         }
 
         if (patient.getGender() != null)
@@ -272,7 +273,7 @@ public class PatientServiceImpl implements PatientService {
                 patientDto.getIdentifier().add(setUniqueIdentifierForPatient(patientsWithMatchedDuplicateCheckParameters(patientDto).stream()
                         .map(pat -> (Patient) pat.getResource()).findAny().get().getIdentifier().stream()
                         .filter(iden -> iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystem()))
-                        .map(iden -> iden.getValue()).findAny().orElse(generateRandomMrn())));
+                        .map(Identifier::getValue).findAny().orElse(generateRandomMrn())));
             } else {
                 patientDto.getIdentifier().add(setUniqueIdentifierForPatient(generateRandomMrn()));
             }
@@ -539,7 +540,7 @@ public class PatientServiceImpl implements PatientService {
         return patientAndAllReferenceBundle.stream().filter(patientWithAllReference -> patientWithAllReference.getResource().getResourceType().equals(ResourceType.Coverage))
                 .map(coverageBundle -> (Coverage) coverageBundle.getResource())
                 .filter(coverage -> coverage.getBeneficiary().getReference().equalsIgnoreCase("Patient/" + patientId))
-                .map(coverage -> CoverageToCoverageDtoMap.map(coverage))
+                .map(CoverageToCoverageDtoMap::map)
                 .collect(toList());
     }
 
@@ -601,7 +602,7 @@ public class PatientServiceImpl implements PatientService {
         } catch (FHIRException e) {
             throw new BadRequestException("No such fhir status or type exist.");
         }
-        episodeOfCare.setType(Arrays.asList(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(episodeOfCareDto.getType(), lookUpService.getEocType()))));
+        episodeOfCare.setType(Collections.singletonList(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(episodeOfCareDto.getType(), lookUpService.getEocType()))));
         episodeOfCare.setPatient(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getPatient()));
         episodeOfCare.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getManagingOrganization()));
         Period period = new Period();
@@ -696,7 +697,7 @@ public class PatientServiceImpl implements PatientService {
         List<String> getPatientIdFromPatient = FhirOperationUtil.getAllBundleComponentsAsList(bundleFromPatient, Optional.empty(), fhirClient, fisProperties)
                 .stream().map(pat -> {
                     Patient patient = (Patient) pat.getResource();
-                    return patient.getIdElement().getIdPart().toString();
+                    return patient.getIdElement().getIdPart();
                 }).distinct().collect(toList());
 
         //TODO:Remove the bundle after next data purge.
@@ -710,7 +711,7 @@ public class PatientServiceImpl implements PatientService {
             return (episodeOfCare.hasPatient()) ? (episodeOfCare.getPatient().getReference().split("/")[1]) : null;
         }).distinct().collect(toList());
 
-        return Stream.of(getPatientIdFromPatient, getPatientFromEoc).flatMap(id -> id.stream()).distinct().collect(toList());
+        return Stream.of(getPatientIdFromPatient, getPatientFromEoc).flatMap(Collection::stream).distinct().collect(toList());
     }
 
     private List<PatientDto> convertAllBundleToSinglePatientDtoList(Bundle firstPagePatientSearchBundle, int numberOBundlePerPage) {
@@ -728,7 +729,7 @@ public class PatientServiceImpl implements PatientService {
         if (bundleEntryComponents.isEmpty()) {
             return false;
         } else {
-            return !bundleEntryComponents.stream().anyMatch(resource -> {
+            return bundleEntryComponents.stream().noneMatch(resource -> {
                 Patient pRes = (Patient) resource.getResource();
                 return pRes.getIdElement().getIdPart().equalsIgnoreCase(patient.getIdElement().getIdPart());
             });
@@ -760,7 +761,7 @@ public class PatientServiceImpl implements PatientService {
         if (!patientWithDuplicateParameters.isEmpty()) {
             return !patientsWithMatchedDuplicateCheckParameters(patientDto).stream().filter(pat -> {
                 Patient patient = (Patient) pat.getResource();
-                return (patient.hasManagingOrganization()) ? patient.getManagingOrganization().getReference().split("/")[1].equalsIgnoreCase(patientDto.getOrganizationId().get()) : false;
+                return (patient.hasManagingOrganization()) && patient.getManagingOrganization().getReference().split("/")[1].equalsIgnoreCase(patientDto.getOrganizationId().get());
             }).collect(toList()).isEmpty();
         }
         return false;
