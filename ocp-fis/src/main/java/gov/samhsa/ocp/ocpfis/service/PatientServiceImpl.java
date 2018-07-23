@@ -303,7 +303,7 @@ public class PatientServiceImpl implements PatientService {
                 //Set Profile Meta Data
                 FhirProfileUtil.setFlagProfileMetaData(fhirClient, flag);
                 //Validate
-                FhirOperationUtil.validateFhirResource(fhirValidator, flag, Optional.empty(), ResourceType.Flag.name(), "Create Flag");
+                FhirOperationUtil.validateFhirResource(fhirValidator, flag, Optional.empty(), ResourceType.Flag.name(), "Create Flag(When creating Patient)");
                 //Create
                 FhirOperationUtil.createFhirResource(fhirClient, flag, ResourceType.Flag.name());
             }));
@@ -333,7 +333,7 @@ public class PatientServiceImpl implements PatientService {
                     //Set Profile Meta Data
                     FhirProfileUtil.setEpisodeOfCareProfileMetaData(fhirClient, episodeOfCare);
                     //Validate
-                    FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.empty(), ResourceType.EpisodeOfCare.name(), "Create EpisodeOfCare");
+                    FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.empty(), ResourceType.EpisodeOfCare.name(), "Create EpisodeOfCare(When creating Patient)");
                     //Create
                     FhirOperationUtil.createFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
 
@@ -386,12 +386,12 @@ public class PatientServiceImpl implements PatientService {
                     if (flagDto.getLogicalId() != null) {
                         flag.setId(flagDto.getLogicalId());
                         //Validate
-                        FhirOperationUtil.validateFhirResource(fhirValidator, flag, Optional.empty(), ResourceType.Flag.name(), "Update Flag");
+                        FhirOperationUtil.validateFhirResource(fhirValidator, flag, Optional.empty(), ResourceType.Flag.name(), "Update Flag(When updating Patient)");
                         //Update
                         FhirOperationUtil.updateFhirResource(fhirClient, flag, ResourceType.Flag.name());
                     } else {
                         //Validate
-                        FhirOperationUtil.validateFhirResource(fhirValidator, flag, Optional.empty(), ResourceType.Flag.name(), "Create Flag");
+                        FhirOperationUtil.validateFhirResource(fhirValidator, flag, Optional.empty(), ResourceType.Flag.name(), "Create Flag(When updating Patient)");
                         //Create
                         FhirOperationUtil.createFhirResource(fhirClient, flag, ResourceType.Flag.name());
                     }
@@ -417,12 +417,12 @@ public class PatientServiceImpl implements PatientService {
                     if (eoc.getId() != null) {
                         episodeOfCare.setId(eoc.getId());
                         //Validate
-                        FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.of(eoc.getId()), ResourceType.EpisodeOfCare.name(), "Update EpisodeOfCare");
+                        FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.of(eoc.getId()), ResourceType.EpisodeOfCare.name(), "Update EpisodeOfCare(When updating Patient)");
                         //Update
                         FhirOperationUtil.updateFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
                     } else {
                         //Validate
-                        FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.empty(), ResourceType.EpisodeOfCare.name(), "Create EpisodeOfCare");
+                        FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.empty(), ResourceType.EpisodeOfCare.name(), "Create EpisodeOfCare(When updating Patient)");
                         //Create
                         FhirOperationUtil.createFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
                     }
@@ -643,7 +643,7 @@ public class PatientServiceImpl implements PatientService {
         flag.setPeriod(period);
 
         //Set Author
-        if (FhirOperationUtil.isStringNotNullAndNotEmpty(flagDto.getAuthor().getReference())) {
+        if (flagDto.getAuthor() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(flagDto.getAuthor().getReference())) {
             Reference reference = modelMapper.map(flagDto.getAuthor(), Reference.class);
             flag.setAuthor(reference);
         }
