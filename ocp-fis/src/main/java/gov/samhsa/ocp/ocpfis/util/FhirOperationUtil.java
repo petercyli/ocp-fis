@@ -43,23 +43,29 @@ public class FhirOperationUtil {
     public static void validateFhirResource(FhirValidator fhirValidator, DomainResource fhirResource,
                                             Optional<String> fhirResourceId, String fhirResourceName,
                                             String actionAndResourceName) {
-        ValidationResult validationResult = fhirValidator.validateWithResult(fhirResource);
+        try {
+            ValidationResult validationResult = fhirValidator.validateWithResult(fhirResource);
 
-        if (fhirResourceId.isPresent()) {
-            log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful() + " for " + fhirResourceName + " Id: " + fhirResourceId);
-        } else {
-            log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful());
-        }
-
-        if (!validationResult.isSuccessful()) {
-            log.info("Listing the issues found when validating the " + fhirResourceName + "(" + actionAndResourceName + ") :");
-            fhirResourceId.ifPresent(s -> log.info("FHIR Resource ID: " + s));
-            // Show the issues
-            for (SingleValidationMessage next : validationResult.getMessages()) {
-                log.error("Next issue (" + next.getSeverity() + ") - " + next.getLocationString() + " - " + next.getMessage());
+            if (fhirResourceId.isPresent()) {
+                log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful() + " for " + fhirResourceName + " Id: " + fhirResourceId);
+            } else {
+                log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful());
             }
-            throw new FHIRFormatErrorException(fhirResourceName + " validation was not successful" + validationResult.getMessages());
+
+            if (!validationResult.isSuccessful()) {
+                log.info("Listing the issues found when validating the " + fhirResourceName + "(" + actionAndResourceName + ") :");
+                fhirResourceId.ifPresent(s -> log.info("FHIR Resource ID: " + s));
+                // Show the issues
+                for (SingleValidationMessage next : validationResult.getMessages()) {
+                    log.error("Next issue (" + next.getSeverity() + ") - " + next.getLocationString() + " - " + next.getMessage());
+                }
+                throw new FHIRFormatErrorException(fhirResourceName + " validation was not successful" + validationResult.getMessages());
+            }
+        } catch (Exception e) {
+            log.error("Unidentified Exception", e);
+            return;
         }
+
     }
 
     public static MethodOutcome createFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String fhirResourceName) {
