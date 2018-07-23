@@ -17,7 +17,7 @@ security:
      enabled: false
 ocp-fis:
   fhir:
-    serverUrl: http://ocp.consent2share.org/fhir/baseDstu3
+    serverUrl: http://ocpqafhir.consent2share.org/fhir/baseDstu3
     serverSecurityEnabled: false
     clientSocketTimeoutInMs: 768000
     encoding: json
@@ -35,11 +35,6 @@ ocp-fis:
     pagination:
       default-size: 20
   communication:
-    pagination:
-      default-size: 20
-  consent:
-    identifier-system: https://bhits.github.io/consent2share/
-    codeSystem: http://hl7.org/fhir/v3/ActCode
     pagination:
       default-size: 20
   location:
