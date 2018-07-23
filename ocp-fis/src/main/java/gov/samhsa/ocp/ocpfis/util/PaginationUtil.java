@@ -138,10 +138,6 @@ public final class PaginationUtil {
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getCareTeam().getPagination().getMaxSize()).orElse(fisProperties.getCareTeam().getPagination().getDefaultSize());
                 break;
-            case "CONSENT":
-                numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
-                        s <= fisProperties.getConsent().getPagination().getMaxSize()).orElse(fisProperties.getConsent().getPagination().getDefaultSize());
-                break;
             case "LOCATION":
                 numberOfResourcesPerPage = pageSize.filter(s -> s > 0 &&
                         s <= fisProperties.getLocation().getPagination().getMaxSize()).orElse(fisProperties.getLocation().getPagination().getDefaultSize());
