@@ -322,7 +322,7 @@ public class PatientServiceImpl implements PatientService {
             if (patientDto.getEpisodeOfCares() != null && !patientDto.getEpisodeOfCares().isEmpty()) {
                 patientDto.getEpisodeOfCares().forEach(eoc -> {
                     ReferenceDto patientReference = new ReferenceDto();
-                    patientReference.setReference(ResourceType.Patient + "/" + patientDto.getId());
+                    patientReference.setReference(ResourceType.Patient + "/" + methodOutcome.getId().getIdPart());
                     patientDto.getName().stream().findAny().ifPresent(name -> patientReference.setDisplay(name.getFirstName() + " " + name.getLastName()));
                     eoc.setPatient(patientReference);
                     eoc.setManagingOrganization(orgReference(patientDto.getOrganizationId()));
