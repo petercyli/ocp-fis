@@ -51,14 +51,12 @@ import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
-import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
-import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -616,25 +614,6 @@ public class PatientServiceImpl implements PatientService {
         episodeOfCare.setPeriod(period);
         episodeOfCare.setCareManager(FhirDtoUtil.mapReferenceDtoToReference(episodeOfCareDto.getCareManager()));
         return episodeOfCare;
-    }
-
-    private void createEpisodeOfCare(String patientId, PatientDto patientDto) {
-        EpisodeOfCare episodeOfCare = new EpisodeOfCare();
-        episodeOfCare.setStatus(EpisodeOfCare.EpisodeOfCareStatus.ACTIVE);
-        CodeableConcept codeableConcept = new CodeableConcept();
-        codeableConcept.addCoding().setCode(EpisodeofcareType.HACC.toCode())
-                .setDisplay(EpisodeofcareType.HACC.getDisplay())
-                .setSystem(EpisodeofcareType.HACC.getSystem());
-        episodeOfCare.setType(Arrays.asList(codeableConcept));
-        Reference patient = new Reference();
-        patient.setReference("Patient/" + patientId);
-        patientDto.getName().stream().findFirst().ifPresent(name -> patient.setDisplay(name.getFirstName() + " " + name.getLastName()));
-        episodeOfCare.setPatient(patient);
-        episodeOfCare.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(orgReference(patientDto.getOrganizationId())));
-        episodeOfCare.setCareManager(FhirDtoUtil.mapReferenceDtoToReference(pracReference(patientDto.getPractitionerId())));
-        episodeOfCare.getPeriod().setStart(java.sql.Date.valueOf(LocalDate.now()));
-        episodeOfCare.getPeriod().setEnd(java.sql.Date.valueOf(LocalDate.now().plusYears(EPISODE_OF_CARE_END_PERIOD)));
-        fhirClient.create().resource(episodeOfCare).execute();
     }
 
     private Flag convertFlagDtoToFlag(Reference patientId, FlagDto flagDto) {
