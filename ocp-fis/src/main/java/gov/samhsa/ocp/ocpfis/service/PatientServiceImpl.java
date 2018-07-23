@@ -648,9 +648,10 @@ public class PatientServiceImpl implements PatientService {
         flag.setPeriod(period);
 
         //Set Author
-        Reference reference = modelMapper.map(flagDto.getAuthor(), Reference.class);
-        flag.setAuthor(reference);
-
+        if(FhirOperationUtil.isStringNotNullAndNotEmpty(flagDto.getAuthor().getReference())){
+            Reference reference = modelMapper.map(flagDto.getAuthor(), Reference.class);
+            flag.setAuthor(reference);
+        }
         return flag;
     }
 
