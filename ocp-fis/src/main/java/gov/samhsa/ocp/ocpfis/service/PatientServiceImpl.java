@@ -318,6 +318,21 @@ public class PatientServiceImpl implements PatientService {
 
                 fhirClient.create().resource(task).execute();
 
+                if(patientDto.getEpisodeOfCares()!=null && !patientDto.getEpisodeOfCares().isEmpty()){
+                    patientDto.getEpisodeOfCares().forEach(eoc->{
+                        ReferenceDto patientReference=new ReferenceDto();
+                        patientReference.setReference(ResourceType.Patient+"/"+methodOutcome.getId().getIdPart());
+                        patientDto.getName().stream().findAny().ifPresent(name->patientReference.setDisplay(name.getFirstName()+" "+name.getLastName()));
+                        eoc.setPatient(patientReference);
+                        eoc.setManagingOrganization(orgReference(patientDto.getOrganizationId()));
+                        if(eoc.getCareManager()==null) {
+                            eoc.setCareManager(pracReference(patientDto.getPractitionerId()));
+                        }
+                        EpisodeOfCare episodeOfCare = convertEpisodeOfCareDtoToEpisodeOfCare(eoc);
+                        fhirClient.create().resource(episodeOfCare).execute();
+                    });
+                }
+
                 if(fisProperties.isProvenanceEnabled()) {
                     provenanceUtil.createProvenance(ResourceType.Patient.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
                 }
