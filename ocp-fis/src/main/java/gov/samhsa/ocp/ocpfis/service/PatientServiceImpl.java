@@ -9,6 +9,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
+import gov.samhsa.ocp.ocpfis.domain.StructureDefinitionEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CoverageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
@@ -72,14 +73,6 @@ import static java.util.stream.Collectors.toList;
 @Slf4j
 public class PatientServiceImpl implements PatientService {
 
-    public static final String CODING_SYSTEM_LANGUAGE = "http://hl7.org/fhir/ValueSet/languages";
-    public static final String EXTENSION_URL_LANGUAGE = "http://hl7.org/fhir/us/core/ValueSet/simple-language";
-    public static final String CODING_SYSTEM_RACE = "http://hl7.org/fhir/v3/Race";
-    public static final String EXTENSION_URL_RACE = "http://hl7.org/fhir/StructureDefinition/us-core-race";
-    public static final String CODING_SYSTEM_ETHNICITY = "http://hl7.org/fhir/v3/Ethnicity";
-    public static final String EXTENSION_URL_ETHNICITY = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity";
-    public static final String CODING_SYSTEM_BIRTHSEX = "http://hl7.org/fhir/v3/AdministrativeGender";
-    public static final String EXTENSION_URL_BIRTHSEX = "http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex";
     public static final String TO_DO = "To-Do";
     public static final int EPISODE_OF_CARE_END_PERIOD = 1;
 
@@ -535,29 +528,29 @@ public class PatientServiceImpl implements PatientService {
 
         //language
         if (patientDto.getLanguage() != null && !patientDto.getLanguage().isEmpty()) {
-            Coding langCoding = FhirResourceUtil.getCoding(patientDto.getLanguage(), "", CODING_SYSTEM_LANGUAGE);
-            Extension langExtension = FhirResourceUtil.createExtension(EXTENSION_URL_LANGUAGE, new CodeableConcept().addCoding(langCoding));
+            Coding langCoding = FhirResourceUtil.getCoding(patientDto.getLanguage(), "", StructureDefinitionEnum.LANGUAGES.getUrl());
+            Extension langExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_SIMPLE_LANGUAGE.getUrl(), new CodeableConcept().addCoding(langCoding));
             extensionList.add(langExtension);
         }
 
         //race
         if (patientDto.getRace() != null && !patientDto.getRace().isEmpty()) {
-            Coding raceCoding = FhirResourceUtil.getCoding(patientDto.getRace(), "", CODING_SYSTEM_RACE);
-            Extension raceExtension = FhirResourceUtil.createExtension(EXTENSION_URL_RACE, new CodeableConcept().addCoding(raceCoding));
+            Coding raceCoding = FhirResourceUtil.getCoding(patientDto.getRace(), "", StructureDefinitionEnum.RACE.getUrl());
+            Extension raceExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_RACE.getUrl(), new CodeableConcept().addCoding(raceCoding));
             extensionList.add(raceExtension);
         }
 
         //ethnicity
         if (patientDto.getEthnicity() != null && !patientDto.getEthnicity().isEmpty()) {
-            Coding ethnicityCoding = FhirResourceUtil.getCoding(patientDto.getEthnicity(), "", CODING_SYSTEM_ETHNICITY);
-            Extension ethnicityExtension = FhirResourceUtil.createExtension(EXTENSION_URL_ETHNICITY, new CodeableConcept().addCoding(ethnicityCoding));
+            Coding ethnicityCoding = FhirResourceUtil.getCoding(patientDto.getEthnicity(), "", StructureDefinitionEnum.ETHNICITY.getUrl());
+            Extension ethnicityExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_ETHNICITY.getUrl(), new CodeableConcept().addCoding(ethnicityCoding));
             extensionList.add(ethnicityExtension);
         }
 
         //us-core-birthsex
         if (patientDto.getBirthSex() != null && !patientDto.getBirthSex().isEmpty()) {
-            Coding birthSexCoding = FhirResourceUtil.getCoding(patientDto.getBirthSex(), "", CODING_SYSTEM_BIRTHSEX);
-            Extension birthSexExtension = FhirResourceUtil.createExtension(EXTENSION_URL_BIRTHSEX, new CodeableConcept().addCoding(birthSexCoding));
+            Coding birthSexCoding = FhirResourceUtil.getCoding(patientDto.getBirthSex(), "", StructureDefinitionEnum.ADMINISTRATIVE_GENDER.getUrl());
+            Extension birthSexExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_BIRTHSEX.getUrl(), new CodeableConcept().addCoding(birthSexCoding));
             extensionList.add(birthSexExtension);
         }
 
@@ -569,13 +562,13 @@ public class PatientServiceImpl implements PatientService {
 
         extensionList.stream().map(extension -> (CodeableConcept) extension.getValue())
                 .forEach(codeableConcept -> codeableConcept.getCoding().stream().findFirst().ifPresent(coding -> {
-                    if (coding.getSystem().contains(CODING_SYSTEM_RACE)) {
+                    if (coding.getSystem().contains(StructureDefinitionEnum.RACE.getUrl())) {
                         patientDto.setRace(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreRace()).getCode());
-                    } else if (coding.getSystem().contains(CODING_SYSTEM_LANGUAGE)) {
+                    } else if (coding.getSystem().contains(StructureDefinitionEnum.LANGUAGES.getUrl())) {
                         patientDto.setLanguage(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getLanguages()).getCode());
-                    } else if (coding.getSystem().contains(CODING_SYSTEM_ETHNICITY)) {
+                    } else if (coding.getSystem().contains(StructureDefinitionEnum.ETHNICITY.getUrl())) {
                         patientDto.setEthnicity(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreEthnicity()).getCode());
-                    } else if (coding.getSystem().contains(CODING_SYSTEM_BIRTHSEX)) {
+                    } else if (coding.getSystem().contains(StructureDefinitionEnum.ADMINISTRATIVE_GENDER.getUrl())) {
                         patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreBirthSex()).getCode());
                     }
                 }));
