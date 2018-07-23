@@ -775,62 +775,6 @@ public class LookUpServiceImpl implements LookUpService {
     }
 
     @Override
-    public List<ValueSetDto> getConsentStateCodes() {
-        List<ValueSetDto> consentStateCodeList = new ArrayList<>();
-        ValueSet response = getValueSets(LookupPathUrls.CONSENT_STATE_CODE.getUrlPath(), LookupPathUrls.CONSENT_STATE_CODE.getType());
-        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.CONSENT_STATE_CODE.getType())) {
-            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            consentStateCodeList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        }
-        log.info("Found " + consentStateCodeList.size() + " consent statuses.");
-        return consentStateCodeList;
-    }
-
-    @Override
-    public List<ValueSetDto> getConsentCategory() {
-        List<ValueSetDto> consentCategoryList = new ArrayList<>();
-        ValueSet response = getValueSets(LookupPathUrls.CONSENT_CATEGORY.getUrlPath(), LookupPathUrls.CONSENT_CATEGORY.getType());
-        List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(2).getConcept();
-        consentCategoryList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + consentCategoryList.size() + " consent category.");
-        return consentCategoryList;
-    }
-
-    @Override
-    public List<ValueSetDto> getSecurityRole() {
-        List<ValueSetDto> securityRoleList = new ArrayList<>();
-        ValueSet response = getValueSets(LookupPathUrls.CONSENT_SECURITY_ROLE.getUrlPath(), LookupPathUrls.CONSENT_SECURITY_ROLE.getType());
-        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.CONSENT_SECURITY_ROLE.getType())) {
-            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            securityRoleList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        }
-        log.info("Found " + securityRoleList.size() + " security role.");
-        return securityRoleList;
-    }
-
-    @Override
-    public List<ValueSetDto> getConsentAction() {
-        List<ValueSetDto> consentActionList = new ArrayList<>();
-        ValueSet response = getValueSets(LookupPathUrls.CONSENT_ACTION.getUrlPath(), LookupPathUrls.CONSENT_ACTION.getType());
-        if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.CONSENT_ACTION.getType())) {
-            List<ValueSet.ValueSetExpansionContainsComponent> valueSetList = response.getExpansion().getContains();
-            consentActionList = valueSetList.stream().map(LookUpUtil::convertExpansionComponentToValueSetDto).collect(Collectors.toList());
-        }
-        log.info("Found " + consentActionList.size() + " consent Action.");
-        return consentActionList;
-    }
-
-    @Override
-    public List<ValueSetDto> getPurposeOfUse() {
-        List<ValueSetDto> purposeOfUseList;
-        ValueSet response = getValueSets(LookupPathUrls.PURPOSE_OF_USE.getUrlPath(), LookupPathUrls.PURPOSE_OF_USE.getType());
-        List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-        purposeOfUseList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
-        log.info("Found " + purposeOfUseList.size() + " security labels.");
-        return purposeOfUseList;
-    }
-
-    @Override
     public List<ValueSetDto> getSecurityLabel() {
         List<ValueSetDto> securityLabelList;
         ValueSet response = getValueSets(LookupPathUrls.SECURITY_LABEL.getUrlPath(), LookupPathUrls.SECURITY_LABEL.getType());
