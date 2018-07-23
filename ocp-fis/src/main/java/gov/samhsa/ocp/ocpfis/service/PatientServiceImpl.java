@@ -319,6 +319,28 @@ public class PatientServiceImpl implements PatientService {
             //Create
             FhirOperationUtil.createFhirResource(fhirClient, task, ResourceType.Task.name());
 
+            //Create EpisodeOfCare
+            if (patientDto.getEpisodeOfCares() != null && !patientDto.getEpisodeOfCares().isEmpty()) {
+                patientDto.getEpisodeOfCares().forEach(eoc -> {
+                    ReferenceDto patientReference = new ReferenceDto();
+                    patientReference.setReference(ResourceType.Patient + "/" + patientDto.getId());
+                    patientDto.getName().stream().findAny().ifPresent(name -> patientReference.setDisplay(name.getFirstName() + " " + name.getLastName()));
+                    eoc.setPatient(patientReference);
+                    eoc.setManagingOrganization(orgReference(patientDto.getOrganizationId()));
+                    if (eoc.getCareManager() == null) {
+                        eoc.setCareManager(pracReference(patientDto.getPractitionerId()));
+                    }
+                    EpisodeOfCare episodeOfCare = convertEpisodeOfCareDtoToEpisodeOfCare(eoc);
+                    //Set Profile Meta Data
+                    FhirProfileUtil.setEpisodeOfCareProfileMetaData(fhirClient, episodeOfCare);
+                    //Validate
+                    FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.empty(), ResourceType.EpisodeOfCare.name(), "Create EpisodeOfCare");
+                    //Create
+                    FhirOperationUtil.createFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
+
+                });
+            }
+
         } else {
             log.info("Patient already exists with the given identifier system and value");
             throw new DuplicateResourceFoundException("Patient already exists with the given identifier system and value");
@@ -641,7 +663,7 @@ public class PatientServiceImpl implements PatientService {
         flag.setPeriod(period);
 
         //Set Author
-        if(FhirOperationUtil.isStringNotNullAndNotEmpty(flagDto.getAuthor().getReference())){
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(flagDto.getAuthor().getReference())) {
             Reference reference = modelMapper.map(flagDto.getAuthor(), Reference.class);
             flag.setAuthor(reference);
         }
