@@ -7,27 +7,18 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
-import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
-import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.mapping.EpisodeOfCareToEpisodeOfCareDtoMapper;
-import gov.samhsa.ocp.ocpfis.util.DateUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
-import org.hl7.fhir.dstu3.model.Period;
-import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,7 +48,7 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
         IQuery iQuery = fhirClient.search().forResource(EpisodeOfCare.class).where(new ReferenceClientParam("patient").hasId("Patient/" + patient));
 
         //Set Sort order
-        iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
+        iQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(iQuery, true);
 
         if (status.isPresent()) {
             iQuery.where(new TokenClientParam("status").exactly().code(status.get().trim()));
@@ -71,7 +62,7 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
             if (eocCompoents != null) {
                 episodeOfCareDtos = eocCompoents.stream()
                         .map(it -> (EpisodeOfCare) it.getResource())
-                        .map(it -> EpisodeOfCareToEpisodeOfCareDtoMapper.map(it,lookUpService))
+                        .map(it -> EpisodeOfCareToEpisodeOfCareDtoMapper.map(it, lookUpService))
                         .collect(toList());
             }
         }
@@ -91,7 +82,7 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
             iQuery.where(new ReferenceClientParam("patient").hasId(patient));
 
         //Set Sort order
-        iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
+        iQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(iQuery, true);
 
         Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
@@ -102,13 +93,13 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
                 referenceDtos = eocComponents.stream()
                         .map(it -> (EpisodeOfCare) it.getResource())
                         .map(it -> {
-                            ReferenceDto referenceDto=new ReferenceDto();
-                            referenceDto.setReference("EpisodeOfCare/"+it.getIdElement().getIdPart());
-                            Patient p=fhirClient.read().resource(Patient.class).withId(patient).execute();
-                            String name=p.getName().stream().findAny().get().getGiven().stream().findAny().get()+p.getName().stream().findAny().get().getFamily();
-                            Organization org=fhirClient.read().resource(Organization.class).withId(it.getManagingOrganization().getReference().split("/")[1]).execute();
-                            String orgName=org.getName();
-                            referenceDto.setDisplay(name+"-"+orgName);
+                            ReferenceDto referenceDto = new ReferenceDto();
+                            referenceDto.setReference("EpisodeOfCare/" + it.getIdElement().getIdPart());
+                            Patient p = fhirClient.read().resource(Patient.class).withId(patient).execute();
+                            String name = p.getName().stream().findAny().get().getGiven().stream().findAny().get() + p.getName().stream().findAny().get().getFamily();
+                            Organization org = fhirClient.read().resource(Organization.class).withId(it.getManagingOrganization().getReference().split("/")[1]).execute();
+                            String orgName = org.getName();
+                            referenceDto.setDisplay(name + "-" + orgName);
                             return referenceDto;
                         })
                         .collect(toList());
@@ -118,8 +109,6 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
         return referenceDtos;
 
     }
-
-
 
 
 }

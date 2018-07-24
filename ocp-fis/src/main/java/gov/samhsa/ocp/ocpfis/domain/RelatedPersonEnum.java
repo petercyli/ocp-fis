@@ -3,7 +3,7 @@ package gov.samhsa.ocp.ocpfis.domain;
 public enum RelatedPersonEnum {
 
     IDENTIFIER_TYPE("identifierType"),
-    IDENTIFIER_VALUE("identiferValue");
+    IDENTIFIER_VALUE("identifierValue");
 
     private final String code;
 

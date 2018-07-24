@@ -21,7 +21,8 @@ import gov.samhsa.ocp.ocpfis.service.mapping.CareTeamToCareTeamDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AppointmentDtoToAppointmentConverter;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Appointment;
@@ -85,10 +86,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, true, Optional.empty());
         //Set created Date
         appointment.setCreated(new Date());
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
         //Validate
-        FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.empty(), ResourceType.Appointment.name(), "Create Appointment");
+        FhirOperationUtil.validateFhirResource(fhirValidator, appointment, Optional.empty(), ResourceType.Appointment.name(), "Create Appointment");
         //Create
-        FhirUtil.createFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
+        FhirOperationUtil.createFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
 
     }
 
@@ -97,12 +100,18 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("Updating appointmentId: " + appointmentId);
         //Validate if the request body has all the mandatory fields
         validateAppointDtoFromRequest(appointmentDto);
+
         //Map
         final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false, Optional.of(appointmentId));
-        //Validate
-        FhirUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Update Appointment");
+
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
+
+        // Validate
+        FhirOperationUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Update Appointment");
+
         //Update
-        FhirUtil.updateFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
+        FhirOperationUtil.updateFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
     }
 
     @Override
@@ -110,7 +119,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<ReferenceDto> participantsByRoles = new ArrayList<>();
         List<ParticipantReferenceDto> participantsSelected = new ArrayList<>();
 
-        Bundle careTeamBundle = (Bundle) FhirUtil.searchNoCache(fhirClient, CareTeam.class, Optional.empty())
+        Bundle careTeamBundle = (Bundle) FhirOperationUtil.searchNoCache(fhirClient, CareTeam.class, Optional.empty())
                 .where(new ReferenceClientParam("patient").hasId(patientId.trim()))
                 .include(CareTeam.INCLUDE_PARTICIPANT)
                 .returnBundle(Bundle.class).execute();
@@ -155,7 +164,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     public AppointmentDto getAppointmentById(String appointmentId) {
         log.info("Searching for appointmentId: " + appointmentId);
 
-        Bundle appointmentBundle = (Bundle) FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty())
+        Bundle appointmentBundle = (Bundle) FhirOperationUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty())
                 .where(new TokenClientParam("_id").exactly().code(appointmentId.trim()))
                 .returnBundle(Bundle.class)
                 .execute();
@@ -188,7 +197,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Bundle otherPageAppointmentBundle;
         boolean firstPage = true;
 
-        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
+        IQuery iQuery = FhirOperationUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
 
         if (patientId.isPresent()) {
             log.info("Searching Appointments for patientId = " + patientId.get().trim());
@@ -237,7 +246,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     @Override
     public List<AppointmentDto> getAppointmentsWithNoPagination(Optional<List<String>> statusList, Optional<String> patientId, Optional<String> practitionerId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showPastAppointments, Optional<Boolean> sortByStartTimeAsc) {
-        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
+        IQuery iQuery = FhirOperationUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
 
         if (patientId.isPresent()) {
             log.info("Searching Appointments for patientId = " + patientId.get().trim());
@@ -261,7 +270,7 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
-        List<Bundle.BundleEntryComponent> retrievedAppointments = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> retrievedAppointments = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
         log.info("Found " + bundle.getTotal() + " appointments during search(getAppointmentsWithNoPagination).");
         return retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
@@ -275,13 +284,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         Bundle otherPageAppointmentBundle;
         boolean firstPage = true;
 
-        IQuery iQuery = FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
+        IQuery iQuery = FhirOperationUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
 
         // Find all patients who have made the given Practitioner Id as their Care Team member
         List<PatientDto> assignedPatients = patientService.getPatientsByPractitioner(Optional.of(practitionerId.trim()), Optional.empty(), Optional.empty());
         Set<String> patientIds = getPatientIdSet(assignedPatients);
 
-        if(patientIds!= null && !patientIds.isEmpty()){
+        if (patientIds != null && !patientIds.isEmpty()) {
             log.info("Searching for Patients assigned/belonging to Practitioner Id :" + practitionerId);
             log.info("Number of Patients assigned/belonging to Practitioner Id (" + practitionerId + ") = " + patientIds.size());
             patientIds.add(practitionerId);
@@ -336,8 +345,15 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment appointment = fhirClient.read().resource(Appointment.class).withId(appointmentId.trim()).execute();
         //Cancel
         appointment.setStatus(Appointment.AppointmentStatus.CANCELLED);
+
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
+
+        //Validate
+        FhirOperationUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Cancel Appointment");
+
         //Update the resource
-        FhirUtil.updateFhirResource(fhirClient, appointment, "Cancel Appointment");
+        FhirOperationUtil.updateFhirResource(fhirClient, appointment, "Cancel Appointment");
     }
 
     @Override
@@ -346,8 +362,15 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Accept
         appointment = setParticipantAction(appointment, actorReference, "ACCEPT");
         appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
+
+        //Validate
+        FhirOperationUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Accept Appointment");
+
         //Update the resource
-        FhirUtil.updateFhirResource(fhirClient, appointment, "Accept Appointment");
+        FhirOperationUtil.updateFhirResource(fhirClient, appointment, "Accept Appointment");
     }
 
     @Override
@@ -356,8 +379,15 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Decline
         appointment = setParticipantAction(appointment, actorReference, "DECLINE");
         appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
+
+        //Validate
+        FhirOperationUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Decline Appointment");
+
         //Update the resource
-        FhirUtil.updateFhirResource(fhirClient, appointment, "Decline Appointment");
+        FhirOperationUtil.updateFhirResource(fhirClient, appointment, "Decline Appointment");
     }
 
     @Override
@@ -366,8 +396,15 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Tentatively Accept
         appointment = setParticipantAction(appointment, actorReference, "TENTATIVE");
         appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+
+        //Set Profile Meta Data
+        FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
+
+        //Validate
+        FhirOperationUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Tentatively Accept Appointment");
+
         //Update the resource
-        FhirUtil.updateFhirResource(fhirClient, appointment, "TentativelyAccept Appointment");
+        FhirOperationUtil.updateFhirResource(fhirClient, appointment, "TentativelyAccept Appointment");
     }
 
 
@@ -473,7 +510,11 @@ public class AppointmentServiceImpl implements AppointmentService {
             throw new PreconditionFailedException("AppointmentDto is NULL!!");
         }
 
-        if (FhirUtil.isStringNullOrEmpty(appointmentDto.getTypeCode())) {
+        if (FhirOperationUtil.isStringNullOrEmpty(appointmentDto.getDescription())) {
+            missingFields = missingFields + "description, ";
+        }
+
+        if (FhirOperationUtil.isStringNullOrEmpty(appointmentDto.getTypeCode())) {
             missingFields = missingFields + "typeCode, ";
         }
 
@@ -502,7 +543,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private List<String> getParticipantsByPatientAndAppointmentId(String patientId, String appointmentId) {
         List<String> participantIds = new ArrayList<>();
 
-        Bundle bundle = (Bundle) FhirUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty())
+        Bundle bundle = (Bundle) FhirOperationUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty())
                 .where(new ReferenceClientParam("patient").hasId(patientId))
                 .where(new TokenClientParam("_id").exactly().code(appointmentId))
                 .include(Appointment.INCLUDE_PATIENT)
@@ -568,8 +609,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         return apt;
     }
 
-    private Set<String> getPatientIdSet(List<PatientDto> patientDtoList){
-        if(patientDtoList != null && !patientDtoList.isEmpty()){
+    private Set<String> getPatientIdSet(List<PatientDto> patientDtoList) {
+        if (patientDtoList != null && !patientDtoList.isEmpty()) {
             return patientDtoList.stream().map(PatientDto::getId).collect(Collectors.toSet());
         }
         return null;
