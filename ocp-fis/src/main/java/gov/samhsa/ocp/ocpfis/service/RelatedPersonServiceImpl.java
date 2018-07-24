@@ -1,11 +1,13 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
@@ -17,6 +19,7 @@ import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.RelatedPersonDtoToRe
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -39,12 +42,14 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     private final IGenericClient fhirClient;
     private final FhirValidator fhirValidator;
     private final FisProperties fisProperties;
+    private final ProvenanceUtil provenanceUtil;
 
     @Autowired
-    public RelatedPersonServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
+    public RelatedPersonServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, ProvenanceUtil provenanceUtil) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
@@ -117,7 +122,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     @Override
-    public void createRelatedPerson(RelatedPersonDto relatedPersonDto) {
+    public void createRelatedPerson(RelatedPersonDto relatedPersonDto, Optional<String> loggedInUser) {
         checkForDuplicates(relatedPersonDto, relatedPersonDto.getPatient());
         try {
             final RelatedPerson relatedPerson = RelatedPersonDtoToRelatedPersonConverter.map(relatedPersonDto);
@@ -129,7 +134,11 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
             FhirOperationUtil.validateFhirResource(fhirValidator, relatedPerson, Optional.empty(), ResourceType.RelatedPerson.name(), "Create RelatedPerson");
 
             //Create
-            FhirOperationUtil.createFhirResource(fhirClient, relatedPerson, ResourceType.RelatedPerson.name());
+            MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, relatedPerson, ResourceType.RelatedPerson.name());
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(ResourceType.RelatedPerson.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+            }
 
         } catch (ParseException e) {
 
@@ -139,7 +148,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     @Override
-    public void updateRelatedPerson(String relatedPersonId, RelatedPersonDto relatedPersonDto) {
+    public void updateRelatedPerson(String relatedPersonId, RelatedPersonDto relatedPersonDto, Optional<String> loggedInUser) {
         relatedPersonDto.setRelatedPersonId(relatedPersonId);
         try {
             final RelatedPerson relatedPerson = RelatedPersonDtoToRelatedPersonConverter.map(relatedPersonDto);
@@ -151,7 +160,11 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
             FhirOperationUtil.validateFhirResource(fhirValidator, relatedPerson, Optional.of(relatedPersonId), ResourceType.RelatedPerson.name(), "Update RelatedPerson");
 
             //Update the resource
-            FhirOperationUtil.updateFhirResource(fhirClient, relatedPerson, "Update RelatedPerson");
+            MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, relatedPerson, "Update RelatedPerson");
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(ResourceType.RelatedPerson.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+            }
 
         } catch (ParseException e) {
 

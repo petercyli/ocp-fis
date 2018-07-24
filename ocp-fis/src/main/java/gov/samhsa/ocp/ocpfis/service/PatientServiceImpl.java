@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.domain.StructureDefinitionEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CoverageDto;
@@ -31,6 +32,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.RandomStringUtils;
@@ -82,9 +84,9 @@ public class PatientServiceImpl implements PatientService {
     private final FisProperties fisProperties;
     private final LookUpService lookUpService;
     private final CoverageServiceImpl coverageService;
+    private final ProvenanceUtil provenanceUtil;
 
-    @Autowired
-    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService, CoverageServiceImpl coverageService) {
+    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService, ProvenanceUtil provenanceUtil, CoverageServiceImpl coverageService) {
         this.fhirClient = fhirClient;
         this.iParser = iParser;
         this.modelMapper = modelMapper;
@@ -92,7 +94,9 @@ public class PatientServiceImpl implements PatientService {
         this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
         this.coverageService = coverageService;
+        this.provenanceUtil = provenanceUtil;
     }
+
 
     @Override
     public List<PatientDto> getPatients() {
@@ -266,8 +270,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public void createPatient(PatientDto patientDto) {
-
+    public void createPatient(PatientDto patientDto, Optional<String> loggedInUser) {
         if (!checkDuplicatePatientOfSameOrganization(patientDto)) {
             if (checkDuplicateInFhir(patientDto)) {
                 patientDto.getIdentifier().add(setUniqueIdentifierForPatient(patientsWithMatchedDuplicateCheckParameters(patientDto).stream()
@@ -340,6 +343,10 @@ public class PatientServiceImpl implements PatientService {
                 });
             }
 
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(ResourceType.Patient.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+            }
+
         } else {
             log.info("Patient already exists with the given identifier system and value");
             throw new DuplicateResourceFoundException("Patient already exists with the given identifier system and value");
@@ -347,7 +354,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public void updatePatient(PatientDto patientDto) {
+    public void updatePatient(PatientDto patientDto, Optional<String> loggedInUser) {
         if (!isDuplicateWhileUpdate(patientDto)) {
             //Add mpi to the identifiers
             List<IdentifierDto> identifierDtos = patientDto.getIdentifier();
@@ -437,6 +444,10 @@ public class PatientServiceImpl implements PatientService {
                     coverageService.createCoverage(coverageDto);
                 }
             }));
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(ResourceType.Patient.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+            }
 
         } else {
             throw new DuplicateResourceFoundException("Patient already exists with the given identifier system and value.");

@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
@@ -8,6 +9,7 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
@@ -20,6 +22,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -57,13 +60,16 @@ public class LocationServiceImpl implements LocationService {
 
     private final FisProperties fisProperties;
 
+    private final ProvenanceUtil provenanceUtil;
+
     @Autowired
-    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
+    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, ProvenanceUtil provenanceUtil) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
@@ -179,7 +185,7 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
-    public void createLocation(String organizationId, LocationDto locationDto) {
+    public void createLocation(String organizationId, LocationDto locationDto, Optional<String> loggedInUser) {
         log.info("Creating location for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
 
@@ -202,11 +208,15 @@ public class LocationServiceImpl implements LocationService {
         FhirOperationUtil.validateFhirResource(fhirValidator, fhirLocation, Optional.empty(), ResourceType.Location.name(), "Create Location");
 
         //Create
-        FhirOperationUtil.createFhirResource(fhirClient, fhirLocation, ResourceType.Location.name());
+        MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, fhirLocation, ResourceType.Location.name());
+
+        if(fisProperties.isProvenanceEnabled()) {
+            provenanceUtil.createProvenance(ResourceType.Location.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+        }
     }
 
     @Override
-    public void updateLocation(String organizationId, String locationId, LocationDto locationDto) {
+    public void updateLocation(String organizationId, String locationId, LocationDto locationDto, Optional<String> loggedInUser) {
         log.info("Updating location Id: " + locationId + " for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateLocationBasedOnOrganizationTaxId(organizationId, locationDto);
@@ -237,7 +247,11 @@ public class LocationServiceImpl implements LocationService {
         FhirOperationUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Update Location");
 
         //Update
-        FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Update Location");
+        MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Update Location");
+
+        if(fisProperties.isProvenanceEnabled()) {
+            provenanceUtil.createProvenance(ResourceType.Location.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+        }
     }
 
     @Override
