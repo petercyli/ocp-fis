@@ -2,7 +2,8 @@ package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import org.hl7.fhir.dstu3.model.Address;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -25,71 +26,90 @@ public class RelatedPersonDtoToRelatedPersonConverter {
         RelatedPerson relatedPerson = new RelatedPerson();
 
         //id
-        relatedPerson.setId(relatedPersonDto.getRelatedPersonId());
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getRelatedPersonId())) {
+            relatedPerson.setId(relatedPersonDto.getRelatedPersonId());
+        }
 
         //identifier
-        Identifier identifier = new Identifier();
-        identifier.setSystem(relatedPersonDto.getIdentifierType());
-        identifier.setValue(relatedPersonDto.getIdentifierValue());
-        relatedPerson.setIdentifier(Collections.singletonList(identifier));
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getIdentifierType()) && FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getIdentifierValue())) {
+            Identifier identifier = new Identifier();
+            identifier.setSystem(relatedPersonDto.getIdentifierType());
+            identifier.setValue(relatedPersonDto.getIdentifierValue());
+            relatedPerson.setIdentifier(Collections.singletonList(identifier));
+        }
 
         //active
         relatedPerson.setActive(relatedPersonDto.isActive());
 
         //patient
-        relatedPerson.getPatient().setReference("Patient/" + relatedPersonDto.getPatient());
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getPatient())) {
+            relatedPerson.getPatient().setReference("Patient/" + relatedPersonDto.getPatient());
+        }
 
         //relationship
-        Coding codingRelationship = new Coding();
-        codingRelationship.setCode(relatedPersonDto.getRelationshipCode());
-        codingRelationship.setDisplay(relatedPersonDto.getRelationshipValue());
-        CodeableConcept codeableConceptRelationship = new CodeableConcept().addCoding(codingRelationship);
-        relatedPerson.setRelationship(codeableConceptRelationship);
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getRelationshipCode()) && FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getRelationshipValue())) {
+            Coding codingRelationship = new Coding();
+            codingRelationship.setCode(relatedPersonDto.getRelationshipCode());
+            codingRelationship.setDisplay(relatedPersonDto.getRelationshipValue());
+            CodeableConcept codeableConceptRelationship = new CodeableConcept().addCoding(codingRelationship);
+            relatedPerson.setRelationship(codeableConceptRelationship);
+        }
 
         //name
-        HumanName humanName = new HumanName().addGiven(relatedPersonDto.getFirstName()).setFamily(relatedPersonDto.getLastName());
-        relatedPerson.setName(Collections.singletonList(humanName));
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getFirstName()) && FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getLastName())) {
+            HumanName humanName = new HumanName().addGiven(relatedPersonDto.getFirstName()).setFamily(relatedPersonDto.getLastName());
+            relatedPerson.setName(Collections.singletonList(humanName));
+        }
 
         //telecoms
-        List<ContactPoint> contactPoints = relatedPersonDto.getTelecoms().stream()
-                .map(telecomDto -> {
-                    ContactPoint contactPoint = new ContactPoint();
-                    telecomDto.getSystem().ifPresent(system -> contactPoint.setSystem(ContactPoint.ContactPointSystem.valueOf(system.toUpperCase())));
-                    telecomDto.getValue().ifPresent(contactPoint::setValue);
-                    telecomDto.getUse().ifPresent(user -> contactPoint.setUse(ContactPoint.ContactPointUse.valueOf(user.toUpperCase())));
-                    return contactPoint;
-                })
-                .collect(Collectors.toList());
-        relatedPerson.setTelecom(contactPoints);
+        if (relatedPersonDto.getTelecoms() != null && !relatedPersonDto.getTelecoms().isEmpty()) {
+            List<ContactPoint> contactPoints = relatedPersonDto.getTelecoms().stream()
+                    .map(telecomDto -> {
+                        ContactPoint contactPoint = new ContactPoint();
+                        telecomDto.getSystem().ifPresent(system -> contactPoint.setSystem(ContactPoint.ContactPointSystem.valueOf(system.toUpperCase())));
+                        telecomDto.getValue().ifPresent(contactPoint::setValue);
+                        telecomDto.getUse().ifPresent(user -> contactPoint.setUse(ContactPoint.ContactPointUse.valueOf(user.toUpperCase())));
+                        return contactPoint;
+                    })
+                    .collect(Collectors.toList());
+            relatedPerson.setTelecom(contactPoints);
+        }
 
         //gender
-        Enumerations.AdministrativeGender gender = FhirUtil.getPatientGender(relatedPersonDto.getGenderCode());
-        relatedPerson.setGender(gender);
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getGenderCode())) {
+            Enumerations.AdministrativeGender gender = FhirResourceUtil.getPatientGender(relatedPersonDto.getGenderCode());
+            relatedPerson.setGender(gender);
+        }
 
         //birthdate
-        relatedPerson.setBirthDate(DateUtil.convertStringToDate(relatedPersonDto.getBirthDate()));
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getBirthDate())) {
+            relatedPerson.setBirthDate(DateUtil.convertStringToDate(relatedPersonDto.getBirthDate()));
+        }
 
         //addressess
-        List<Address> addresses = relatedPersonDto.getAddresses().stream()
-                .map(addressDto -> {
-                    Address address = new Address();
-                    address.addLine(addressDto.getLine1());
-                    address.addLine(addressDto.getLine2());
-                    address.setCity(addressDto.getCity());
-                    address.setState(addressDto.getStateCode());
-                    address.setPostalCode(addressDto.getPostalCode());
-                    address.setCountry(addressDto.getCountryCode());
-                    return address;
-                })
-                .collect(Collectors.toList());
-        relatedPerson.setAddress(addresses);
+        if (relatedPersonDto.getAddresses() != null && !relatedPersonDto.getAddresses().isEmpty()) {
+            List<Address> addresses = relatedPersonDto.getAddresses().stream()
+                    .map(addressDto -> {
+                        Address address = new Address();
+                        address.addLine(addressDto.getLine1());
+                        address.addLine(addressDto.getLine2());
+                        address.setCity(addressDto.getCity());
+                        address.setState(addressDto.getStateCode());
+                        address.setPostalCode(addressDto.getPostalCode());
+                        address.setCountry(addressDto.getCountryCode());
+                        return address;
+                    })
+                    .collect(Collectors.toList());
+            relatedPerson.setAddress(addresses);
+        }
 
         //period
-        Period period = new Period();
-        period.setStart(DateUtil.convertStringToDate(relatedPersonDto.getStartDate()));
-        period.setEnd(DateUtil.convertStringToDate(relatedPersonDto.getEndDate()));
-        relatedPerson.setPeriod(period);
-
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getStartDate()) && FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getEndDate())) {
+            Period period = new Period();
+            period.setStart(DateUtil.convertStringToDate(relatedPersonDto.getStartDate()));
+            period.setEnd(DateUtil.convertStringToDate(relatedPersonDto.getEndDate()));
+            relatedPerson.setPeriod(period);
+        }
         return relatedPerson;
     }
 }

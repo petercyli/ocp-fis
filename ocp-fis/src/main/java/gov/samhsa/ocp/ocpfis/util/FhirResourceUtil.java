@@ -1,15 +1,9 @@
 package gov.samhsa.ocp.ocpfis.util;
 
-import ca.uhn.fhir.rest.api.CacheControlDirective;
-import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
-import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
-import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
-import ca.uhn.fhir.validation.FhirValidator;
-import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
@@ -18,8 +12,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
-import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
-import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.IdentifierSystemNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
@@ -28,7 +20,6 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.DomainResource;
 import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Identifier;
@@ -53,13 +44,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 
 @Slf4j
-public class FhirUtil {
+public class FhirResourceUtil {
     public static final int ACTIVITY_DEFINITION_FREQUENCY = 1;
-    public static final int PAGE_NUMBER = 2;
 
     public static final String OID_TEXT = "urn:oid:";
     public static final String URL_TEXT = "http";
@@ -125,71 +114,6 @@ public class FhirUtil {
         return givenString == null || givenString.trim().isEmpty();
     }
 
-    public static void validateFhirResource(FhirValidator fhirValidator, DomainResource fhirResource,
-                                            Optional<String> fhirResourceId, String fhirResourceName,
-                                            String actionAndResourceName) {
-        ValidationResult validationResult = fhirValidator.validateWithResult(fhirResource);
-
-        if (fhirResourceId.isPresent()) {
-            log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful() + " for " + fhirResourceName + " Id: " + fhirResourceId);
-        } else {
-            log.info(actionAndResourceName + " : " + "Validation successful? " + validationResult.isSuccessful());
-        }
-
-        if (!validationResult.isSuccessful()) {
-            throw new FHIRFormatErrorException(fhirResourceName + " validation was not successful" + validationResult.getMessages());
-        }
-    }
-
-    public static MethodOutcome createFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String fhirResourceName) {
-        try {
-            MethodOutcome serverResponse = fhirClient.create().resource(fhirResource).execute();
-            log.info("Created a new " + fhirResourceName + " : " + serverResponse.getId().getIdPart());
-            return serverResponse;
-        } catch (BaseServerResponseException e) {
-            log.error("Could NOT create " + fhirResourceName);
-            throw new FHIRClientException("FHIR Client returned with an error while creating the " + fhirResourceName + " : " + e.getMessage());
-        }
-    }
-
-    public static MethodOutcome updateFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String actionAndResourceName) {
-        try {
-            MethodOutcome serverResponse = fhirClient.update().resource(fhirResource).execute();
-            log.info(actionAndResourceName + " was successful for Id: " + serverResponse.getId().getIdPart());
-            return serverResponse;
-        } catch (BaseServerResponseException e) {
-            log.error("Could NOT " + actionAndResourceName + " with Id: " + fhirResource.getIdElement().getIdPart());
-            throw new FHIRClientException("FHIR Client returned with an error during" + actionAndResourceName + " : " + e.getMessage());
-        }
-    }
-
-    public static IQuery setNoCacheControlDirective(IQuery searchQuery) {
-        final CacheControlDirective cacheControlDirective = new CacheControlDirective();
-        cacheControlDirective.setNoCache(true);
-        searchQuery.cacheControl(cacheControlDirective);
-        return searchQuery;
-    }
-
-    public static IQuery searchNoCache(IGenericClient fhirClient, Class resourceType, Optional<Boolean> sortByLastUpdatedTimeDesc) {
-        IQuery iQuery;
-        if (sortByLastUpdatedTimeDesc.isPresent() && sortByLastUpdatedTimeDesc.get()) {
-            iQuery = fhirClient.search().forResource(resourceType).sort().descending(PARAM_LASTUPDATED);
-        } else {
-            iQuery = fhirClient.search().forResource(resourceType);
-        }
-        return setNoCacheControlDirective(iQuery);
-    }
-
-    public static IQuery setLastUpdatedTimeSortOrder(IQuery searchQuery, Boolean isDescending) {
-        if (isDescending) {
-            searchQuery.sort().descending(PARAM_LASTUPDATED);
-        } else {
-            searchQuery.sort().ascending(PARAM_LASTUPDATED);
-        }
-        return searchQuery;
-    }
-
-
     public static String getRoleFromCodeableConcept(CodeableConcept codeableConcept) {
         Optional<Coding> codingRoleCode = codeableConcept.getCoding().stream().findFirst();
         return codingRoleCode.isPresent() ? codingRoleCode.get().getCode() : "";
@@ -227,6 +151,8 @@ public class FhirUtil {
 
         Timing timing = new Timing();
         timing.getRepeat().setDurationMax(fisProperties.getDefaultMaxDuration());
+        timing.getRepeat().setDuration(fisProperties.getDefaultMaxDuration());
+        timing.getRepeat().setDurationUnit(Timing.UnitsOfTime.D);
         timing.getRepeat().setFrequency(ACTIVITY_DEFINITION_FREQUENCY);
         activityDefinition.setTiming(timing);
 
@@ -297,31 +223,6 @@ public class FhirUtil {
         return referenceDto;
     }
 
-    public static List<Bundle.BundleEntryComponent> getAllBundleComponentsAsList(Bundle bundle, Optional<Integer> countSize, IGenericClient fhirClient, FisProperties fisProperties) {
-        int pageNumber = PAGE_NUMBER;
-        int pageSize = countSize.orElse(fisProperties.getFhir().getDefaultResourceBundlePageSize());
-        Bundle updatedBundle = bundle;
-        List<Bundle.BundleEntryComponent> bundleEntryComponents = new ArrayList<>();
-        if (!bundle.getEntry().isEmpty()) {
-            bundleEntryComponents.addAll(bundle.getEntry());
-
-            while (updatedBundle.getLink(Bundle.LINK_NEXT) != null) {
-                int offset = ((pageNumber >= 1 ? pageNumber : 1) - 1) * pageSize;
-                String pageUrl = fisProperties.getFhir().getServerUrl()
-                        + "?_getpages=" + bundle.getId()
-                        + "&_getpagesoffset=" + offset
-                        + "&_count=" + pageSize
-                        + "&_bundletype=searchset";
-
-                updatedBundle = fhirClient.search().byUrl(pageUrl).returnBundle(Bundle.class).execute();
-                bundleEntryComponents.addAll(updatedBundle.getEntry());
-                pageNumber++;
-            }
-        }
-        return bundleEntryComponents;
-
-    }
-
     public static List<AbstractCareTeamDto> getOrganizationActors(Optional<String> patientId, Optional<String> name, Optional<String> organizationId, Optional<List<String>> careTeams, IGenericClient fhirClient, FisProperties fisProperties) {
         Bundle organizationBundle = fhirClient.search().forResource(Organization.class)
                 .where(new TokenClientParam("_id").exactly().codes(participantIds(organizationId, patientId, careTeams, fhirClient)))
@@ -329,7 +230,7 @@ public class FhirUtil {
                 .returnBundle(Bundle.class)
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
                 .execute();
-        List<Bundle.BundleEntryComponent> organizationBundleEntryList = getAllBundleComponentsAsList(organizationBundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> organizationBundleEntryList = FhirOperationUtil.getAllBundleComponentsAsList(organizationBundle, Optional.empty(), fhirClient, fisProperties);
 
         return organizationBundleEntryList.stream().map(org -> {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
@@ -338,7 +239,7 @@ public class FhirUtil {
             abstractCareTeamDto.setDisplay(organization.getName());
             abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.ORGANIZATION);
             List<IdentifierDto> identifierDtos = organization.getIdentifier().stream()
-                    .map(FhirUtil::entireCovertIdentifierToIdentifierDto)
+                    .map(FhirResourceUtil::entireCovertIdentifierToIdentifierDto)
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 
@@ -375,7 +276,7 @@ public class FhirUtil {
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
                 .execute();
 
-        List<Bundle.BundleEntryComponent> practitionerBundleEntryList = FhirUtil.getAllBundleComponentsAsList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> practitionerBundleEntryList = FhirOperationUtil.getAllBundleComponentsAsList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
 
         return practitionerBundleEntryList.stream().map(pr -> {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
@@ -385,7 +286,7 @@ public class FhirUtil {
 
             abstractCareTeamDto.setCareTeamType(AbstractCareTeamDto.CareTeamType.PRACTITIONER);
             List<IdentifierDto> identifierDtos = practitioner.getIdentifier().stream()
-                    .map(FhirUtil::entireCovertIdentifierToIdentifierDto)
+                    .map(FhirResourceUtil::entireCovertIdentifierToIdentifierDto)
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 
@@ -425,7 +326,7 @@ public class FhirUtil {
                 .elementsSubset("id", "resourceType", "name", "identifier", "telecom", "address")
                 .execute();
 
-        List<Bundle.BundleEntryComponent> relatedPersonBundleEntryList = FhirUtil.getAllBundleComponentsAsList(relatedBundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> relatedPersonBundleEntryList = FhirOperationUtil.getAllBundleComponentsAsList(relatedBundle, Optional.empty(), fhirClient, fisProperties);
 
         return relatedPersonBundleEntryList.stream().map(rp -> {
             AbstractCareTeamDto abstractCareTeamDto = new AbstractCareTeamDto();
@@ -436,7 +337,7 @@ public class FhirUtil {
             relatedPerson.getName().stream().findAny().ifPresent(humanName -> abstractCareTeamDto.setDisplay(humanName.getGiven().stream().findAny().get() + " " + humanName.getFamily()));
 
             List<IdentifierDto> identifierDtos = relatedPerson.getIdentifier().stream()
-                    .map(FhirUtil::entireCovertIdentifierToIdentifierDto)
+                    .map(FhirResourceUtil::entireCovertIdentifierToIdentifierDto)
                     .collect(Collectors.toList());
             abstractCareTeamDto.setIdentifiers(identifierDtos);
 

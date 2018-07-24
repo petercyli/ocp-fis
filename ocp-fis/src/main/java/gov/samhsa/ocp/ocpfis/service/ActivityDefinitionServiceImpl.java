@@ -20,26 +20,20 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.ActivityDefinitionDtoToActivityDefinitionConverter;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Enumerations;
-import org.hl7.fhir.dstu3.model.Patient;
-import org.hl7.fhir.dstu3.model.RelatedArtifact;
-import org.hl7.fhir.dstu3.model.RelatedArtifact.RelatedArtifactType;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.Timing;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.text.ParseException;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -83,7 +77,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         IQuery activityDefinitionsSearchQuery = fhirClient.search().forResource(ActivityDefinition.class).where(new StringClientParam("publisher").matches().value("Organization/" + organizationResourceId));
 
         //Set Sort order
-        activityDefinitionsSearchQuery = FhirUtil.setLastUpdatedTimeSortOrder(activityDefinitionsSearchQuery, true);
+        activityDefinitionsSearchQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(activityDefinitionsSearchQuery, true);
 
         // Check if there are any additional search criteria
         activityDefinitionsSearchQuery = addAdditionalSearchConditions(activityDefinitionsSearchQuery, searchKey, searchValue);
@@ -137,7 +131,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     @Override
     public String getActivityDefinitionByName(String organizationId, String name) {
         Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
-                .where(new StringClientParam("publisher").matches().value("Organization/"+organizationId))
+                .where(new StringClientParam("publisher").matches().value("Organization/" + organizationId))
                 .where(new StringClientParam("name").matches().value(name))
                 .returnBundle(Bundle.class).execute();
 
@@ -145,10 +139,10 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             throw new ResourceNotFoundException("No ActivityDefinition was found for the given name : " + name);
         }
 
-        List<Bundle.BundleEntryComponent> entry= bundle.getEntry();
-        if(!entry.isEmpty()){
+        List<Bundle.BundleEntryComponent> entry = bundle.getEntry();
+        if (!entry.isEmpty()) {
             return entry.get(0).getResource().getIdElement().getIdPart();
-        }else{
+        } else {
             return null;
         }
     }
@@ -161,7 +155,15 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
             ActivityDefinition activityDefinition = ActivityDefinitionDtoToActivityDefinitionConverter.map(activityDefinitionDto, organizationId, version);
 
-            fhirClient.create().resource(activityDefinition).execute();
+            //Set Profile Meta Data
+            FhirProfileUtil.setActivityDefinitionProfileMetaData(fhirClient, activityDefinition);
+
+            //Validate
+            FhirOperationUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.empty(), ResourceType.ActivityDefinition.name(), "Create ActivityDefinition");
+
+            //Create
+            FhirOperationUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
+
         } else {
             throw new DuplicateResourceFoundException("Duplicate Activity Definition is already present.");
         }
@@ -175,7 +177,14 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         ActivityDefinition activityDefinition = ActivityDefinitionDtoToActivityDefinitionConverter.map(activityDefinitionDto, organizationId, version);
         activityDefinition.setId(activityDefinitionId);
 
-        fhirClient.update().resource(activityDefinition).execute();
+        //Set Profile Meta Data
+        FhirProfileUtil.setActivityDefinitionProfileMetaData(fhirClient, activityDefinition);
+
+        //Validate
+        FhirOperationUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.of(activityDefinitionId), ResourceType.ActivityDefinition.name(), "Update ActivityDefinition");
+
+        //Update
+        FhirOperationUtil.updateFhirResource(fhirClient, activityDefinition, "Update ActivityDefinition");
     }
 
     @Override
@@ -187,7 +196,7 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
                 .collect(toList());
     }
 
-    private List<ActivityReferenceDto> getActivityDefinitionTitleByOrganization(String organization){
+    private List<ActivityReferenceDto> getActivityDefinitionTitleByOrganization(String organization) {
         List<ActivityReferenceDto> activityDefinitions = new ArrayList<>();
 
         Bundle bundle = fhirClient.search().forResource(ActivityDefinition.class)
@@ -202,13 +211,11 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             if (activityDefinitionComponents != null) {
                 activityDefinitions = activityDefinitionComponents.stream()
                         .map(it -> (ActivityDefinition) it.getResource())
-                        .map(it -> FhirDtoUtil.mapActivityDefinitionToActivityReferenceDto(it))
+                        .map(FhirDtoUtil::mapActivityDefinitionToActivityReferenceDto)
                         .collect(toList());
             }
         }
-
         return activityDefinitions;
-
     }
 
     private IQuery addAdditionalSearchConditions(IQuery activityDefinitionsSearchQuery, Optional<String> searchKey, Optional<String> searchValue) {
@@ -293,7 +300,6 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         return activityDefinitionDto.getStatus().getCode().equalsIgnoreCase(Enumerations.PublicationStatus.ACTIVE.toString()) && (isDuplicateWithNamePublisherKindAndStatus(activityDefinitionDto, organizationid) || isDuplicateWithTitlePublisherKindAndStatus(activityDefinitionDto, organizationid));
     }
 
-
     private boolean isDuplicateWithNamePublisherKindAndStatus(ActivityDefinitionDto activityDefinitionDto, String organizationid) {
         Bundle duplicateCheckWithNamePublisherAndStatusBundle = fhirClient.search().forResource(ActivityDefinition.class)
                 .where(new StringClientParam("publisher").matches().value("Organization/" + organizationid))
@@ -331,15 +337,10 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     }
 
     private void setTopicDisplay(ActivityDefinitionDto activityDefinitionDto) {
-        if(activityDefinitionDto.getTopic() != null) {
+        if (activityDefinitionDto.getTopic() != null) {
             Optional<String> topicDisplay = FhirDtoUtil.getDisplayForCode(activityDefinitionDto.getTopic().getCode(), lookUpService.getDefinitionTopic());
 
-            if(topicDisplay.isPresent()) {
-                activityDefinitionDto.getTopic().setDisplay(topicDisplay.get());
-            }
+            topicDisplay.ifPresent(s -> activityDefinitionDto.getTopic().setDisplay(s));
         }
-
     }
-
-
 }
