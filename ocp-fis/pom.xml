@@ -22,7 +22,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
-        <hapi.fhir.version>3.1.0</hapi.fhir.version>
+        <hapi.fhir.version>3.4.0</hapi.fhir.version>
         <docker.maven.version>0.4.13</docker.maven.version>
         <modelmapper.version>1.0.0</modelmapper.version>
         <power-mock.version>1.6.5</power-mock.version>
@@ -101,6 +101,10 @@
         </dependency>
         <dependency>
             <groupId>ca.uhn.hapi.fhir</groupId>
+            <artifactId>hapi-fhir-validation</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>ca.uhn.hapi.fhir</groupId>
             <artifactId>hapi-fhir-validation-resources-dstu3</artifactId>
         </dependency>
         <dependency>
@@ -162,6 +166,11 @@
             <dependency>
                 <groupId>ca.uhn.hapi.fhir</groupId>
                 <artifactId>hapi-fhir-base</artifactId>
+                <version>${hapi.fhir.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>ca.uhn.hapi.fhir</groupId>
+                <artifactId>hapi-fhir-validation</artifactId>
                 <version>${hapi.fhir.version}</version>
             </dependency>
             <dependency>

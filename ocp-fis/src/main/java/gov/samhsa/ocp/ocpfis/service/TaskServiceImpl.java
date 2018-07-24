@@ -6,11 +6,11 @@ import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
+import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.DateRangeEnum;
 import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
-import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
@@ -23,17 +23,16 @@ import gov.samhsa.ocp.ocpfis.service.mapping.TaskToTaskDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.TaskDtoToTaskMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
-import org.hl7.fhir.dstu3.model.codesystems.EpisodeofcareType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -52,7 +51,6 @@ import java.util.stream.Collectors;
 
 import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
-import static gov.samhsa.ocp.ocpfis.util.FhirDtoUtil.mapReferenceDtoToReference;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 
@@ -61,6 +59,7 @@ import static java.util.stream.Collectors.toList;
 public class TaskServiceImpl implements TaskService {
 
     private final IGenericClient fhirClient;
+    private final FhirValidator fhirValidator;
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
     private final ActivityDefinitionService activityDefinitionService;
@@ -71,11 +70,12 @@ public class TaskServiceImpl implements TaskService {
 
     @Autowired
     public TaskServiceImpl(IGenericClient fhirClient,
-                           LookUpService lookUpService,
+                           FhirValidator fhirValidator, LookUpService lookUpService,
                            FisProperties fisProperties,
                            ActivityDefinitionService activityDefinitionService,
                            PatientService patientService) {
         this.fhirClient = fhirClient;
+        this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.activityDefinitionService = activityDefinitionService;
@@ -108,9 +108,9 @@ public class TaskServiceImpl implements TaskService {
         }
 
         //Set Sort order
-        iQuery = FhirUtil.setLastUpdatedTimeSortOrder(iQuery, true);
+        iQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(iQuery, true);
 
-        iQuery = FhirUtil.setNoCacheControlDirective(iQuery);
+        iQuery = FhirOperationUtil.setNoCacheControlDirective(iQuery);
 
         Bundle firstPageTaskBundle;
         Bundle otherPageTaskBundle;
@@ -185,7 +185,7 @@ public class TaskServiceImpl implements TaskService {
 
         if (patient.isPresent() && !isTodoList.isPresent()) {
             TaskDto toDoTaskDto = getToDoTaskDto(practitioner, patient, organization, definition);
-            if(isIntermediateStatuses(toDoTaskDto)) {
+            if (isIntermediateStatuses(toDoTaskDto)) {
                 if (!taskDtos.stream()
                         .map(taskDto -> taskDto.getLogicalId())
                         .collect(toList())
@@ -208,7 +208,14 @@ public class TaskServiceImpl implements TaskService {
             //authoredOn
             task.setAuthoredOn(java.sql.Date.valueOf(LocalDate.now()));
 
-            fhirClient.create().resource(task).execute();
+            //Set Profile Meta Data
+            FhirProfileUtil.setTaskProfileMetaData(fhirClient, task);
+
+            //Validate
+            FhirOperationUtil.validateFhirResource(fhirValidator, task, Optional.empty(), ResourceType.Task.name(), "Create Task");
+
+            //Create
+            FhirOperationUtil.createFhirResource(fhirClient, task, ResourceType.Task.name());
         } else {
             throw new DuplicateResourceFoundException("Duplicate task is already present.");
         }
@@ -238,7 +245,14 @@ public class TaskServiceImpl implements TaskService {
         //authoredOn
         task.setAuthoredOn(existingTask.getAuthoredOn());
 
-        fhirClient.update().resource(task).execute();
+        //Set Profile Meta Data
+        FhirProfileUtil.setTaskProfileMetaData(fhirClient, task);
+
+        //Validate
+        FhirOperationUtil.validateFhirResource(fhirValidator, task, Optional.of(taskId), ResourceType.Task.name(), "Update Task");
+
+        //Update the resource
+        FhirOperationUtil.updateFhirResource(fhirClient, task, "Update Task");
     }
 
     @Override
@@ -254,7 +268,14 @@ public class TaskServiceImpl implements TaskService {
     public void deactivateTask(String taskId) {
         Task task = fhirClient.read().resource(Task.class).withId(taskId.trim()).execute();
         task.setStatus(Task.TaskStatus.CANCELLED);
-        fhirClient.update().resource(task).execute();
+        //Set Profile Meta Data
+        FhirProfileUtil.setTaskProfileMetaData(fhirClient, task);
+
+        //Validate
+        FhirOperationUtil.validateFhirResource(fhirValidator, task, Optional.of(taskId), ResourceType.Task.name(), "Deactivate Task");
+
+        //Update the resource
+        FhirOperationUtil.updateFhirResource(fhirClient, task, "Deactivate Task");
     }
 
     @Override
@@ -264,7 +285,7 @@ public class TaskServiceImpl implements TaskService {
                 .where(new TokenClientParam("_id").exactly().code(taskId))
                 .include(Task.INCLUDE_CONTEXT);
 
-        taskQuery = FhirUtil.setNoCacheControlDirective(taskQuery);
+        taskQuery = FhirOperationUtil.setNoCacheControlDirective(taskQuery);
 
         Bundle taskBundle = (Bundle) taskQuery.returnBundle(Bundle.class)
                 .execute();
@@ -357,26 +378,26 @@ public class TaskServiceImpl implements TaskService {
             //If TO_DO definition type and TO_DO task is not present.
             if (definition.get().equalsIgnoreCase(TO_DO) && taskReferenceList.isEmpty() && practitioner.isPresent() && organization.isPresent()) {
                 //Creating To-Do Task
-                Task task = FhirUtil.createToDoTask(patient, practitioner.get(), organization.get(), fhirClient, fisProperties);
+                Task task = FhirResourceUtil.createToDoTask(patient, practitioner.get(), organization.get(), fhirClient, fisProperties);
 
                 IQuery activityDefinitionQuery = fhirClient.search().forResource(ActivityDefinition.class)
                         .where(new StringClientParam("publisher").matches().value("Organization/" + organization.get()))
                         .where(new StringClientParam("description").matches().value(TO_DO));
 
-                Bundle activityDefinitionBundle = (Bundle) FhirUtil.setNoCacheControlDirective(activityDefinitionQuery)
+                Bundle activityDefinitionBundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(activityDefinitionQuery)
                         .returnBundle(Bundle.class)
                         .execute();
 
                 //Create Activity Definition is not present.
                 if (activityDefinitionBundle.getEntry().isEmpty()) {
-                    ActivityDefinition activityDefinition = FhirUtil.createToDoActivityDefinition(organization.get(), fisProperties, lookUpService, fhirClient);
+                    ActivityDefinition activityDefinition = FhirResourceUtil.createToDoActivityDefinition(organization.get(), fisProperties, lookUpService, fhirClient);
                     MethodOutcome adOutcome = fhirClient.create().resource(activityDefinition).execute();
                     ReferenceDto adReference = new ReferenceDto();
                     adReference.setReference("ActivityDefinition/" + adOutcome.getId().getIdPart());
                     adReference.setDisplay(TO_DO);
                     task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(adReference));
                 } else {
-                    task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirUtil.getRelatedActivityDefinition(organization.get(), definition.get(), fhirClient, fisProperties)));
+                    task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirResourceUtil.getRelatedActivityDefinition(organization.get(), definition.get(), fhirClient, fisProperties)));
                 }
 
                 MethodOutcome methodOutcome = fhirClient.create().resource(task).execute();
@@ -397,7 +418,7 @@ public class TaskServiceImpl implements TaskService {
         TaskDto exitingTask = getTaskById(newTaskDto.getLogicalId());
 
         //if existing status is final and new status is not final, it is not allowed
-        if(finalStatuses.contains(exitingTask.getStatus().getCode()) && !finalStatuses.contains(newTaskDto.getStatus().getCode())) {
+        if (finalStatuses.contains(exitingTask.getStatus().getCode()) && !finalStatuses.contains(newTaskDto.getStatus().getCode())) {
             return false;
         }
 
@@ -406,7 +427,7 @@ public class TaskServiceImpl implements TaskService {
             return true;
         }
 
-        List<Task.TaskStatus> allowedStatuses =  taskStatuses.get(Task.TaskStatus.fromCode(exitingTask.getStatus().getCode()));
+        List<Task.TaskStatus> allowedStatuses = taskStatuses.get(Task.TaskStatus.fromCode(exitingTask.getStatus().getCode()));
 
         return allowedStatuses.stream().anyMatch(t -> t.toCode().equals(newTaskDto.getStatus().getCode()));
     }
@@ -485,7 +506,7 @@ public class TaskServiceImpl implements TaskService {
         Bundle bundle = fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(ResourceType.Patient + "/" + patient))
                 .returnBundle(Bundle.class).execute();
-        return FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
+        return FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
     }
 
     private List<Bundle.BundleEntryComponent> getBundleForRelatedTask(String patient, Optional<String> organization) {
@@ -493,19 +514,19 @@ public class TaskServiceImpl implements TaskService {
                 .where(new ReferenceClientParam("patient").hasId(patient));
         organization.ifPresent(org -> taskQuery.where(new ReferenceClientParam("organization").hasId(org)));
 
-        IQuery taskQueryNoCache = FhirUtil.setNoCacheControlDirective(taskQuery);
+        IQuery taskQueryNoCache = FhirOperationUtil.setNoCacheControlDirective(taskQuery);
 
         Bundle bundle = (Bundle) taskQueryNoCache
                 .returnBundle(Bundle.class)
                 .execute();
-        return FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
+        return FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
     }
 
     private boolean isDuplicate(TaskDto taskDto) {
         IQuery taskForPatientQuery = fhirClient.search().forResource(Task.class)
                 .where(new ReferenceClientParam("patient").hasId(taskDto.getBeneficiary().getReference()));
 
-        Bundle taskForPatientBundle = (Bundle) FhirUtil.setNoCacheControlDirective(taskForPatientQuery)
+        Bundle taskForPatientBundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(taskForPatientQuery)
                 .returnBundle(Bundle.class)
                 .execute();
 
@@ -613,7 +634,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private boolean filterByStatus(Optional<List<String>> statusList, TaskDto t) {
-        if(statusList.isPresent() && !statusList.get().isEmpty()) {
+        if (statusList.isPresent() && !statusList.get().isEmpty()) {
             return isGivenStatuses(t, statusList.get());
         } else {
             return isIntermediateStatuses(t);
@@ -625,7 +646,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     private boolean isIntermediateStatuses(TaskDto t) {
-        boolean result =  !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
+        boolean result = !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.CANCELLED.toCode()) && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.COMPLETED.toCode())
                 && !t.getStatus().getCode().equalsIgnoreCase(Task.TaskStatus.FAILED.toCode());
         return result;
     }
@@ -647,7 +668,7 @@ public class TaskServiceImpl implements TaskService {
             organization.ifPresent(org -> iQuery.where(new ReferenceClientParam("organization").hasId(org)));
         }
 
-        IQuery iQueryNoCache = FhirUtil.setNoCacheControlDirective(iQuery);
+        IQuery iQueryNoCache = FhirOperationUtil.setNoCacheControlDirective(iQuery);
 
         return iQueryNoCache;
     }
@@ -684,7 +705,7 @@ public class TaskServiceImpl implements TaskService {
             return new ArrayList<>();
         }
 
-        List<Bundle.BundleEntryComponent> retrievedTasks = FhirUtil.getAllBundleComponentsAsList(firstPageTaskBundle, Optional.empty(), fhirClient, fisProperties);
+        List<Bundle.BundleEntryComponent> retrievedTasks = FhirOperationUtil.getAllBundleComponentsAsList(firstPageTaskBundle, Optional.empty(), fhirClient, fisProperties);
 
         return retrievedTasks.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Task))
@@ -727,7 +748,7 @@ public class TaskServiceImpl implements TaskService {
 
         List<TaskDto> subtasks = this.getMainAndSubTasks(Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty(), Optional.of(taskDto.getLogicalId()), Optional.empty(), Optional.empty(), Optional.empty(), Optional.empty());
 
-        if(subtasks != null && subtasks.isEmpty()) {
+        if (subtasks != null && subtasks.isEmpty()) {
             return true;
         }
 
@@ -784,7 +805,7 @@ public class TaskServiceImpl implements TaskService {
         Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
         if (bundle != null) {
-            List<Bundle.BundleEntryComponent> components = FhirUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
+            List<Bundle.BundleEntryComponent> components = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
             if (components != null) {
                 subTasksList = components.stream()

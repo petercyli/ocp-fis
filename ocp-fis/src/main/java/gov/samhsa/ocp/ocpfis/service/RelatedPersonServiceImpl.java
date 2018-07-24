@@ -1,26 +1,22 @@
 package gov.samhsa.ocp.ocpfis.service;
 
-import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
-import ca.uhn.fhir.validation.ValidationResult;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
-import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
-import gov.samhsa.ocp.ocpfis.service.exception.FHIRFormatErrorException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.RelatedPersonToRelatedPersonDtoConverter;
 import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.RelatedPersonDtoToRelatedPersonConverter;
-import gov.samhsa.ocp.ocpfis.util.FhirUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
-import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -43,14 +39,12 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     private final IGenericClient fhirClient;
     private final FhirValidator fhirValidator;
     private final FisProperties fisProperties;
-    private final ProvenanceUtil provenanceUtil;
 
     @Autowired
-    public RelatedPersonServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, ProvenanceUtil provenanceUtil) {
+    public RelatedPersonServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
-        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
@@ -60,8 +54,8 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
         IQuery relatedPersonIQuery = fhirClient.search().forResource(RelatedPerson.class).where(new ReferenceClientParam("patient").hasId("Patient/" + patientId));
 
         //Set Sort order
-        relatedPersonIQuery = FhirUtil.setLastUpdatedTimeSortOrder(relatedPersonIQuery, true);
-        if(searchKey.isPresent()) {
+        relatedPersonIQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(relatedPersonIQuery, true);
+        if (searchKey.isPresent()) {
             if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.RelatedPersonSearchKey.NAME.name())) {
                 relatedPersonIQuery.where(new RichStringClientParam("name").contains().value(searchValue.get().trim()));
 
@@ -123,18 +117,19 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     @Override
-    public void createRelatedPerson(RelatedPersonDto relatedPersonDto, Optional<String> loggedInUser) {
+    public void createRelatedPerson(RelatedPersonDto relatedPersonDto) {
         checkForDuplicates(relatedPersonDto, relatedPersonDto.getPatient());
         try {
             final RelatedPerson relatedPerson = RelatedPersonDtoToRelatedPersonConverter.map(relatedPersonDto);
 
-            validate(relatedPerson);
+            //Set Profile Meta Data
+            FhirProfileUtil.setRelatedPersonProfileMetaData(fhirClient, relatedPerson);
 
-            MethodOutcome methodOutcome = fhirClient.create().resource(relatedPerson).execute();
+            //Validate
+            FhirOperationUtil.validateFhirResource(fhirValidator, relatedPerson, Optional.empty(), ResourceType.RelatedPerson.name(), "Create RelatedPerson");
 
-            if(fisProperties.isProvenanceEnabled()) {
-                provenanceUtil.createProvenance(ResourceType.RelatedPerson.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
-            }
+            //Create
+            FhirOperationUtil.createFhirResource(fhirClient, relatedPerson, ResourceType.RelatedPerson.name());
 
         } catch (ParseException e) {
 
@@ -144,19 +139,19 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     @Override
-    public void updateRelatedPerson(String relatedPersonId, RelatedPersonDto relatedPersonDto, Optional<String> loggedInUser) {
+    public void updateRelatedPerson(String relatedPersonId, RelatedPersonDto relatedPersonDto) {
         relatedPersonDto.setRelatedPersonId(relatedPersonId);
         try {
             final RelatedPerson relatedPerson = RelatedPersonDtoToRelatedPersonConverter.map(relatedPersonDto);
 
-            validate(relatedPerson);
+            //Set Profile Meta Data
+            FhirProfileUtil.setRelatedPersonProfileMetaData(fhirClient, relatedPerson);
 
-            MethodOutcome methodOutcome = fhirClient.update().resource(relatedPerson).execute();
+            //Validate
+            FhirOperationUtil.validateFhirResource(fhirValidator, relatedPerson, Optional.of(relatedPersonId), ResourceType.RelatedPerson.name(), "Update RelatedPerson");
 
-            if(fisProperties.isProvenanceEnabled()) {
-                provenanceUtil.createProvenance(ResourceType.RelatedPerson.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
-            }
-
+            //Update the resource
+            FhirOperationUtil.updateFhirResource(fhirClient, relatedPerson, "Update RelatedPerson");
 
         } catch (ParseException e) {
 
@@ -166,37 +161,29 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     private void checkForDuplicates(RelatedPersonDto relatedPersonDto, String patientId) {
-        Bundle relatedPersonBundle = (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(RelatedPerson.class)
+        Bundle relatedPersonBundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(RelatedPerson.class)
                 .where(RelatedPerson.IDENTIFIER.exactly().systemAndIdentifier(relatedPersonDto.getIdentifierType(), relatedPersonDto.getIdentifierValue()))
                 .where(new TokenClientParam("patient").exactly().code(patientId)))
                 .returnBundle(Bundle.class)
                 .execute();
         log.info("Existing RelatedPersons size : " + relatedPersonBundle.getEntry().size());
 
-        if(!relatedPersonBundle.getEntry().isEmpty()) {
+        if (!relatedPersonBundle.getEntry().isEmpty()) {
             throw new DuplicateResourceFoundException("RelatedPerson already exists with the given Identifier Type and Identifier Value");
-        }else{
-            Bundle rPBundle= (Bundle) FhirUtil.setNoCacheControlDirective(fhirClient.search().forResource(RelatedPerson.class)
+        } else {
+            Bundle rPBundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(RelatedPerson.class)
                     .where(new TokenClientParam("patient").exactly().code(patientId)))
                     .returnBundle(Bundle.class)
                     .execute();
 
-            if(!FhirUtil.getAllBundleComponentsAsList(rPBundle,Optional.empty(),fhirClient,fisProperties).stream().filter(relatedP-> {
-                RelatedPerson rp= (RelatedPerson) relatedP.getResource();
+            if (!FhirOperationUtil.getAllBundleComponentsAsList(rPBundle, Optional.empty(), fhirClient, fisProperties).stream().filter(relatedP -> {
+                RelatedPerson rp = (RelatedPerson) relatedP.getResource();
                 return rp.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(relatedPersonDto.getIdentifierType()) && identifier.getValue().replaceAll(" ", "")
                         .replaceAll("-", "").trim()
                         .equalsIgnoreCase(relatedPersonDto.getIdentifierValue().replaceAll(" ", "").replaceAll("-", "").trim()));
-            } ).collect(toList()).isEmpty()){
+            }).collect(toList()).isEmpty()) {
                 throw new DuplicateResourceFoundException("RelatedPerson already exists with the given Identifier Type and Identifier Value");
             }
-        }
-    }
-
-    private void validate(RelatedPerson relatedPerson) {
-        final ValidationResult validationResult = fhirValidator.validateWithResult(relatedPerson);
-
-        if (!validationResult.isSuccessful()) {
-            throw new FHIRFormatErrorException("FHIR RelatedPerson validation is not successful" + validationResult.getMessages());
         }
     }
 
@@ -205,7 +192,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
     }
 
     private List<RelatedPersonDto> convertAllBundleToSingleRelatedPersonDtoList(Bundle firstPageSearchBundle, int numberOBundlePerPage) {
-        return  FhirUtil.getAllBundleComponentsAsList(firstPageSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties)
+        return FhirOperationUtil.getAllBundleComponentsAsList(firstPageSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties)
                 .stream().map(this::convertToRelatedPerson)
                 .collect(toList());
     }
