@@ -16,4 +16,5 @@ public class NameDto {
     private String firstName;
     @NotEmpty
     private String lastName;
+    private String userName;
 }
