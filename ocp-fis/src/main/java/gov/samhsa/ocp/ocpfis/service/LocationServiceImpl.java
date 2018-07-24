@@ -119,7 +119,7 @@ public class LocationServiceImpl implements LocationService {
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
-        firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(locationsSearchQuery, numberOfLocationsPerPage, Optional.empty());
+        firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(FhirOperationUtil.setNoCacheControlDirective(locationsSearchQuery), numberOfLocationsPerPage, Optional.empty());
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().isEmpty()) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
