@@ -161,7 +161,7 @@ public class FhirDtoUtil {
     }
 
     public static Optional<String> getDisplayForCode(String code, List<ValueSetDto> lookupValueSets) {
-        Optional<String> lookupDisplay = Optional.empty();
+        Optional<String> lookupDisplay;
 
         lookupDisplay = lookupValueSets.stream()
                 .filter(lookupValue -> code.equalsIgnoreCase(lookupValue.getCode()))
