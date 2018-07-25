@@ -176,7 +176,7 @@ public class PractitionerServiceImpl implements PractitionerService {
             IQuery iQuery = fhirClient.search().forResource(PractitionerRole.class)
                     .where(new ReferenceClientParam("organization").hasId(organization.get()));
 
-            role.ifPresent(r -> iQuery.where(new TokenClientParam("role").exactly().code(r)));
+            //role.ifPresent(r -> iQuery.where(new TokenClientParam("role").exactly().code(r)));
 
             Bundle bundle = (Bundle) iQuery.include(PractitionerRole.INCLUDE_PRACTITIONER)
                     .sort().descending(PARAM_LASTUPDATED)
@@ -208,7 +208,7 @@ public class PractitionerServiceImpl implements PractitionerService {
             IQuery iQuery = fhirClient.search().forResource(PractitionerRole.class)
                     .where(new ReferenceClientParam("practitioner").hasId(ResourceType.Practitioner + "/" + practitioner.get()));
 
-            role.ifPresent(r -> iQuery.where(new TokenClientParam("role").exactly().code(r)));
+            //role.ifPresent(r -> iQuery.where(new TokenClientParam("role").exactly().code(r)));
 
             Bundle bundle = (Bundle) iQuery.include(PractitionerRole.INCLUDE_ORGANIZATION)
                     .returnBundle(Bundle.class).execute();
