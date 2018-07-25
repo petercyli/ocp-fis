@@ -21,7 +21,6 @@ import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CareTeamDtoToCareTea
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
@@ -77,7 +76,7 @@ public class CareTeamServiceImpl implements CareTeamService {
             final CareTeam careTeam = CareTeamDtoToCareTeamConverter.map(careTeamDto);
 
             //Set Profile Meta Data
-            FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
+            // FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
 
             //Validate
             FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.empty(), ResourceType.CareTeam.name(), "Create CareTeam");
@@ -96,7 +95,7 @@ public class CareTeamServiceImpl implements CareTeamService {
             final CareTeam careTeam = CareTeamDtoToCareTeamConverter.map(careTeamDto);
 
             //Set Profile Meta Data
-            FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
+            //FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
 
             //Validate
             FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam");
@@ -443,7 +442,7 @@ public class CareTeamServiceImpl implements CareTeamService {
         careTeam.setParticipant(components);
 
         //Set Profile Meta Data
-        FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
+        // FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
 
         //Validate
         FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam(Add Related Person)");
@@ -461,7 +460,7 @@ public class CareTeamServiceImpl implements CareTeamService {
         careTeam.setParticipant(components);
 
         //Set Profile Meta Data
-        FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
+        // FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
 
         //Validate
         FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam(Remove Related Person)");
@@ -509,8 +508,7 @@ public class CareTeamServiceImpl implements CareTeamService {
                 par.setIsInCareTeam(Optional.of(true));
                 participantDtoList.add(par);
             } else {
-                ParticipantDto par = rp;
-                participantDtoList.add(par);
+                participantDtoList.add(rp);
             }
         });
 
