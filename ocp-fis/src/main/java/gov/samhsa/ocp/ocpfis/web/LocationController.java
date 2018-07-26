@@ -58,9 +58,10 @@ public class LocationController {
                                                            @RequestParam(value = "statusList") Optional<List<String>> statusList,
                                                            @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                            @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                           @RequestParam(value="assignedToPractitioner") Optional<String> assignedToPractitioner,
                                                            @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                            @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return locationService.getLocationsByOrganization(organizationId, statusList, searchKey, searchValue, pageNumber, pageSize);
+        return locationService.getLocationsByOrganization(organizationId, statusList, searchKey, searchValue, assignedToPractitioner,pageNumber, pageSize);
     }
 
     /**

@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
@@ -269,6 +270,38 @@ public class PractitionerServiceImpl implements PractitionerService {
         } else {
             return null;
         }
+    }
+
+    @Override
+    public void assignLocationToPractitioner(String practitionerId, String organizationId, String locationId) {
+        Location location = fhirClient.read().resource(Location.class).withId(locationId).execute();
+        Bundle practitionerRoleBundle = fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId(practitionerId))
+                .where(new ReferenceClientParam("organization").hasId(organizationId)).returnBundle(Bundle.class).execute();
+
+        practitionerRoleBundle.getEntry().stream().findAny().ifPresent(role -> {
+            PractitionerRole practitionerRole = (PractitionerRole) role.getResource();
+            List<Reference> locations = practitionerRole.getLocation();
+            ReferenceDto referenceDto = new ReferenceDto();
+            referenceDto.setReference("Location/" + locationId);
+            referenceDto.setDisplay(location.getName());
+            locations.add(FhirDtoUtil.mapReferenceDtoToReference(referenceDto));
+            practitionerRole.setLocation(locations);
+            fhirClient.update().resource(practitionerRole).execute();
+        });
+    }
+
+    @Override
+    public void unassignLocationToPractitioner(String practitionerId, String organizationId, String locationId) {
+        Bundle practitionerRoleBundle = fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId(practitionerId))
+                .where(new ReferenceClientParam("organization").hasId(organizationId)).returnBundle(Bundle.class).execute();
+
+        practitionerRoleBundle.getEntry().stream().findAny().ifPresent(role -> {
+            PractitionerRole practitionerRole = (PractitionerRole) role.getResource();
+            List<Reference> locations = practitionerRole.getLocation();
+            locations.removeIf(location -> location.getReference().split("/")[1].equalsIgnoreCase(locationId));
+            practitionerRole.setLocation(locations);
+            fhirClient.update().resource(practitionerRole).execute();
+        });
     }
 
 
