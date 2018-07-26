@@ -46,9 +46,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
             if(forCareTeam.isPresent()){
-                if(forCareTeam.get()) {
-                    organization = null;
-                }else{
+                if(!forCareTeam.get()) {
                     organization=organizationId(organization,patientId);
                 }
             }else{
