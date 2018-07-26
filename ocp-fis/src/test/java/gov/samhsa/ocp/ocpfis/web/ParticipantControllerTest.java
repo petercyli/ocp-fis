@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 
 @RunWith(SpringRunner.class)
@@ -57,7 +58,7 @@ public class ParticipantControllerTest {
         PageDto pageDto = new PageDto<>(dtos, 10, 1, 1, dtos.size(), 0);
         Integer page = 1;
         Integer size = 10;
-        Mockito.when(participantService.getAllParticipants(eq("2421"), eq(ParticipantTypeEnum.relatedPerson), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class),Mockito.any(Optional.class),Mockito.any(Optional.class))).thenReturn(pageDto);
+        Mockito.when(participantService.getAllParticipants(eq("2421"), eq(ParticipantTypeEnum.relatedPerson), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class),Mockito.any(Optional.class),Mockito.any(Optional.class))).thenReturn(pageDto);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/participants/search?member=relatedPerson&patientId=2421&value=" + RELATED_PERSON_NAME);
@@ -83,7 +84,7 @@ public class ParticipantControllerTest {
         PageDto pageDto = new PageDto<>(dtos, 10, 1, 1, dtos.size(), 0);
         Integer page = 1;
         Integer size = 10;
-        Mockito.when(participantService.getAllParticipants(eq("2421"), eq(ParticipantTypeEnum.organization), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class),Mockito.any(Optional.class),Mockito.any(Optional.class))).thenReturn(pageDto);
+        Mockito.when(participantService.getAllParticipants(eq("2421"), eq(ParticipantTypeEnum.organization), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class),Mockito.any(Optional.class),Mockito.any(Optional.class))).thenReturn(pageDto);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/participants/search?member=organization&patientId=2421&value=" + ORGANIZATION_NAME);
@@ -109,7 +110,7 @@ public class ParticipantControllerTest {
         PageDto pageDto = new PageDto<>(dtos, 10, 1, 1, dtos.size(), 0);
         Integer page = 1;
         Integer size = 10;
-        Mockito.when(participantService.getAllParticipants(eq("2421"), eq(ParticipantTypeEnum.patient), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class),Mockito.any(Optional.class),Mockito.any(Optional.class))).thenReturn(pageDto);
+        Mockito.when(participantService.getAllParticipants(eq("2421"), eq(ParticipantTypeEnum.patient),Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class),Mockito.any(Optional.class),Mockito.any(Optional.class))).thenReturn(pageDto);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/participants/search?member=patient&patientId=2421&value=" + PATIENT_NAME);
