@@ -39,12 +39,21 @@ public class ParticipantServiceImpl implements ParticipantService {
         this.episodeOfCareService = episodeOfCareService;
     }
 
-    public PageDto<ParticipantSearchDto> getAllParticipants(String patientId, ParticipantTypeEnum participantType, Optional<String> value, Optional<String> organization, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
+    public PageDto<ParticipantSearchDto> getAllParticipants(String patientId, ParticipantTypeEnum participantType, Optional<String> value, Optional<String> organization, Optional<Boolean> forCareTeam, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         final String typeCode = participantType.getCode();
 
         PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
 
         if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
+            if(forCareTeam.isPresent()){
+                if(forCareTeam.get()) {
+                    organization = null;
+                }else{
+                    organization=organizationId(organization,patientId);
+                }
+            }else{
+                organization=organizationId(organization,patientId);
+            }
             PageDto<PractitionerDto> pageDto = practitionerService.searchPractitioners(Optional.ofNullable(PractitionerController.SearchType.name), value, organization, showInActive, page, size, showAll);
             participantsDto = convertPractitionersToParticipantsDto(pageDto, participantType);
 

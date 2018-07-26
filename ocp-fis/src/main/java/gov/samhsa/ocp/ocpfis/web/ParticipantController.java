@@ -32,11 +32,12 @@ public class ParticipantController {
                                                             @RequestParam(value = "member") ParticipantTypeEnum member,
                                                             @RequestParam(value = "value") Optional<String> value,
                                                             @RequestParam(value="organization") Optional<String> organization,
+                                                            @RequestParam(value="participantForCareTeam") Optional<Boolean> forCareteam,
                                                             @RequestParam(value = "showInActive", defaultValue = "false") Optional<Boolean> showInActive,
                                                             @RequestParam(value = "page", required = false) Optional<Integer> page,
                                                             @RequestParam(value = "size", required = false) Optional<Integer> size,
                                                             @RequestParam(value="showAll",required=false) Optional<Boolean> showAll) {
-        return participantService.getAllParticipants(patientId, member, value, organization, showInActive, page, size, showAll);
+        return participantService.getAllParticipants(patientId, member, value, organization, forCareteam, showInActive, page, size, showAll);
     }
 
     @GetMapping
