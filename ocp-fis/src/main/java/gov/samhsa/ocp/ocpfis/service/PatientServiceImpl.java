@@ -283,6 +283,8 @@ public class PatientServiceImpl implements PatientService {
             patient.setActive(Boolean.TRUE);
             patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
+            // This language is not the same as Communication.language. This is just a temp hack
+            patient.setLanguageElement(null);
 
             setExtensionFields(patient, patientDto);
 
@@ -553,29 +555,40 @@ public class PatientServiceImpl implements PatientService {
     private void setExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = new ArrayList<>();
 
-        //language
-        if (patientDto.getLanguage() != null && !patientDto.getLanguage().isEmpty()) {
-            Coding langCoding = FhirResourceUtil.getCoding(patientDto.getLanguage(), "", StructureDefinitionEnum.LANGUAGES.getUrl());
-            Extension langExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_SIMPLE_LANGUAGE.getUrl(), new CodeableConcept().addCoding(langCoding));
-            extensionList.add(langExtension);
+        //language (Strictly speaking, language should not be set in this method, but keeping it here due to time constraints)
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getLanguage())) {
+//            Coding langCoding = FhirResourceUtil.getCoding(patientDto.getLanguage(), "", StructureDefinitionEnum.LANGUAGES.getUrl());
+//            Extension langExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_SIMPLE_LANGUAGE.getUrl(), new CodeableConcept().addCoding(langCoding));
+
+            Patient.PatientCommunicationComponent communicationLang = new Patient.PatientCommunicationComponent();
+
+            // CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/us/core/ValueSet/simple-language"));
+            // CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "urn:ietf:bcp:47"));
+            // CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/ValueSet/languages"));
+            // CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/all-languages"));
+            CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/ValueSet/all-languages"));
+
+            communicationLang.setLanguage(langCodeableConcept);
+            patient.setCommunication(Collections.singletonList(communicationLang));
+//            extensionList.add(langExtension);
         }
 
         //race
-        if (patientDto.getRace() != null && !patientDto.getRace().isEmpty()) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getRace() )) {
             Coding raceCoding = FhirResourceUtil.getCoding(patientDto.getRace(), "", StructureDefinitionEnum.RACE.getUrl());
             Extension raceExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_RACE.getUrl(), new CodeableConcept().addCoding(raceCoding));
             extensionList.add(raceExtension);
         }
 
         //ethnicity
-        if (patientDto.getEthnicity() != null && !patientDto.getEthnicity().isEmpty()) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getEthnicity())) {
             Coding ethnicityCoding = FhirResourceUtil.getCoding(patientDto.getEthnicity(), "", StructureDefinitionEnum.ETHNICITY.getUrl());
             Extension ethnicityExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_ETHNICITY.getUrl(), new CodeableConcept().addCoding(ethnicityCoding));
             extensionList.add(ethnicityExtension);
         }
 
         //us-core-birthsex
-        if (patientDto.getBirthSex() != null && !patientDto.getBirthSex().isEmpty()) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getBirthSex())) {
             Coding birthSexCoding = FhirResourceUtil.getCoding(patientDto.getBirthSex(), "", StructureDefinitionEnum.ADMINISTRATIVE_GENDER.getUrl());
             Extension birthSexExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_BIRTHSEX.getUrl(), new CodeableConcept().addCoding(birthSexCoding));
             extensionList.add(birthSexExtension);
