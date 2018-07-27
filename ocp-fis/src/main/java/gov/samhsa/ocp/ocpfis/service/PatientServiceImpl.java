@@ -167,15 +167,13 @@ public class PatientServiceImpl implements PatientService {
 
         if (assigned.isPresent()) {
             if (assigned.get()) {
-                patientDtos = patientDtos.stream().filter(pdto -> {
-                    Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
-                            .where(new ReferenceClientParam("subject").hasId(pdto.getId())).returnBundle(Bundle.class).execute();
-                    return !careTeamBundle.getEntry().stream().map(ct -> (CareTeam) ct.getResource()).flatMap(ct -> ct.getParticipant().stream()
-                            .map(par -> par.getRole().getCoding().stream().findFirst().get().getCode()))
-                            .filter(r -> lookUpService.getParticipantRoles().stream().map(role -> role.getCode().trim()).collect(toList()).contains(r.trim()))
-                            .collect(toList())
-                            .isEmpty();
-                }).collect(toList());
+                patientDtos = patientDtos.stream()
+                        .filter(pdto -> !practitionerAssignedToPatient(careTeamBundle(pdto)))
+                        .collect(toList());
+            } else {
+                patientDtos = patientDtos.stream()
+                        .filter(pdto -> practitionerAssignedToPatient(careTeamBundle(pdto)))
+                        .collect(toList());
             }
         }
 
@@ -234,6 +232,19 @@ public class PatientServiceImpl implements PatientService {
             }
         }
         return true;
+    }
+
+    private Bundle careTeamBundle(PatientDto patientDto) {
+        return fhirClient.search().forResource(CareTeam.class)
+                .where(new ReferenceClientParam("subject").hasId(patientDto.getId())).returnBundle(Bundle.class).execute();
+    }
+
+    private Boolean practitionerAssignedToPatient(Bundle careTeamBundle) {
+        return careTeamBundle.getEntry().stream().map(ct -> (CareTeam) ct.getResource()).flatMap(ct -> ct.getParticipant().stream()
+                .map(par -> par.getRole().getCoding().stream().findFirst().get().getCode()))
+                .filter(r -> lookUpService.getParticipantRoles().stream().map(role -> role.getCode().trim()).collect(toList()).contains(r.trim()))
+                .collect(toList())
+                .isEmpty();
     }
 
     private PatientDto mapPatientToPatientDto(Patient patient, List<Bundle.BundleEntryComponent> response) {
