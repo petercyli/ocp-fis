@@ -110,7 +110,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> organization, Optional<Boolean> assigned, Optional<String> careTeamPractitioner, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
+    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> filterKey, Optional<String> organization,  Optional<String> practitioner, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class).sort().descending(PARAM_LASTUPDATED);
@@ -122,9 +122,9 @@ public class PatientServiceImpl implements PatientService {
             }
         }
 
-        if (careTeamPractitioner.isPresent()) {
-            if (!patientsAssociatedWithPractitioner(careTeamPractitioner.get()).isEmpty()) {
-                PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsAssociatedWithPractitioner(careTeamPractitioner.get())));
+        if (filterKey.isPresent() && SearchKeyEnum.PatientFilterKey.conatains(filterKey.get()) && SearchKeyEnum.PatientFilterKey.ASSOCIATECARETEAMPATIENT.name().equalsIgnoreCase(filterKey.get())) {
+            if (!patientsAssociatedWithPractitioner(practitioner.get()).isEmpty()) {
+                PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsAssociatedWithPractitioner(practitioner.get())));
             } else {
                 log.info("No Patients were found for given organization.");
                 return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
@@ -150,7 +150,6 @@ public class PatientServiceImpl implements PatientService {
         });
 
         Bundle firstPagePatientSearchBundle;
-        Bundle otherPagePatientSearchBundle;
         boolean firstPage = true;
         log.debug("Patients Search Query to FHIR Server: START");
         firstPagePatientSearchBundle = (Bundle) PatientSearchQuery
@@ -165,16 +164,10 @@ public class PatientServiceImpl implements PatientService {
 
         List<PatientDto> patientDtos = convertAllBundleToSinglePatientDtoList(firstPagePatientSearchBundle, numberOfPatientsPerPage);
 
-        if (assigned.isPresent()) {
-            if (assigned.get()) {
-                patientDtos = patientDtos.stream()
-                        .filter(pdto -> !practitionerAssignedToPatient(careTeamBundle(pdto)))
-                        .collect(toList());
-            } else {
+        if (filterKey.isPresent() && SearchKeyEnum.PatientFilterKey.conatains(filterKey.get()) && SearchKeyEnum.PatientFilterKey.UNASSIGNPATIENT.name().equalsIgnoreCase(filterKey.get())) {
                 patientDtos = patientDtos.stream()
                         .filter(pdto -> practitionerAssignedToPatient(careTeamBundle(pdto)))
                         .collect(toList());
-            }
         }
 
         if (showAll.isPresent() && showAll.get()) {
