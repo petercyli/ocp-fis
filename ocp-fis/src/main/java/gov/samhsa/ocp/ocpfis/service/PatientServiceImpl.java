@@ -48,6 +48,7 @@ import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
@@ -59,6 +60,7 @@ import org.springframework.stereotype.Service;
 import java.text.ParseException;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -108,12 +110,26 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> organization, Optional<Boolean> assigned, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
+    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> organization, Optional<Boolean> assigned, Optional<String> careTeamPractitioner, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class).sort().descending(PARAM_LASTUPDATED);
 
-        if (organization.isPresent()) {
+        if (showInactive.isPresent()) {
+            if (!showInactive.get()) {
+                // show only active patients
+                PatientSearchQuery.where(new TokenClientParam("active").exactly().code(Boolean.TRUE.toString()));
+            }
+        }
+
+        if (organization.isPresent() && careTeamPractitioner.isPresent()) {
+            if (!patientsAssociatedWithPractitioner(organization.get(), careTeamPractitioner.get()).isEmpty()) {
+                PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsAssociatedWithPractitioner(organization.get(), careTeamPractitioner.get())));
+            } else {
+                log.info("No Patients were found for given organization.");
+                return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
+            }
+        } else if (organization.isPresent()) {
             if (!patientsInOrganization(organization.get()).isEmpty()) {
                 PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsInOrganization(organization.get())));
             } else {
@@ -122,12 +138,6 @@ public class PatientServiceImpl implements PatientService {
             }
         }
 
-        if (showInactive.isPresent()) {
-            if (!showInactive.get()) {
-                // show only active patients
-                PatientSearchQuery.where(new TokenClientParam("active").exactly().code(Boolean.TRUE.toString()));
-            }
-        }
 
         searchKey.ifPresent(key -> {
             if (key.equalsIgnoreCase(SearchKeyEnum.CommonSearchKey.NAME.name())) {
@@ -156,23 +166,24 @@ public class PatientServiceImpl implements PatientService {
         List<PatientDto> patientDtos = convertAllBundleToSinglePatientDtoList(firstPagePatientSearchBundle, numberOfPatientsPerPage);
 
         if (assigned.isPresent()) {
-            if(assigned.get()) {
+            if (assigned.get()) {
                 patientDtos = patientDtos.stream().filter(pdto -> {
                     Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
                             .where(new ReferenceClientParam("subject").hasId(pdto.getId())).returnBundle(Bundle.class).execute();
-                    return !careTeamBundle.getEntry().stream().map(ct->(CareTeam) ct.getResource()).flatMap(ct->ct.getParticipant().stream()
-                            .map(par->par.getRole().getCoding().stream().findFirst().get().getCode()))
-                            .filter(r->lookUpService.getParticipantRoles().stream().map(role->role.getCode().trim()).collect(toList()).contains(r.trim()))
+                    return !careTeamBundle.getEntry().stream().map(ct -> (CareTeam) ct.getResource()).flatMap(ct -> ct.getParticipant().stream()
+                            .map(par -> par.getRole().getCoding().stream().findFirst().get().getCode()))
+                            .filter(r -> lookUpService.getParticipantRoles().stream().map(role -> role.getCode().trim()).collect(toList()).contains(r.trim()))
                             .collect(toList())
                             .isEmpty();
                 }).collect(toList());
             }
         }
+
         if (showAll.isPresent() && showAll.get()) {
             return (PageDto<PatientDto>) PaginationUtil.applyPaginationForCustomArrayList(patientDtos, patientDtos.size(), Optional.of(1), false);
         }
 
-        return (PageDto<PatientDto>) PaginationUtil.applyPaginationForCustomArrayList(patientDtos,numberOfPatientsPerPage,page,false);
+        return (PageDto<PatientDto>) PaginationUtil.applyPaginationForCustomArrayList(patientDtos, numberOfPatientsPerPage, page, false);
     }
 
 
@@ -398,7 +409,7 @@ public class PatientServiceImpl implements PatientService {
             }));
 
             // if flags are not present
-            if(! patientDto.getFlags().isPresent()){
+            if (!patientDto.getFlags().isPresent()) {
                 // TODO:: update the existing flags with enteredinerror status or remove them
 
             }
@@ -721,6 +732,22 @@ public class PatientServiceImpl implements PatientService {
         return Stream.of(getPatientIdFromPatient, getPatientFromEoc).flatMap(Collection::stream).distinct().collect(toList());
     }
 
+    private List<String> patientsAssociatedWithPractitioner(String org, String prac) {
+        //List of patient in the organization
+        List<String> patientsInOrganization = patientsInOrganization(org);
+
+        //List of organizations to which practitioner is associated with
+        List<String> organizationsPractitionerIsAssociatedWith = organizationsOfPractitioner(prac);
+
+        //List of patient with the practitioner's organization in the care team.
+        List<String> patientsRelatedWithOrganizationOfPractitionerOnCareTeam = getPatientsByParticipantsInCareTeam(organizationsPractitionerIsAssociatedWith);
+
+        //List of patient with the practitioner in the care team.
+        List<String> patientsRealtedWithPractitionerOnCareTeam = getPatientsByParticipantsInCareTeam(Arrays.asList(prac));
+
+        return Stream.of(patientsInOrganization, patientsRelatedWithOrganizationOfPractitionerOnCareTeam, patientsRealtedWithPractitionerOnCareTeam).flatMap(Collection::stream).distinct().collect(toList());
+    }
+
     private List<PatientDto> convertAllBundleToSinglePatientDtoList(Bundle firstPagePatientSearchBundle, int numberOBundlePerPage) {
         List<Bundle.BundleEntryComponent> bundleEntryComponentList = FhirOperationUtil.getAllBundleComponentsAsList(firstPagePatientSearchBundle, Optional.of(numberOBundlePerPage), fhirClient, fisProperties);
         return bundleEntryComponentList.stream()
@@ -820,6 +847,44 @@ public class PatientServiceImpl implements PatientService {
         localIdIdBuilder.append(RandomStringUtils
                 .randomAlphanumeric((fisProperties.getPatient().getMrn().getLength())));
         return localIdIdBuilder.toString().toUpperCase();
+    }
+
+
+    private List<String> getPatientsByParticipantsInCareTeam(List<String> participants) {
+        List<String> patients = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(CareTeam.class)
+                .where(new ReferenceClientParam("participant").hasAnyOfIds(participants))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (bundle != null) {
+            patients = bundle.getEntry().stream()
+                    .map(it -> (CareTeam) it.getResource())
+                    .map(it -> it.getSubject().getReference().split("/")[1])
+                    .collect(toList());
+
+        }
+
+        return patients;
+    }
+
+    private List<String> organizationsOfPractitioner(String practitioner) {
+        List<String> org = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+                .where(new ReferenceClientParam("practitioner").hasId(practitioner))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (bundle != null) {
+            org = bundle.getEntry().stream()
+                    .map(it -> (PractitionerRole) it.getResource())
+                    .map(pr -> pr.getOrganization().getReference().split("/")[1])
+                    .collect(toList());
+        }
+
+        return org;
     }
 
 
