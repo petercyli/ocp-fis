@@ -41,7 +41,7 @@ public class PatientController {
                                                   @RequestParam(value = "value") Optional<String> searchValue,
                                                   @RequestParam(value="organization") Optional<String> organization,
                                                   @RequestParam(value="assigned") Optional<Boolean> assigned,
-                                                  @RequestParam(value="associatedCTPractitioner") Optional<String> careTeamPractitioner,
+                                                  @RequestParam(value="associatedCareTeamPractitioner") Optional<String> careTeamPractitioner,
                                                   @RequestParam(value = "showInactive", defaultValue = "false") Optional<Boolean> showInactive,
                                                   @RequestParam Optional<Integer> page,
                                                   @RequestParam Optional<Integer> size,
