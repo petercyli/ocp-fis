@@ -108,7 +108,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
+    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> organization, Optional<Boolean> assigned, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class).sort().descending(PARAM_LASTUPDATED);
@@ -153,29 +153,26 @@ public class PatientServiceImpl implements PatientService {
                 .execute();
         log.debug("Patients Search Query to FHIR Server: END");
 
+        List<PatientDto> patientDtos = convertAllBundleToSinglePatientDtoList(firstPagePatientSearchBundle, numberOfPatientsPerPage);
+
+        if (assigned.isPresent()) {
+            if(assigned.get()) {
+                patientDtos = patientDtos.stream().filter(pdto -> {
+                    Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
+                            .where(new ReferenceClientParam("subject").hasId(pdto.getId())).returnBundle(Bundle.class).execute();
+                    return !careTeamBundle.getEntry().stream().map(ct->(CareTeam) ct.getResource()).flatMap(ct->ct.getParticipant().stream()
+                            .map(par->par.getRole().getCoding().stream().findFirst().get().getCode()))
+                            .filter(r->lookUpService.getParticipantRoles().stream().map(role->role.getCode().trim()).collect(toList()).contains(r.trim()))
+                            .collect(toList())
+                            .isEmpty();
+                }).collect(toList());
+            }
+        }
         if (showAll.isPresent() && showAll.get()) {
-            List<PatientDto> patientDtos = convertAllBundleToSinglePatientDtoList(firstPagePatientSearchBundle, numberOfPatientsPerPage);
             return (PageDto<PatientDto>) PaginationUtil.applyPaginationForCustomArrayList(patientDtos, patientDtos.size(), Optional.of(1), false);
         }
 
-
-        if (firstPagePatientSearchBundle == null || firstPagePatientSearchBundle.getEntry().isEmpty()) {
-            log.info("No patients were found for the given criteria.");
-            return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
-        }
-
-        otherPagePatientSearchBundle = firstPagePatientSearchBundle;
-        if (page.isPresent() && page.get() > 1 && firstPagePatientSearchBundle.getLink(Bundle.LINK_NEXT) != null) {
-            // Load the required page
-            firstPage = false;
-            otherPagePatientSearchBundle = PaginationUtil.getSearchBundleAfterFirstPage(fhirClient, fisProperties, firstPagePatientSearchBundle, page.get(), numberOfPatientsPerPage);
-        }
-        //Arrange Page related info
-        List<PatientDto> patientDtos = convertBundleToPatientDtos(otherPagePatientSearchBundle, Boolean.FALSE);
-        double totalPages = Math.ceil((double) otherPagePatientSearchBundle.getTotal() / numberOfPatientsPerPage);
-        int currentPage = firstPage ? 1 : page.get();
-
-        return new PageDto<>(patientDtos, numberOfPatientsPerPage, totalPages, currentPage, patientDtos.size(), otherPagePatientSearchBundle.getTotal());
+        return (PageDto<PatientDto>) PaginationUtil.applyPaginationForCustomArrayList(patientDtos,numberOfPatientsPerPage,page,false);
     }
 
 

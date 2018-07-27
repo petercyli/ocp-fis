@@ -40,11 +40,12 @@ public class PatientController {
     public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "type", defaultValue = "name") Optional<String> searchKey,
                                                   @RequestParam(value = "value") Optional<String> searchValue,
                                                   @RequestParam(value="organization") Optional<String> organization,
+                                                  @RequestParam(value="assigned") Optional<Boolean> assigned,
                                                   @RequestParam(value = "showInactive", defaultValue = "false") Optional<Boolean> showInactive,
                                                   @RequestParam Optional<Integer> page,
                                                   @RequestParam Optional<Integer> size,
                                                   @RequestParam(value="showAll") Optional<Boolean> showAll) {
-        return patientService.getPatientsByValue(searchKey, searchValue, organization, showInactive, page, size,showAll);
+        return patientService.getPatientsByValue(searchKey, searchValue, organization, assigned, showInactive, page, size,showAll);
     }
 
     @PostMapping
