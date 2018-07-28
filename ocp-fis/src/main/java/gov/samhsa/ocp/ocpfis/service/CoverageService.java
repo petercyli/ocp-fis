@@ -9,9 +9,9 @@ import java.util.Optional;
 
 public interface CoverageService {
 
-    void createCoverage(CoverageDto coverageDto);
+    void createCoverage(CoverageDto coverageDto, Optional<String> loggedInUser);
 
-    void updateCoverage(String id,CoverageDto coverageDto);
+    void updateCoverage(String id,CoverageDto coverageDto, Optional<String> loggedInUser);
 
     List<ReferenceDto> getSubscriberOptions(String patientId);
 

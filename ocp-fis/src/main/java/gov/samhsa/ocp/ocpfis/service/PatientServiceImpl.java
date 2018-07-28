@@ -460,9 +460,9 @@ public class PatientServiceImpl implements PatientService {
             //Update the coverage
             patientDto.getCoverages().ifPresent(coverages -> coverages.forEach(coverageDto -> {
                 if (coverageDto.getLogicalId() != null) {
-                    coverageService.updateCoverage(coverageDto.getLogicalId(), coverageDto);
+                    coverageService.updateCoverage(coverageDto.getLogicalId(), coverageDto, Optional.empty());
                 } else {
-                    coverageService.createCoverage(coverageDto);
+                    coverageService.createCoverage(coverageDto, Optional.empty());
                 }
             }));
 

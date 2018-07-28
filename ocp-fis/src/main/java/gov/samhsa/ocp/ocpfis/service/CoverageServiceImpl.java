@@ -1,10 +1,12 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CoverageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
@@ -16,6 +18,7 @@ import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CoverageDtoToCoverag
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.Coverage;
@@ -46,19 +49,24 @@ public class CoverageServiceImpl implements CoverageService {
 
     private final RelatedPersonService relatedPersonService;
 
+    private final ProvenanceUtil provenanceUtil;
+
     @Autowired
-    public CoverageServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, ModelMapper modelMapper, RelatedPersonService relatedPersonService) {
+    public CoverageServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, ModelMapper modelMapper, RelatedPersonService relatedPersonService, ProvenanceUtil provenanceUtil) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.modelMapper = modelMapper;
         this.relatedPersonService = relatedPersonService;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
-    public void createCoverage(CoverageDto coverageDto) {
+    public void createCoverage(CoverageDto coverageDto, Optional<String> loggedInUser) {
         if (!isDuplicateWhileCreate(coverageDto)) {
+            List<String> idList = new ArrayList<>();
+
             Coverage coverage = CoverageDtoToCoverageMap.map(coverageDto, lookUpService);
 
             //Set Profile Meta Data
@@ -66,14 +74,21 @@ public class CoverageServiceImpl implements CoverageService {
             //Validate
             FhirOperationUtil.validateFhirResource(fhirValidator, coverage, Optional.empty(), ResourceType.Coverage.name(), "Create Coverage");
             //Create
-            FhirOperationUtil.createFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
+            MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
+            idList.add(ResourceType.Coverage.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+            if(fisProperties.isProvenanceEnabled() && loggedInUser.isPresent()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
+            }
         } else {
             throw new DuplicateResourceFoundException("Coverage already exists for given subscriber id and beneficiary.");
         }
     }
 
     @Override
-    public void updateCoverage(String id, CoverageDto coverageDto) {
+    public void updateCoverage(String id, CoverageDto coverageDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
+
         Coverage coverage = CoverageDtoToCoverageMap.map(coverageDto, lookUpService);
         coverage.setId(id);
         //Set Profile Meta Data
@@ -81,7 +96,12 @@ public class CoverageServiceImpl implements CoverageService {
         //Validate
         FhirOperationUtil.validateFhirResource(fhirValidator, coverage, Optional.empty(), ResourceType.Coverage.name(), "Update Coverage");
         //Update
-        FhirOperationUtil.updateFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
+        MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
+        idList.add(ResourceType.Coverage.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+        if(fisProperties.isProvenanceEnabled() && loggedInUser.isPresent()) {
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
+        }
     }
 
     @Override
