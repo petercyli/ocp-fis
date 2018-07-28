@@ -9,6 +9,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.DateRangeEnum;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
@@ -27,6 +28,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -67,13 +69,15 @@ public class TaskServiceImpl implements TaskService {
     private final Map<Task.TaskStatus, List<Task.TaskStatus>> taskStatuses;
     private final List<String> finalStatuses;
     private final List<ValueSetDto> taskPerformerTypes;
+    private final ProvenanceUtil provenanceUtil;
 
     @Autowired
     public TaskServiceImpl(IGenericClient fhirClient,
                            FhirValidator fhirValidator, LookUpService lookUpService,
                            FisProperties fisProperties,
                            ActivityDefinitionService activityDefinitionService,
-                           PatientService patientService) {
+                           PatientService patientService,
+                           ProvenanceUtil provenanceUtil) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
@@ -83,6 +87,7 @@ public class TaskServiceImpl implements TaskService {
         this.taskStatuses = populateTaskStatuses();
         this.finalStatuses = Arrays.asList(Task.TaskStatus.COMPLETED.toCode(), Task.TaskStatus.FAILED.toCode(), Task.TaskStatus.CANCELLED.toCode());
         this.taskPerformerTypes = lookUpService.getTaskPerformerType();
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
@@ -200,7 +205,9 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public void createTask(TaskDto taskDto) throws FHIRException {
+    public void createTask(TaskDto taskDto, Optional<String> loggedInUser) throws FHIRException {
+        List<String> idList = new ArrayList<>();
+
         if (!isDuplicate(taskDto)) {
             retrieveActivityDefinitionDuration(taskDto);
             Task task = TaskDtoToTaskMap.map(taskDto);
@@ -215,14 +222,21 @@ public class TaskServiceImpl implements TaskService {
             FhirOperationUtil.validateFhirResource(fhirValidator, task, Optional.empty(), ResourceType.Task.name(), "Create Task");
 
             //Create
-            FhirOperationUtil.createFhirResource(fhirClient, task, ResourceType.Task.name());
+            MethodOutcome taskMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, task, ResourceType.Task.name());
+            idList.add(ResourceType.Task.name() + "/" + FhirOperationUtil.getFhirId(taskMethodOutcome));
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
+            }
+
         } else {
             throw new DuplicateResourceFoundException("Duplicate task is already present.");
         }
     }
 
     @Override
-    public void updateTask(String taskId, TaskDto taskDto) throws FHIRException {
+    public void updateTask(String taskId, TaskDto taskDto, Optional<String> loggedInUser) throws FHIRException {
+        List<String> idList = new ArrayList<>();
 
         if (!isValidTaskStatus(taskDto)) {
             throw new InvalidStatusException("Invalid task status has been submitted.");
@@ -252,7 +266,13 @@ public class TaskServiceImpl implements TaskService {
         FhirOperationUtil.validateFhirResource(fhirValidator, task, Optional.of(taskId), ResourceType.Task.name(), "Update Task");
 
         //Update the resource
-        FhirOperationUtil.updateFhirResource(fhirClient, task, "Update Task");
+        MethodOutcome taskMethodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, task, "Update Task");
+        idList.add(ResourceType.Task.name() + "/" + FhirOperationUtil.getFhirId(taskMethodOutcome));
+
+        if(fisProperties.isProvenanceEnabled()) {
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
+        }
+
     }
 
     @Override
