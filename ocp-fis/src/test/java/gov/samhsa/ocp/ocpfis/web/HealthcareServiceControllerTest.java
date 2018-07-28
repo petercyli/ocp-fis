@@ -112,7 +112,7 @@ public class HealthcareServiceControllerTest {
     @Test
     public void testCreateHealthcareService() throws Exception {
         //Arrange
-        doNothing().when(healthcareService).createHealthcareService(isA(String.class), isA(HealthcareServiceDto.class));
+        doNothing().when(healthcareService).createHealthcareService(isA(String.class), isA(HealthcareServiceDto.class), Mockito.any(Optional.class));
         String organizationId = "123";
 
         //Act
@@ -126,7 +126,7 @@ public class HealthcareServiceControllerTest {
     @Test
     public void testUpdateHealthcareService() throws Exception {
         //Arrange
-        doNothing().when(healthcareService).updateHealthcareService(isA(String.class), isA(String.class), isA(HealthcareServiceDto.class));
+        doNothing().when(healthcareService).updateHealthcareService(isA(String.class), isA(String.class), isA(HealthcareServiceDto.class), Mockito.any(Optional.class));
         String organizationId = "123";
         String healthcareServiceId = "456";
 

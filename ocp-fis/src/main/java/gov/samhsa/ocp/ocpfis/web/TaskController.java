@@ -40,9 +40,9 @@ public class TaskController {
 
     @PostMapping("/tasks")
     @ResponseStatus(HttpStatus.CREATED)
-    public void createTask(@Valid @RequestBody TaskDto taskDto) {
+    public void createTask(@Valid @RequestBody TaskDto taskDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser) {
         try {
-            taskService.createTask(taskDto);
+            taskService.createTask(taskDto, loggedInUser);
         } catch (FHIRException e) {
             log.error("A FHIRException occured when creating a task" + e);
         }
@@ -50,9 +50,9 @@ public class TaskController {
 
     @PutMapping("/tasks/{taskId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateTask(@PathVariable String taskId, @Valid @RequestBody TaskDto taskDto) {
+    public void updateTask(@PathVariable String taskId, @Valid @RequestBody TaskDto taskDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser) {
         try {
-            taskService.updateTask(taskId, taskDto);
+            taskService.updateTask(taskId, taskDto, loggedInUser);
         } catch (FHIRException e) {
             log.error("A FHIRException occurred when updating a task " + e);
         }

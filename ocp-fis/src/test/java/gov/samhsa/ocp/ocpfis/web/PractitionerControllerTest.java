@@ -72,7 +72,7 @@ public class PractitionerControllerTest {
     @Test
     public void testCreatePractitioner() throws Exception {
         //Arrange
-        doNothing().when(practitionerService).createPractitioner(isA(PractitionerDto.class));
+        doNothing().when(practitionerService).createPractitioner(isA(PractitionerDto.class), Mockito.any(Optional.class));
 
         //Act
         MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/practitioners").content(PRACTITIONER).contentType(APPLICATION_JSON_UTF8);
@@ -85,7 +85,7 @@ public class PractitionerControllerTest {
     @Test
     public void testUpdatePractitioner() throws  Exception {
         //Arrange
-        doNothing().when(practitionerService).updatePractitioner(isA(String.class), isA(PractitionerDto.class));
+        doNothing().when(practitionerService).updatePractitioner(isA(String.class), isA(PractitionerDto.class), Mockito.any(Optional.class));
 
         //Act
         MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.put("/practitioners/101").content(PRACTITIONER).contentType(APPLICATION_JSON_UTF8);

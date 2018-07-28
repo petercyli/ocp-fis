@@ -15,9 +15,9 @@ public interface HealthcareServiceService {
 
     HealthcareServiceDto getHealthcareService(String healthcareServiceId);
 
-    void createHealthcareService(String organizationId, HealthcareServiceDto healthcareServiceDto);
+    void createHealthcareService(String organizationId, HealthcareServiceDto healthcareServiceDto, Optional<String> loggedInUser);
 
-    void updateHealthcareService(String organizationId, String healthcareServiceId, HealthcareServiceDto healthcareServiceDto);
+    void updateHealthcareService(String organizationId, String healthcareServiceId, HealthcareServiceDto healthcareServiceDto, Optional<String> loggedInUser);
 
     void inactivateHealthcareService(String healthcareServiceId);
 

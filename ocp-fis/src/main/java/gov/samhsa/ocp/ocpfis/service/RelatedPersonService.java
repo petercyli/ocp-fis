@@ -12,8 +12,8 @@ public interface RelatedPersonService {
 
     RelatedPersonDto getRelatedPersonById(String id);
 
-    void createRelatedPerson(RelatedPersonDto relatedPersonDtoDto);
+    void createRelatedPerson(RelatedPersonDto relatedPersonDtoDto, Optional<String> loggedInUser);
 
-    void updateRelatedPerson(String relatedPersonId, RelatedPersonDto relatedPersonDto);
+    void updateRelatedPerson(String relatedPersonId, RelatedPersonDto relatedPersonDto, Optional<String> loggedInUser);
 
 }
