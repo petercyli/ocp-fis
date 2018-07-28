@@ -308,6 +308,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
     @Override
     public void createHealthcareService(String organizationId, HealthcareServiceDto healthcareServiceDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
         log.info("Creating Healthcare Service for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate Healthcare Service exists based on the Identifiers provided.");
 
@@ -325,15 +326,17 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
         //Create
         MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, fhirHealthcareService, ResourceType.HealthcareService.name());
+        idList.add(ResourceType.HealthcareService.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
         //Provenance
         if(fisProperties.isProvenanceEnabled()) {
-            provenanceUtil.createProvenance(ResourceType.HealthcareService.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
         }
     }
 
     @Override
     public void updateHealthcareService(String organizationId, String healthcareServiceId, HealthcareServiceDto healthcareServiceDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
         log.info("Updating healthcareService Id: " + healthcareServiceId + " for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate healthcareService(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateHealthcareServiceBasedOnTypesDuringUpdate(healthcareServiceDto, healthcareServiceId, organizationId);
@@ -367,10 +370,11 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
 
         //Update
         MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, existingHealthcareService, "Update Healthcare Service");
+        idList.add(ResourceType.HealthcareService.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
         //Provenance
         if(fisProperties.isProvenanceEnabled()) {
-            provenanceUtil.createProvenance(ResourceType.HealthcareService.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
         }
     }
 

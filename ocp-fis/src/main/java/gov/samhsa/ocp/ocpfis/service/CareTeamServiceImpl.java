@@ -79,6 +79,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     public void createCareTeam(CareTeamDto careTeamDto, Optional<String> loggedInUser) {
         checkForDuplicates(careTeamDto);
         try {
+            List<String> idList = new ArrayList<>();
             final CareTeam careTeam = CareTeamDtoToCareTeamConverter.map(careTeamDto);
 
             //Set Profile Meta Data
@@ -89,9 +90,10 @@ public class CareTeamServiceImpl implements CareTeamService {
 
             //Create
             MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+            idList.add(ResourceType.CareTeam.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
             if(fisProperties.isProvenanceEnabled()) {
-                provenanceUtil.createProvenance(ResourceType.CareTeam.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
             }
         } catch (FHIRException | ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while creating a care team:" + e.getMessage());
@@ -101,6 +103,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     @Override
     public void updateCareTeam(String careTeamId, CareTeamDto careTeamDto, Optional<String> loggedInUser) {
         try {
+            List<String> idList = new ArrayList<>();
             careTeamDto.setId(careTeamId);
             final CareTeam careTeam = CareTeamDtoToCareTeamConverter.map(careTeamDto);
 
@@ -112,9 +115,10 @@ public class CareTeamServiceImpl implements CareTeamService {
 
             //Update
             MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+            idList.add(ResourceType.CareTeam.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
             if(fisProperties.isProvenanceEnabled()) {
-                provenanceUtil.createProvenance(ResourceType.CareTeam.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
             }
 
         } catch (FHIRException | ParseException e) {

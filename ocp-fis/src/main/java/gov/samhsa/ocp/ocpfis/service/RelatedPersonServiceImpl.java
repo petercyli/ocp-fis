@@ -123,6 +123,8 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
     @Override
     public void createRelatedPerson(RelatedPersonDto relatedPersonDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
+
         checkForDuplicates(relatedPersonDto, relatedPersonDto.getPatient());
         try {
             final RelatedPerson relatedPerson = RelatedPersonDtoToRelatedPersonConverter.map(relatedPersonDto);
@@ -135,9 +137,10 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
             //Create
             MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, relatedPerson, ResourceType.RelatedPerson.name());
+            idList.add(ResourceType.RelatedPerson.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
             if(fisProperties.isProvenanceEnabled()) {
-                provenanceUtil.createProvenance(ResourceType.RelatedPerson.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
             }
 
         } catch (ParseException e) {
@@ -149,6 +152,8 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
     @Override
     public void updateRelatedPerson(String relatedPersonId, RelatedPersonDto relatedPersonDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
+
         relatedPersonDto.setRelatedPersonId(relatedPersonId);
         try {
             final RelatedPerson relatedPerson = RelatedPersonDtoToRelatedPersonConverter.map(relatedPersonDto);
@@ -161,9 +166,10 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
             //Update the resource
             MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, relatedPerson, "Update RelatedPerson");
+            idList.add(ResourceType.RelatedPerson.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
             if(fisProperties.isProvenanceEnabled()) {
-                provenanceUtil.createProvenance(ResourceType.RelatedPerson.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
             }
 
         } catch (ParseException e) {

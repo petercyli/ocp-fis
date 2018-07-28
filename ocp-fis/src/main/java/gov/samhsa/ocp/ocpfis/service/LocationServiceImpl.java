@@ -187,6 +187,7 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     public void createLocation(String organizationId, LocationDto locationDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
         log.info("Creating location for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
 
@@ -210,14 +211,17 @@ public class LocationServiceImpl implements LocationService {
 
         //Create
         MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, fhirLocation, ResourceType.Location.name());
+        idList.add(ResourceType.Location.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
         if(fisProperties.isProvenanceEnabled()) {
-            provenanceUtil.createProvenance(ResourceType.Location.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
         }
     }
 
     @Override
     public void updateLocation(String organizationId, String locationId, LocationDto locationDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
+
         log.info("Updating location Id: " + locationId + " for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateLocationBasedOnOrganizationTaxId(organizationId, locationDto);
@@ -249,9 +253,10 @@ public class LocationServiceImpl implements LocationService {
 
         //Update
         MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Update Location");
+        idList.add(ResourceType.Location.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
         if(fisProperties.isProvenanceEnabled()) {
-            provenanceUtil.createProvenance(ResourceType.Location.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
         }
     }
 

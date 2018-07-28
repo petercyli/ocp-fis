@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 public class ProvenanceUtil {
@@ -20,13 +23,17 @@ public class ProvenanceUtil {
         this.fhirClient = fhirClient;
     }
 
-    public void createProvenance(String id, ProvenanceActivityEnum provenanceActivityEnum, Optional<String> loggedInUser) {
+    public void createProvenance(List<String> idList, ProvenanceActivityEnum provenanceActivityEnum, Optional<String> loggedInUser) {
         Provenance provenance = new Provenance();
 
         //target
-        Reference reference = new Reference();
-        reference.setReference(id);
-        provenance.setTarget(Arrays.asList(reference));
+        List<Reference> referenceList = idList.stream().map(id -> {
+            Reference reference = new Reference();
+            reference.setReference(id);
+            return reference;
+        }).collect(toList());
+
+        provenance.setTarget(referenceList);
 
         //recorded : When the activity was recorded/ updated
         provenance.setRecorded(new Date());

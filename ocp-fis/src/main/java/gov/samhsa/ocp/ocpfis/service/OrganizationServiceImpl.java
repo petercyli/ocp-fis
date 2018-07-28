@@ -211,6 +211,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public void createOrganization(OrganizationDto organizationDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
 
         //Check Duplicate Identifier
         int existingNumberOfOrganizations = this.getOrganizationsCountByIdentifier(organizationDto.getIdentifiers().get(0).getSystem(), organizationDto.getIdentifiers().get(0).getValue());
@@ -230,6 +231,7 @@ public class OrganizationServiceImpl implements OrganizationService {
 
             //Create
             MethodOutcome serverResponse = FhirOperationUtil.createFhirResource(fhirClient, fhirOrganization, ResourceType.Organization.name());
+            idList.add(ResourceType.Organization.name() + "/" + FhirOperationUtil.getFhirId(serverResponse));
 
             // Add TO DO Activity Definition
             ActivityDefinition activityDefinition = FhirResourceUtil.createToDoActivityDefinition(serverResponse.getId().getIdPart(), fisProperties, lookUpService, fhirClient);
@@ -241,10 +243,11 @@ public class OrganizationServiceImpl implements OrganizationService {
             FhirOperationUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.empty(), ResourceType.ActivityDefinition.name(), "Create ActivityDefinition (when creating an Organization)");
 
             //Create TO DO Activity Definition
-            FhirOperationUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
+            MethodOutcome activityDefinitionMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
+            idList.add(ResourceType.ActivityDefinition.name() + "/" + FhirOperationUtil.getFhirId(activityDefinitionMethodOutcome));
 
             if(fisProperties.isProvenanceEnabled()) {
-                provenanceUtil.createProvenance(ResourceType.Organization.name() + "/" + serverResponse.getId().getIdPart(), ProvenanceActivityEnum.CREATE, loggedInUser);
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
             }
 
         } else {
@@ -254,6 +257,8 @@ public class OrganizationServiceImpl implements OrganizationService {
 
     @Override
     public void updateOrganization(String organizationId, OrganizationDto organizationDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
+
         log.info("Updating the Organization with Id:" + organizationId);
 
         Organization existingOrganization = fhirClient.read().resource(Organization.class).withId(organizationId.trim()).execute();
@@ -274,9 +279,10 @@ public class OrganizationServiceImpl implements OrganizationService {
 
             //Update
             MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, existingOrganization, "Update Organization");
+            idList.add(ResourceType.Organization.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
             if(fisProperties.isProvenanceEnabled()) {
-                provenanceUtil.createProvenance(ResourceType.Organization.name() + "/" + methodOutcome.getId().getIdPart(), ProvenanceActivityEnum.UPDATE, loggedInUser);
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
             }
         } else {
             throw new DuplicateResourceFoundException("Organization with the Identifier " + organizationId + " is already present.");
