@@ -11,9 +11,9 @@ import java.util.Optional;
 
 public interface CareTeamService {
 
-    void createCareTeam(CareTeamDto careTeamDto);
+    void createCareTeam(CareTeamDto careTeamDto, Optional<String> loggedInUser);
 
-    void updateCareTeam(String careTeamId, CareTeamDto careTeamDto);
+    void updateCareTeam(String careTeamId, CareTeamDto careTeamDto, Optional<String> loggedInUser);
 
     CareTeamDto getCareTeamById(String careTeamId);
 

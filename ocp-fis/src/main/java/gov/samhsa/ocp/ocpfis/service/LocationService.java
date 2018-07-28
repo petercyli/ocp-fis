@@ -48,14 +48,14 @@ public interface LocationService {
      * @param organizationId
      * @param locationDto
      */
-    void createLocation(String organizationId, LocationDto locationDto);
+    void createLocation(String organizationId, LocationDto locationDto, Optional<String> loggedInUser);
 
     /**
      * @param organizationId
      * @param locationId
      * @param locationDto
      */
-    void updateLocation(String organizationId, String locationId, LocationDto locationDto);
+    void updateLocation(String organizationId, String locationId, LocationDto locationDto, Optional<String> loggedInUser);
 
     /**
      * @param locationId

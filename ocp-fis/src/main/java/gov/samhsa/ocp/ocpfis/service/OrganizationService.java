@@ -16,9 +16,9 @@ public interface OrganizationService {
 
     PageDto<OrganizationDto> searchOrganizations(Optional<OrganizationController.SearchType> searchType, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll);
 
-    void createOrganization(OrganizationDto organizationDto);
+    void createOrganization(OrganizationDto organizationDto, Optional<String> loggedInUser);
 
-    void updateOrganization(String organizationId, OrganizationDto organizationDto);
+    void updateOrganization(String organizationId, OrganizationDto organizationDto, Optional<String> loggedInUser);
 
     void inactivateOrganization(String organizationId);
 

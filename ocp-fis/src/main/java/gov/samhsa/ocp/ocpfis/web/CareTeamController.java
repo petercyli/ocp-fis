@@ -29,14 +29,14 @@ public class CareTeamController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createCareTeam(@Valid @RequestBody CareTeamDto careTeamDto) {
-        careTeamService.createCareTeam(careTeamDto);
+    public void createCareTeam(@Valid @RequestBody CareTeamDto careTeamDto, Optional<String> loggedInUser) {
+        careTeamService.createCareTeam(careTeamDto, loggedInUser);
     }
 
     @PutMapping("/{careTeamId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateCareTeam(@PathVariable String careTeamId, @Valid @RequestBody CareTeamDto careTeamDto) {
-        careTeamService.updateCareTeam(careTeamId, careTeamDto);
+    public void updateCareTeam(@PathVariable String careTeamId, @Valid @RequestBody CareTeamDto careTeamDto, Optional<String> loggedInUser) {
+        careTeamService.updateCareTeam(careTeamId, careTeamDto, loggedInUser);
     }
 
     @GetMapping("/search")

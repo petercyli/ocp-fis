@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
@@ -8,6 +9,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.CareTeamFieldEnum;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
@@ -24,6 +26,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -60,20 +63,23 @@ public class CareTeamServiceImpl implements CareTeamService {
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
     private final CommunicationService communicationService;
+    private final ProvenanceUtil provenanceUtil;
 
     @Autowired
-    public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, CommunicationService communicationService) {
+    public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, CommunicationService communicationService, ProvenanceUtil provenanceUtil) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.communicationService = communicationService;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
-    public void createCareTeam(CareTeamDto careTeamDto) {
+    public void createCareTeam(CareTeamDto careTeamDto, Optional<String> loggedInUser) {
         checkForDuplicates(careTeamDto);
         try {
+            List<String> idList = new ArrayList<>();
             final CareTeam careTeam = CareTeamDtoToCareTeamConverter.map(careTeamDto);
 
             //Set Profile Meta Data
@@ -83,15 +89,21 @@ public class CareTeamServiceImpl implements CareTeamService {
             FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.empty(), ResourceType.CareTeam.name(), "Create CareTeam");
 
             //Create
-            FhirOperationUtil.createFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+            MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+            idList.add(ResourceType.CareTeam.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
+            }
         } catch (FHIRException | ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while creating a care team:" + e.getMessage());
         }
     }
 
     @Override
-    public void updateCareTeam(String careTeamId, CareTeamDto careTeamDto) {
+    public void updateCareTeam(String careTeamId, CareTeamDto careTeamDto, Optional<String> loggedInUser) {
         try {
+            List<String> idList = new ArrayList<>();
             careTeamDto.setId(careTeamId);
             final CareTeam careTeam = CareTeamDtoToCareTeamConverter.map(careTeamDto);
 
@@ -102,7 +114,12 @@ public class CareTeamServiceImpl implements CareTeamService {
             FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.of(careTeamId), ResourceType.CareTeam.name(), "Update CareTeam");
 
             //Update
-            FhirOperationUtil.updateFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+            MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+            idList.add(ResourceType.CareTeam.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
+            }
 
         } catch (FHIRException | ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while updating a care team:" + e.getMessage());

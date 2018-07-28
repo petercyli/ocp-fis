@@ -43,8 +43,8 @@ public class PractitionerController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createPractitioner(@Valid @RequestBody PractitionerDto practitionerDto) {
-        practitionerService.createPractitioner(practitionerDto);
+    public void createPractitioner(@Valid @RequestBody PractitionerDto practitionerDto, Optional<String> loggedInUser) {
+        practitionerService.createPractitioner(practitionerDto, loggedInUser);
     }
 
     @GetMapping("/{practitionerId}")
@@ -54,8 +54,8 @@ public class PractitionerController {
 
     @PutMapping("/{practitionerId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updatePractitioner(@PathVariable String practitionerId, @Valid @RequestBody PractitionerDto practitionerDto) {
-        practitionerService.updatePractitioner(practitionerId, practitionerDto);
+    public void updatePractitioner(@PathVariable String practitionerId, @Valid @RequestBody PractitionerDto practitionerDto, Optional<String> loggedInUser) {
+        practitionerService.updatePractitioner(practitionerId, practitionerDto, loggedInUser);
     }
 
     @GetMapping
