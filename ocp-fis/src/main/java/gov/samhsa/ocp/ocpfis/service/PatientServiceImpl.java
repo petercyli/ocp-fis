@@ -407,6 +407,12 @@ public class PatientServiceImpl implements PatientService {
                 }
             }));
 
+            // if flags are not present
+            if(! patientDto.getFlags().isPresent()){
+                // TODO:: update the existing flags with enteredinerror status or remove them
+
+            }
+
             //Update the episode of care
             if (patientDto.getEpisodeOfCares() != null && !patientDto.getEpisodeOfCares().isEmpty()) {
                 patientDto.getEpisodeOfCares().forEach(eoc -> {
@@ -662,15 +668,19 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private boolean duplicateCheckForFlag(FlagDto flagDto, String patientId) {
+        Bundle flagBundleForPatient = getFlagsByPatient(patientId);
+        return flagHasSameCodeAndCategory(flagBundleForPatient, flagDto);
+    }
+
+    private Bundle getFlagsByPatient(String patientId) {
         IQuery flagBundleForPatientQuery = fhirClient.search().forResource(Flag.class)
                 .where(new ReferenceClientParam("subject").hasId(patientId));
         Bundle flagBundleToCoundTotalNumberOfFlag = (Bundle) flagBundleForPatientQuery.returnBundle(Bundle.class).execute();
         int totalFlagForPatient = flagBundleToCoundTotalNumberOfFlag.getTotal();
-        Bundle flagBundleForPatient = (Bundle) flagBundleForPatientQuery
+        return (Bundle) flagBundleForPatientQuery
                 .count(totalFlagForPatient)
                 .returnBundle(Bundle.class)
                 .execute();
-        return flagHasSameCodeAndCategory(flagBundleForPatient, flagDto);
     }
 
     private boolean flagHasSameCodeAndCategory(Bundle bundle, FlagDto flagDto) {

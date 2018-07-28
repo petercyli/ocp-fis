@@ -31,6 +31,7 @@ import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -109,7 +110,7 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
-    public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<String> assignedToPractitioner, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfLocationsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Location.name());
 
         Bundle firstPageLocationSearchBundle;
@@ -124,7 +125,7 @@ public class LocationServiceImpl implements LocationService {
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
-        firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(locationsSearchQuery, numberOfLocationsPerPage, Optional.empty());
+        firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(FhirOperationUtil.setNoCacheControlDirective(locationsSearchQuery), numberOfLocationsPerPage, Optional.empty());
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().isEmpty()) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
@@ -142,7 +143,7 @@ public class LocationServiceImpl implements LocationService {
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
         // Map to DTO
-        List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
+        List<LocationDto> locationsList = retrievedLocations.stream().map(loc->convertLocationBundleEntryToLocationDto(loc, organizationResourceId, assignedToPractitioner)).collect(Collectors.toList());
         return (PageDto<LocationDto>) PaginationUtil.applyPaginationForSearchBundle(locationsList, otherPageLocationSearchBundle.getTotal(), numberOfLocationsPerPage, pageNumber);
     }
 
@@ -430,6 +431,17 @@ public class LocationServiceImpl implements LocationService {
         return tempLocationDto;
     }
 
+    private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel,
+                                                                String organizationId,
+                                                                Optional<String> assignedToPractitioner) {
+       LocationDto locationDto=convertLocationBundleEntryToLocationDto(fhirLocationModel);
+       assignedToPractitioner.ifPresent(prac->{
+           locationDto.setAssignToCurrentPractitioner(Optional.ofNullable(isAssignedToPractitioner(prac, organizationId, locationDto.getLogicalId())));
+       });
+
+       return locationDto;
+    }
+
     private Location.LocationStatus getLocationStatusFromDto(LocationDto locationDto) {
         List<ValueSetDto> validLocationStatuses = lookUpService.getLocationStatuses();
 
@@ -476,6 +488,21 @@ public class LocationServiceImpl implements LocationService {
         return organizationDto.getIdentifiers().stream()
                 .filter(identifier -> identifier.getSystem().equalsIgnoreCase(KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getUri()))
                 .findFirst();
+    }
+
+    private Boolean isAssignedToPractitioner(String practitionerId, String organizationId, String logicalId){
+      Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+                .where(new ReferenceClientParam("practitioner").hasId(practitionerId))
+                .where(new ReferenceClientParam("organization").hasId(organizationId))
+                .where(new ReferenceClientParam("location").hasId(logicalId))
+                .returnBundle(Bundle.class).execute();
+
+        if(bundle.getEntry().isEmpty()){
+            return false;
+        }
+        else{
+            return true;
+        }
     }
 }
 
