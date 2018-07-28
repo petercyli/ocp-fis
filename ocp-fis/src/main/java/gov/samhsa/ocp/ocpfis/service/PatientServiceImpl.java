@@ -266,6 +266,12 @@ public class PatientServiceImpl implements PatientService {
 
         List<EpisodeOfCareDto> episodeOfCareDtos = getEocsForEachPatient(response, patient.getIdElement().getIdPart());
         patientDto.setEpisodeOfCares(episodeOfCareDtos);
+
+        //set Organization
+        ReferenceDto organization = new ReferenceDto();
+        organization.setDisplay(patient.getManagingOrganization().getDisplay());
+        organization.setReference(patient.getManagingOrganization().getReference());
+        patientDto.setOrganization(Optional.of(organization));
         return patientDto;
     }
 
@@ -511,6 +517,12 @@ public class PatientServiceImpl implements PatientService {
         patientDto.setCoverages(Optional.ofNullable(coverageDtos));
 
         mapExtensionFields(patient, patientDto);
+
+        //set Organization
+        ReferenceDto organization = new ReferenceDto();
+        organization.setDisplay(patient.getManagingOrganization().getDisplay());
+        organization.setReference(patient.getManagingOrganization().getReference());
+        patientDto.setOrganization(Optional.of(organization));
 
         return patientDto;
     }
