@@ -2,7 +2,6 @@ package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
-import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Enumerations;
@@ -10,7 +9,6 @@ import org.hl7.fhir.dstu3.model.RelatedArtifact;
 import org.hl7.fhir.dstu3.model.Timing;
 import org.hl7.fhir.exceptions.FHIRException;
 
-import java.text.ParseException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
@@ -97,6 +95,8 @@ public class ActivityDefinitionDtoToActivityDefinitionConverter {
         //Timing
         Timing timing = new Timing();
         timing.getRepeat().setDurationMax(activityDefinitionDto.getTiming().getDurationMax());
+        timing.getRepeat().setDuration(activityDefinitionDto.getTiming().getDurationMax());
+        timing.getRepeat().setDurationUnit(Timing.UnitsOfTime.D);
         timing.getRepeat().setFrequency(activityDefinitionDto.getTiming().getFrequency());
         activityDefinition.setTiming(timing);
 

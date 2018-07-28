@@ -5,16 +5,16 @@ import java.util.stream.Stream;
 
 public enum IdentifierTypeEnum {
     //http://hl7.org/fhir/v2/0203
-    DL("DL", "Driver's license number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
-    PPN("PPN", "Passport number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
+    DL("DL", "Driver's License Number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
+    PPN("PPN", "Passport Number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
     BRN("BRN", "Breed Registry Number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
-    MR("MR", "Medical record number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
+    MR("MR", "Medical Record Number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
     MCN("MCN", "Microchip Number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
-    EN("EN", "Employer number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
-    TAX("TAX", "Tax ID number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
+    EN("EN", "Employer Number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
+    TAX("TAX", "Tax ID Number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
     NIIP("NIIP", "National Insurance Payor Identifier (Payor)", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
-    PRN("PRN", "Provider number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
-    MD("MD", "Medical License number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
+    PRN("PRN", "Provider Number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
+    MD("MD", "Medical License Number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
     DR("DR", "Donor Registration Number", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
     ACSN("ACSN", "Accession ID", Constants.HTTP_HL7_ORG_FHIR_V2_0203),
 
