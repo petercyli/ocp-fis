@@ -446,6 +446,12 @@ public class PatientServiceImpl implements PatientService {
 
         mapExtensionFields(patient, patientDto);
 
+        //set Organization
+        ReferenceDto organization = new ReferenceDto();
+        organization.setDisplay(patient.getManagingOrganization().getDisplay());
+        organization.setReference(patient.getManagingOrganization().getReference());
+        patientDto.setOrganization(Optional.of(organization));
+
         return patientDto;
     }
 
