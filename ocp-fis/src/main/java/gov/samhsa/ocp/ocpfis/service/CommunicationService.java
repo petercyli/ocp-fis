@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public interface CommunicationService {
     PageDto<CommunicationDto> getCommunications(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<String> organization, Optional<Integer> pageNumber, Optional<Integer> pageSize);
-    void createCommunication(CommunicationDto communicationDto);
-    void updateCommunication(String communicationId, CommunicationDto communicationDto);
+    void createCommunication(CommunicationDto communicationDto, Optional<String> loggedInUser);
+    void updateCommunication(String communicationId, CommunicationDto communicationDto, Optional<String> loggedInUser);
     List<String> getRecipientsByCommunicationId(String patient, String communicationId);
 }
