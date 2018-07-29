@@ -453,13 +453,13 @@ public class PatientServiceImpl implements PatientService {
                         FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.of(eoc.getId()), ResourceType.EpisodeOfCare.name(), "Update EpisodeOfCare(When updating Patient)");
                         //Update
                         MethodOutcome episodeOfCareMethodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
-                        idList.add(ResourceType.Flag.name() + "/" + FhirOperationUtil.getFhirId(episodeOfCareMethodOutcome));
+                        idList.add(ResourceType.EpisodeOfCare.name() + "/" + FhirOperationUtil.getFhirId(episodeOfCareMethodOutcome));
                     } else {
                         //Validate
                         FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.empty(), ResourceType.EpisodeOfCare.name(), "Create EpisodeOfCare(When updating Patient)");
                         //Create
                         MethodOutcome episodeOfCareMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
-                        idList.add(ResourceType.Flag.name() + "/" + FhirOperationUtil.getFhirId(episodeOfCareMethodOutcome));
+                        idList.add(ResourceType.EpisodeOfCare.name() + "/" + FhirOperationUtil.getFhirId(episodeOfCareMethodOutcome));
                     }
                 });
             }
