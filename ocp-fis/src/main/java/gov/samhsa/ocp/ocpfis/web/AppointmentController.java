@@ -29,14 +29,14 @@ public class AppointmentController {
 
     @PostMapping("/appointments")
     @ResponseStatus(HttpStatus.CREATED)
-    public void createAppointment(@Valid @RequestBody AppointmentDto appointmentDto) {
-        appointmentService.createAppointment(appointmentDto);
+    public void createAppointment(@Valid @RequestBody AppointmentDto appointmentDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser) {
+        appointmentService.createAppointment(appointmentDto, loggedInUser);
     }
 
     @PutMapping("/appointments/{appointmentId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateAppointment(@PathVariable String appointmentId, @Valid @RequestBody AppointmentDto appointmentDto) {
-        appointmentService.updateAppointment(appointmentId, appointmentDto);
+    public void updateAppointment(@PathVariable String appointmentId, @Valid @RequestBody AppointmentDto appointmentDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser) {
+        appointmentService.updateAppointment(appointmentId, appointmentDto, loggedInUser);
     }
 
     @GetMapping("/patients/{patientId}/appointmentParticipants")

@@ -26,17 +26,17 @@ public class ActivityDefinitionController {
     private ActivityDefinitionService activityDefinitionService;
 
     @PostMapping("/organizations/{organizationId}/activity-definitions")
-    public void createActivityDefinition(@PathVariable String organizationId, @RequestBody ActivityDefinitionDto activityDefinitionDto) {
+    public void createActivityDefinition(@PathVariable String organizationId, @RequestBody ActivityDefinitionDto activityDefinitionDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser) {
         try {
-            activityDefinitionService.createActivityDefinition(activityDefinitionDto, organizationId);
+            activityDefinitionService.createActivityDefinition(activityDefinitionDto, organizationId, loggedInUser);
         }catch (Exception e){
             e.printStackTrace();
         }
     }
 
     @PutMapping("/organizations/{organizationId}/activity-definitions/{activityDefinitionId}")
-    public void updateActivityDefinition(@PathVariable String organizationId, @PathVariable String activityDefinitionId, @RequestBody ActivityDefinitionDto activityDefinitionDto) {
-        activityDefinitionService.updateActivityDefinition(activityDefinitionDto, organizationId, activityDefinitionId);
+    public void updateActivityDefinition(@PathVariable String organizationId, @PathVariable String activityDefinitionId, @RequestBody ActivityDefinitionDto activityDefinitionDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser) {
+        activityDefinitionService.updateActivityDefinition(activityDefinitionDto, organizationId, activityDefinitionId, loggedInUser);
     }
 
     @GetMapping("/activity-definitions/{activityDefinitionId}")

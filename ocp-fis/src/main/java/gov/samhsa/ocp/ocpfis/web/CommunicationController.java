@@ -36,14 +36,14 @@ public class CommunicationController {
 
     @PostMapping("/communications")
     @ResponseStatus(HttpStatus.CREATED)
-    public void createCommunication(@Valid @RequestBody CommunicationDto communicationDto){
-        communicationService.createCommunication(communicationDto);
+    public void createCommunication(@Valid @RequestBody CommunicationDto communicationDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser){
+        communicationService.createCommunication(communicationDto, loggedInUser);
     }
 
     @PutMapping("/communications/{communicationId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateCommunication(@PathVariable String communicationId, @Valid @RequestBody CommunicationDto communicationDto){
-        communicationService.updateCommunication(communicationId,communicationDto);
+    public void updateCommunication(@PathVariable String communicationId, @Valid @RequestBody CommunicationDto communicationDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser){
+        communicationService.updateCommunication(communicationId,communicationDto, loggedInUser);
     }
 
 }

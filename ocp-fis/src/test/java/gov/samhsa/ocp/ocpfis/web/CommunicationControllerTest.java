@@ -80,7 +80,7 @@ public class CommunicationControllerTest {
     @Test
     public void testCreateCommunication() throws Exception {
         //Arrange
-        doNothing().when(communicationService).createCommunication(isA(CommunicationDto.class));
+        doNothing().when(communicationService).createCommunication(isA(CommunicationDto.class), Mockito.any(Optional.class));
 
         //Act
         MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/communications").content(COMMUNICATION).contentType(APPLICATION_JSON_UTF8);
@@ -93,7 +93,7 @@ public class CommunicationControllerTest {
     @Test
     public void testUpdateCommunication() throws Exception {
         //Arrange
-        doNothing().when(communicationService).updateCommunication(isA(String.class), isA(CommunicationDto.class));
+        doNothing().when(communicationService).updateCommunication(isA(String.class), isA(CommunicationDto.class), Mockito.any(Optional.class));
 
         //Act
         MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.put("/communications/101").content(COMMUNICATION).contentType(APPLICATION_JSON_UTF8);

@@ -12,9 +12,9 @@ public interface ActivityDefinitionService {
 
     PageDto<ActivityDefinitionDto> getAllActivityDefinitionsByOrganization(String organizationResourceId, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
 
-    void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto,String organizationId);
+    void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto,String organizationId, Optional<String> loggedInUser);
 
-    void updateActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId, String activityDefinitionId);
+    void updateActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId, String activityDefinitionId, Optional<String> loggedInUser);
 
     List<ActivityReferenceDto> getActivityDefinitionsByPractitioner(String practitioner);
 

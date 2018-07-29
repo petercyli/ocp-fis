@@ -14,9 +14,9 @@ public interface AppointmentService {
 
     PageDto<AppointmentDto> getAppointmentsByPractitionerAndAssignedCareTeamPatients(String practitionerId, Optional<List<String>> statusList, Optional<String> requesterReference, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showPastAppointments, Optional<String> filterDateOption, Optional<Boolean> sortByStartTimeAsc, Optional<Integer> pageNumber, Optional<Integer> pageSize);
 
-    void createAppointment(AppointmentDto appointmentDto);
+    void createAppointment(AppointmentDto appointmentDto, Optional<String> loggedInUser);
 
-    void updateAppointment(String appointmentId, AppointmentDto appointmentDto);
+    void updateAppointment(String appointmentId, AppointmentDto appointmentDto, Optional<String> loggedInUser);
 
     List<ParticipantReferenceDto> getAppointmentParticipants(String patientId, Optional<List<String>> roles, Optional<String> appointmentId);
 

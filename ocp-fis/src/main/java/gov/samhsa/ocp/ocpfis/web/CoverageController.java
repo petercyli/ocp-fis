@@ -24,13 +24,13 @@ public class CoverageController {
     private CoverageService coverageService;
 
     @PostMapping("/coverage")
-    public void createCoverage(@Valid @RequestBody CoverageDto coverageDto){
-        coverageService.createCoverage(coverageDto);
+    public void createCoverage(@Valid @RequestBody CoverageDto coverageDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser){
+        coverageService.createCoverage(coverageDto, loggedInUser);
     }
 
     @PutMapping("/coverage/{id}")
-    public void updateCoverage(@PathVariable String id, @Valid @RequestBody CoverageDto coverageDto){
-        coverageService.updateCoverage(id, coverageDto);
+    public void updateCoverage(@PathVariable String id, @Valid @RequestBody CoverageDto coverageDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser){
+        coverageService.updateCoverage(id, coverageDto, loggedInUser);
     }
 
     @GetMapping("/patients/{patientId}/subscriber-options")
