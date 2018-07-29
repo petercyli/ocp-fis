@@ -41,6 +41,7 @@ import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Coverage;
+import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Flag;
@@ -266,6 +267,12 @@ public class PatientServiceImpl implements PatientService {
 
         List<EpisodeOfCareDto> episodeOfCareDtos = getEocsForEachPatient(response, patient.getIdElement().getIdPart());
         patientDto.setEpisodeOfCares(episodeOfCareDtos);
+
+        //set Organization
+        ReferenceDto organization = new ReferenceDto();
+        organization.setDisplay(patient.getManagingOrganization().getDisplay());
+        organization.setReference(patient.getManagingOrganization().getReference());
+        patientDto.setOrganization(Optional.of(organization));
         return patientDto;
     }
 
@@ -512,6 +519,12 @@ public class PatientServiceImpl implements PatientService {
 
         mapExtensionFields(patient, patientDto);
 
+        //set Organization
+        ReferenceDto organization = new ReferenceDto();
+        organization.setDisplay(patient.getManagingOrganization().getDisplay());
+        organization.setReference(patient.getManagingOrganization().getReference());
+        patientDto.setOrganization(Optional.of(organization));
+
         return patientDto;
     }
 
@@ -537,6 +550,8 @@ public class PatientServiceImpl implements PatientService {
         return patientAndAllReferenceBundle.stream().filter(patientWithAllReference -> patientWithAllReference.getResource().getResourceType().equals(ResourceType.Flag))
                 .map(flagBundle -> (Flag) flagBundle.getResource())
                 .filter(flag -> flag.getSubject().getReference().equalsIgnoreCase("Patient/" + patientId))
+                // filter out inactive and entered in error status values
+                .filter(flag -> flag.getStatus().equals(Enumerations.PublicationStatus.ACTIVE))
                 .map(flag -> {
                     FlagDto flagDto = modelMapper.map(flag, FlagDto.class);
                     if (flag.getPeriod() != null && !flag.getPeriod().isEmpty()) {
