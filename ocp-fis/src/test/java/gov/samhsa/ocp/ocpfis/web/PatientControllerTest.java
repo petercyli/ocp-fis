@@ -51,7 +51,7 @@ public class PatientControllerTest {
         List<PatientDto> dtos = new ArrayList<>();
         dtos.add(dto);
         PageDto pageDto = new PageDto<>(dtos, 10, 1, 1, dtos.size(), 0);
-        Mockito.when(patientService.getPatientsByValue(Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class))).thenReturn(pageDto);
+        Mockito.when(patientService.getPatientsByValue(Mockito.any(Optional.class),  Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class),Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class))).thenReturn(pageDto);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/patients/search?type=name&value=101");
