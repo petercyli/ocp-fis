@@ -29,4 +29,6 @@ public class PractitionerDto {
     private List<PractitionerRoleDto> practitionerRoles;
 
     private String uaaRole;
+
+    private String username;
 }

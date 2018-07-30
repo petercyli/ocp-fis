@@ -1,11 +1,13 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityDefinitionDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityReferenceDto;
@@ -23,6 +25,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
@@ -56,14 +59,17 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
 
     private final OrganizationService organizationService;
 
+    private final ProvenanceUtil provenanceUtil;
+
     @Autowired
-    public ActivityDefinitionServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, OrganizationService organizationService) {
+    public ActivityDefinitionServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, OrganizationService organizationService, ProvenanceUtil provenanceUtil) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.organizationService = organizationService;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
@@ -148,8 +154,10 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     }
 
     @Override
-    public void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId) {
+    public void createActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId, Optional<String> loggedInUser) {
         if (!isDuplicate(activityDefinitionDto, organizationId)) {
+            List<String> idList = new ArrayList<>();
+
             String version = fisProperties.getActivityDefinition().getVersion();
             setTopicDisplay(activityDefinitionDto);
 
@@ -162,7 +170,12 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
             FhirOperationUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.empty(), ResourceType.ActivityDefinition.name(), "Create ActivityDefinition");
 
             //Create
-            FhirOperationUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
+            MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
+            idList.add(ResourceType.ActivityDefinition.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
+            }
 
         } else {
             throw new DuplicateResourceFoundException("Duplicate Activity Definition is already present.");
@@ -170,7 +183,9 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
     }
 
     @Override
-    public void updateActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId, String activityDefinitionId) {
+    public void updateActivityDefinition(ActivityDefinitionDto activityDefinitionDto, String organizationId, String activityDefinitionId, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
+
         String version = fisProperties.getActivityDefinition().getVersion();
         setTopicDisplay(activityDefinitionDto);
 
@@ -184,7 +199,13 @@ public class ActivityDefinitionServiceImpl implements ActivityDefinitionService 
         FhirOperationUtil.validateFhirResource(fhirValidator, activityDefinition, Optional.of(activityDefinitionId), ResourceType.ActivityDefinition.name(), "Update ActivityDefinition");
 
         //Update
-        FhirOperationUtil.updateFhirResource(fhirClient, activityDefinition, "Update ActivityDefinition");
+        MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, activityDefinition, "Update ActivityDefinition");
+        idList.add(ResourceType.ActivityDefinition.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+        if(fisProperties.isProvenanceEnabled()) {
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
+        }
+
     }
 
     @Override

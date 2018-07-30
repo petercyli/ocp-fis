@@ -24,9 +24,9 @@ public interface TaskService {
                                      Optional<DateRangeEnum> filterDate,
                                      Optional<List<String>> statusList);
 
-    void createTask(TaskDto taskDto) throws FHIRException;
+    void createTask(TaskDto taskDto, Optional<String> loggedInUser) throws FHIRException;
 
-    void updateTask(String taskId, TaskDto taskDto) throws FHIRException;
+    void updateTask(String taskId, TaskDto taskDto, Optional<String> loggedInUser) throws FHIRException;
 
     void deactivateTask(String taskId);
 

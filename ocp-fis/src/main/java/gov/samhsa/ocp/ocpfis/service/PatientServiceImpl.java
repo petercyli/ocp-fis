@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.domain.StructureDefinitionEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CoverageDto;
@@ -31,6 +32,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.RandomStringUtils;
@@ -39,6 +41,7 @@ import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Coverage;
+import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Flag;
@@ -84,9 +87,9 @@ public class PatientServiceImpl implements PatientService {
     private final FisProperties fisProperties;
     private final LookUpService lookUpService;
     private final CoverageServiceImpl coverageService;
+    private final ProvenanceUtil provenanceUtil;
 
-    @Autowired
-    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService, CoverageServiceImpl coverageService) {
+    public PatientServiceImpl(IGenericClient fhirClient, IParser iParser, ModelMapper modelMapper, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService, ProvenanceUtil provenanceUtil, CoverageServiceImpl coverageService) {
         this.fhirClient = fhirClient;
         this.iParser = iParser;
         this.modelMapper = modelMapper;
@@ -94,7 +97,9 @@ public class PatientServiceImpl implements PatientService {
         this.fisProperties = fisProperties;
         this.lookUpService = lookUpService;
         this.coverageService = coverageService;
+        this.provenanceUtil = provenanceUtil;
     }
+
 
     @Override
     public List<PatientDto> getPatients() {
@@ -274,11 +279,19 @@ public class PatientServiceImpl implements PatientService {
 
         List<EpisodeOfCareDto> episodeOfCareDtos = getEocsForEachPatient(response, patient.getIdElement().getIdPart());
         patientDto.setEpisodeOfCares(episodeOfCareDtos);
+
+        //set Organization
+        ReferenceDto organization = new ReferenceDto();
+        organization.setDisplay(patient.getManagingOrganization().getDisplay());
+        organization.setReference(patient.getManagingOrganization().getReference());
+        patientDto.setOrganization(Optional.of(organization));
         return patientDto;
     }
 
     @Override
-    public void createPatient(PatientDto patientDto) {
+    public void createPatient(PatientDto patientDto, Optional<String> loggedInUser) {
+        //captures ids of all fhir resources created
+        List<String> idList = new ArrayList<>();
 
         if (!checkDuplicatePatientOfSameOrganization(patientDto)) {
             if (checkDuplicateInFhir(patientDto)) {
@@ -303,11 +316,12 @@ public class PatientServiceImpl implements PatientService {
             //Validate
             FhirOperationUtil.validateFhirResource(fhirValidator, patient, Optional.empty(), ResourceType.Patient.name(), "Create Patient");
             //Create
-            MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, patient, ResourceType.Patient.name());
+            MethodOutcome patientMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, patient, ResourceType.Patient.name());
+            idList.add(ResourceType.Patient.name() + "/" + FhirOperationUtil.getFhirId(patientMethodOutcome));
 
             //Assign fhir Patient resource id.
             Reference patientId = new Reference();
-            patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
+            patientId.setReference("Patient/" + patientMethodOutcome.getId().getIdPart());
 
             //Create flag for the patient
             patientDto.getFlags().ifPresent(flags -> flags.forEach(flagDto -> {
@@ -317,24 +331,26 @@ public class PatientServiceImpl implements PatientService {
                 //Validate
                 FhirOperationUtil.validateFhirResource(fhirValidator, flag, Optional.empty(), ResourceType.Flag.name(), "Create Flag(When creating Patient)");
                 //Create
-                FhirOperationUtil.createFhirResource(fhirClient, flag, ResourceType.Flag.name());
+                MethodOutcome flagMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, flag, ResourceType.Flag.name());
+                idList.add(ResourceType.Flag.name() + "/" + FhirOperationUtil.getFhirId(flagMethodOutcome));
             }));
 
             //Create To-Do task
-            Task task = FhirResourceUtil.createToDoTask(methodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
+            Task task = FhirResourceUtil.createToDoTask(patientMethodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
             task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirResourceUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
             //Set Profile Meta Data
             FhirProfileUtil.setTaskProfileMetaData(fhirClient, task);
             //Validate
             FhirOperationUtil.validateFhirResource(fhirValidator, task, Optional.empty(), ResourceType.Task.name(), "Create Task(When creating Patient)");
             //Create
-            FhirOperationUtil.createFhirResource(fhirClient, task, ResourceType.Task.name());
+            MethodOutcome taskMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, task, ResourceType.Task.name());
+            idList.add(ResourceType.Task.name() + "/" + FhirOperationUtil.getFhirId(taskMethodOutcome));
 
             //Create EpisodeOfCare
             if (patientDto.getEpisodeOfCares() != null && !patientDto.getEpisodeOfCares().isEmpty()) {
                 patientDto.getEpisodeOfCares().forEach(eoc -> {
                     ReferenceDto patientReference = new ReferenceDto();
-                    patientReference.setReference(ResourceType.Patient + "/" + methodOutcome.getId().getIdPart());
+                    patientReference.setReference(ResourceType.Patient + "/" + patientMethodOutcome.getId().getIdPart());
                     patientDto.getName().stream().findAny().ifPresent(name -> patientReference.setDisplay(name.getFirstName() + " " + name.getLastName()));
                     eoc.setPatient(patientReference);
                     eoc.setManagingOrganization(orgReference(patientDto.getOrganizationId()));
@@ -347,9 +363,14 @@ public class PatientServiceImpl implements PatientService {
                     //Validate
                     FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.empty(), ResourceType.EpisodeOfCare.name(), "Create EpisodeOfCare(When creating Patient)");
                     //Create
-                    FhirOperationUtil.createFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
+                    MethodOutcome episodeOfCareMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
+                    idList.add(ResourceType.EpisodeOfCare.name() + "/" + FhirOperationUtil.getFhirId(episodeOfCareMethodOutcome));
 
                 });
+            }
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
             }
 
         } else {
@@ -359,7 +380,10 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public void updatePatient(PatientDto patientDto) {
+    public void updatePatient(PatientDto patientDto, Optional<String> loggedInUser) {
+        //captures ids of all fhir resources created
+        List<String> idList = new ArrayList<>();
+
         if (!isDuplicateWhileUpdate(patientDto)) {
             //Add mpi to the identifiers
             List<IdentifierDto> identifierDtos = patientDto.getIdentifier();
@@ -385,6 +409,7 @@ public class PatientServiceImpl implements PatientService {
             FhirOperationUtil.validateFhirResource(fhirValidator, patient, Optional.of(patientDto.getId()), ResourceType.Patient.name(), "Update Patient");
             //Update
             MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, patient, ResourceType.Patient.name());
+            idList.add(ResourceType.Patient.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
             Reference patientId = new Reference();
             patientId.setReference("Patient/" + methodOutcome.getId().getIdPart());
@@ -400,12 +425,14 @@ public class PatientServiceImpl implements PatientService {
                         //Validate
                         FhirOperationUtil.validateFhirResource(fhirValidator, flag, Optional.empty(), ResourceType.Flag.name(), "Update Flag(When updating Patient)");
                         //Update
-                        FhirOperationUtil.updateFhirResource(fhirClient, flag, ResourceType.Flag.name());
+                        MethodOutcome flagMethodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, flag, ResourceType.Flag.name());
+                        idList.add(ResourceType.Flag.name() + "/" + FhirOperationUtil.getFhirId(flagMethodOutcome));
                     } else {
                         //Validate
                         FhirOperationUtil.validateFhirResource(fhirValidator, flag, Optional.empty(), ResourceType.Flag.name(), "Create Flag(When updating Patient)");
                         //Create
-                        FhirOperationUtil.createFhirResource(fhirClient, flag, ResourceType.Flag.name());
+                        MethodOutcome flagMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, flag, ResourceType.Flag.name());
+                        idList.add(ResourceType.Flag.name() + "/" + FhirOperationUtil.getFhirId(flagMethodOutcome));
                     }
                 } else {
                     throw new DuplicateResourceFoundException("Same flag is already present for this patient.");
@@ -437,12 +464,14 @@ public class PatientServiceImpl implements PatientService {
                         //Validate
                         FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.of(eoc.getId()), ResourceType.EpisodeOfCare.name(), "Update EpisodeOfCare(When updating Patient)");
                         //Update
-                        FhirOperationUtil.updateFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
+                        MethodOutcome episodeOfCareMethodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
+                        idList.add(ResourceType.EpisodeOfCare.name() + "/" + FhirOperationUtil.getFhirId(episodeOfCareMethodOutcome));
                     } else {
                         //Validate
                         FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.empty(), ResourceType.EpisodeOfCare.name(), "Create EpisodeOfCare(When updating Patient)");
                         //Create
-                        FhirOperationUtil.createFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
+                        MethodOutcome episodeOfCareMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
+                        idList.add(ResourceType.EpisodeOfCare.name() + "/" + FhirOperationUtil.getFhirId(episodeOfCareMethodOutcome));
                     }
                 });
             }
@@ -450,11 +479,15 @@ public class PatientServiceImpl implements PatientService {
             //Update the coverage
             patientDto.getCoverages().ifPresent(coverages -> coverages.forEach(coverageDto -> {
                 if (coverageDto.getLogicalId() != null) {
-                    coverageService.updateCoverage(coverageDto.getLogicalId(), coverageDto);
+                    coverageService.updateCoverage(coverageDto.getLogicalId(), coverageDto, Optional.empty());
                 } else {
-                    coverageService.createCoverage(coverageDto);
+                    coverageService.createCoverage(coverageDto, Optional.empty());
                 }
             }));
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
+            }
 
         } else {
             throw new DuplicateResourceFoundException("Patient already exists with the given identifier system and value.");
@@ -498,6 +531,12 @@ public class PatientServiceImpl implements PatientService {
 
         mapExtensionFields(patient, patientDto);
 
+        //set Organization
+        ReferenceDto organization = new ReferenceDto();
+        organization.setDisplay(patient.getManagingOrganization().getDisplay());
+        organization.setReference(patient.getManagingOrganization().getReference());
+        patientDto.setOrganization(Optional.of(organization));
+
         return patientDto;
     }
 
@@ -523,6 +562,8 @@ public class PatientServiceImpl implements PatientService {
         return patientAndAllReferenceBundle.stream().filter(patientWithAllReference -> patientWithAllReference.getResource().getResourceType().equals(ResourceType.Flag))
                 .map(flagBundle -> (Flag) flagBundle.getResource())
                 .filter(flag -> flag.getSubject().getReference().equalsIgnoreCase("Patient/" + patientId))
+                // filter out inactive and entered in error status values
+                .filter(flag -> flag.getStatus().equals(Enumerations.PublicationStatus.ACTIVE))
                 .map(flag -> {
                     FlagDto flagDto = modelMapper.map(flag, FlagDto.class);
                     if (flag.getPeriod() != null && !flag.getPeriod().isEmpty()) {

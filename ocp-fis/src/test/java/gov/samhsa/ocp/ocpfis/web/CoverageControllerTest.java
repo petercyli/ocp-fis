@@ -78,13 +78,13 @@ public class CoverageControllerTest {
     public void testUpdateCoverage() throws Exception {
         //Arrange
         CoverageDto dto = createCoverageDto();
-        doNothing().when(coverageService).createCoverage(isA(CoverageDto.class));
+        doNothing().when(coverageService).createCoverage(isA(CoverageDto.class), Mockito.any(Optional.class));
 
         //Act
-        coverageService.createCoverage(dto);
+        coverageService.createCoverage(dto, Optional.of("Practitioner/123"));
 
         //Assert
-        verify(coverageService, times(1)).createCoverage(dto);
+        verify(coverageService, times(1)).createCoverage(dto, Optional.of("Practitioner/123"));
     }
 
     private CoverageDto createCoverageDto() {
