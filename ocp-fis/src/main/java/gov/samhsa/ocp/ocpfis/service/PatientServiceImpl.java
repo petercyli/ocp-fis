@@ -123,8 +123,8 @@ public class PatientServiceImpl implements PatientService {
         }
 
         if (filterKey.isPresent() && SearchKeyEnum.PatientFilterKey.conatains(filterKey.get()) && SearchKeyEnum.PatientFilterKey.ASSOCIATECARETEAMPATIENT.name().equalsIgnoreCase(filterKey.get())) {
-            if (!patientsAssociatedWithPractitioner(practitioner.get()).isEmpty()) {
-                PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsAssociatedWithPractitioner(practitioner.get())));
+            if (!patientsAssociatedWithPractitioner(practitioner.get(),organization.get()).isEmpty()) {
+                PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsAssociatedWithPractitioner(practitioner.get(),organization.get())));
             } else {
                 log.info("No Patients were found for given organization.");
                 return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
@@ -736,7 +736,7 @@ public class PatientServiceImpl implements PatientService {
         return Stream.of(getPatientIdFromPatient, getPatientFromEoc).flatMap(Collection::stream).distinct().collect(toList());
     }
 
-    private List<String> patientsAssociatedWithPractitioner(String prac) {
+    private List<String> patientsAssociatedWithPractitioner(String prac, String org) {
         //List of organizations to which practitioner is associated with
         List<String> organizationsPractitionerIsAssociatedWith = organizationsOfPractitioner(prac);
 
@@ -746,7 +746,7 @@ public class PatientServiceImpl implements PatientService {
         //List of patient with the practitioner in the care team.
         List<String> patientsRealtedWithPractitionerOnCareTeam = getPatientsByParticipantsInCareTeam(Arrays.asList(prac));
 
-        return Stream.of(patientsRelatedWithOrganizationOfPractitionerOnCareTeam, patientsRealtedWithPractitionerOnCareTeam).flatMap(Collection::stream).distinct().collect(toList());
+        return Stream.of(patientsRelatedWithOrganizationOfPractitionerOnCareTeam, patientsRealtedWithPractitionerOnCareTeam).flatMap(Collection::stream).distinct().filter(s->!patientsInOrganization(org).contains(s)).collect(toList());
     }
 
     private List<PatientDto> convertAllBundleToSinglePatientDtoList(Bundle firstPagePatientSearchBundle, int numberOBundlePerPage) {
