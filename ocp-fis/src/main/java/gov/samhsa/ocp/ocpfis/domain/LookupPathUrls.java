@@ -1,4 +1,4 @@
-package gov.samhsa.ocp.ocpfis.service.dto;
+package gov.samhsa.ocp.ocpfis.domain;
 
 public enum LookupPathUrls {
 
