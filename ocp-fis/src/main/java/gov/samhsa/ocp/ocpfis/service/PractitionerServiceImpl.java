@@ -364,7 +364,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
             //Create
             MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, practitioner, ResourceType.Practitioner.name());
-            idList.add(ResourceType.Patient.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+            idList.add(ResourceType.Practitioner.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
             //Assign fhir Practitioner resource id.
             Reference practitionerId = new Reference();
@@ -396,7 +396,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
                         //Create
                         MethodOutcome practitionerMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, practitionerRole, ResourceType.PractitionerRole.name());
-                        idList.add(ResourceType.Practitioner.name() + "/" + FhirOperationUtil.getFhirId(practitionerMethodOutcome));
+                        idList.add(ResourceType.PractitionerRole.name() + "/" + FhirOperationUtil.getFhirId(practitionerMethodOutcome));
                     }
             );
 
