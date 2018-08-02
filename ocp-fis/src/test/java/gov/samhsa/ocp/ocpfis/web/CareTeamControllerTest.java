@@ -114,7 +114,7 @@ public class CareTeamControllerTest {
     @Test
     public void testMethod_Given_ACareTeamDto_When_PostedWithValidJson_Then_CreateCareTeam() throws Exception {
         //Arrange
-        doNothing().when(careTeamService).createCareTeam(isA(CareTeamDto.class));
+        doNothing().when(careTeamService).createCareTeam(isA(CareTeamDto.class), Mockito.any(Optional.class));
         setUpLookups();
 
         //Act
@@ -128,7 +128,7 @@ public class CareTeamControllerTest {
     @Test
     public void testMethod_Given_ACareTeamDtoWithId_When_PutWithValidJson_Then_UpdateCareTeam() throws Exception {
         //Arrange
-        doNothing().when(careTeamService).updateCareTeam(isA(String.class), isA(CareTeamDto.class));
+        doNothing().when(careTeamService).updateCareTeam(isA(String.class), isA(CareTeamDto.class), Mockito.any(Optional.class));
         setUpLookups();
 
         //Act

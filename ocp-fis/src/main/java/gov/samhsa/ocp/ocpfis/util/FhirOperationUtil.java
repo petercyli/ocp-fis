@@ -263,5 +263,9 @@ public class FhirOperationUtil {
         }
         return null;
     }
+
+    public static String getFhirId(MethodOutcome methodOutcome) {
+        return methodOutcome.getId().getIdPart();
+    }
 }
 

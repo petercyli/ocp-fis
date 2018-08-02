@@ -8,7 +8,7 @@ import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.DateRangeDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierSystemDto;
-import gov.samhsa.ocp.ocpfis.service.dto.LookupPathUrls;
+import gov.samhsa.ocp.ocpfis.domain.LookupPathUrls;
 import gov.samhsa.ocp.ocpfis.service.dto.StatusBooleanValuesDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;

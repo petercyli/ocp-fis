@@ -93,7 +93,7 @@ public class RelatedPersonControllerTest {
     @Test
     public void testMethod_Given_ARelatedPersonDto_When_PostedWithValidJson_Then_CreateRelatedPerson() throws Exception {
         //Arrange
-        doNothing().when(relatedPersonService).createRelatedPerson(isA(RelatedPersonDto.class));
+        doNothing().when(relatedPersonService).createRelatedPerson(isA(RelatedPersonDto.class), Mockito.any(Optional.class));
         setUpLookups();
 
         //Act
@@ -107,7 +107,7 @@ public class RelatedPersonControllerTest {
     @Test
     public void testMethod_Given_ARelatedPersonDtoWithId_When_PutWithValidJson_Then_UpdateRelatedPerson() throws Exception {
         //Arrange
-        doNothing().when(relatedPersonService).updateRelatedPerson(isA(String.class), isA(RelatedPersonDto.class));
+        doNothing().when(relatedPersonService).updateRelatedPerson(isA(String.class), isA(RelatedPersonDto.class), Mockito.any(Optional.class));
         setUpLookups();
 
         //Act

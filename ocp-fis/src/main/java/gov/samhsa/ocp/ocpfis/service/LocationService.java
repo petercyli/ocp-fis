@@ -28,7 +28,7 @@ public interface LocationService {
      * @param size
      * @return
      */
-    PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
+    PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<String> assignedToPractitioner, Optional<Integer> page, Optional<Integer> size);
 
     /**
      * @param locationId
@@ -48,14 +48,14 @@ public interface LocationService {
      * @param organizationId
      * @param locationDto
      */
-    void createLocation(String organizationId, LocationDto locationDto);
+    void createLocation(String organizationId, LocationDto locationDto, Optional<String> loggedInUser);
 
     /**
      * @param organizationId
      * @param locationId
      * @param locationDto
      */
-    void updateLocation(String organizationId, String locationId, LocationDto locationDto);
+    void updateLocation(String organizationId, String locationId, LocationDto locationDto, Optional<String> loggedInUser);
 
     /**
      * @param locationId

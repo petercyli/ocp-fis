@@ -7,6 +7,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Optional;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
@@ -19,5 +20,6 @@ public class LocationDto extends NameLogicalIdIdentifiersDto {
     private String physicalType;
     private AddressDto address;
     private List<TelecomDto> telecoms;
+    private Optional<Boolean> assignToCurrentPractitioner;
 
 }

@@ -67,8 +67,8 @@ public class HealthcareServiceController {
     @PostMapping("/organization/{organizationId}/healthcare-services")
     @ResponseStatus(HttpStatus.CREATED)
     public void createHealthcareService(@PathVariable String organizationId,
-                                        @Valid @RequestBody HealthcareServiceDto healthcareServiceDto) {
-        healthcareServiceService.createHealthcareService(organizationId, healthcareServiceDto);
+                                        @Valid @RequestBody HealthcareServiceDto healthcareServiceDto, Optional<String> loggedInUser) {
+        healthcareServiceService.createHealthcareService(organizationId, healthcareServiceDto, loggedInUser);
 
     }
 
@@ -76,8 +76,8 @@ public class HealthcareServiceController {
     @ResponseStatus(HttpStatus.OK)
     public void updateHealthcareService(@PathVariable String organizationId,
                                         @PathVariable String healthcareServiceId,
-                                        @Valid @RequestBody HealthcareServiceDto healthcareServiceDto) {
-        healthcareServiceService.updateHealthcareService(organizationId, healthcareServiceId, healthcareServiceDto);
+                                        @Valid @RequestBody HealthcareServiceDto healthcareServiceDto, Optional<String> loggedInUser) {
+        healthcareServiceService.updateHealthcareService(organizationId, healthcareServiceId, healthcareServiceDto, loggedInUser);
 
     }
 

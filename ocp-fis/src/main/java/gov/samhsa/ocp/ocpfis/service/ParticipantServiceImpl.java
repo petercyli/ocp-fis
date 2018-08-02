@@ -39,18 +39,19 @@ public class ParticipantServiceImpl implements ParticipantService {
         this.episodeOfCareService = episodeOfCareService;
     }
 
-    public PageDto<ParticipantSearchDto> getAllParticipants(String patientId, ParticipantTypeEnum participantType, Optional<String> value, Optional<String> organization, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
-
-        if (!organization.isPresent()) {
-            organization = retrieveOrganization(patientId);
-        }
-
-
+    public PageDto<ParticipantSearchDto> getAllParticipants(String patientId, ParticipantTypeEnum participantType, Optional<String> value, Optional<String> organization, Optional<Boolean> forCareTeam, Optional<Boolean> showInActive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         final String typeCode = participantType.getCode();
 
         PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
 
         if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
+            if(forCareTeam.isPresent()){
+                if(!forCareTeam.get()) {
+                    organization=organizationId(organization,patientId);
+                }
+            }else{
+                organization=organizationId(organization,patientId);
+            }
             PageDto<PractitionerDto> pageDto = practitionerService.searchPractitioners(Optional.ofNullable(PractitionerController.SearchType.name), value, organization, showInActive, page, size, showAll);
             participantsDto = convertPractitionersToParticipantsDto(pageDto, participantType);
 
@@ -60,7 +61,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
             //refactor getPatientsByValue to match other apis
-            PageDto<PatientDto> pageDto = patientService.getPatientsByValue(Optional.ofNullable("name"), value, organization, showInActive, page, size, showAll);
+            PageDto<PatientDto> pageDto = patientService.getPatientsByValue(Optional.ofNullable("name"), value, Optional.empty(), organizationId(organization,patientId),Optional.empty(), showInActive, page, size, showAll);
             participantsDto = convertPatientsToParticipantsDto(pageDto, participantType);
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
@@ -82,6 +83,13 @@ public class ParticipantServiceImpl implements ParticipantService {
             }
             return Optional.empty();
         }
+    }
+
+    private Optional<String> organizationId(Optional<String> organization, String patientId){
+        if (!organization.isPresent()) {
+           return retrieveOrganization(patientId);
+        }
+        return organization;
     }
 
     private PageDto<ParticipantSearchDto> convertPractitionersToParticipantsDto(PageDto<PractitionerDto> pageDto, ParticipantTypeEnum participantType) {

@@ -51,7 +51,7 @@ public class PatientControllerTest {
         List<PatientDto> dtos = new ArrayList<>();
         dtos.add(dto);
         PageDto pageDto = new PageDto<>(dtos, 10, 1, 1, dtos.size(), 0);
-        Mockito.when(patientService.getPatientsByValue(Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class))).thenReturn(pageDto);
+        Mockito.when(patientService.getPatientsByValue(Mockito.any(Optional.class),  Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class),Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class), Mockito.any(Optional.class))).thenReturn(pageDto);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/patients/search?type=name&value=101");
@@ -78,26 +78,26 @@ public class PatientControllerTest {
     public void testCreatePatient() {
         //Arrange
         PatientDto dto = createPatientDto();
-        doNothing().when(patientService).createPatient(isA(PatientDto.class));
+        doNothing().when(patientService).createPatient(isA(PatientDto.class), Mockito.any(Optional.class));
 
         //Act
-        patientService.createPatient(dto);
+        patientService.createPatient(dto, Optional.of("Practitioner/123"));
 
         //Assert
-        verify(patientService, times(1)).createPatient(dto);
+        verify(patientService, times(1)).createPatient(dto, Optional.of("Practitioner/123"));
     }
 
     @Test
     public void testUpdatePatient() {
         //Arrange
         PatientDto dto = createPatientDto();
-        doNothing().when(patientService).updatePatient(isA(PatientDto.class));
+        doNothing().when(patientService).updatePatient(isA(PatientDto.class), Mockito.any(Optional.class));
 
         //Act
-        patientService.updatePatient(dto);
+        patientService.updatePatient(dto, Optional.of("Practitioner/123"));
 
         //Assert
-        verify(patientService, times(1)).updatePatient(dto);
+        verify(patientService, times(1)).updatePatient(dto, Optional.of("Practitioner/123"));
     }
 
     private PatientDto createPatientDto() {

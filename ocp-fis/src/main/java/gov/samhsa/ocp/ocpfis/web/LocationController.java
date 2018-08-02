@@ -58,9 +58,10 @@ public class LocationController {
                                                            @RequestParam(value = "statusList") Optional<List<String>> statusList,
                                                            @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                            @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                           @RequestParam(value="assignedToPractitioner") Optional<String> assignedToPractitioner,
                                                            @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                            @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return locationService.getLocationsByOrganization(organizationId, statusList, searchKey, searchValue, pageNumber, pageSize);
+        return locationService.getLocationsByOrganization(organizationId, statusList, searchKey, searchValue, assignedToPractitioner,pageNumber, pageSize);
     }
 
     /**
@@ -86,8 +87,8 @@ public class LocationController {
     @PostMapping("/organizations/{organizationId}/locations")
     @ResponseStatus(HttpStatus.CREATED)
     public void createLocation(@PathVariable String organizationId,
-                               @Valid @RequestBody LocationDto locationDto) {
-        locationService.createLocation(organizationId, locationDto);
+                               @Valid @RequestBody LocationDto locationDto, Optional<String> loggedInUser) {
+        locationService.createLocation(organizationId, locationDto, loggedInUser);
 
     }
 
@@ -95,8 +96,8 @@ public class LocationController {
     @ResponseStatus(HttpStatus.OK)
     public void updateLocation(@PathVariable String organizationId,
                                @PathVariable String locationId,
-                               @Valid @RequestBody LocationDto locationDto) {
-        locationService.updateLocation(organizationId, locationId, locationDto);
+                               @Valid @RequestBody LocationDto locationDto, Optional<String> loggedInUser) {
+        locationService.updateLocation(organizationId, locationId, locationDto, loggedInUser);
 
     }
 

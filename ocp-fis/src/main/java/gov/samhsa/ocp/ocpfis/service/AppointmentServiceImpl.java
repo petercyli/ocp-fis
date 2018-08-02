@@ -1,11 +1,13 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
@@ -24,6 +26,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -66,17 +69,21 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final String NEEDS_ACTION_PARTICIPATION_STATUS = "needs-action";
     private final String PENDING_APPOINTMENT_STATUS = "pending";
     private final String REQUIRED = "required";
+    private final ProvenanceUtil provenanceUtil;
 
     @Autowired
-    public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService) {
+    public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService, ProvenanceUtil provenanceUtil) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
         this.patientService = patientService;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
-    public void createAppointment(AppointmentDto appointmentDto) {
+    public void createAppointment(AppointmentDto appointmentDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
+
         String creatorName = appointmentDto.getCreatorName() != null ? appointmentDto.getCreatorName().trim() : "";
         log.info("Creating an appointment initiated by " + creatorName);
 
@@ -91,13 +98,20 @@ public class AppointmentServiceImpl implements AppointmentService {
         //Validate
         FhirOperationUtil.validateFhirResource(fhirValidator, appointment, Optional.empty(), ResourceType.Appointment.name(), "Create Appointment");
         //Create
-        FhirOperationUtil.createFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
+        MethodOutcome appointmentMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
+        idList.add(ResourceType.Appointment.name() + "/" + FhirOperationUtil.getFhirId(appointmentMethodOutcome));
+
+        if(fisProperties.isProvenanceEnabled()) {
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
+        }
 
     }
 
     @Override
-    public void updateAppointment(String appointmentId, AppointmentDto appointmentDto) {
+    public void updateAppointment(String appointmentId, AppointmentDto appointmentDto, Optional<String> loggedInUser) {
         log.info("Updating appointmentId: " + appointmentId);
+        List<String> idList = new ArrayList<>();
+
         //Validate if the request body has all the mandatory fields
         validateAppointDtoFromRequest(appointmentDto);
 
@@ -111,7 +125,12 @@ public class AppointmentServiceImpl implements AppointmentService {
         FhirOperationUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Update Appointment");
 
         //Update
-        FhirOperationUtil.updateFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
+        MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
+        idList.add(ResourceType.Appointment.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+        if(fisProperties.isProvenanceEnabled()) {
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
+        }
     }
 
     @Override

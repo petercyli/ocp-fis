@@ -112,7 +112,7 @@ public class AppointmentControllerTest {
     @Test
     public void testCreateAppointment() throws Exception {
         //Arrange
-        doNothing().when(appointmentService).createAppointment(isA(AppointmentDto.class));
+        doNothing().when(appointmentService).createAppointment(isA(AppointmentDto.class), Mockito.any(Optional.class));
 
         //Act
         MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post("/appointments").content(APPOINTMENT).contentType(APPLICATION_JSON_UTF8);
@@ -125,7 +125,7 @@ public class AppointmentControllerTest {
     @Test
     public void testUpdateAppointment() throws Exception {
         //Arrange
-        doNothing().when(appointmentService).updateAppointment(isA(String.class), isA(AppointmentDto.class));
+        doNothing().when(appointmentService).updateAppointment(isA(String.class), isA(AppointmentDto.class), Mockito.any(Optional.class));
 
         //Act
         MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.put("/appointments/101").content(APPOINTMENT).contentType(APPLICATION_JSON_UTF8);

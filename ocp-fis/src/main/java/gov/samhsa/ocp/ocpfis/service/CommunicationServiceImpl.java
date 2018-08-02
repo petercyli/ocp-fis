@@ -1,11 +1,13 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CommunicationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -17,6 +19,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Annotation;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -55,12 +58,15 @@ public class CommunicationServiceImpl implements CommunicationService {
 
     private final FisProperties fisProperties;
 
+    private final ProvenanceUtil provenanceUtil;
+
     @Autowired
-    public CommunicationServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
+    public CommunicationServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, ProvenanceUtil provenanceUtil) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.provenanceUtil = provenanceUtil;
     }
 
     public PageDto<CommunicationDto> getCommunications(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<String> organization, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
@@ -238,8 +244,10 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     @Override
-    public void createCommunication(CommunicationDto communicationDto) {
+    public void createCommunication(CommunicationDto communicationDto, Optional<String> loggedInUser) {
         try {
+            List<String> idList = new ArrayList<>();
+
             final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             communication.setSent(DateUtil.convertLocalDateTimeToUTCDate(LocalDateTime.now()));
             //Set Profile Meta Data
@@ -247,7 +255,12 @@ public class CommunicationServiceImpl implements CommunicationService {
             //Validate
             FhirOperationUtil.validateFhirResource(fhirValidator, communication, Optional.empty(), ResourceType.Communication.name(), "Create Communication");
             //Create
-            FhirOperationUtil.createFhirResource(fhirClient, communication, ResourceType.Communication.name());
+            MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, communication, ResourceType.Communication.name());
+            idList.add(ResourceType.Communication.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
+            }
 
         } catch (ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while create a communication:" + e.getMessage());
@@ -255,9 +268,11 @@ public class CommunicationServiceImpl implements CommunicationService {
     }
 
     @Override
-    public void updateCommunication(String communicationId, CommunicationDto communicationDto) {
+    public void updateCommunication(String communicationId, CommunicationDto communicationDto, Optional<String> loggedInUser) {
 
         try {
+            List<String> idList = new ArrayList<>();
+
             Communication communication = convertCommunicationDtoToCommunication(communicationDto);
             communication.setId(communicationId);
             //Set Profile Meta Data
@@ -265,7 +280,13 @@ public class CommunicationServiceImpl implements CommunicationService {
             //Validate
             FhirOperationUtil.validateFhirResource(fhirValidator, communication, Optional.of(communicationId), ResourceType.Communication.name(), "Update Communication");
             //Update
-            FhirOperationUtil.updateFhirResource(fhirClient, communication, ResourceType.Communication.name());
+            MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, communication, ResourceType.Communication.name());
+            idList.add(ResourceType.Communication.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
+            }
+
         } catch (ParseException e) {
             throw new FHIRClientException("FHIR Client returned with an error while update a communication:" + e.getMessage());
         }

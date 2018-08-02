@@ -14,9 +14,9 @@ PractitionerService {
 
     PageDto<PractitionerDto> searchPractitioners(Optional<PractitionerController.SearchType> searchType, Optional<String> searchValue, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll);
 
-    void createPractitioner(PractitionerDto practitionerDto);
+    void createPractitioner(PractitionerDto practitionerDto, Optional<String> loggedInUser);
 
-    void updatePractitioner(String practitionerId, PractitionerDto practitionerDto);
+    void updatePractitioner(String practitionerId, PractitionerDto practitionerDto, Optional<String> loggedInUser);
 
     PractitionerDto getPractitioner(String practitionerId);
 
@@ -25,4 +25,8 @@ PractitionerService {
     PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(String organization, Optional<String> role, Optional<Integer> pageNumber,Optional<Integer> pageSize);
 
     String getPractitionerByName(String name);
+
+    void assignLocationToPractitioner(String practitionerId, String organizationId, String locationId);
+
+    void unassignLocationToPractitioner(String practitionerId, String organizationId, String locationId);
 }

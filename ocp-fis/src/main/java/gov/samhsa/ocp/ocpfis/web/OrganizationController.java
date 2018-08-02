@@ -48,14 +48,14 @@ public class OrganizationController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createOrganization(@Valid @RequestBody OrganizationDto organizationDto) {
-        organizationService.createOrganization(organizationDto);
+    public void createOrganization(@Valid @RequestBody OrganizationDto organizationDto, Optional<String> loggedInUser) {
+        organizationService.createOrganization(organizationDto, loggedInUser);
     }
 
     @PutMapping("/{organizationId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateOrganization(@PathVariable String organizationId, @Valid @RequestBody OrganizationDto organizationDto) {
-        organizationService.updateOrganization(organizationId, organizationDto);
+    public void updateOrganization(@PathVariable String organizationId, @Valid @RequestBody OrganizationDto organizationDto, Optional<String> loggedInUser) {
+        organizationService.updateOrganization(organizationId, organizationDto, loggedInUser);
     }
 
     @PutMapping("/{organizationId}/inactive")

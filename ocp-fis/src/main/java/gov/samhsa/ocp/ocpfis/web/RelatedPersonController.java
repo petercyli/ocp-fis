@@ -31,14 +31,14 @@ public class RelatedPersonController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createRelatedPerson(@Valid @RequestBody RelatedPersonDto relatedPersonDto) {
-        relatedPersonService.createRelatedPerson(relatedPersonDto);
+    public void createRelatedPerson(@Valid @RequestBody RelatedPersonDto relatedPersonDto, Optional<String> loggedInUser) {
+        relatedPersonService.createRelatedPerson(relatedPersonDto, loggedInUser);
     }
 
     @PutMapping("/{relatedPersonId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updateRelatedPerson(@PathVariable String relatedPersonId, @Valid @RequestBody RelatedPersonDto relatedPersonDto) {
-        relatedPersonService.updateRelatedPerson(relatedPersonId, relatedPersonDto);
+    public void updateRelatedPerson(@PathVariable String relatedPersonId, @Valid @RequestBody RelatedPersonDto relatedPersonDto, Optional<String> loggedInUser) {
+        relatedPersonService.updateRelatedPerson(relatedPersonId, relatedPersonDto, loggedInUser);
     }
 
     @GetMapping("/search")

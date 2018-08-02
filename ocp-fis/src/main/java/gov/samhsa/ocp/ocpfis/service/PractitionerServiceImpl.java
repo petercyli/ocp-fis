@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
@@ -18,12 +19,14 @@ import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
@@ -55,12 +58,15 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     private final FisProperties fisProperties;
 
+    private final ProvenanceUtil provenanceUtil;
+
     @Autowired
-    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService) {
+    public PractitionerServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, LookUpService lookUpService, ProvenanceUtil provenanceUtil) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
@@ -271,6 +277,38 @@ public class PractitionerServiceImpl implements PractitionerService {
         }
     }
 
+    @Override
+    public void assignLocationToPractitioner(String practitionerId, String organizationId, String locationId) {
+        Location location = fhirClient.read().resource(Location.class).withId(locationId).execute();
+        Bundle practitionerRoleBundle = fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId(practitionerId))
+                .where(new ReferenceClientParam("organization").hasId(organizationId)).returnBundle(Bundle.class).execute();
+
+        practitionerRoleBundle.getEntry().stream().findAny().ifPresent(role -> {
+            PractitionerRole practitionerRole = (PractitionerRole) role.getResource();
+            List<Reference> locations = practitionerRole.getLocation();
+            ReferenceDto referenceDto = new ReferenceDto();
+            referenceDto.setReference("Location/" + locationId);
+            referenceDto.setDisplay(location.getName());
+            locations.add(FhirDtoUtil.mapReferenceDtoToReference(referenceDto));
+            practitionerRole.setLocation(locations);
+            fhirClient.update().resource(practitionerRole).execute();
+        });
+    }
+
+    @Override
+    public void unassignLocationToPractitioner(String practitionerId, String organizationId, String locationId) {
+        Bundle practitionerRoleBundle = fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId(practitionerId))
+                .where(new ReferenceClientParam("organization").hasId(organizationId)).returnBundle(Bundle.class).execute();
+
+        practitionerRoleBundle.getEntry().stream().findAny().ifPresent(role -> {
+            PractitionerRole practitionerRole = (PractitionerRole) role.getResource();
+            List<Reference> locations = practitionerRole.getLocation();
+            locations.removeIf(location -> location.getReference().split("/")[1].equalsIgnoreCase(locationId));
+            practitionerRole.setLocation(locations);
+            fhirClient.update().resource(practitionerRole).execute();
+        });
+    }
+
 
     private List<PractitionerDto> getPractitionersByOrganization(String organizationId) {
         List<PractitionerDto> practitioners = new ArrayList<>();
@@ -309,7 +347,8 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     @Override
-    public void createPractitioner(PractitionerDto practitionerDto) {
+    public void createPractitioner(PractitionerDto practitionerDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
         //Check Duplicate Identifier
         //When there is no duplicate identifier, practitioner gets created
         if (!hasDuplicateIdentifier(practitionerDto)) {
@@ -325,6 +364,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
             //Create
             MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, practitioner, ResourceType.Practitioner.name());
+            idList.add(ResourceType.Practitioner.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
             //Assign fhir Practitioner resource id.
             Reference practitionerId = new Reference();
@@ -355,16 +395,24 @@ public class PractitionerServiceImpl implements PractitionerService {
                         FhirOperationUtil.validateFhirResource(fhirValidator, practitionerRole, Optional.empty(), ResourceType.PractitionerRole.name(), "Create Practitioner Role");
 
                         //Create
-                        FhirOperationUtil.createFhirResource(fhirClient, practitionerRole, ResourceType.PractitionerRole.name());
+                        MethodOutcome practitionerMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, practitionerRole, ResourceType.PractitionerRole.name());
+                        idList.add(ResourceType.PractitionerRole.name() + "/" + FhirOperationUtil.getFhirId(practitionerMethodOutcome));
                     }
             );
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
+            }
+
         } else {
             throw new DuplicateResourceFoundException("Practitioner with the same Identifier is already present.");
         }
     }
 
     @Override
-    public void updatePractitioner(String practitionerId, PractitionerDto practitionerDto) {
+    public void updatePractitioner(String practitionerId, PractitionerDto practitionerDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
+
         Practitioner existingPractitioner = fhirClient.read().resource(Practitioner.class).withId(practitionerId.trim()).execute();
         practitionerDto.setLogicalId(practitionerId.trim());
 
@@ -383,6 +431,7 @@ public class PractitionerServiceImpl implements PractitionerService {
 
             //Update
             MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, existingPractitioner, "Update Practitioner");
+            idList.add(ResourceType.Practitioner.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
             //Assign fhir Practitioner resource id.
             Reference practitionerReference = new Reference();
@@ -415,16 +464,25 @@ public class PractitionerServiceImpl implements PractitionerService {
                             FhirOperationUtil.validateFhirResource(fhirValidator, practitionerRole, Optional.empty(), ResourceType.PractitionerRole.name(), "Update Practitioner Role(When updating Practitioner)");
 
                             //Update
-                            FhirOperationUtil.updateFhirResource(fhirClient, practitionerRole, "Update Practitioner Role");
+                            MethodOutcome practitionerRoleMethodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, practitionerRole, "Update Practitioner Role");
+                            idList.add(ResourceType.PractitionerRole.name() + "/" + FhirOperationUtil.getFhirId(practitionerRoleMethodOutcome));
+
                         } else {
                             // Validate
                             FhirOperationUtil.validateFhirResource(fhirValidator, practitionerRole, Optional.empty(), ResourceType.PractitionerRole.name(), "Create Practitioner Role(When updating Practitioner)");
 
                             //Create
-                            FhirOperationUtil.createFhirResource(fhirClient, practitionerRole, ResourceType.PractitionerRole.name());
+                            MethodOutcome practitionerRoleMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, practitionerRole, ResourceType.PractitionerRole.name());
+                            idList.add(ResourceType.PractitionerRole.name() + "/" + FhirOperationUtil.getFhirId(practitionerRoleMethodOutcome));
+
                         }
                     }
             );
+
+            if(fisProperties.isProvenanceEnabled()) {
+                provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
+            }
+
         } else {
             throw new DuplicateResourceFoundException("Practitioner with the same Identifier is already present");
         }

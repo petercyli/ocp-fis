@@ -39,25 +39,27 @@ public class PatientController {
     @GetMapping("/search")
     public PageDto<PatientDto> getPatientsByValue(@RequestParam(value = "type", defaultValue = "name") Optional<String> searchKey,
                                                   @RequestParam(value = "value") Optional<String> searchValue,
+                                                  @RequestParam(value="filterBy") Optional<String> filterKey,
                                                   @RequestParam(value="organization") Optional<String> organization,
+                                                  @RequestParam(value="practitioner") Optional<String> practitioner,
                                                   @RequestParam(value = "showInactive", defaultValue = "false") Optional<Boolean> showInactive,
                                                   @RequestParam Optional<Integer> page,
                                                   @RequestParam Optional<Integer> size,
                                                   @RequestParam(value="showAll") Optional<Boolean> showAll) {
-        return patientService.getPatientsByValue(searchKey, searchValue, organization, showInactive, page, size,showAll);
+        return patientService.getPatientsByValue(searchKey, searchValue, filterKey, organization, practitioner, showInactive, page, size,showAll);
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createPatient(@Valid @RequestBody PatientDto patientDto) {
-        patientService.createPatient(patientDto);
+    public void createPatient(@Valid @RequestBody PatientDto patientDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser) {
+        patientService.createPatient(patientDto, loggedInUser);
         log.info("Patient successfully created");
     }
 
     @PutMapping
     @ResponseStatus(HttpStatus.OK)
-    public void updatePatient(@Valid @RequestBody PatientDto patientDto) {
-        patientService.updatePatient(patientDto);
+    public void updatePatient(@Valid @RequestBody PatientDto patientDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser) {
+        patientService.updatePatient(patientDto, loggedInUser);
         log.info("Patient successfully updated");
     }
 

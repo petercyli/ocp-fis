@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
@@ -8,6 +9,7 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
+import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
@@ -20,6 +22,7 @@ import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
+import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -28,6 +31,7 @@ import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.exceptions.FHIRException;
@@ -57,13 +61,16 @@ public class LocationServiceImpl implements LocationService {
 
     private final FisProperties fisProperties;
 
+    private final ProvenanceUtil provenanceUtil;
+
     @Autowired
-    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
+    public LocationServiceImpl(ModelMapper modelMapper, IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, ProvenanceUtil provenanceUtil) {
         this.modelMapper = modelMapper;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
+        this.provenanceUtil = provenanceUtil;
     }
 
     @Override
@@ -103,7 +110,7 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
-    public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<LocationDto> getLocationsByOrganization(String organizationResourceId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<String> assignedToPractitioner, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfLocationsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Location.name());
 
         Bundle firstPageLocationSearchBundle;
@@ -118,7 +125,7 @@ public class LocationServiceImpl implements LocationService {
         locationsSearchQuery = addAdditionalLocationSearchConditions(locationsSearchQuery, statusList, searchKey, searchValue);
 
         //The following bundle only contains Page 1 of the resultSet
-        firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(locationsSearchQuery, numberOfLocationsPerPage, Optional.empty());
+        firstPageLocationSearchBundle = PaginationUtil.getSearchBundleFirstPage(FhirOperationUtil.setNoCacheControlDirective(locationsSearchQuery), numberOfLocationsPerPage, Optional.empty());
 
         if (firstPageLocationSearchBundle == null || firstPageLocationSearchBundle.getEntry().isEmpty()) {
             log.info("No location found for the given OrganizationID:" + organizationResourceId);
@@ -136,7 +143,7 @@ public class LocationServiceImpl implements LocationService {
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
         // Map to DTO
-        List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
+        List<LocationDto> locationsList = retrievedLocations.stream().map(loc->convertLocationBundleEntryToLocationDto(loc, organizationResourceId, assignedToPractitioner)).collect(Collectors.toList());
         return (PageDto<LocationDto>) PaginationUtil.applyPaginationForSearchBundle(locationsList, otherPageLocationSearchBundle.getTotal(), numberOfLocationsPerPage, pageNumber);
     }
 
@@ -179,7 +186,8 @@ public class LocationServiceImpl implements LocationService {
     }
 
     @Override
-    public void createLocation(String organizationId, LocationDto locationDto) {
+    public void createLocation(String organizationId, LocationDto locationDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
         log.info("Creating location for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
 
@@ -202,11 +210,18 @@ public class LocationServiceImpl implements LocationService {
         FhirOperationUtil.validateFhirResource(fhirValidator, fhirLocation, Optional.empty(), ResourceType.Location.name(), "Create Location");
 
         //Create
-        FhirOperationUtil.createFhirResource(fhirClient, fhirLocation, ResourceType.Location.name());
+        MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, fhirLocation, ResourceType.Location.name());
+        idList.add(ResourceType.Location.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+        if(fisProperties.isProvenanceEnabled()) {
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
+        }
     }
 
     @Override
-    public void updateLocation(String organizationId, String locationId, LocationDto locationDto) {
+    public void updateLocation(String organizationId, String locationId, LocationDto locationDto, Optional<String> loggedInUser) {
+        List<String> idList = new ArrayList<>();
+
         log.info("Updating location Id: " + locationId + " for Organization Id:" + organizationId);
         log.info("But first, checking if a duplicate location(active/inactive/suspended) exists based on the Identifiers provided.");
         checkForDuplicateLocationBasedOnOrganizationTaxId(organizationId, locationDto);
@@ -237,7 +252,12 @@ public class LocationServiceImpl implements LocationService {
         FhirOperationUtil.validateFhirResource(fhirValidator, existingFhirLocation, Optional.of(locationId), ResourceType.Location.name(), "Update Location");
 
         //Update
-        FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Update Location");
+        MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Update Location");
+        idList.add(ResourceType.Location.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+
+        if(fisProperties.isProvenanceEnabled()) {
+            provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
+        }
     }
 
     @Override
@@ -416,6 +436,17 @@ public class LocationServiceImpl implements LocationService {
         return tempLocationDto;
     }
 
+    private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel,
+                                                                String organizationId,
+                                                                Optional<String> assignedToPractitioner) {
+       LocationDto locationDto=convertLocationBundleEntryToLocationDto(fhirLocationModel);
+       assignedToPractitioner.ifPresent(prac->{
+           locationDto.setAssignToCurrentPractitioner(Optional.ofNullable(isAssignedToPractitioner(prac, organizationId, locationDto.getLogicalId())));
+       });
+
+       return locationDto;
+    }
+
     private Location.LocationStatus getLocationStatusFromDto(LocationDto locationDto) {
         List<ValueSetDto> validLocationStatuses = lookUpService.getLocationStatuses();
 
@@ -462,6 +493,21 @@ public class LocationServiceImpl implements LocationService {
         return organizationDto.getIdentifiers().stream()
                 .filter(identifier -> identifier.getSystem().equalsIgnoreCase(KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getUri()))
                 .findFirst();
+    }
+
+    private Boolean isAssignedToPractitioner(String practitionerId, String organizationId, String logicalId){
+      Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+                .where(new ReferenceClientParam("practitioner").hasId(practitionerId))
+                .where(new ReferenceClientParam("organization").hasId(organizationId))
+                .where(new ReferenceClientParam("location").hasId(logicalId))
+                .returnBundle(Bundle.class).execute();
+
+        if(bundle.getEntry().isEmpty()){
+            return false;
+        }
+        else{
+            return true;
+        }
     }
 }
 

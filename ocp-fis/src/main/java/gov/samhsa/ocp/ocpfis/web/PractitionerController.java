@@ -43,8 +43,8 @@ public class PractitionerController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public void createPractitioner(@Valid @RequestBody PractitionerDto practitionerDto) {
-        practitionerService.createPractitioner(practitionerDto);
+    public void createPractitioner(@Valid @RequestBody PractitionerDto practitionerDto, Optional<String> loggedInUser) {
+        practitionerService.createPractitioner(practitionerDto, loggedInUser);
     }
 
     @GetMapping("/{practitionerId}")
@@ -54,8 +54,8 @@ public class PractitionerController {
 
     @PutMapping("/{practitionerId}")
     @ResponseStatus(HttpStatus.OK)
-    public void updatePractitioner(@PathVariable String practitionerId, @Valid @RequestBody PractitionerDto practitionerDto) {
-        practitionerService.updatePractitioner(practitionerId, practitionerDto);
+    public void updatePractitioner(@PathVariable String practitionerId, @Valid @RequestBody PractitionerDto practitionerDto, Optional<String> loggedInUser) {
+        practitionerService.updatePractitioner(practitionerId, practitionerDto, loggedInUser);
     }
 
     @GetMapping
@@ -66,6 +66,20 @@ public class PractitionerController {
     @GetMapping("/practitioner-id")
     public String getPractitionerId(@RequestParam String practitionerName){
         return practitionerService.getPractitionerByName(practitionerName);
+    }
+
+    @PutMapping("/{practitionerId}/assign")
+    public void assignLocationsToPractitioner(@PathVariable String practitionerId,
+                                              @RequestParam(value="organizationId") String organizationId,
+                                              @RequestParam(value="locationId") String locationId){
+        practitionerService.assignLocationToPractitioner(practitionerId, organizationId, locationId);
+    }
+
+    @PutMapping("/{practitionerId}/unassign")
+    public void unassignLocationToPractitioner(@PathVariable String practitionerId,
+                                                 @RequestParam(value="organizationId") String organizationId,
+                                                 @RequestParam(value="locationId") String locationId){
+        practitionerService.unassignLocationToPractitioner(practitionerId,organizationId,locationId);
     }
 
 
