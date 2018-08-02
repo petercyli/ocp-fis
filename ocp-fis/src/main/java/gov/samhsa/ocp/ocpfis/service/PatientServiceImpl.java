@@ -57,7 +57,6 @@ import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
@@ -78,7 +77,6 @@ import static java.util.stream.Collectors.toList;
 public class PatientServiceImpl implements PatientService {
 
     public static final String TO_DO = "To-Do";
-    public static final int EPISODE_OF_CARE_END_PERIOD = 1;
 
     private final IGenericClient fhirClient;
     private final IParser iParser;
@@ -401,7 +399,8 @@ public class PatientServiceImpl implements PatientService {
             patient.setId(new IdType(patientDto.getId()));
             patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
-
+            // This language is not the same as Communication.language. This is just a temp hack
+            patient.setLanguageElement(null);
             setExtensionFields(patient, patientDto);
 
 
