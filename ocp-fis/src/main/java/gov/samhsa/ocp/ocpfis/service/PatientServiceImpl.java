@@ -113,7 +113,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> filterKey, Optional<String> organization,  Optional<String> practitioner, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
+    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> filterKey, Optional<String> organization, Optional<String> practitioner, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class).sort().descending(PARAM_LASTUPDATED);
@@ -126,8 +126,8 @@ public class PatientServiceImpl implements PatientService {
         }
 
         if (filterKey.isPresent() && SearchKeyEnum.PatientFilterKey.conatains(filterKey.get()) && SearchKeyEnum.PatientFilterKey.ASSOCIATECARETEAMPATIENT.name().equalsIgnoreCase(filterKey.get())) {
-            if (!patientsAssociatedWithPractitioner(practitioner.get(),organization.get()).isEmpty()) {
-                PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsAssociatedWithPractitioner(practitioner.get(),organization.get())));
+            if (!patientsAssociatedWithPractitioner(practitioner.get(), organization.get()).isEmpty()) {
+                PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsAssociatedWithPractitioner(practitioner.get(), organization.get())));
             } else {
                 log.info("No Patients were found for given organization.");
                 return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
@@ -168,9 +168,9 @@ public class PatientServiceImpl implements PatientService {
         List<PatientDto> patientDtos = convertAllBundleToSinglePatientDtoList(firstPagePatientSearchBundle, numberOfPatientsPerPage);
 
         if (filterKey.isPresent() && SearchKeyEnum.PatientFilterKey.conatains(filterKey.get()) && SearchKeyEnum.PatientFilterKey.UNASSIGNPATIENT.name().equalsIgnoreCase(filterKey.get())) {
-                patientDtos = patientDtos.stream()
-                        .filter(pdto -> practitionerAssignedToPatient(careTeamBundle(pdto)))
-                        .collect(toList());
+            patientDtos = patientDtos.stream()
+                    .filter(pdto -> practitionerAssignedToPatient(careTeamBundle(pdto)))
+                    .collect(toList());
         }
 
         if (showAll.isPresent() && showAll.get()) {
@@ -306,8 +306,15 @@ public class PatientServiceImpl implements PatientService {
             patient.setActive(Boolean.TRUE);
             patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
-            // This language is not the same as Communication.language. This is just a temp hack
+            // This language is not the same as setting Communication.language.
             patient.setLanguageElement(null);
+            // Set Language
+            if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getLanguage())) {
+                Patient.PatientCommunicationComponent communicationLang = new Patient.PatientCommunicationComponent();
+                CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/ValueSet/all-languages"));
+                communicationLang.setLanguage(langCodeableConcept);
+                patient.setCommunication(Collections.singletonList(communicationLang));
+            }
 
             setExtensionFields(patient, patientDto);
 
@@ -369,7 +376,7 @@ public class PatientServiceImpl implements PatientService {
                 });
             }
 
-            if(fisProperties.isProvenanceEnabled()) {
+            if (fisProperties.isProvenanceEnabled()) {
                 provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
             }
 
@@ -399,8 +406,15 @@ public class PatientServiceImpl implements PatientService {
             patient.setId(new IdType(patientDto.getId()));
             patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
-            // This language is not the same as Communication.language. This is just a temp hack
+            // This language is not the same as setting Communication.language.
             patient.setLanguageElement(null);
+            // Set Language
+            if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getLanguage())) {
+                Patient.PatientCommunicationComponent communicationLang = new Patient.PatientCommunicationComponent();
+                CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/ValueSet/all-languages"));
+                communicationLang.setLanguage(langCodeableConcept);
+                patient.setCommunication(Collections.singletonList(communicationLang));
+            }
             setExtensionFields(patient, patientDto);
 
 
@@ -486,7 +500,7 @@ public class PatientServiceImpl implements PatientService {
                 }
             }));
 
-            if(fisProperties.isProvenanceEnabled()) {
+            if (fisProperties.isProvenanceEnabled()) {
                 provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
             }
 
@@ -607,26 +621,8 @@ public class PatientServiceImpl implements PatientService {
     private void setExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = new ArrayList<>();
 
-        //language (Strictly speaking, language should not be set in this method, but keeping it here due to time constraints)
-        if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getLanguage())) {
-//            Coding langCoding = FhirResourceUtil.getCoding(patientDto.getLanguage(), "", StructureDefinitionEnum.LANGUAGES.getUrl());
-//            Extension langExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_SIMPLE_LANGUAGE.getUrl(), new CodeableConcept().addCoding(langCoding));
-
-            Patient.PatientCommunicationComponent communicationLang = new Patient.PatientCommunicationComponent();
-
-            // CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/us/core/ValueSet/simple-language"));
-            // CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "urn:ietf:bcp:47"));
-            // CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/ValueSet/languages"));
-            // CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/all-languages"));
-            CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/ValueSet/all-languages"));
-
-            communicationLang.setLanguage(langCodeableConcept);
-            patient.setCommunication(Collections.singletonList(communicationLang));
-//            extensionList.add(langExtension);
-        }
-
         //race
-        if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getRace() )) {
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getRace())) {
             Coding raceCoding = FhirResourceUtil.getCoding(patientDto.getRace(), "", StructureDefinitionEnum.RACE.getUrl());
             Extension raceExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_RACE.getUrl(), new CodeableConcept().addCoding(raceCoding));
             extensionList.add(raceExtension);
@@ -799,7 +795,7 @@ public class PatientServiceImpl implements PatientService {
         //List of patient with the practitioner in the care team.
         List<String> patientsRealtedWithPractitionerOnCareTeam = getPatientsByParticipantsInCareTeam(Arrays.asList(prac));
 
-        return Stream.of(patientsRelatedWithOrganizationOfPractitionerOnCareTeam, patientsRealtedWithPractitionerOnCareTeam).flatMap(Collection::stream).distinct().filter(s->!patientsInOrganization(org).contains(s)).collect(toList());
+        return Stream.of(patientsRelatedWithOrganizationOfPractitionerOnCareTeam, patientsRealtedWithPractitionerOnCareTeam).flatMap(Collection::stream).distinct().filter(s -> !patientsInOrganization(org).contains(s)).collect(toList());
     }
 
     private List<PatientDto> convertAllBundleToSinglePatientDtoList(Bundle firstPagePatientSearchBundle, int numberOBundlePerPage) {
