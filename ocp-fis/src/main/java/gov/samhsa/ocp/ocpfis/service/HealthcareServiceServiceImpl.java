@@ -13,6 +13,7 @@ import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameLogicalIdIdentifiersDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -42,6 +43,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -114,7 +117,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         List<Bundle.BundleEntryComponent> retrievedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<HealthcareServiceDto> healthcareServicesList = retrievedHealthcareServices.stream().map(hcs -> convertHealthcareServiceBundleEntryToHealthcareServiceDto(hcs, locationNameMap, Optional.empty())).collect(Collectors.toList());
+        List<HealthcareServiceDto> healthcareServicesList = retrievedHealthcareServices.stream().map(hcs -> convertHealthcareServiceBundleEntryToHealthcareServiceDto(hcs, locationNameMap, Optional.empty())).collect(toList());
         double totalPages = Math.ceil((double) otherPageHealthcareServiceSearchBundle.getTotal() / numberOfHealthcareServicesPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
@@ -176,7 +179,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
         List<Bundle.BundleEntryComponent> retrievedHealthcareServices = otherPageHealthcareServiceSearchBundle.getEntry();
 
         //Arrange Page related info
-        List<HealthcareServiceDto> healthcareServicesList = retrievedHealthcareServices.stream().map(hcs -> convertHealthcareServiceBundleEntryToHealthcareServiceDto(hcs, locationNameMap, assignedToLocationId)).collect(Collectors.toList());
+        List<HealthcareServiceDto> healthcareServicesList = retrievedHealthcareServices.stream().map(hcs -> convertHealthcareServiceBundleEntryToHealthcareServiceDto(hcs, locationNameMap, assignedToLocationId)).collect(toList());
         double totalPages = Math.ceil((double) otherPageHealthcareServiceSearchBundle.getTotal() / numberOfHealthcareServicesPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
@@ -276,12 +279,29 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                     );
 
                     return healthcareServiceDto;
-                }).collect(Collectors.toList());
+                }).collect(toList());
 
         double totalPages = Math.ceil((double) otherPageHealthcareServiceSearchBundle.getTotal() / numberOfHealthcareServicesPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
 
         return new PageDto<>(healthcareServicesList, numberOfHealthcareServicesPerPage, totalPages, currentPage, healthcareServicesList.size(), otherPageHealthcareServiceSearchBundle.getTotal());
+    }
+
+    @Override
+    public List<ReferenceDto> getAllHealthcareServicesReferences(Optional<String> organization) {
+       IQuery iQuery= fhirClient.search().forResource(HealthcareService.class);
+
+       organization.ifPresent(org->iQuery.where(new ReferenceClientParam("organization").hasId(org)));
+
+       Bundle bundle= (Bundle) FhirOperationUtil.setNoCacheControlDirective(iQuery).returnBundle(Bundle.class).execute();
+
+        return FhirOperationUtil.getAllBundleComponentsAsList(bundle,Optional.empty(),fhirClient,fisProperties).stream().map(entry->{
+            HealthcareService hs= (HealthcareService) entry.getResource();
+            ReferenceDto referenceDto=new ReferenceDto();
+            referenceDto.setDisplay(hs.getName());
+            referenceDto.setReference(ResourceType.HealthcareService.toString()+"/"+hs.getIdElement().getIdPart());
+            return referenceDto;
+        }).collect(toList());
     }
 
     @Override
@@ -408,7 +428,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             throw new ResourceNotFoundException("Cannot assign the given location(s) to Healthcare Service, because we did not find any location(s) under the organization ID: " + organizationResourceId);
         }
 
-        List<String> retrievedLocationsList = locationSearchBundle.getEntry().stream().map(fhirLocationModel -> fhirLocationModel.getResource().getIdElement().getIdPart()).collect(Collectors.toList());
+        List<String> retrievedLocationsList = locationSearchBundle.getEntry().stream().map(fhirLocationModel -> fhirLocationModel.getResource().getIdElement().getIdPart()).collect(toList());
 
         if (retrievedLocationsList.containsAll(locationIdList)) {
             log.info("Assign location to a Healthcare Service: Successful Check 1: The given location(s) belong to the given organization ID: " + organizationResourceId);
@@ -560,7 +580,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
                     .stream().filter(res -> {
                         HealthcareService healthcareService = (HealthcareService) res.getResource();
                         return healthcareService.getName().equalsIgnoreCase(healthcareServiceName);
-                    }).collect(Collectors.toList());
+                    }).collect(toList());
             if (!bundleEntryComponents.isEmpty()) {
                 throw new DuplicateResourceFoundException("The current organization: " + organizationId + " already has active Healthcare Service(s) with the Category System " + categorySystem + " and Category Code " + categoryCode + " with Type system " + typeSystem + " and Type Code: " + typeCode);
             }
@@ -593,7 +613,7 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
             List<Bundle.BundleEntryComponent> bundleEntryComponentList = bundleEntryComponents.stream().filter(bundleEntryComponent -> {
                 HealthcareService healthcareService = (HealthcareService) bundleEntryComponent.getResource();
                 return healthcareService.getName().equalsIgnoreCase(healthcareServiceName);
-            }).collect(Collectors.toList());
+            }).collect(toList());
 
             if (bundleEntryComponentList.size() == 1) {
                 String logicalId = bundleEntryComponentList.stream().findFirst().get().getResource().getIdElement().getIdPart();

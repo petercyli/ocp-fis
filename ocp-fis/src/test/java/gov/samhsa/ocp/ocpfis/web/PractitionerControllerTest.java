@@ -59,7 +59,7 @@ public class PractitionerControllerTest {
         ReferenceDto referenceDto = createReference();
         List<ReferenceDto> referenceDtoList = new ArrayList<>();
         referenceDtoList.add(referenceDto);
-        Mockito.when(practitionerService.getPractitionersInOrganizationByPractitionerId(Optional.empty(),Optional.empty(),Optional.empty())).thenReturn(referenceDtoList);
+        Mockito.when(practitionerService.getPractitionersInOrganizationByPractitionerId(Optional.empty(),Optional.empty(),Optional.empty(),Optional.empty())).thenReturn(referenceDtoList);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/practitioners/practitioner-references");
