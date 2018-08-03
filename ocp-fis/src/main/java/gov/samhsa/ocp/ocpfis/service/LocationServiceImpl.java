@@ -15,12 +15,15 @@ import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
@@ -28,6 +31,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Organization;
@@ -43,6 +47,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -105,7 +111,7 @@ public class LocationServiceImpl implements LocationService {
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
         // Map to DTO
-        List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
+        List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(toList());
         return (PageDto<LocationDto>) PaginationUtil.applyPaginationForSearchBundle(locationsList, otherPageLocationSearchBundle.getTotal(), numberOfLocationsPerPage, pageNumber);
     }
 
@@ -143,7 +149,7 @@ public class LocationServiceImpl implements LocationService {
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
         // Map to DTO
-        List<LocationDto> locationsList = retrievedLocations.stream().map(loc->convertLocationBundleEntryToLocationDto(loc, organizationResourceId, assignedToPractitioner)).collect(Collectors.toList());
+        List<LocationDto> locationsList = retrievedLocations.stream().map(loc->convertLocationBundleEntryToLocationDto(loc, organizationResourceId, assignedToPractitioner)).collect(toList());
         return (PageDto<LocationDto>) PaginationUtil.applyPaginationForSearchBundle(locationsList, otherPageLocationSearchBundle.getTotal(), numberOfLocationsPerPage, pageNumber);
     }
 
@@ -276,6 +282,18 @@ public class LocationServiceImpl implements LocationService {
         FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Inactivate Location");
     }
 
+    @Override
+    public List<ReferenceDto> getAllLocationReferences(String healthcareService) {
+        HealthcareService loc=fhirClient.read().resource(HealthcareService.class).withId(healthcareService).execute();
+        return loc.getLocation().stream().map(l->{
+            ReferenceDto referenceDto=new ReferenceDto();
+            referenceDto.setReference(l.getReference());
+            Location location=fhirClient.read().resource(Location.class).withId(l.getReference().split("/")[1]).execute();
+            referenceDto.setDisplay(location.getName());
+            return referenceDto;
+        }).collect(toList());
+    }
+
 
     private IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue) {
         // Check for location status
@@ -349,7 +367,7 @@ public class LocationServiceImpl implements LocationService {
             List<Identifier> identifierList = bundle.stream().flatMap(loc -> {
                 Location location = (Location) loc.getResource();
                 return location.getIdentifier().stream();
-            }).collect(Collectors.toList());
+            }).collect(toList());
             identifierList.stream().filter(identifier -> !identifier.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY)).findAny().ifPresent(ids -> {
                         throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
                     }
@@ -413,7 +431,7 @@ public class LocationServiceImpl implements LocationService {
                 return l.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(identifierSystem) && identifier.getValue().replaceAll(" ", "")
                         .replaceAll("-", "").trim()
                         .equalsIgnoreCase(identifierValue.replaceAll(" ", "").replaceAll("-", "").trim()));
-            }).collect(Collectors.toList());
+            }).collect(toList());
         } else if (identifierValue != null && !identifierValue.trim().isEmpty()) {
             Bundle bundle = fhirClient.search().forResource(Location.class)
                     .where(new TokenClientParam("identifier").exactly().code(identifierValue.trim()))
