@@ -176,11 +176,13 @@ public class PractitionerServiceImpl implements PractitionerService {
     }
 
     @Override
-    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(Optional<String> practitioner, Optional<String> organization, Optional<String> role) {
+    public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(Optional<String> practitioner, Optional<String> organization, Optional<String> location, Optional<String> role) {
         List<ReferenceDto> organizations = new ArrayList<>();
         if (organization.isPresent()) {
             IQuery iQuery = fhirClient.search().forResource(PractitionerRole.class)
                     .where(new ReferenceClientParam("organization").hasId(organization.get()));
+
+            location.ifPresent(loc->iQuery.where(new ReferenceClientParam("location").hasId(loc)));
 
             //role.ifPresent(r -> iQuery.where(new TokenClientParam("role").exactly().code(r)));
 
