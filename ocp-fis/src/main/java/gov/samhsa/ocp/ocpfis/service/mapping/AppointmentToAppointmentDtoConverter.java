@@ -41,6 +41,8 @@ public class AppointmentToAppointmentDtoConverter {
         if (appointment.hasAppointmentType()) {
             ValueSetDto type = FhirDtoUtil.convertCodeableConceptToValueSetDto(appointment.getAppointmentType());
             appointmentDto.setTypeCode(type.getCode());
+            appointmentDto.setTypeSystem(type.getSystem());
+            appointmentDto.setTypeDisplay(type.getDisplay());
         }
 
         if (appointment.hasDescription()) {

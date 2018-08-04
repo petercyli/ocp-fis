@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
+import gov.samhsa.ocp.ocpfis.domain.CodeSystemEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
@@ -26,6 +27,12 @@ public final class AppointmentDtoToAppointmentConverter {
     private static final String PROPOSED_APPOINTMENT_STATUS = "proposed";
     private static final String REQUIRED = "required";
     private static final String INFORMATION_ONLY = "information-only";
+    private static final String ATTENDER_CODE = "ATND";
+    private static final String ATTENDER_DISPLAY = "attender";
+    private static final String AUTHOR_CODE = "AUT";
+    private static final String AUTHOR_DISPLAY = "author (originator)";
+
+
 
     public static Appointment map(AppointmentDto appointmentDto, boolean isCreate, Optional<String> logicalId) {
         try {
@@ -46,7 +53,7 @@ public final class AppointmentDtoToAppointmentConverter {
 
             //Type
             if (isStringNotNullAndNotEmpty(appointmentDto.getTypeCode())) {
-                CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(appointmentDto.getTypeCode(), null, null));
+                CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(appointmentDto.getTypeCode(), appointmentDto.getTypeDisplay(), appointmentDto.getTypeSystem()));
                 appointment.setAppointmentType(codeableConcept);
             }
 
@@ -76,7 +83,7 @@ public final class AppointmentDtoToAppointmentConverter {
                         participantModel.setType(Collections.singletonList(codeableConcept));
                     } else if (isCreate) {
                         //By default, add participants as "attender"
-                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding("ATND", "attender", "http://hl7.org/fhir/v3/ParticipationType"));
+                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(ATTENDER_CODE, ATTENDER_DISPLAY, CodeSystemEnum.APPOINTMENT_PARTICIPATION_TYPE.getUrl()));
                         participantModel.setType(Collections.singletonList(codeableConcept));
                     }
 
@@ -115,7 +122,7 @@ public final class AppointmentDtoToAppointmentConverter {
                     Appointment.AppointmentParticipantComponent creatorParticipantModel = new Appointment.AppointmentParticipantComponent();
 
                     //Participation Type
-                    CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding("AUT", "author (originator)", "http://hl7.org/fhir/v3/ParticipationType"));
+                    CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(AUTHOR_CODE, AUTHOR_DISPLAY, CodeSystemEnum.APPOINTMENT_PARTICIPATION_TYPE.getUrl()));
                     creatorParticipantModel.setType(Collections.singletonList(codeableConcept));
 
                     //Participation Status
