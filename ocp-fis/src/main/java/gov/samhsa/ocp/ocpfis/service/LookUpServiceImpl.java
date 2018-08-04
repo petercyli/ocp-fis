@@ -393,10 +393,15 @@ public class LookUpServiceImpl implements LookUpService {
     public List<ValueSetDto> getHealthcareServiceSpecialities() {
         List<ValueSetDto> healthcareServiceSpecialitiesCodes = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType());
-        String codingSystemUrl = response.getUrl();
+
         if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType())) {
             List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-            healthcareServiceSpecialitiesCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
+            for(ValueSet.ConceptSetComponent conceptComponent: valueSetList){
+                String codingSystemUrl = conceptComponent.getSystem();
+                List<ValueSet.ConceptReferenceComponent> conceptCodesList = conceptComponent.getConcept();
+                List<ValueSetDto> conceptCodeValueSetList = conceptCodesList.stream().map(c -> LookUpUtil.convertConceptReferenceToValueSetDto(c, codingSystemUrl)).collect(Collectors.toList());
+                healthcareServiceSpecialitiesCodes.addAll(conceptCodeValueSetList);
+            }
         }
 
         log.info("Found " + healthcareServiceSpecialitiesCodes.size() + " healthcare service specialities.");
