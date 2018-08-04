@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
+import gov.samhsa.ocp.ocpfis.constants.AppointmentConstants;
 import gov.samhsa.ocp.ocpfis.domain.CodeSystemEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
@@ -22,17 +23,6 @@ import java.util.Optional;
 
 @Slf4j
 public final class AppointmentDtoToAppointmentConverter {
-    private static final String ACCEPTED_PARTICIPATION_STATUS = "accepted";
-    private static final String NEEDS_ACTION_PARTICIPATION_STATUS = "needs-action";
-    private static final String PROPOSED_APPOINTMENT_STATUS = "proposed";
-    private static final String REQUIRED = "required";
-    private static final String INFORMATION_ONLY = "information-only";
-    private static final String ATTENDER_CODE = "ATND";
-    private static final String ATTENDER_DISPLAY = "attender";
-    private static final String AUTHOR_CODE = "AUT";
-    private static final String AUTHOR_DISPLAY = "author (originator)";
-
-
 
     public static Appointment map(AppointmentDto appointmentDto, boolean isCreate, Optional<String> logicalId) {
         try {
@@ -45,7 +35,7 @@ public final class AppointmentDtoToAppointmentConverter {
 
             //Status
             if (isCreate) {
-                appointment.setStatus(Appointment.AppointmentStatus.fromCode(PROPOSED_APPOINTMENT_STATUS));
+                appointment.setStatus(Appointment.AppointmentStatus.fromCode(AppointmentConstants.PROPOSED_APPOINTMENT_STATUS));
             } else if (isStringNotNullAndNotEmpty(appointmentDto.getStatusCode())) {
                 Appointment.AppointmentStatus status = Appointment.AppointmentStatus.fromCode(appointmentDto.getStatusCode().trim());
                 appointment.setStatus(status);
@@ -83,18 +73,18 @@ public final class AppointmentDtoToAppointmentConverter {
                         participantModel.setType(Collections.singletonList(codeableConcept));
                     } else if (isCreate) {
                         //By default, add participants as "attender"
-                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(ATTENDER_CODE, ATTENDER_DISPLAY, CodeSystemEnum.APPOINTMENT_PARTICIPATION_TYPE.getUrl()));
+                        CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(AppointmentConstants.ATTENDER_PARTICIPANT_TYPE_CODE, AppointmentConstants.ATTENDER_PARTICIPANT_TYPE_DISPLAY, CodeSystemEnum.APPOINTMENT_PARTICIPATION_TYPE.getUrl()));
                         participantModel.setType(Collections.singletonList(codeableConcept));
                     }
 
                     //Participation Status
                     if (isCreate) {
-                        participantModel.setStatus(Appointment.ParticipationStatus.fromCode(NEEDS_ACTION_PARTICIPATION_STATUS));
+                        participantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.NEEDS_ACTION_PARTICIPATION_STATUS));
                     } else if (isStringNotNullAndNotEmpty(participant.getParticipationStatusCode())) {
                         Appointment.ParticipationStatus status = Appointment.ParticipationStatus.fromCode(participant.getParticipationStatusCode().trim());
                         participantModel.setStatus(status);
                     } else {
-                        participantModel.setStatus(Appointment.ParticipationStatus.fromCode(NEEDS_ACTION_PARTICIPATION_STATUS));
+                        participantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.NEEDS_ACTION_PARTICIPATION_STATUS));
                     }
 
                     //Actor
@@ -122,11 +112,11 @@ public final class AppointmentDtoToAppointmentConverter {
                     Appointment.AppointmentParticipantComponent creatorParticipantModel = new Appointment.AppointmentParticipantComponent();
 
                     //Participation Type
-                    CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(AUTHOR_CODE, AUTHOR_DISPLAY, CodeSystemEnum.APPOINTMENT_PARTICIPATION_TYPE.getUrl()));
+                    CodeableConcept codeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE, AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_DISPLAY, CodeSystemEnum.APPOINTMENT_PARTICIPATION_TYPE.getUrl()));
                     creatorParticipantModel.setType(Collections.singletonList(codeableConcept));
 
                     //Participation Status
-                    creatorParticipantModel.setStatus(Appointment.ParticipationStatus.fromCode(ACCEPTED_PARTICIPATION_STATUS));
+                    creatorParticipantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS));
 
                     //Participant Required
                     creatorParticipantModel.setRequired(getRequiredBasedOnParticipantReference(appointmentDto.getCreatorReference()));
@@ -160,9 +150,9 @@ public final class AppointmentDtoToAppointmentConverter {
         List<String> infoOnlyResources = Arrays.asList(ResourceType.HealthcareService.name().toUpperCase(), ResourceType.Location.name().toUpperCase());
 
         if (requiredResources.contains(resourceType.toUpperCase())) {
-            return Appointment.ParticipantRequired.fromCode(REQUIRED);
+            return Appointment.ParticipantRequired.fromCode(AppointmentConstants.REQUIRED);
         } else if (infoOnlyResources.contains(resourceType.toUpperCase())) {
-            return Appointment.ParticipantRequired.fromCode(INFORMATION_ONLY);
+            return Appointment.ParticipantRequired.fromCode(AppointmentConstants.INFORMATION_ONLY);
         }
         return null;
     }

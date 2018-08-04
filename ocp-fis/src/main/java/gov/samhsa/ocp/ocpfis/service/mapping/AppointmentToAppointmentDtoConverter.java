@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
+import gov.samhsa.ocp.ocpfis.constants.AppointmentConstants;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
@@ -14,19 +15,6 @@ import java.util.Optional;
 import static java.util.stream.Collectors.toList;
 
 public class AppointmentToAppointmentDtoConverter {
-
-    private static final String PATIENT_ACTOR_REFERENCE = "Patient";
-    private static final String DATE_TIME_FORMATTER_PATTERN_DATE = "MM/dd/yyyy";
-    private static final String ACCEPTED_PARTICIPATION_STATUS = "accepted";
-    private static final String DECLINED_PARTICIPATION_STATUS = "declined";
-    private static final String TENTATIVE_PARTICIPATION_STATUS = "tentative";
-    private static final String NEEDS_ACTION_PARTICIPATION_STATUS = "needs-action";
-    private static final String AUTHOR_PARTICIPANT_TYPE = "AUT";
-    private static final String PROPOSED_APPOINTMENT_STATUS = "proposed";
-    private static final String PENDING_APPOINTMENT_STATUS = "pending";
-    private static final String BOOKED_APPOINTMENT_STATUS = "booked";
-    private static final String CANCELLED_APPOINTMENT_STATUS = "cancelled";
-
 
     public static AppointmentDto map(Appointment appointment, Optional<String> requesterReference) {
 
@@ -61,23 +49,23 @@ public class AppointmentToAppointmentDtoConverter {
                                 appointmentDto.setRequesterParticipationStatusCode(participant.getParticipationStatusCode());
                             }
                             if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) &&
-                                    participant.getParticipationTypeCode().equalsIgnoreCase(AUTHOR_PARTICIPANT_TYPE) &&
-                                    !appointment.getStatus().toCode().equalsIgnoreCase(CANCELLED_APPOINTMENT_STATUS)) {
+                                    participant.getParticipationTypeCode().equalsIgnoreCase(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE) &&
+                                    !appointment.getStatus().toCode().equalsIgnoreCase(AppointmentConstants.CANCELLED_APPOINTMENT_STATUS)) {
                                 appointmentDto.setCanCancel(true);
-                            } else if (appointment.getStatus().toCode().equalsIgnoreCase(PROPOSED_APPOINTMENT_STATUS) ||
-                                    appointment.getStatus().toCode().equalsIgnoreCase(PENDING_APPOINTMENT_STATUS) ||
-                                    appointment.getStatus().toCode().equalsIgnoreCase(BOOKED_APPOINTMENT_STATUS)) {
-                                if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(NEEDS_ACTION_PARTICIPATION_STATUS)) {
+                            } else if (appointment.getStatus().toCode().equalsIgnoreCase(AppointmentConstants.PROPOSED_APPOINTMENT_STATUS) ||
+                                    appointment.getStatus().toCode().equalsIgnoreCase(AppointmentConstants.PENDING_APPOINTMENT_STATUS) ||
+                                    appointment.getStatus().toCode().equalsIgnoreCase(AppointmentConstants.BOOKED_APPOINTMENT_STATUS)) {
+                                if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(AppointmentConstants.NEEDS_ACTION_PARTICIPATION_STATUS)) {
                                     appointmentDto.setCanAccept(true);
                                     appointmentDto.setCanDecline(true);
                                     appointmentDto.setCanTentativelyAccept(true);
-                                } else if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(ACCEPTED_PARTICIPATION_STATUS)) {
+                                } else if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS)) {
                                     appointmentDto.setCanDecline(true);
                                     appointmentDto.setCanTentativelyAccept(true);
-                                } else if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(DECLINED_PARTICIPATION_STATUS)) {
+                                } else if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(AppointmentConstants.DECLINED_PARTICIPATION_STATUS)) {
                                     appointmentDto.setCanAccept(true);
                                     appointmentDto.setCanTentativelyAccept(true);
-                                } else if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(TENTATIVE_PARTICIPATION_STATUS)) {
+                                } else if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) && participant.getParticipationStatusCode().equalsIgnoreCase(AppointmentConstants.TENTATIVE_PARTICIPATION_STATUS)) {
                                     appointmentDto.setCanAccept(true);
                                     appointmentDto.setCanDecline(true);
                                 }
@@ -89,7 +77,7 @@ public class AppointmentToAppointmentDtoConverter {
 
         if (!appointmentDto.getParticipant().isEmpty()) {
             List<AppointmentParticipantDto> patientActors = appointmentDto.getParticipant().stream()
-                    .filter(participant -> participant.getActorReference() != null && participant.getActorReference().toUpperCase().contains(PATIENT_ACTOR_REFERENCE.toUpperCase()))
+                    .filter(participant -> participant.getActorReference() != null && participant.getActorReference().toUpperCase().contains(AppointmentConstants.PATIENT_ACTOR_REFERENCE.toUpperCase()))
                     .collect(toList());
             if (!patientActors.isEmpty()){
                 appointmentDto.setPatientName(patientActors.get(0).getActorName());
@@ -98,7 +86,7 @@ public class AppointmentToAppointmentDtoConverter {
             }
 
             List<AppointmentParticipantDto> creators = appointmentDto.getParticipant().stream()
-                    .filter(participant -> participant.getActorReference() != null &&  !participant.getActorReference().isEmpty() && participant.getActorName() != null && !participant.getActorName().isEmpty() && participant.getParticipationTypeCode().equalsIgnoreCase(AUTHOR_PARTICIPANT_TYPE))
+                    .filter(participant -> participant.getActorReference() != null &&  !participant.getActorReference().isEmpty() && participant.getActorName() != null && !participant.getActorName().isEmpty() && participant.getParticipationTypeCode().equalsIgnoreCase(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE))
                     .collect(toList());
 
             if(creators != null && !creators.isEmpty()){
@@ -114,7 +102,7 @@ public class AppointmentToAppointmentDtoConverter {
 
         if (appointment.hasStart()) {
             appointmentDto.setStart(DateUtil.convertUTCDateToLocalDateTime(appointment.getStart()));
-            DateTimeFormatter startFormatterDate = DateTimeFormatter.ofPattern(DATE_TIME_FORMATTER_PATTERN_DATE);
+            DateTimeFormatter startFormatterDate = DateTimeFormatter.ofPattern(AppointmentConstants.DATE_TIME_FORMATTER_PATTERN_DATE);
             String formattedDate = appointmentDto.getStart().format(startFormatterDate);
             appointmentDto.setAppointmentDate(formattedDate);
 
