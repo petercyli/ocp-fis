@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.CodeSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.domain.StructureDefinitionEnum;
@@ -58,7 +59,6 @@ import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
@@ -315,7 +315,7 @@ public class PatientServiceImpl implements PatientService {
             // Set Language
             if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getLanguage())) {
                 Patient.PatientCommunicationComponent communicationLang = new Patient.PatientCommunicationComponent();
-                CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/ValueSet/all-languages"));
+                CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, CodeSystemEnum.LANGUAGE.getUrl()));
                 communicationLang.setLanguage(langCodeableConcept);
                 patient.setCommunication(Collections.singletonList(communicationLang));
             }
@@ -415,7 +415,7 @@ public class PatientServiceImpl implements PatientService {
             // Set Language
             if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getLanguage())) {
                 Patient.PatientCommunicationComponent communicationLang = new Patient.PatientCommunicationComponent();
-                CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, "http://hl7.org/fhir/ValueSet/all-languages"));
+                CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, CodeSystemEnum.LANGUAGE.getUrl()));
                 communicationLang.setLanguage(langCodeableConcept);
                 patient.setCommunication(Collections.singletonList(communicationLang));
             }

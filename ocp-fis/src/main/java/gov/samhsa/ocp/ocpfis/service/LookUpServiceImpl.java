@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.domain.CodeSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.DateRangeEnum;
 import gov.samhsa.ocp.ocpfis.domain.IdentifierTypeEnum;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
@@ -359,7 +360,7 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSetDto> languageList;
         ValueSet response = getValueSets(LookupPathUrls.SIMPLE_LANGUAGE.getUrlPath(), LookupPathUrls.SIMPLE_LANGUAGE.getType());
         List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-        String codingSystemUrl = ""; // TODO: Set appropriate coding system
+        String codingSystemUrl = CodeSystemEnum.LANGUAGE.getUrl();
         languageList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         log.info("Found " + languageList.size() + " languages.");
         return languageList;
@@ -748,7 +749,7 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSetDto> providerRoleList;
         ValueSet response = getValueSets(LookupPathUrls.PROVIDER_ROLE.getUrlPath(), LookupPathUrls.PROVIDER_ROLE.getType());
         List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
-        String codingSystemUrl = ""; // TODO: Set appropriate coding system
+        String codingSystemUrl = CodeSystemEnum.PROVIDER_ROLE.getUrl();
         providerRoleList = valueSetList.stream().map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         log.info("Found " + providerRoleList.size() + " provider role.");
         return providerRoleList;
@@ -759,7 +760,7 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSetDto> providerSpecialtyList;
         ValueSet response = getValueSets(LookupPathUrls.PROVIDER_SPECIALTY.getUrlPath(), LookupPathUrls.PROVIDER_SPECIALTY.getType());
         List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
-        String codingSystemUrl = ""; // TODO: Set appropriate coding system
+        String codingSystemUrl = CodeSystemEnum.PROVIDER_SPECIALTY.getUrl();
         providerSpecialtyList = valueSetList.stream().map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         log.info("Found " + providerSpecialtyList.size() + " provider specialty.");
         return providerSpecialtyList;
@@ -791,11 +792,15 @@ public class LookUpServiceImpl implements LookUpService {
 
     @Override
     public List<ValueSetDto> getSecurityLabel() {
-        List<ValueSetDto> securityLabelList;
+        List<ValueSetDto> securityLabelList = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.SECURITY_LABEL.getUrlPath(), LookupPathUrls.SECURITY_LABEL.getType());
         List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-        String codingSystemUrl = ""; // TODO: Set appropriate coding system
-        securityLabelList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
+        for(ValueSet.ConceptSetComponent conceptComponent: valueSetList){
+            String codingSystemUrl = conceptComponent.getSystem();
+            List<ValueSet.ConceptReferenceComponent> conceptCodesList = conceptComponent.getConcept();
+            List<ValueSetDto> conceptCodeValueSetList = conceptCodesList.stream().map(c -> LookUpUtil.convertConceptReferenceToValueSetDto(c, codingSystemUrl)).collect(Collectors.toList());
+            securityLabelList.addAll(conceptCodeValueSetList);
+        }
         log.info("Found " + securityLabelList.size() + " security labels.");
         return securityLabelList;
     }
