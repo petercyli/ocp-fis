@@ -8,9 +8,10 @@ public enum CodeSystemEnum {
 
 
     // Resource Specific (Organize in Alphabetical order)
+    APPOINTMENT_PARTICIPATION_TYPE("http://hl7.org/fhir/v3/ParticipationType"),
 
-    CONSENT_PURPOSE_OF_USE_CODING_SYSTEM("http://hl7.org/fhir/v3/ActReason"),
-    CONSENT_ACTION_CODING_SYSTEM("http://hl7.org/fhir/consentaction");
+    CONSENT_PURPOSE_OF_USE("http://hl7.org/fhir/v3/ActReason"),
+    CONSENT_ACTION("http://hl7.org/fhir/consentaction");
 
     private final String url;
 

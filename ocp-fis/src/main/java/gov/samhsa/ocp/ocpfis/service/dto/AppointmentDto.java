@@ -16,7 +16,10 @@ public class AppointmentDto {
     private String logicalId;
 
     private String statusCode;
+
     private String typeCode;
+    private String typeDisplay;
+    private String typeSystem;
 
     private String description;
     private String appointmentDate;

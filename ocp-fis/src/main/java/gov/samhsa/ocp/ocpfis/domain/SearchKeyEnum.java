@@ -59,7 +59,7 @@ public class SearchKeyEnum {
     public enum PatientFilterKey {
         ORGANIZATION, ASSOCIATECARETEAMPATIENT, UNASSIGNPATIENT;
 
-        public static boolean conatains(String s){
+        public static boolean contains(String s){
             return Arrays.stream(values()).anyMatch(PatientFilterKey->PatientFilterKey.name().equalsIgnoreCase(s));
         }
     }

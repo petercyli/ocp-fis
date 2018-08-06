@@ -53,7 +53,8 @@ public class LookUpServiceImpl implements LookUpService {
         if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.US_STATE.getType())) {
 
             List<ValueSet.ConceptReferenceComponent> statesList = response.getCompose().getInclude().get(0).getConcept();
-            stateCodes = statesList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+            String codingSystemUrl = ""; // TODO: Set appropriate coding system
+            stateCodes = statesList.stream().map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         }
         log.info("Found " + stateCodes.size() + " USPS states.");
         return stateCodes;
@@ -299,7 +300,8 @@ public class LookUpServiceImpl implements LookUpService {
             try {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-                usCoreRaces = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+                String codingSystemUrl = ""; // TODO: Set appropriate coding system
+                usCoreRaces = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
             } catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-race-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-race-category", e);
@@ -328,7 +330,8 @@ public class LookUpServiceImpl implements LookUpService {
             try {
                 response = (ValueSet) fhirClient.search().byUrl(url).execute();
                 List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-                usCoreEthnicities = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+                String codingSystemUrl = ""; // TODO: Set appropriate coding system
+                usCoreEthnicities = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
             } catch (ResourceNotFoundException e) {
                 log.error("Query was unsuccessful - Could not find any omb-ethnicity-category", e.getMessage());
                 throw new ResourceNotFoundException("Query was unsuccessful - Could not find any omb-ethnicity-category", e);
@@ -344,7 +347,8 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSetDto> birthSexList;
         ValueSet response = getValueSets(LookupPathUrls.BIRTH_SEX.getUrlPath(), LookupPathUrls.BIRTH_SEX.getType());
         List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-        birthSexList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        String codingSystemUrl = ""; // TODO: Set appropriate coding system
+        birthSexList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         log.info("Found " + birthSexList.size() + " birth sex.");
         return birthSexList;
 
@@ -355,7 +359,8 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSetDto> languageList;
         ValueSet response = getValueSets(LookupPathUrls.SIMPLE_LANGUAGE.getUrlPath(), LookupPathUrls.SIMPLE_LANGUAGE.getType());
         List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-        languageList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        String codingSystemUrl = ""; // TODO: Set appropriate coding system
+        languageList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         log.info("Found " + languageList.size() + " languages.");
         return languageList;
     }
@@ -388,9 +393,15 @@ public class LookUpServiceImpl implements LookUpService {
     public List<ValueSetDto> getHealthcareServiceSpecialities() {
         List<ValueSetDto> healthcareServiceSpecialitiesCodes = new ArrayList<>();
         ValueSet response = getValueSets(LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getUrlPath(), LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType());
+
         if (LookUpUtil.isValueSetAvailableInServer(response, LookupPathUrls.HEALTHCARE_SERVICE_SPECIALITY_2.getType())) {
             List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-            healthcareServiceSpecialitiesCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+            for(ValueSet.ConceptSetComponent conceptComponent: valueSetList){
+                String codingSystemUrl = conceptComponent.getSystem();
+                List<ValueSet.ConceptReferenceComponent> conceptCodesList = conceptComponent.getConcept();
+                List<ValueSetDto> conceptCodeValueSetList = conceptCodesList.stream().map(c -> LookUpUtil.convertConceptReferenceToValueSetDto(c, codingSystemUrl)).collect(Collectors.toList());
+                healthcareServiceSpecialitiesCodes.addAll(conceptCodeValueSetList);
+            }
         }
 
         log.info("Found " + healthcareServiceSpecialitiesCodes.size() + " healthcare service specialities.");
@@ -459,7 +470,8 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSetDto> participantRolesList;
         ValueSet response = getValueSets(LookupPathUrls.PARTICIPANT_ROLE.getUrlPath(), LookupPathUrls.PARTICIPANT_ROLE.getType());
         List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-        participantRolesList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        String codingSystemUrl = ""; // TODO: Set appropriate coding system
+        participantRolesList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         log.info("Found " + participantRolesList.size() + " care team participant roles.");
         return participantRolesList;
     }
@@ -469,7 +481,8 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSetDto> reasonCodes;
         ValueSet response = getValueSets(LookupPathUrls.CARE_TEAM_REASON_CODE.getUrlPath(), LookupPathUrls.CARE_TEAM_REASON_CODE.getType());
         List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-        reasonCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        String codingSystemUrl = ""; // TODO: Set appropriate coding system
+        reasonCodes = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         log.info("Found " + reasonCodes.size() + " care team reason codes.");
         return reasonCodes;
     }
@@ -735,7 +748,8 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSetDto> providerRoleList;
         ValueSet response = getValueSets(LookupPathUrls.PROVIDER_ROLE.getUrlPath(), LookupPathUrls.PROVIDER_ROLE.getType());
         List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
-        providerRoleList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        String codingSystemUrl = ""; // TODO: Set appropriate coding system
+        providerRoleList = valueSetList.stream().map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         log.info("Found " + providerRoleList.size() + " provider role.");
         return providerRoleList;
     }
@@ -745,7 +759,8 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSetDto> providerSpecialtyList;
         ValueSet response = getValueSets(LookupPathUrls.PROVIDER_SPECIALTY.getUrlPath(), LookupPathUrls.PROVIDER_SPECIALTY.getType());
         List<ValueSet.ConceptReferenceComponent> valueSetList = response.getCompose().getInclude().get(0).getConcept();
-        providerSpecialtyList = valueSetList.stream().map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        String codingSystemUrl = ""; // TODO: Set appropriate coding system
+        providerSpecialtyList = valueSetList.stream().map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         log.info("Found " + providerSpecialtyList.size() + " provider specialty.");
         return providerSpecialtyList;
     }
@@ -779,7 +794,8 @@ public class LookUpServiceImpl implements LookUpService {
         List<ValueSetDto> securityLabelList;
         ValueSet response = getValueSets(LookupPathUrls.SECURITY_LABEL.getUrlPath(), LookupPathUrls.SECURITY_LABEL.getType());
         List<ValueSet.ConceptSetComponent> valueSetList = response.getCompose().getInclude();
-        securityLabelList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(LookUpUtil::convertConceptReferenceToValueSetDto).collect(Collectors.toList());
+        String codingSystemUrl = ""; // TODO: Set appropriate coding system
+        securityLabelList = valueSetList.stream().flatMap(obj -> obj.getConcept().stream()).map(s -> LookUpUtil.convertConceptReferenceToValueSetDto(s, codingSystemUrl)).collect(Collectors.toList());
         log.info("Found " + securityLabelList.size() + " security labels.");
         return securityLabelList;
     }

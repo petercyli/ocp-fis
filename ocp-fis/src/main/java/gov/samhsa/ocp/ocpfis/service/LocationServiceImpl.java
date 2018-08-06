@@ -20,10 +20,8 @@ import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
-import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
@@ -53,9 +51,6 @@ import static java.util.stream.Collectors.toList;
 @Service
 @Slf4j
 public class LocationServiceImpl implements LocationService {
-    final static String ORGANIZATION_TAX_ID_URI = "urn:oid:2.16.840.1.113883.4.4";
-
-    final static String ORGANIZATION_TAX_ID_DISPLAY = "Organization Tax ID";
 
     private final ModelMapper modelMapper;
 
@@ -111,7 +106,7 @@ public class LocationServiceImpl implements LocationService {
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
         // Map to DTO
-        List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(toList());
+        List<LocationDto> locationsList = retrievedLocations.stream().map(this::convertLocationBundleEntryToLocationDto).collect(Collectors.toList());
         return (PageDto<LocationDto>) PaginationUtil.applyPaginationForSearchBundle(locationsList, otherPageLocationSearchBundle.getTotal(), numberOfLocationsPerPage, pageNumber);
     }
 
@@ -149,7 +144,7 @@ public class LocationServiceImpl implements LocationService {
         List<Bundle.BundleEntryComponent> retrievedLocations = otherPageLocationSearchBundle.getEntry();
 
         // Map to DTO
-        List<LocationDto> locationsList = retrievedLocations.stream().map(loc->convertLocationBundleEntryToLocationDto(loc, organizationResourceId, assignedToPractitioner)).collect(toList());
+        List<LocationDto> locationsList = retrievedLocations.stream().map(loc -> convertLocationBundleEntryToLocationDto(loc, organizationResourceId, assignedToPractitioner)).collect(Collectors.toList());
         return (PageDto<LocationDto>) PaginationUtil.applyPaginationForSearchBundle(locationsList, otherPageLocationSearchBundle.getTotal(), numberOfLocationsPerPage, pageNumber);
     }
 
@@ -219,7 +214,7 @@ public class LocationServiceImpl implements LocationService {
         MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, fhirLocation, ResourceType.Location.name());
         idList.add(ResourceType.Location.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
-        if(fisProperties.isProvenanceEnabled()) {
+        if (fisProperties.isProvenanceEnabled()) {
             provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
         }
     }
@@ -261,7 +256,7 @@ public class LocationServiceImpl implements LocationService {
         MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Update Location");
         idList.add(ResourceType.Location.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
-        if(fisProperties.isProvenanceEnabled()) {
+        if (fisProperties.isProvenanceEnabled()) {
             provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
         }
     }
@@ -361,13 +356,14 @@ public class LocationServiceImpl implements LocationService {
     }
 
     private void checkDuplicateLocationExistsDuringCreate(String identifierSystem, String identifierValue) {
+        final String ORGANIZATION_TAX_ID_DISPLAY = KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getDisplay();
         List<Bundle.BundleEntryComponent> bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
 
         if (bundle != null && !bundle.isEmpty()) {
             List<Identifier> identifierList = bundle.stream().flatMap(loc -> {
                 Location location = (Location) loc.getResource();
                 return location.getIdentifier().stream();
-            }).collect(toList());
+            }).collect(Collectors.toList());
             identifierList.stream().filter(identifier -> !identifier.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY)).findAny().ifPresent(ids -> {
                         throw new DuplicateResourceFoundException("A Location already exists has the identifier system:" + identifierSystem + " and value: " + identifierValue);
                     }
@@ -376,6 +372,9 @@ public class LocationServiceImpl implements LocationService {
     }
 
     private void checkForDuplicateLocationBasedOnOrganizationTaxId(String organizationId, LocationDto locationDto) {
+        final String ORGANIZATION_TAX_ID_DISPLAY = KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getDisplay();
+        final String ORGANIZATION_TAX_ID_URI = KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getUri();
+
         fhirClient.read().resource(Organization.class).withId(organizationId).execute().getIdentifier().stream()
                 .filter(identifier -> identifier.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_URI)).findAny().ifPresent(identifier -> {
             locationDto.getIdentifiers().stream().filter(identifierDto -> identifierDto.getSystem().equalsIgnoreCase(ORGANIZATION_TAX_ID_DISPLAY))
@@ -402,6 +401,7 @@ public class LocationServiceImpl implements LocationService {
     }
 
     private void checkDuplicateLocationExistsDuringUpdate(String locationId, String identifierSystem, String identifierValue) {
+        final String ORGANIZATION_TAX_ID_DISPLAY = KnownIdentifierSystemEnum.TAX_ID_ORGANIZATION.getDisplay();
         List<Bundle.BundleEntryComponent> bundle = getLocationBundleBasedOnIdentifierSystemAndIdentifierValue(identifierSystem, identifierValue);
 
         if (bundle != null && bundle.size() > 1) {
@@ -457,12 +457,12 @@ public class LocationServiceImpl implements LocationService {
     private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel,
                                                                 String organizationId,
                                                                 Optional<String> assignedToPractitioner) {
-       LocationDto locationDto=convertLocationBundleEntryToLocationDto(fhirLocationModel);
-       assignedToPractitioner.ifPresent(prac->{
-           locationDto.setAssignToCurrentPractitioner(Optional.ofNullable(isAssignedToPractitioner(prac, organizationId, locationDto.getLogicalId())));
-       });
+        LocationDto locationDto = convertLocationBundleEntryToLocationDto(fhirLocationModel);
+        assignedToPractitioner.ifPresent(prac -> {
+            locationDto.setAssignToCurrentPractitioner(Optional.ofNullable(isAssignedToPractitioner(prac, organizationId, locationDto.getLogicalId())));
+        });
 
-       return locationDto;
+        return locationDto;
     }
 
     private Location.LocationStatus getLocationStatusFromDto(LocationDto locationDto) {
@@ -513,17 +513,16 @@ public class LocationServiceImpl implements LocationService {
                 .findFirst();
     }
 
-    private Boolean isAssignedToPractitioner(String practitionerId, String organizationId, String logicalId){
-      Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+    private Boolean isAssignedToPractitioner(String practitionerId, String organizationId, String logicalId) {
+        Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
                 .where(new ReferenceClientParam("practitioner").hasId(practitionerId))
                 .where(new ReferenceClientParam("organization").hasId(organizationId))
                 .where(new ReferenceClientParam("location").hasId(logicalId))
                 .returnBundle(Bundle.class).execute();
 
-        if(bundle.getEntry().isEmpty()){
+        if (bundle.getEntry().isEmpty()) {
             return false;
-        }
-        else{
+        } else {
             return true;
         }
     }
