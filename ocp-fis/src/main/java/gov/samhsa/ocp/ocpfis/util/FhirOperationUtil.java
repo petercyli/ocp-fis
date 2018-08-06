@@ -43,7 +43,6 @@ public class FhirOperationUtil {
     public static void validateFhirResource(FhirValidator fhirValidator, DomainResource fhirResource,
                                             Optional<String> fhirResourceId, String fhirResourceName,
                                             String actionAndResourceName) {
-        try {
             ValidationResult validationResult = fhirValidator.validateWithResult(fhirResource);
 
             if (fhirResourceId.isPresent()) {
@@ -61,11 +60,6 @@ public class FhirOperationUtil {
                 }
                 throw new FHIRFormatErrorException(fhirResourceName + " validation was not successful" + validationResult.getMessages());
             }
-        } catch (Exception e) {
-            log.error("Unidentified Exception", e);
-            return;
-        }
-
     }
 
     public static MethodOutcome createFhirResource(IGenericClient fhirClient, DomainResource fhirResource, String fhirResourceName) {
@@ -265,7 +259,10 @@ public class FhirOperationUtil {
     }
 
     public static String getFhirId(MethodOutcome methodOutcome) {
-        return methodOutcome.getId().getIdPart();
+        if(methodOutcome != null){
+            return methodOutcome.getId().getIdPart();
+        }
+        return null;
     }
 }
 

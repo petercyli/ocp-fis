@@ -2,12 +2,13 @@ package gov.samhsa.ocp.ocpfis.util;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
+import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.Provenance;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -15,6 +16,7 @@ import java.util.Optional;
 import static java.util.stream.Collectors.toList;
 
 @Service
+@Slf4j
 public class ProvenanceUtil {
 
     private final IGenericClient fhirClient;
@@ -54,8 +56,8 @@ public class ProvenanceUtil {
 
         agent.setWho(whoRef);
 
-        provenance.setAgent(Arrays.asList(agent));
-
+        provenance.setAgent(Collections.singletonList(agent));
+        log.info("Creating Provenance");
         fhirClient.create().resource(provenance).execute();
     }
 }
