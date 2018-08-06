@@ -7,6 +7,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.constants.AppointmentConstants;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
@@ -63,12 +64,6 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private final PatientService patientService;
 
-    private final String ACCEPTED_PARTICIPATION_STATUS = "accepted";
-    private final String DECLINED_PARTICIPATION_STATUS = "declined";
-    private final String TENTATIVE_PARTICIPATION_STATUS = "tentative";
-    private final String NEEDS_ACTION_PARTICIPATION_STATUS = "needs-action";
-    private final String PENDING_APPOINTMENT_STATUS = "pending";
-    private final String REQUIRED = "required";
     private final ProvenanceUtil provenanceUtil;
 
     @Autowired
@@ -581,18 +576,18 @@ public class AppointmentServiceImpl implements AppointmentService {
         AppointmentDto aptDto = AppointmentToAppointmentDtoConverter.map(apt, Optional.empty());
         List<AppointmentParticipantDto> participantList = aptDto.getParticipant();
 
-        if (aptDto.getStatusCode().trim().equalsIgnoreCase(PENDING_APPOINTMENT_STATUS)) {
+        if (aptDto.getStatusCode().trim().equalsIgnoreCase(AppointmentConstants.PENDING_APPOINTMENT_STATUS)) {
             boolean allParticipantsHaveResponded = true;
-            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase(NEEDS_ACTION_PARTICIPATION_STATUS) &&
-                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase(REQUIRED))) {
+            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase(AppointmentConstants.NEEDS_ACTION_PARTICIPATION_STATUS) &&
+                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase(AppointmentConstants.REQUIRED))) {
                 allParticipantsHaveResponded = false;
             }
             if (allParticipantsHaveResponded) {
                 apt.setStatus(Appointment.AppointmentStatus.BOOKED);
             }
         } else {
-            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase(NEEDS_ACTION_PARTICIPATION_STATUS) &&
-                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase(REQUIRED))) {
+            if (participantList.stream().anyMatch(temp -> temp.getParticipationStatusCode().trim().equalsIgnoreCase(AppointmentConstants.NEEDS_ACTION_PARTICIPATION_STATUS) &&
+                    temp.getParticipantRequiredCode().trim().equalsIgnoreCase(AppointmentConstants.REQUIRED))) {
                 apt.setStatus(Appointment.AppointmentStatus.PENDING);
             }
         }
@@ -607,13 +602,13 @@ public class AppointmentServiceImpl implements AppointmentService {
                 if (temp.getActor().getReference().equalsIgnoreCase(actorReference)) {
                     switch (actionInUpperCase) {
                         case "ACCEPT":
-                            temp.setStatus(Appointment.ParticipationStatus.fromCode(ACCEPTED_PARTICIPATION_STATUS));
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS));
                             break;
                         case "DECLINE":
-                            temp.setStatus(Appointment.ParticipationStatus.fromCode(DECLINED_PARTICIPATION_STATUS));
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.DECLINED_PARTICIPATION_STATUS));
                             break;
                         case "TENTATIVE":
-                            temp.setStatus(Appointment.ParticipationStatus.fromCode(TENTATIVE_PARTICIPATION_STATUS));
+                            temp.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.TENTATIVE_PARTICIPATION_STATUS));
                             break;
                         default:
                             log.error("Unidentified action by the participant.");
