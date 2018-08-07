@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
+import gov.samhsa.ocp.ocpfis.constants.IdentifierConstants;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.exception.IdentifierSystemNotFoundException;
@@ -9,9 +10,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class IdentifierToIdentifierDtoConverter extends AbstractConverter<Identifier, IdentifierDto> {
-    private final String OID_TEXT = "urn:oid:";
-    private final String URL_TEXT = "http";
-    private final String OID_NUMBER = "2.16";
 
     IdentifierDto identifierDto;
 
@@ -23,9 +21,9 @@ public class IdentifierToIdentifierDtoConverter extends AbstractConverter<Identi
             String systemDisplay = null;
 
             try {
-                if (systemOid.startsWith(OID_TEXT) || systemOid.startsWith(URL_TEXT)) {
+                if (systemOid.startsWith(IdentifierConstants.URN_OID_TEXT) || systemOid.startsWith(IdentifierConstants.HTTP_TEXT)) {
                     systemDisplay = KnownIdentifierSystemEnum.fromUri(systemOid).getDisplay();
-                } else if (systemOid.startsWith(OID_NUMBER)) {
+                } else if (systemOid.startsWith(IdentifierConstants.OID_NUMBER_STARTING_WITH)) {
                     systemDisplay = KnownIdentifierSystemEnum.fromOid(systemOid).getDisplay();
                 } else
                     systemDisplay = systemOid;
@@ -35,8 +33,8 @@ public class IdentifierToIdentifierDtoConverter extends AbstractConverter<Identi
 
             identifierDto = IdentifierDto.builder()
                     .system(systemOid)
-                    .oid(systemOid.startsWith(OID_TEXT)
-                            ? systemOid.replace(OID_TEXT, "")
+                    .oid(systemOid.startsWith(IdentifierConstants.URN_OID_TEXT)
+                            ? systemOid.replace(IdentifierConstants.URN_OID_TEXT, "")
                             : "")
                     .systemDisplay(systemDisplay)
                     .value(identifier.getValue())

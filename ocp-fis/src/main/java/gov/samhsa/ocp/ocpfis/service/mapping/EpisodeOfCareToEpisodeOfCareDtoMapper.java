@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
+import gov.samhsa.ocp.ocpfis.constants.EpisodeOfCareConstants;
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -11,7 +12,6 @@ import org.hl7.fhir.dstu3.model.Coding;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Period;
 import org.hl7.fhir.dstu3.model.Reference;
-import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
 import org.hl7.fhir.exceptions.FHIRException;
 
@@ -22,8 +22,6 @@ import java.util.StringJoiner;
 
 @Slf4j
 public class EpisodeOfCareToEpisodeOfCareDtoMapper {
-
-    public static final String NA = "NA";
 
     public static EpisodeOfCareDto map(EpisodeOfCare episodeOfCare, LookUpService lookUpService) {
         EpisodeOfCareDto dto = new EpisodeOfCareDto();
@@ -109,9 +107,9 @@ public class EpisodeOfCareToEpisodeOfCareDtoMapper {
             log.error("ReferenceDto for ActivityDefintion could not be retrieved");
         }
 
-        String eocType = activityDefinitionRefDto != null ? activityDefinitionRefDto.getDisplay() : NA;
-        String date = episodeOfCare.getPeriod() != null ? DateUtil.convertDateToString(episodeOfCare.getPeriod().getStart()) : NA;
-        String agent = episodeOfCare.getCareManager() != null ? episodeOfCare.getCareManager().getDisplay() : NA;
+        String eocType = activityDefinitionRefDto != null ? activityDefinitionRefDto.getDisplay() : EpisodeOfCareConstants.NA;
+        String date = episodeOfCare.getPeriod() != null ? DateUtil.convertDateToString(episodeOfCare.getPeriod().getStart()) : EpisodeOfCareConstants.NA;
+        String agent = episodeOfCare.getCareManager() != null ? episodeOfCare.getCareManager().getDisplay() : EpisodeOfCareConstants.NA;
 
 
         return new StringJoiner("-").add(eocType).add(date).add(agent).toString();

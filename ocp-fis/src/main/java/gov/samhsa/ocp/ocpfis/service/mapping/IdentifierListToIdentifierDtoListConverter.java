@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
+import gov.samhsa.ocp.ocpfis.constants.IdentifierConstants;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.exception.IdentifierSystemNotFoundException;
@@ -12,7 +13,6 @@ import java.util.List;
 
 @Component
 public class IdentifierListToIdentifierDtoListConverter extends AbstractConverter<List<Identifier>, List<IdentifierDto>> {
-    private final String OID_TEXT = "urn:oid:";
 
     @Override
     protected List<IdentifierDto> convert(List<Identifier> source) {
@@ -24,9 +24,9 @@ public class IdentifierListToIdentifierDtoListConverter extends AbstractConverte
                 String systemDisplay = null;
 
                 try {
-                    if (systemOid.startsWith(OID_TEXT) || systemOid.startsWith("http")) {
+                    if (systemOid.startsWith(IdentifierConstants.URN_OID_TEXT) || systemOid.startsWith(IdentifierConstants.HTTP_TEXT)) {
                         systemDisplay = KnownIdentifierSystemEnum.fromUri(systemOid).getDisplay();
-                    } else if (systemOid.startsWith("2.16")) {
+                    } else if (systemOid.startsWith(IdentifierConstants.OID_NUMBER_STARTING_WITH)) {
                         systemDisplay = KnownIdentifierSystemEnum.fromOid(systemOid).getDisplay();
                     } else
                         systemDisplay = systemOid;
@@ -37,8 +37,8 @@ public class IdentifierListToIdentifierDtoListConverter extends AbstractConverte
                 identifierDtos.add(
                         IdentifierDto.builder()
                                 .system(systemOid)
-                                .oid(systemOid.startsWith(OID_TEXT)
-                                        ? systemOid.replace(OID_TEXT, "")
+                                .oid(systemOid.startsWith(IdentifierConstants.URN_OID_TEXT)
+                                        ? systemOid.replace(IdentifierConstants.URN_OID_TEXT, "")
                                         : "")
                                 .systemDisplay(systemDisplay)
                                 .value(identifier.getValue())
