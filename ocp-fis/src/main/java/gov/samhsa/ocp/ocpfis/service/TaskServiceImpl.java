@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.constants.ActivityDefinitionConstants;
 import gov.samhsa.ocp.ocpfis.domain.DateRangeEnum;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.TaskDueEnum;
@@ -52,7 +53,6 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
-import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
 
@@ -396,13 +396,13 @@ public class TaskServiceImpl implements TaskService {
                     .collect(toList());
 
             //If TO_DO definition type and TO_DO task is not present.
-            if (definition.get().equalsIgnoreCase(TO_DO) && taskReferenceList.isEmpty() && practitioner.isPresent() && organization.isPresent()) {
+            if (definition.get().equalsIgnoreCase(ActivityDefinitionConstants.TO_DO) && taskReferenceList.isEmpty() && practitioner.isPresent() && organization.isPresent()) {
                 //Creating To-Do Task
                 Task task = FhirResourceUtil.createToDoTask(patient, practitioner.get(), organization.get(), fhirClient, fisProperties);
 
                 IQuery activityDefinitionQuery = fhirClient.search().forResource(ActivityDefinition.class)
                         .where(new StringClientParam("publisher").matches().value("Organization/" + organization.get()))
-                        .where(new StringClientParam("description").matches().value(TO_DO));
+                        .where(new StringClientParam("description").matches().value(ActivityDefinitionConstants.TO_DO));
 
                 Bundle activityDefinitionBundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(activityDefinitionQuery)
                         .returnBundle(Bundle.class)
@@ -414,7 +414,7 @@ public class TaskServiceImpl implements TaskService {
                     MethodOutcome adOutcome = fhirClient.create().resource(activityDefinition).execute();
                     ReferenceDto adReference = new ReferenceDto();
                     adReference.setReference("ActivityDefinition/" + adOutcome.getId().getIdPart());
-                    adReference.setDisplay(TO_DO);
+                    adReference.setDisplay(ActivityDefinitionConstants.TO_DO);
                     task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(adReference));
                 } else {
                     task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirResourceUtil.getRelatedActivityDefinition(organization.get(), definition.get(), fhirClient, fisProperties)));
@@ -423,7 +423,7 @@ public class TaskServiceImpl implements TaskService {
                 MethodOutcome methodOutcome = fhirClient.create().resource(task).execute();
                 ReferenceDto referenceDto = new ReferenceDto();
                 referenceDto.setReference("Task/" + methodOutcome.getId().getIdPart());
-                referenceDto.setDisplay(TO_DO);
+                referenceDto.setDisplay(ActivityDefinitionConstants.TO_DO);
                 return Collections.singletonList(referenceDto);
 
             }

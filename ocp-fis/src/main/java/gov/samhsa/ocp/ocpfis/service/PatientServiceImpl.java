@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.constants.ActivityDefinitionConstants;
 import gov.samhsa.ocp.ocpfis.domain.CodeSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
@@ -77,8 +78,6 @@ import static java.util.stream.Collectors.toList;
 @Service
 @Slf4j
 public class PatientServiceImpl implements PatientService {
-
-    public static final String TO_DO = "To-Do";
 
     private final IGenericClient fhirClient;
     private final IParser iParser;
@@ -347,7 +346,7 @@ public class PatientServiceImpl implements PatientService {
 
             //Create To-Do task
             Task task = FhirResourceUtil.createToDoTask(patientMethodOutcome.getId().getIdPart(), patientDto.getPractitionerId().orElse(fisProperties.getDefaultPractitioner()), patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), fhirClient, fisProperties);
-            task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirResourceUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), TO_DO, fhirClient, fisProperties)));
+            task.setDefinition(FhirDtoUtil.mapReferenceDtoToReference(FhirResourceUtil.getRelatedActivityDefinition(patientDto.getOrganizationId().orElse(fisProperties.getDefaultOrganization()), ActivityDefinitionConstants.TO_DO, fhirClient, fisProperties)));
             //Set Profile Meta Data
             FhirProfileUtil.setTaskProfileMetaData(fhirClient, task);
             //Validate
