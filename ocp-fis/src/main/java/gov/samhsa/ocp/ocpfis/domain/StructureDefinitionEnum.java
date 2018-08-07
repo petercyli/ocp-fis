@@ -28,16 +28,9 @@ public enum StructureDefinitionEnum {
     TASK("http://hl7.org/fhir/StructureDefinition/ocp-task"),
 
     // Valuesets etc
-    LANGUAGES("http://hl7.org/fhir/ValueSet/languages"),
     US_CORE_SIMPLE_LANGUAGE("http://hl7.org/fhir/us/core/ValueSet/simple-language"),
-
-    RACE("http://hl7.org/fhir/v3/Race"),
     US_CORE_RACE("http://hl7.org/fhir/StructureDefinition/us-core-race"),
-
-    ETHNICITY("http://hl7.org/fhir/v3/Ethnicity"),
     US_CORE_ETHNICITY("http://hl7.org/fhir/us/core/StructureDefinition/us-core-ethnicity"),
-
-    ADMINISTRATIVE_GENDER("http://hl7.org/fhir/v3/AdministrativeGender"),
     US_CORE_BIRTHSEX("http://hl7.org/fhir/us/core/StructureDefinition/us-core-birthsex");
 
     private final String url;

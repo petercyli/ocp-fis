@@ -625,21 +625,21 @@ public class PatientServiceImpl implements PatientService {
 
         //race
         if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getRace())) {
-            Coding raceCoding = FhirResourceUtil.getCoding(patientDto.getRace(), "", StructureDefinitionEnum.RACE.getUrl());
+            Coding raceCoding = FhirResourceUtil.getCoding(patientDto.getRace(), "", CodeSystemEnum.RACE.getUrl());
             Extension raceExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_RACE.getUrl(), new CodeableConcept().addCoding(raceCoding));
             extensionList.add(raceExtension);
         }
 
         //ethnicity
         if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getEthnicity())) {
-            Coding ethnicityCoding = FhirResourceUtil.getCoding(patientDto.getEthnicity(), "", StructureDefinitionEnum.ETHNICITY.getUrl());
+            Coding ethnicityCoding = FhirResourceUtil.getCoding(patientDto.getEthnicity(), "", CodeSystemEnum.ETHNICITY.getUrl());
             Extension ethnicityExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_ETHNICITY.getUrl(), new CodeableConcept().addCoding(ethnicityCoding));
             extensionList.add(ethnicityExtension);
         }
 
         //us-core-birthsex
         if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getBirthSex())) {
-            Coding birthSexCoding = FhirResourceUtil.getCoding(patientDto.getBirthSex(), "", StructureDefinitionEnum.ADMINISTRATIVE_GENDER.getUrl());
+            Coding birthSexCoding = FhirResourceUtil.getCoding(patientDto.getBirthSex(), "", CodeSystemEnum.ADMINISTRATIVE_GENDER.getUrl());
             Extension birthSexExtension = FhirResourceUtil.createExtension(StructureDefinitionEnum.US_CORE_BIRTHSEX.getUrl(), new CodeableConcept().addCoding(birthSexCoding));
             extensionList.add(birthSexExtension);
         }
@@ -652,13 +652,13 @@ public class PatientServiceImpl implements PatientService {
 
         extensionList.stream().map(extension -> (CodeableConcept) extension.getValue())
                 .forEach(codeableConcept -> codeableConcept.getCoding().stream().findFirst().ifPresent(coding -> {
-                    if (coding.getSystem().contains(StructureDefinitionEnum.RACE.getUrl())) {
+                    if (coding.getSystem().contains(CodeSystemEnum.RACE.getUrl())) {
                         patientDto.setRace(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreRace()).getCode());
-                    } else if (coding.getSystem().contains(StructureDefinitionEnum.LANGUAGES.getUrl())) {
+                    } else if (coding.getSystem().contains(CodeSystemEnum.LANGUAGES.getUrl())) {
                         patientDto.setLanguage(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getLanguages()).getCode());
-                    } else if (coding.getSystem().contains(StructureDefinitionEnum.ETHNICITY.getUrl())) {
+                    } else if (coding.getSystem().contains(CodeSystemEnum.ETHNICITY.getUrl())) {
                         patientDto.setEthnicity(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreEthnicity()).getCode());
-                    } else if (coding.getSystem().contains(StructureDefinitionEnum.ADMINISTRATIVE_GENDER.getUrl())) {
+                    } else if (coding.getSystem().contains(CodeSystemEnum.ADMINISTRATIVE_GENDER.getUrl())) {
                         patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreBirthSex()).getCode());
                     }
                 }));

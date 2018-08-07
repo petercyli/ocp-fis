@@ -5,13 +5,17 @@ import java.util.Arrays;
 public enum CodeSystemEnum {
 
     // Common Systems
-
+    ADMINISTRATIVE_GENDER("http://hl7.org/fhir/v3/AdministrativeGender"),
+    ETHNICITY("http://hl7.org/fhir/v3/Ethnicity"),
+    LANGUAGE("http://hl7.org/fhir/ValueSet/all-languages"),
+    LANGUAGES("http://hl7.org/fhir/ValueSet/languages"),
+    RACE("http://hl7.org/fhir/v3/Race"),
 
     // Resource Specific (Organize in Alphabetical order)
     APPOINTMENT_PARTICIPATION_TYPE("http://hl7.org/fhir/v3/ParticipationType"),
-    LANGUAGE("http://hl7.org/fhir/ValueSet/all-languages"),
     PROVIDER_ROLE("http://hl7.org/fhir/practitioner-role"),
     PROVIDER_SPECIALTY("http://snomed.info/sct");
+
 
     private final String url;
 
