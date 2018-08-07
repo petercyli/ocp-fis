@@ -308,16 +308,8 @@ public class PatientServiceImpl implements PatientService {
             patient.setActive(Boolean.TRUE);
             patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
-            // This language is not the same as setting Communication.language.
-            patient.setLanguageElement(null);
-            // Set Language
-            if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getLanguage())) {
-                Patient.PatientCommunicationComponent communicationLang = new Patient.PatientCommunicationComponent();
-                CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, CodeSystemEnum.LANGUAGE.getUrl()));
-                communicationLang.setLanguage(langCodeableConcept);
-                patient.setCommunication(Collections.singletonList(communicationLang));
-            }
 
+            setLanguage(patient, patientDto);
             setExtensionFields(patient, patientDto);
 
             //Set Profile Meta Data
@@ -408,17 +400,9 @@ public class PatientServiceImpl implements PatientService {
             patient.setId(new IdType(patientDto.getId()));
             patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
-            // This language is not the same as setting Communication.language.
-            patient.setLanguageElement(null);
-            // Set Language
-            if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getLanguage())) {
-                Patient.PatientCommunicationComponent communicationLang = new Patient.PatientCommunicationComponent();
-                CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, CodeSystemEnum.LANGUAGE.getUrl()));
-                communicationLang.setLanguage(langCodeableConcept);
-                patient.setCommunication(Collections.singletonList(communicationLang));
-            }
-            setExtensionFields(patient, patientDto);
 
+            setLanguage(patient, patientDto);
+            setExtensionFields(patient, patientDto);
 
             //Set Profile Meta Data
             FhirProfileUtil.setPatientProfileMetaData(fhirClient, patient);
@@ -646,6 +630,19 @@ public class PatientServiceImpl implements PatientService {
 
         patient.setExtension(extensionList);
     }
+
+    private void setLanguage(Patient patient, PatientDto patientDto){
+        // This language is not the same as setting Communication.language.
+        patient.setLanguageElement(null);
+        // Set Language
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(patientDto.getLanguage())) {
+            Patient.PatientCommunicationComponent communicationLang = new Patient.PatientCommunicationComponent();
+            CodeableConcept langCodeableConcept = new CodeableConcept().addCoding(FhirResourceUtil.getCoding(patientDto.getLanguage(), null, CodeSystemEnum.LANGUAGE.getUrl()));
+            communicationLang.setLanguage(langCodeableConcept);
+            patient.setCommunication(Collections.singletonList(communicationLang));
+        }
+    }
+
 
     private void mapExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = patient.getExtension();
