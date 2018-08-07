@@ -42,6 +42,7 @@ public class RelatedPersonToRelatedPersonDtoConverter {
         if (relationshipCoding != null) {
             relatedPersonDto.setRelationshipCode(relationshipCoding.getCode());
             relatedPersonDto.setRelationshipValue(relationshipCoding.getDisplay());
+            relatedPersonDto.setRelationshipSystem(relationshipCoding.getSystem());
         }
 
         //name
