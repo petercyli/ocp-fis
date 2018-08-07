@@ -78,9 +78,7 @@ import static java.util.stream.Collectors.toList;
 @Slf4j
 public class PatientServiceImpl implements PatientService {
 
-    public static final String pseudoOrganizationId="530196960";
     public static final String TO_DO = "To-Do";
-    public static final int EPISODE_OF_CARE_END_PERIOD = 1;
 
     private final IGenericClient fhirClient;
     private final IParser iParser;
@@ -272,6 +270,7 @@ public class PatientServiceImpl implements PatientService {
         if (patient.getGender() != null)
             patientDto.setGenderCode(patient.getGender().toCode());
         mapExtensionFields(patient, patientDto);
+
         //Getting flags into the patient dto
         List<FlagDto> flagDtos = getFlagsForEachPatient(response, patient.getIdElement().getIdPart());
         patientDto.setFlags(Optional.ofNullable(flagDtos));
