@@ -950,7 +950,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private Boolean associatedPractitionerIsPresentInConsent(String patientId, Optional<String> practitionerId){
-        return practitionersPartOfConsentForThePatientAsPractitioner(patientId).contains(practitionerId) || !organizationsOfPractitioner(practitionerId.get()).stream().filter(org->organizationsPartOfConsentForThePatient(patientId).contains(org)).collect(toList()).isEmpty()
+        return practitionersPartOfConsentForThePatientAsPractitioner(patientId).contains(practitionerId.get()) || !organizationsOfPractitioner(practitionerId.get()).stream().filter(org->organizationsPartOfConsentForThePatient(patientId).contains(org)).collect(toList()).isEmpty()
                 || !careTeamThePractitionerIsPartOf(practitionerId.get()).stream().filter(ct->careTeamPartOfConsentForThePatient(patientId).contains(ct)).collect(toList()).isEmpty() ;
     }
 
