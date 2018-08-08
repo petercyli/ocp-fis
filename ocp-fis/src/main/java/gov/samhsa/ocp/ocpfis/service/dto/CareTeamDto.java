@@ -26,6 +26,7 @@ public class CareTeamDto {
     @CareTeamCategoryCodeConstraint
     private String categoryCode;
     private String categoryDisplay;
+    private String categorySystem;
 
     private String subjectId;
     private String subjectFirstName;
@@ -33,6 +34,7 @@ public class CareTeamDto {
 
     private String reasonCode;
     private String reasonDisplay;
+    private String reasonSystem;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private String startDate;

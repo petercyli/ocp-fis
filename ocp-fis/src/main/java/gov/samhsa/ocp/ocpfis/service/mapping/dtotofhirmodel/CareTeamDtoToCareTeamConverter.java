@@ -4,6 +4,7 @@ import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
+import gov.samhsa.ocp.ocpfis.util.FhirResourceUtil;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -14,7 +15,6 @@ import org.hl7.fhir.exceptions.FHIRException;
 
 import java.text.ParseException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -34,7 +34,15 @@ public class CareTeamDtoToCareTeamConverter {
 
         //categories
         Coding coding = new Coding();
-        coding.setCode(careTeamDto.getCategoryCode());
+        if (FhirResourceUtil.isStringNotNullAndNotEmpty(careTeamDto.getCategoryCode())) {
+            coding.setCode(careTeamDto.getCategoryCode());
+        }
+        if (FhirResourceUtil.isStringNotNullAndNotEmpty(careTeamDto.getCategoryDisplay())) {
+            coding.setDisplay(careTeamDto.getCategoryDisplay());
+        }
+        if (FhirResourceUtil.isStringNotNullAndNotEmpty(careTeamDto.getCategorySystem())) {
+            coding.setSystem(careTeamDto.getCategorySystem());
+        }
         CodeableConcept codeableConcept = new CodeableConcept().addCoding(coding);
         careTeam.addCategory(codeableConcept);
 
@@ -48,9 +56,16 @@ public class CareTeamDtoToCareTeamConverter {
         careTeam.setPeriod(period);
 
         //ReasonCode
-        //just supporting one reasonCode
         Coding codingReasonCode = new Coding();
-        codingReasonCode.setCode(careTeamDto.getReasonCode());
+        if (FhirResourceUtil.isStringNotNullAndNotEmpty(careTeamDto.getReasonCode())) {
+            codingReasonCode.setCode(careTeamDto.getReasonCode());
+        }
+        if (FhirResourceUtil.isStringNotNullAndNotEmpty(careTeamDto.getReasonDisplay())) {
+            codingReasonCode.setDisplay(careTeamDto.getReasonDisplay());
+        }
+        if (FhirResourceUtil.isStringNotNullAndNotEmpty(careTeamDto.getReasonSystem())) {
+            codingReasonCode.setSystem(careTeamDto.getReasonSystem());
+        }
         CodeableConcept codeableConceptReasonCode = new CodeableConcept().addCoding(codingReasonCode);
         careTeam.setReasonCode(Collections.singletonList(codeableConceptReasonCode));
 
@@ -58,12 +73,12 @@ public class CareTeamDtoToCareTeamConverter {
         List<ParticipantDto> participantDtoList = careTeamDto.getParticipants();
         List<CareTeam.CareTeamParticipantComponent> participantsList = new ArrayList<>();
 
-        for(ParticipantDto participantDto : participantDtoList) {
+        for (ParticipantDto participantDto : participantDtoList) {
             CareTeam.CareTeamParticipantComponent careTeamParticipant = new CareTeam.CareTeamParticipantComponent();
 
             String memberType = participantDto.getMemberType();
 
-            if(memberType.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
+            if (memberType.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
                 careTeamParticipant.getMember().setReference(ParticipantTypeEnum.practitioner.getName() + "/" + participantDto.getMemberId());
 
             } else if (memberType.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
@@ -77,7 +92,15 @@ public class CareTeamDtoToCareTeamConverter {
             }
 
             Coding codingRoleCode = new Coding();
-            codingRoleCode.setCode(participantDto.getRoleCode());
+            if (FhirResourceUtil.isStringNotNullAndNotEmpty(participantDto.getRoleCode())) {
+                codingRoleCode.setCode(participantDto.getRoleCode());
+            }
+            if (FhirResourceUtil.isStringNotNullAndNotEmpty(participantDto.getRoleDisplay())) {
+                codingRoleCode.setDisplay(participantDto.getRoleDisplay());
+            }
+            if (FhirResourceUtil.isStringNotNullAndNotEmpty(participantDto.getRoleSystem())) {
+                codingRoleCode.setSystem(participantDto.getRoleSystem());
+            }
             CodeableConcept codeableConceptRoleCode = new CodeableConcept().addCoding(codingRoleCode);
             careTeamParticipant.setRole(codeableConceptRoleCode);
 
@@ -89,18 +112,13 @@ public class CareTeamDtoToCareTeamConverter {
             participantsList.add(careTeamParticipant);
         }
 
-
         careTeam.setParticipant(participantsList);
 
         //managingOrganization
         Reference reference = new Reference();
         reference.setReference(ResourceType.Organization + "/" + careTeamDto.getManagingOrganization());
-        careTeam.setManagingOrganization(Arrays.asList(reference));
+        careTeam.setManagingOrganization(Collections.singletonList(reference));
 
         return careTeam;
     }
-
-
-
-
 }
