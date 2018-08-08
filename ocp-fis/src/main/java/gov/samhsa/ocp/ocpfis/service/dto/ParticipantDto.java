@@ -16,8 +16,8 @@ public class ParticipantDto {
 
     @ParticipantRoleCodeConstraint
     private String roleCode;
-
     private String roleDisplay;
+    private String roleSystem;
 
     private String startDate;
 
