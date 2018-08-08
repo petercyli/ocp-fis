@@ -68,6 +68,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -955,8 +956,14 @@ public class PatientServiceImpl implements PatientService {
 
 
     private List<String> practitionersPartOfConsentForThePatientAsPractitioner(String patientId){
-        return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId),Optional.empty(),fhirClient,fisProperties)
-                .stream().flatMap(e-> {Consent consent=(Consent)e.getResource();
+        return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId, true),Optional.empty(),fhirClient,fisProperties)
+                .stream()
+                .filter(e -> {
+                    final Date now = new Date();
+                    final Period period = ((Consent) e.getResource()).getPeriod();
+                    return period.getStart().before(now) && period.getEnd().after(now);
+                })
+                .flatMap(e-> {Consent consent=(Consent)e.getResource();
                     return consent.getActor().stream()
                             .filter(a->a.getReference().getReference().split("/")[0].equalsIgnoreCase(ResourceType.Practitioner.toString()))
                             .map(pr->pr.getReference().getReference().split("/")[1]);
@@ -966,8 +973,14 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private List<String> organizationsPartOfConsentForThePatient(String patientId){
-        return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId),Optional.empty(),fhirClient,fisProperties)
-                .stream().flatMap(e-> {Consent consent=(Consent)e.getResource();
+        return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId, true),Optional.empty(),fhirClient,fisProperties)
+                .stream()
+                .filter(e -> {
+                    final Date now = new Date();
+                    final Period period = ((Consent) e.getResource()).getPeriod();
+                    return period.getStart().before(now) && period.getEnd().after(now);
+                })
+                .flatMap(e-> {Consent consent=(Consent)e.getResource();
                     return consent.getActor().stream()
                             .filter(a->a.getReference().getReference().split("/")[0].equalsIgnoreCase(ResourceType.Organization.toString()))
                             .map(pr->pr.getReference().getReference().split("/")[1]);
@@ -977,8 +990,14 @@ public class PatientServiceImpl implements PatientService {
     }
 
     private List<String> careTeamPartOfConsentForThePatient(String patientId){
-            return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId), Optional.empty(), fhirClient, fisProperties)
-                    .stream().flatMap(e -> {
+            return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId, true), Optional.empty(), fhirClient, fisProperties)
+                    .stream()
+                    .filter(e -> {
+                        final Date now = new Date();
+                        final Period period = ((Consent) e.getResource()).getPeriod();
+                        return period.getStart().before(now) && period.getEnd().after(now);
+                    })
+                    .flatMap(e -> {
                         Consent consent = (Consent) e.getResource();
                         return consent.getActor().stream()
                                 .filter(a -> a.getReference().getReference().split("/")[0].equalsIgnoreCase(ResourceType.CareTeam.toString()))
@@ -1008,8 +1027,12 @@ public class PatientServiceImpl implements PatientService {
     }
 
 
-    private Bundle consentForPatientBundle(String patientId){
-        return (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(Consent.class).where(new ReferenceClientParam("patient").hasId(patientId)))
+    private Bundle consentForPatientBundle(String patientId, boolean onlyActive){
+        IQuery query = FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(Consent.class).where(new ReferenceClientParam("patient").hasId(patientId)));
+        if(onlyActive) {
+            query = query.where(new TokenClientParam("status").exactly().code("active"));
+        }
+        return (Bundle) query
                 .returnBundle(Bundle.class)
                 .execute();
     }
