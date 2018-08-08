@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.util;
 
 import ca.uhn.fhir.rest.client.api.IGenericClient;
+import gov.samhsa.ocp.ocpfis.domain.CodeSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Coding;
@@ -41,9 +42,13 @@ public class ProvenanceUtil {
         provenance.setRecorded(new Date());
 
         //activity
-        Coding coding = new Coding();
-        coding.setCode(provenanceActivityEnum.toString());
-        provenance.setActivity(coding);
+        if(FhirResourceUtil.isStringNotNullAndNotEmpty(provenanceActivityEnum.toString())){
+            Coding coding = new Coding();
+            coding.setCode(provenanceActivityEnum.toString());
+            coding.setSystem(CodeSystemEnum.PROVENANCE_ACTIVITY_TYPE.getUrl());
+            coding.setSystem(provenanceActivityEnum.toString().toLowerCase());
+            provenance.setActivity(coding);
+        }
 
         //agent.whoReference
         Provenance.ProvenanceAgentComponent agent = new Provenance.ProvenanceAgentComponent();
