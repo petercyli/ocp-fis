@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping;
 
+import ca.uhn.fhir.rest.client.api.IGenericClient;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
@@ -23,7 +24,7 @@ import static java.util.stream.Collectors.toList;
 
 public class CareTeamToCareTeamDtoConverter {
 
-    public static CareTeamDto map(CareTeam careTeam) {
+    public static CareTeamDto map(CareTeam careTeam, IGenericClient fhirClient) {
         CareTeamDto careTeamDto = new CareTeamDto();
 
         //id
@@ -82,7 +83,7 @@ public class CareTeamToCareTeamDtoConverter {
             ParticipantDto participantDto = new ParticipantDto();
 
 
-            populateParticipantMemberInformation(member, participantDto);
+            populateParticipantMemberInformation(member, participantDto, fhirClient);
 
             CodeableConcept roleCodeableConcept = careTeamParticipantComponent.getRole();
             List<Coding> codingRoleCodeList = roleCodeableConcept.getCoding();
@@ -106,16 +107,16 @@ public class CareTeamToCareTeamDtoConverter {
         return careTeamDto;
     }
 
-    public static List<ReferenceDto> mapToParticipants(CareTeam careTeam, Optional<List<String>> roles, Optional<String> name){
-        List<ReferenceDto> participants=mapToParticipants(careTeam,roles);
-        if(name.isPresent()){
-            participants=participants.stream().filter(participant->participant.getDisplay().toLowerCase().contains(name.get().toLowerCase())).collect(toList());
+    public static List<ReferenceDto> mapToParticipants(CareTeam careTeam, Optional<List<String>> roles, Optional<String> name, IGenericClient fhirClient) {
+        List<ReferenceDto> participants = mapToParticipants(careTeam, roles, fhirClient);
+        if (name.isPresent()) {
+            participants = participants.stream().filter(participant -> participant.getDisplay().toLowerCase().contains(name.get().toLowerCase())).collect(toList());
         }
 
         return participants;
     }
 
-    public static List<ReferenceDto> mapToParticipants(CareTeam careTeam, Optional<List<String>> roles) {
+    public static List<ReferenceDto> mapToParticipants(CareTeam careTeam, Optional<List<String>> roles, IGenericClient fhirClient) {
         return careTeam.getParticipant().stream()
                 .map(it -> {
                     Reference member = it.getMember();
@@ -130,16 +131,16 @@ public class CareTeamToCareTeamDtoConverter {
                         referenceDto.setReference(member.getReference());
                     }
 
-                    referenceDto.setDisplay(getDisplay(member, participantDto));
+                    referenceDto.setDisplay(getDisplay(member, participantDto, fhirClient));
                     return referenceDto;
                 })
                 .filter(it -> it.getReference() != null)
                 .collect(toList());
     }
 
-    private static String getDisplay(Reference member, ParticipantDto participantDto) {
+    private static String getDisplay(Reference member, ParticipantDto participantDto, IGenericClient fhirClient) {
         String display = "";
-        populateParticipantMemberInformation(member, participantDto);
+        populateParticipantMemberInformation(member, participantDto, fhirClient);
         if (member.getReference().contains(ParticipantTypeEnum.organization.getName())) {
             display = participantDto.getMemberName().isPresent() ? participantDto.getMemberName().get() : "";
         } else {
@@ -151,19 +152,21 @@ public class CareTeamToCareTeamDtoConverter {
     }
 
 
-    private static void populateParticipantMemberInformation(Reference member, ParticipantDto participantDto) {
+    private static void populateParticipantMemberInformation(Reference member, ParticipantDto participantDto, IGenericClient fhirClient) {
         if (member.getReference().contains(ParticipantTypeEnum.organization.getName())) {
             participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.organization.getName() + "/", ""));
             participantDto.setMemberType(ParticipantTypeEnum.organization.getCode());
 
-            Organization organization = (Organization) member.getResource();
+            Organization organization = fhirClient.read().resource(Organization.class).withId(member.getReference().split("/")[1]).execute();
+            ;
             participantDto.setMemberName(Optional.ofNullable(organization.getName()));
 
         } else if (member.getReference().contains(ParticipantTypeEnum.patient.getName())) {
             participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.patient.getName() + "/", ""));
             participantDto.setMemberType(ParticipantTypeEnum.patient.getCode());
 
-            Patient patientMember = (Patient) member.getResource();
+            Patient patientMember = fhirClient.read().resource(Patient.class).withId(member.getReference().split("/")[1]).execute();
+            ;
             if (patientMember != null && patientMember.getName() != null && patientMember.getName().get(0) != null) {
                 participantDto.setMemberFirstName(Optional.ofNullable(patientMember.getName().get(0).getGiven().get(0).toString()));
                 participantDto.setMemberLastName(Optional.ofNullable(patientMember.getName().get(0).getFamily()));
@@ -173,7 +176,7 @@ public class CareTeamToCareTeamDtoConverter {
             participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.practitioner.getName() + "/", ""));
             participantDto.setMemberType(ParticipantTypeEnum.practitioner.getCode());
 
-            Practitioner practitioner = (Practitioner) member.getResource();
+            Practitioner practitioner = fhirClient.read().resource(Practitioner.class).withId(member.getReference().split("/")[1]).execute();
             if (practitioner != null && practitioner.getName() != null && practitioner.getName().get(0) != null) {
                 participantDto.setMemberFirstName(Optional.ofNullable(practitioner.getName().get(0).getGiven().get(0).toString()));
                 participantDto.setMemberLastName(Optional.ofNullable(practitioner.getName().get(0).getFamily()));
@@ -183,7 +186,7 @@ public class CareTeamToCareTeamDtoConverter {
             participantDto.setMemberId(member.getReference().replace(ParticipantTypeEnum.relatedPerson.getName() + "/", ""));
             participantDto.setMemberType(ParticipantTypeEnum.relatedPerson.getCode());
 
-            RelatedPerson relatedPerson = (RelatedPerson) member.getResource();
+            RelatedPerson relatedPerson = fhirClient.read().resource(RelatedPerson.class).withId(member.getReference().split("/")[1]).execute();
             if (relatedPerson != null && relatedPerson.getName() != null && relatedPerson.getName().get(0) != null) {
                 participantDto.setMemberFirstName(Optional.ofNullable(relatedPerson.getName().get(0).getGiven().get(0).toString()));
                 participantDto.setMemberLastName(Optional.ofNullable(relatedPerson.getName().get(0).getFamily()));
