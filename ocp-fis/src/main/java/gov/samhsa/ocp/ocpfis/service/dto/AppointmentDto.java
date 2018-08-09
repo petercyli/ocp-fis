@@ -37,6 +37,7 @@ public class AppointmentDto {
     //Used to identify person(Practitioner/Patient) who created the appointment from the UI
     private String creatorReference;
     private String creatorName;
+    private String creatorRequired;
 
     private List<AppointmentParticipantDto> participant;
     private List<String> participantName;
