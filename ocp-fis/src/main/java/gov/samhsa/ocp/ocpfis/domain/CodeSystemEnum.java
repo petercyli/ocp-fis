@@ -15,6 +15,7 @@ public enum CodeSystemEnum {
     APPOINTMENT_PARTICIPATION_TYPE("http://hl7.org/fhir/v3/ParticipationType"),
     CARETEAM_REASON("http://snomed.info/sct"),
     CARETEAM_PARTICIPANT("http://snomed.info/sct"),
+    PROVENANCE_ACTIVITY_TYPE("http://hl7.org/fhir/v3/DataOperation"),
     PROVIDER_ROLE("http://hl7.org/fhir/practitioner-role"),
     PROVIDER_SPECIALTY("http://snomed.info/sct");
 
