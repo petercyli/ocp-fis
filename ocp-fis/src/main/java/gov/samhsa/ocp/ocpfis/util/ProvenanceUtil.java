@@ -46,7 +46,7 @@ public class ProvenanceUtil {
             Coding coding = new Coding();
             coding.setCode(provenanceActivityEnum.toString());
             coding.setSystem(CodeSystemEnum.PROVENANCE_ACTIVITY_TYPE.getUrl());
-            coding.setSystem(provenanceActivityEnum.toString().toLowerCase());
+            coding.setDisplay(provenanceActivityEnum.toString().toLowerCase());
             provenance.setActivity(coding);
         }
 
