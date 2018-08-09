@@ -310,8 +310,7 @@ public class PatientServiceImpl implements PatientService {
             patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
-            patient.setLanguageElement(null);
-            //setLanguage(patient, patientDto);
+            setLanguage(patient, patientDto);
             setExtensionFields(patient, patientDto);
 
             //Set Profile Meta Data
@@ -403,8 +402,7 @@ public class PatientServiceImpl implements PatientService {
             patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
 
-            patient.setLanguageElement(null);
-            //setLanguage(patient, patientDto);
+            setLanguage(patient, patientDto);
             setExtensionFields(patient, patientDto);
 
             //Set Profile Meta Data
