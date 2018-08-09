@@ -58,6 +58,7 @@ import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.ResourceType;
 import org.hl7.fhir.dstu3.model.Task;
+import org.hl7.fhir.dstu3.model.codesystems.V3ParticipationType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -115,7 +116,7 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
-    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> filterKey, Optional<String> organization,  Optional<String> practitioner, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
+    public PageDto<PatientDto> getPatientsByValue(Optional<String> searchKey, Optional<String> value, Optional<String> filterKey, Optional<String> organization, Optional<String> practitioner, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
         int numberOfPatientsPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Patient.name());
 
         IQuery PatientSearchQuery = fhirClient.search().forResource(Patient.class).sort().descending(PARAM_LASTUPDATED);
@@ -128,8 +129,8 @@ public class PatientServiceImpl implements PatientService {
         }
 
         if (filterKey.isPresent() && SearchKeyEnum.PatientFilterKey.contains(filterKey.get()) && SearchKeyEnum.PatientFilterKey.ASSOCIATECARETEAMPATIENT.name().equalsIgnoreCase(filterKey.get())) {
-            if (!patientsAssociatedWithPractitioner(practitioner.get(),organization.get()).isEmpty()) {
-                PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsAssociatedWithPractitioner(practitioner.get(),organization.get())));
+            if (!patientsAssociatedWithPractitioner(practitioner.get(), organization.get()).isEmpty()) {
+                PatientSearchQuery.where(new TokenClientParam("_id").exactly().codes(patientsAssociatedWithPractitioner(practitioner.get(), organization.get())));
             } else {
                 log.info("No Patients were found for given organization.");
                 return new PageDto<>(new ArrayList<>(), numberOfPatientsPerPage, 0, 0, 0, 0);
@@ -170,9 +171,9 @@ public class PatientServiceImpl implements PatientService {
         List<PatientDto> patientDtos = convertAllBundleToSinglePatientDtoList(firstPagePatientSearchBundle, numberOfPatientsPerPage, filterKey, practitioner);
 
         if (filterKey.isPresent() && SearchKeyEnum.PatientFilterKey.contains(filterKey.get()) && SearchKeyEnum.PatientFilterKey.UNASSIGNPATIENT.name().equalsIgnoreCase(filterKey.get())) {
-                patientDtos = patientDtos.stream()
-                        .filter(pdto -> practitionerAssignedToPatient(careTeamBundle(pdto)))
-                        .collect(toList());
+            patientDtos = patientDtos.stream()
+                    .filter(pdto -> practitionerAssignedToPatient(careTeamBundle(pdto)))
+                    .collect(toList());
         }
 
         if (showAll.isPresent() && showAll.get()) {
@@ -634,7 +635,7 @@ public class PatientServiceImpl implements PatientService {
         patient.setExtension(extensionList);
     }
 
-    private void setLanguage(Patient patient, PatientDto patientDto){
+    private void setLanguage(Patient patient, PatientDto patientDto) {
         // This language is not the same as setting Communication.language.
         patient.setLanguageElement(null);
         // Set Language
@@ -806,17 +807,17 @@ public class PatientServiceImpl implements PatientService {
                 .filter(bundleEntryComponent -> bundleEntryComponent.getResource().getResourceType().equals(ResourceType.Patient))
                 .map(bundleEntryComponent -> (Patient) bundleEntryComponent.getResource())
                 .map(patient -> {
-                   PatientDto patientDto= mapPatientToPatientDto(patient, bundleEntryComponentList);
-                    if (filterKey.isPresent() && SearchKeyEnum.PatientFilterKey.contains(filterKey.get()) && SearchKeyEnum.PatientFilterKey.ASSOCIATECARETEAMPATIENT.name().equalsIgnoreCase(filterKey.get())){
-                        if(associatedPractitionerIsPresentInConsent(patientDto.getId(),practitioner)){
+                    PatientDto patientDto = mapPatientToPatientDto(patient, bundleEntryComponentList);
+                    if (filterKey.isPresent() && SearchKeyEnum.PatientFilterKey.contains(filterKey.get()) && SearchKeyEnum.PatientFilterKey.ASSOCIATECARETEAMPATIENT.name().equalsIgnoreCase(filterKey.get())) {
+                        if (associatedPractitionerIsPresentInConsent(patientDto.getId(), practitioner)) {
                             patientDto.setCanViewPatientDetail(Optional.of(true));
-                        }else{
+                        } else {
                             patientDto.setCanViewPatientDetail(Optional.of(false));
                         }
-                    }else{
+                    } else {
                         patientDto.setCanViewPatientDetail(Optional.of(true));
                     }
-                return patientDto;
+                    return patientDto;
                 })
                 .collect(toList());
     }
@@ -951,87 +952,92 @@ public class PatientServiceImpl implements PatientService {
         return org;
     }
 
-    private Boolean associatedPractitionerIsPresentInConsent(String patientId, Optional<String> practitionerId){
-        return practitionersPartOfConsentForThePatientAsPractitioner(patientId).contains(practitionerId.get()) || !organizationsOfPractitioner(practitionerId.get()).stream().filter(org->organizationsPartOfConsentForThePatient(patientId).contains(org)).collect(toList()).isEmpty()
-                || !careTeamThePractitionerIsPartOf(practitionerId.get()).stream().filter(ct->careTeamPartOfConsentForThePatient(patientId).contains(ct)).collect(toList()).isEmpty() ;
+    private Boolean associatedPractitionerIsPresentInConsent(String patientId, Optional<String> practitionerId) {
+        return practitionersPartOfConsentForThePatientAsPractitioner(patientId).contains(practitionerId.get()) || !organizationsOfPractitioner(practitionerId.get()).stream().filter(org -> organizationsPartOfConsentForThePatient(patientId).contains(org)).collect(toList()).isEmpty()
+                || !careTeamThePractitionerIsPartOf(practitionerId.get()).stream().filter(ct -> careTeamPartOfConsentForThePatient(patientId).contains(ct)).collect(toList()).isEmpty();
     }
 
 
-    private List<String> practitionersPartOfConsentForThePatientAsPractitioner(String patientId){
-        return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId, true),Optional.empty(),fhirClient,fisProperties)
+    private List<String> practitionersPartOfConsentForThePatientAsPractitioner(String patientId) {
+        return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId, true), Optional.empty(), fhirClient, fisProperties)
                 .stream()
                 .filter(e -> {
                     final Date now = new Date();
                     final Period period = ((Consent) e.getResource()).getPeriod();
                     return period.getStart().before(now) && period.getEnd().after(now);
                 })
-                .flatMap(e-> {Consent consent=(Consent)e.getResource();
+                .flatMap(e -> {
+                    Consent consent = (Consent) e.getResource();
                     return consent.getActor().stream()
-                            .filter(a->a.getReference().getReference().split("/")[0].equalsIgnoreCase(ResourceType.Practitioner.toString()))
-                            .map(pr->pr.getReference().getReference().split("/")[1]);
+                            .filter(a -> a.getRole().getCoding().stream().findAny().get().getCode().equalsIgnoreCase(V3ParticipationType.IRCP.toCode()))
+                            .filter(a -> a.getReference().getReference().split("/")[0].equalsIgnoreCase(ResourceType.Practitioner.toString()))
+                            .map(pr -> pr.getReference().getReference().split("/")[1]);
                 })
                 .distinct()
                 .collect(toList());
     }
 
-    private List<String> organizationsPartOfConsentForThePatient(String patientId){
-        return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId, true),Optional.empty(),fhirClient,fisProperties)
+    private List<String> organizationsPartOfConsentForThePatient(String patientId) {
+        return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId, true), Optional.empty(), fhirClient, fisProperties)
                 .stream()
                 .filter(e -> {
                     final Date now = new Date();
                     final Period period = ((Consent) e.getResource()).getPeriod();
                     return period.getStart().before(now) && period.getEnd().after(now);
                 })
-                .flatMap(e-> {Consent consent=(Consent)e.getResource();
+                .flatMap(e -> {
+                    Consent consent = (Consent) e.getResource();
                     return consent.getActor().stream()
-                            .filter(a->a.getReference().getReference().split("/")[0].equalsIgnoreCase(ResourceType.Organization.toString()))
-                            .map(pr->pr.getReference().getReference().split("/")[1]);
+                            .filter(a -> a.getRole().getCoding().stream().findAny().get().getCode().equalsIgnoreCase(V3ParticipationType.IRCP.toCode()))
+                            .filter(a -> a.getReference().getReference().split("/")[0].equalsIgnoreCase(ResourceType.Organization.toString()))
+                            .map(pr -> pr.getReference().getReference().split("/")[1]);
                 })
                 .distinct()
                 .collect(toList());
     }
 
-    private List<String> careTeamPartOfConsentForThePatient(String patientId){
-            return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId, true), Optional.empty(), fhirClient, fisProperties)
-                    .stream()
-                    .filter(e -> {
-                        final Date now = new Date();
-                        final Period period = ((Consent) e.getResource()).getPeriod();
-                        return period.getStart().before(now) && period.getEnd().after(now);
-                    })
-                    .flatMap(e -> {
-                        Consent consent = (Consent) e.getResource();
-                        return consent.getActor().stream()
-                                .filter(a -> a.getReference().getReference().split("/")[0].equalsIgnoreCase(ResourceType.CareTeam.toString()))
-                                .map(pr -> pr.getReference().getReference().split("/")[1]);
-                    })
-                    .distinct()
-                    .collect(toList());
+    private List<String> careTeamPartOfConsentForThePatient(String patientId) {
+        return FhirOperationUtil.getAllBundleComponentsAsList(consentForPatientBundle(patientId, true), Optional.empty(), fhirClient, fisProperties)
+                .stream()
+                .filter(e -> {
+                    final Date now = new Date();
+                    final Period period = ((Consent) e.getResource()).getPeriod();
+                    return period.getStart().before(now) && period.getEnd().after(now);
+                })
+                .flatMap(e -> {
+                    Consent consent = (Consent) e.getResource();
+                    return consent.getActor().stream()
+                            .filter(a -> a.getRole().getCoding().stream().findAny().get().getCode().equalsIgnoreCase(V3ParticipationType.IRCP.toCode()))
+                            .filter(a -> a.getReference().getReference().split("/")[0].equalsIgnoreCase(ResourceType.CareTeam.toString()))
+                            .map(pr -> pr.getReference().getReference().split("/")[1]);
+                })
+                .distinct()
+                .collect(toList());
 
     }
 
-    private List<String> careTeamThePractitionerIsPartOf(String practitionerId){
-        Bundle careTeamBundleForPractitionerId= (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(CareTeam.class)
+    private List<String> careTeamThePractitionerIsPartOf(String practitionerId) {
+        Bundle careTeamBundleForPractitionerId = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(CareTeam.class)
                 .where(new ReferenceClientParam("participant").hasId(practitionerId))).returnBundle(Bundle.class).execute();
-        Bundle careTeamBundleForPractitionerFromOrganizationId= (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(CareTeam.class)
+        Bundle careTeamBundleForPractitionerFromOrganizationId = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(CareTeam.class)
                 .where(new ReferenceClientParam("participant").hasAnyOfIds(organizationsOfPractitioner(practitionerId)))).returnBundle(Bundle.class).execute();
-        List<String> careTeamFromPractitionerId=FhirOperationUtil.getAllBundleComponentsAsList(careTeamBundleForPractitionerId,Optional.empty(),fhirClient,fisProperties)
-                .stream().map(c->{
-                    CareTeam ct= (CareTeam) c.getResource();
+        List<String> careTeamFromPractitionerId = FhirOperationUtil.getAllBundleComponentsAsList(careTeamBundleForPractitionerId, Optional.empty(), fhirClient, fisProperties)
+                .stream().map(c -> {
+                    CareTeam ct = (CareTeam) c.getResource();
                     return ct.getIdElement().getIdPart();
                 }).distinct().collect(toList());
-        List<String> careTeamForPractitionerForOrganizationId=FhirOperationUtil.getAllBundleComponentsAsList(careTeamBundleForPractitionerFromOrganizationId,Optional.empty(),fhirClient,fisProperties)
-                .stream().map(c->{
-                    CareTeam ct= (CareTeam) c.getResource();
+        List<String> careTeamForPractitionerForOrganizationId = FhirOperationUtil.getAllBundleComponentsAsList(careTeamBundleForPractitionerFromOrganizationId, Optional.empty(), fhirClient, fisProperties)
+                .stream().map(c -> {
+                    CareTeam ct = (CareTeam) c.getResource();
                     return ct.getIdElement().getIdPart();
                 }).distinct().collect(toList());
         return Stream.of(careTeamFromPractitionerId, careTeamForPractitionerForOrganizationId).flatMap(Collection::stream).distinct().collect(toList());
     }
 
 
-    private Bundle consentForPatientBundle(String patientId, boolean onlyActive){
+    private Bundle consentForPatientBundle(String patientId, boolean onlyActive) {
         IQuery query = FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(Consent.class).where(new ReferenceClientParam("patient").hasId(patientId)));
-        if(onlyActive) {
+        if (onlyActive) {
             query = query.where(new TokenClientParam("status").exactly().code("active"));
         }
         return (Bundle) query
@@ -1039,15 +1045,15 @@ public class PatientServiceImpl implements PatientService {
                 .execute();
     }
 
-    private List<String> getAllCareTeamForPatient(String patientId){
-        Bundle bundle= (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(CareTeam.class).where(new ReferenceClientParam("patient").hasId(patientId)))
+    private List<String> getAllCareTeamForPatient(String patientId) {
+        Bundle bundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(CareTeam.class).where(new ReferenceClientParam("patient").hasId(patientId)))
                 .returnBundle(Bundle.class)
                 .execute();
-        return FhirOperationUtil.getAllBundleComponentsAsList(bundle,Optional.empty(),fhirClient,fisProperties)
-                .stream().map(c->{
-            CareTeam ct= (CareTeam) c.getResource();
-            return ct.getIdElement().getIdPart();
-        }).collect(toList());
+        return FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties)
+                .stream().map(c -> {
+                    CareTeam ct = (CareTeam) c.getResource();
+                    return ct.getIdElement().getIdPart();
+                }).collect(toList());
     }
 
 
