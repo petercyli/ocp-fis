@@ -5,6 +5,8 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.constants.ActivityDefinitionConstants;
+import gov.samhsa.ocp.ocpfis.constants.IdentifierConstants;
 import gov.samhsa.ocp.ocpfis.domain.KnownIdentifierSystemEnum;
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.AbstractCareTeamDto;
@@ -44,15 +46,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import static gov.samhsa.ocp.ocpfis.service.PatientServiceImpl.TO_DO;
-
 @Slf4j
 public class FhirResourceUtil {
-    public static final int ACTIVITY_DEFINITION_FREQUENCY = 1;
-
-    public static final String OID_TEXT = "urn:oid:";
-    public static final String URL_TEXT = "http";
-    public static final String OID_NUMBER = "2.16";
 
     public static Enumerations.AdministrativeGender getPatientGender(String codeString) {
         switch (codeString.toUpperCase()) {
@@ -129,8 +124,8 @@ public class FhirResourceUtil {
     public static ActivityDefinition createToDoActivityDefinition(String referenceOrganization, FisProperties fisProperties, LookUpService lookUpService, IGenericClient fhirClient) {
         ActivityDefinition activityDefinition = new ActivityDefinition();
         activityDefinition.setVersion(fisProperties.getActivityDefinition().getVersion());
-        activityDefinition.setName(TO_DO);
-        activityDefinition.setTitle(TO_DO);
+        activityDefinition.setName(ActivityDefinitionConstants.TO_DO);
+        activityDefinition.setTitle(ActivityDefinitionConstants.TO_DO);
 
         activityDefinition.setStatus(Enumerations.PublicationStatus.ACTIVE);
 
@@ -142,7 +137,7 @@ public class FhirResourceUtil {
 
         activityDefinition.setDate(java.sql.Date.valueOf(LocalDate.now()));
         activityDefinition.setPublisher("Organization/" + referenceOrganization);
-        activityDefinition.setDescription(TO_DO);
+        activityDefinition.setDescription(ActivityDefinitionConstants.TO_DO);
 
         Period period = new Period();
         period.setStart(java.sql.Date.valueOf(LocalDate.now()));
@@ -153,7 +148,7 @@ public class FhirResourceUtil {
         timing.getRepeat().setDurationMax(fisProperties.getDefaultMaxDuration());
         timing.getRepeat().setDuration(fisProperties.getDefaultMaxDuration());
         timing.getRepeat().setDurationUnit(Timing.UnitsOfTime.D);
-        timing.getRepeat().setFrequency(ACTIVITY_DEFINITION_FREQUENCY);
+        timing.getRepeat().setFrequency(ActivityDefinitionConstants.ACTIVITY_DEFINITION_FREQUENCY);
         activityDefinition.setTiming(timing);
 
         CodeableConcept participantRole = new CodeableConcept();
@@ -194,7 +189,7 @@ public class FhirResourceUtil {
         Reference patient = new Reference();
         patient.setReference("Patient/" + patientId);
         task.setFor(patient);
-        task.setDescription(TO_DO);
+        task.setDescription(ActivityDefinitionConstants.TO_DO);
 
         Reference reference = new Reference();
         reference.setReference("Practitioner/" + practitionerId);
@@ -412,9 +407,9 @@ public class FhirResourceUtil {
             String systemDisplay;
 
             try {
-                if (systemOid.startsWith(OID_TEXT) || systemOid.startsWith(URL_TEXT)) {
+                if (systemOid.startsWith(IdentifierConstants.URN_OID_TEXT) || systemOid.startsWith(IdentifierConstants.HTTP_TEXT)) {
                     systemDisplay = KnownIdentifierSystemEnum.fromUri(systemOid).getDisplay();
-                } else if (systemOid.startsWith(OID_NUMBER)) {
+                } else if (systemOid.startsWith(IdentifierConstants.OID_NUMBER_STARTING_WITH)) {
                     systemDisplay = KnownIdentifierSystemEnum.fromOid(systemOid).getDisplay();
                 } else
                     systemDisplay = systemOid;
@@ -424,8 +419,8 @@ public class FhirResourceUtil {
 
             identifierDto = IdentifierDto.builder()
                     .system(systemOid)
-                    .oid(systemOid.startsWith(OID_TEXT)
-                            ? systemOid.replace(OID_TEXT, "")
+                    .oid(systemOid.startsWith(IdentifierConstants.URN_OID_TEXT)
+                            ? systemOid.replace(IdentifierConstants.URN_OID_TEXT, "")
                             : "")
                     .systemDisplay(systemDisplay)
                     .value(identifier.getValue())

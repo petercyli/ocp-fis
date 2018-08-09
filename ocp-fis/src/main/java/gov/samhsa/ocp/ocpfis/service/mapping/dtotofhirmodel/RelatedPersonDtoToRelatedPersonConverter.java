@@ -51,6 +51,9 @@ public class RelatedPersonDtoToRelatedPersonConverter {
             Coding codingRelationship = new Coding();
             codingRelationship.setCode(relatedPersonDto.getRelationshipCode());
             codingRelationship.setDisplay(relatedPersonDto.getRelationshipValue());
+            if(FhirOperationUtil.isStringNotNullAndNotEmpty(relatedPersonDto.getRelationshipSystem())){
+                codingRelationship.setSystem(relatedPersonDto.getRelationshipSystem());
+            }
             CodeableConcept codeableConceptRelationship = new CodeableConcept().addCoding(codingRelationship);
             relatedPerson.setRelationship(codeableConceptRelationship);
         }

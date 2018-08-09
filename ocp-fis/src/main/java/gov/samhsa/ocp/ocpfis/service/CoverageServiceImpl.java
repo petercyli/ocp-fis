@@ -77,7 +77,7 @@ public class CoverageServiceImpl implements CoverageService {
             MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
             idList.add(ResourceType.Coverage.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
-            if(fisProperties.isProvenanceEnabled() && loggedInUser.isPresent()) {
+            if (fisProperties.isProvenanceEnabled() && loggedInUser.isPresent()) {
                 provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
             }
         } else {
@@ -99,7 +99,7 @@ public class CoverageServiceImpl implements CoverageService {
         MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, coverage, ResourceType.Coverage.name());
         idList.add(ResourceType.Coverage.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
-        if(fisProperties.isProvenanceEnabled() && loggedInUser.isPresent()) {
+        if (fisProperties.isProvenanceEnabled() && loggedInUser.isPresent()) {
             provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
         }
     }

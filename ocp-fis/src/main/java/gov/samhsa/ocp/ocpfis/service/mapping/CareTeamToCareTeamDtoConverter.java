@@ -43,7 +43,11 @@ public class CareTeamToCareTeamDtoConverter {
         CodeableConcept codeableConcept = codeableConceptList.stream().findFirst().orElse(null);
         if (codeableConcept != null) {
             List<Coding> codingList = codeableConcept.getCoding();
-            codingList.stream().findFirst().ifPresent(coding -> careTeamDto.setCategoryCode(coding.getCode()));
+            codingList.stream().findFirst().ifPresent(coding -> {
+                careTeamDto.setCategoryCode(coding.getCode());
+                careTeamDto.setCategoryDisplay(coding.getDisplay());
+                careTeamDto.setCategorySystem(coding.getSystem());
+            });
         }
 
         //subject
@@ -60,7 +64,11 @@ public class CareTeamToCareTeamDtoConverter {
 
         if (codeableConceptReasonCode != null) {
             List<Coding> codingReasonCodeList = codeableConceptReasonCode.getCoding();
-            codingReasonCodeList.stream().findFirst().ifPresent(codingReasonCode -> careTeamDto.setReasonCode(codingReasonCode.getCode()));
+            codingReasonCodeList.stream().findFirst().ifPresent(codingReasonCode -> {
+                careTeamDto.setReasonCode(codingReasonCode.getCode());
+                careTeamDto.setReasonDisplay(codingReasonCode.getDisplay());
+                careTeamDto.setReasonSystem(codingReasonCode.getSystem());
+            });
         }
 
         //participants
@@ -90,6 +98,8 @@ public class CareTeamToCareTeamDtoConverter {
             Coding codingRoleCode = codingRoleCodeList.stream().findFirst().orElse(null);
             if (codingRoleCode != null) {
                 participantDto.setRoleCode(codingRoleCode.getCode());
+                participantDto.setRoleDisplay(codingRoleCode.getDisplay());
+                participantDto.setRoleSystem(codingRoleCode.getSystem());
             }
 
             participantDto.setStartDate(DateUtil.convertDateToString(careTeamParticipantComponent.getPeriod().getStart()));

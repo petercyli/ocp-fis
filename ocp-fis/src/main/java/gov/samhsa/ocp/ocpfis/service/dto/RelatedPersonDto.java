@@ -35,6 +35,8 @@ public class RelatedPersonDto {
 
     private String relationshipValue;
 
+    private String relationshipSystem;
+
     //name
     private String firstName;
 
