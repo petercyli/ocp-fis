@@ -30,4 +30,6 @@ public interface CareTeamService {
     void removeRelatedPerson(String careTeamId, ParticipantDto participantDto);
 
     PageDto<ParticipantDto> getRelatedPersonsByIdForEdit(String careTeamId, Optional<String> name, Optional<Integer> pageNumber, Optional<Integer> pageSize);
+
+    List<ReferenceDto> getParticipantMemberFromCareTeam(String patient);
 }
