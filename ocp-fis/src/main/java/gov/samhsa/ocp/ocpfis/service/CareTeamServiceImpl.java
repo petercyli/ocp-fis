@@ -345,7 +345,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
 
                 participantsByRoles = careTeams.stream()
-                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles, name).stream()).collect(toList());
+                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles, name, fhirClient).stream()).collect(toList());
 
             }
         }
@@ -549,9 +549,12 @@ public class CareTeamServiceImpl implements CareTeamService {
                     return convertCareTeamToCareTeamDto(careTeam);
                 }).flatMap(ct -> ct.getParticipants().stream().map(part -> {
                     ReferenceDto participantReference = new ReferenceDto();
-                    participantReference.setReference(part.getMemberType() + "/" + part.getMemberId());
-                    String displayName = part.getMemberName().orElse(part.getMemberFirstName() + " " + part.getMemberLastName());
-                    participantReference.setDisplay(displayName);
+                    participantReference.setReference(part.getMemberType().substring(0, 1).toUpperCase() + part.getMemberType().substring(1) + "/" + part.getMemberId());
+                    if(!part.getMemberType().equalsIgnoreCase(ResourceType.Organization.toString())) {
+                        participantReference.setDisplay(part.getMemberFirstName().get() + " " + part.getMemberLastName().get());
+                    }else{
+                        participantReference.setDisplay(part.getMemberName().get());
+                    }
                     return participantReference;
                 })).collect(toList());
 
@@ -575,7 +578,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     private CareTeamDto convertCareTeamToCareTeamDto(CareTeam careTeam) {
-        final CareTeamDto careTeamDto = CareTeamToCareTeamDtoConverter.map(careTeam);
+        final CareTeamDto careTeamDto = CareTeamToCareTeamDtoConverter.map(careTeam,fhirClient);
 
         if (careTeamDto.getStatusCode() != null) {
             careTeamDto.setStatusDisplay((FhirDtoUtil.getDisplayForCode(careTeamDto.getStatusCode(), lookUpService.getCareTeamStatuses())).orElse(null));

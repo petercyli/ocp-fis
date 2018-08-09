@@ -147,7 +147,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         .map(careTeamMember -> (CareTeam) careTeamMember.getResource()).collect(toList());
 
                 participantsByRoles = careTeams.stream()
-                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles).stream()).collect(toList());
+                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles,fhirClient).stream()).collect(toList());
             }
         }
 
