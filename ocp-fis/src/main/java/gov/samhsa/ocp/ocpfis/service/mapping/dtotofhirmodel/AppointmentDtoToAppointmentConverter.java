@@ -119,7 +119,10 @@ public final class AppointmentDtoToAppointmentConverter {
                     creatorParticipantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS));
 
                     //Participant Required
-                    creatorParticipantModel.setRequired(getRequiredBasedOnParticipantReference(appointmentDto.getCreatorReference()));
+                    if (isStringNotNullAndNotEmpty(appointmentDto.getCreatorRequired())) {
+                        Appointment.ParticipantRequired required = Appointment.ParticipantRequired.fromCode(appointmentDto.getCreatorRequired().trim());
+                        creatorParticipantModel.setRequired(required);
+                    }
 
                     //Actor
                     Reference creatorRef = new Reference(appointmentDto.getCreatorReference().trim());
