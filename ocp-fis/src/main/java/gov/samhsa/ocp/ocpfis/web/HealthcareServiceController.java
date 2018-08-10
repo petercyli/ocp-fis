@@ -64,11 +64,6 @@ public class HealthcareServiceController {
         return healthcareServiceService.getHealthcareService(healthcareServiceId);
     }
 
-    @GetMapping("/healthcare-service-references")
-    public List<ReferenceDto> getHealthcareServiceReferences(@RequestParam(value="organization") Optional<String> organization) {
-        return healthcareServiceService.getAllHealthcareServicesReferences(organization);
-    }
-
     @PostMapping("/organization/{organizationId}/healthcare-services")
     @ResponseStatus(HttpStatus.CREATED)
     public void createHealthcareService(@PathVariable String organizationId,

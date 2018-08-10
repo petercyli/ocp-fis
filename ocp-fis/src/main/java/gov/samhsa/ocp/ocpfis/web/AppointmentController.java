@@ -80,15 +80,15 @@ public class AppointmentController {
 
     @GetMapping("/appointments/Practitioner/{practitionerId}/include-care-team-patient")
     public PageDto<AppointmentDto> getAppointmentsByPractitionerAndAssignedCareTeamPatients(@PathVariable String practitionerId,
-                                                   @RequestParam Optional<List<String>> statusList,
-                                                   @RequestParam(value = "requesterReference") Optional<String> requesterReference,
-                                                   @RequestParam(value = "searchKey") Optional<String> searchKey,
-                                                   @RequestParam(value = "searchValue") Optional<String> searchValue,
-                                                   @RequestParam(value = "showPastAppointments") Optional<Boolean> showPastAppointments,
-                                                   @RequestParam(value = "filterDateOption") Optional<String> filterDateOption,
-                                                   @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc,
-                                                   @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
-                                                   @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+                                                                                            @RequestParam Optional<List<String>> statusList,
+                                                                                            @RequestParam(value = "requesterReference") Optional<String> requesterReference,
+                                                                                            @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                                                            @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                                                            @RequestParam(value = "showPastAppointments") Optional<Boolean> showPastAppointments,
+                                                                                            @RequestParam(value = "filterDateOption") Optional<String> filterDateOption,
+                                                                                            @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc,
+                                                                                            @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                                                            @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
         return appointmentService.getAppointmentsByPractitionerAndAssignedCareTeamPatients(practitionerId, statusList, requesterReference, searchKey, searchValue, showPastAppointments, filterDateOption, sortByStartTimeAsc, pageNumber, pageSize);
     }
 
@@ -121,12 +121,17 @@ public class AppointmentController {
 
     //Controllers for getting participants for creating appointments
     @GetMapping("/appointments/healthcare-service-references")
-    public List<AppointmentParticipantReferenceDto> getHealthcareServiceReferences(@RequestParam(value="organization") Optional<String> organization) {
-        return appointmentService.getAllHealthcareServicesReferences(organization);
+    public List<AppointmentParticipantReferenceDto> getHealthcareServiceReferences(@RequestParam String resourceType, @RequestParam String resourceValue) {
+        return appointmentService.getAllHealthcareServicesReferences(resourceType, resourceValue);
     }
 
     @GetMapping("/appointments/location-references")
-    public List<AppointmentParticipantReferenceDto> getAllLocationReferences(@RequestParam String healthcareService){
-        return appointmentService.getAllLocationReferences(healthcareService);
+    public List<AppointmentParticipantReferenceDto> getAllLocationReferences(@RequestParam String resourceType, @RequestParam String resourceValue) {
+        return appointmentService.getAllLocationReferences(resourceType, resourceValue);
+    }
+
+    @GetMapping("/appointments/practitioner-references")
+    public List<AppointmentParticipantReferenceDto> getPractitionersReferences(@RequestParam String resourceType, @RequestParam String resourceValue) {
+        return appointmentService.getPractitionersReferences(resourceType, resourceValue);
     }
 }

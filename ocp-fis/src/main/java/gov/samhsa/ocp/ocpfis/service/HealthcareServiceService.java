@@ -14,8 +14,6 @@ public interface HealthcareServiceService {
 
     PageDto<HealthcareServiceDto> getAllHealthcareServicesByLocation(String organizationResourceId, String locationId, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue, Optional<Integer> page, Optional<Integer> size);
 
-    List<ReferenceDto> getAllHealthcareServicesReferences(Optional<String> organization);
-
     HealthcareServiceDto getHealthcareService(String healthcareServiceId);
 
     void createHealthcareService(String organizationId, HealthcareServiceDto healthcareServiceDto, Optional<String> loggedInUser);

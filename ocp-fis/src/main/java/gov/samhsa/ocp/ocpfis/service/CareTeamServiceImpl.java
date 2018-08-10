@@ -539,6 +539,7 @@ public class CareTeamServiceImpl implements CareTeamService {
         return (PageDto<ParticipantDto>) PaginationUtil.applyPaginationForCustomArrayList(participantDtoList, numberOfRelatedPersonPerPage, pageNumber, false);
     }
 
+    @Override
     public List<ReferenceDto> getParticipantMemberFromCareTeam(String patient) {
         Bundle careTeamBundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(CareTeam.class).where(new ReferenceClientParam("patient").hasId(patient)))
                 .returnBundle(Bundle.class).execute();

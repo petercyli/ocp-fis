@@ -74,7 +74,7 @@ public class CareTeamController {
         careTeamService.removeRelatedPerson(careTeamId,participantDto);
     }
 
-    @GetMapping("/participant-references")
+    @GetMapping("/practitioner-references")
     public List<ReferenceDto> getParticipantMemberFromCareTeam(@RequestParam String patient){
         return careTeamService.getParticipantMemberFromCareTeam(patient);
     }

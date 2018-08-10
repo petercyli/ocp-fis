@@ -288,23 +288,6 @@ public class HealthcareServiceServiceImpl implements HealthcareServiceService {
     }
 
     @Override
-    public List<ReferenceDto> getAllHealthcareServicesReferences(Optional<String> organization) {
-       IQuery iQuery= fhirClient.search().forResource(HealthcareService.class);
-
-       organization.ifPresent(org->iQuery.where(new ReferenceClientParam("organization").hasId(org)));
-
-       Bundle bundle= (Bundle) FhirOperationUtil.setNoCacheControlDirective(iQuery).returnBundle(Bundle.class).execute();
-
-        return FhirOperationUtil.getAllBundleComponentsAsList(bundle,Optional.empty(),fhirClient,fisProperties).stream().map(entry->{
-            HealthcareService hs= (HealthcareService) entry.getResource();
-            ReferenceDto referenceDto=new ReferenceDto();
-            referenceDto.setDisplay(hs.getName());
-            referenceDto.setReference(ResourceType.HealthcareService.toString()+"/"+hs.getIdElement().getIdPart());
-            return referenceDto;
-        }).collect(toList());
-    }
-
-    @Override
     public HealthcareServiceDto getHealthcareService(String healthcareServiceId) {
         log.info("Searching for Healthcare Service Id:" + healthcareServiceId);
         Map<String, String> locationNameMap = new HashMap<>();

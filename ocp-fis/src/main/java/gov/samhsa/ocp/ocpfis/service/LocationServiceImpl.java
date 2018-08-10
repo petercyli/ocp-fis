@@ -277,19 +277,6 @@ public class LocationServiceImpl implements LocationService {
         FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Inactivate Location");
     }
 
-    @Override
-    public List<ReferenceDto> getAllLocationReferences(String healthcareService) {
-        HealthcareService loc=fhirClient.read().resource(HealthcareService.class).withId(healthcareService).execute();
-        return loc.getLocation().stream().map(l->{
-            ReferenceDto referenceDto=new ReferenceDto();
-            referenceDto.setReference(l.getReference());
-            Location location=fhirClient.read().resource(Location.class).withId(l.getReference().split("/")[1]).execute();
-            referenceDto.setDisplay(location.getName());
-            return referenceDto;
-        }).collect(toList());
-    }
-
-
     private IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue) {
         // Check for location status
         if (statusList.isPresent() && !statusList.get().isEmpty()) {

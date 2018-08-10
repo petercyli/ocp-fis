@@ -108,8 +108,4 @@ public class LocationController {
         locationService.inactivateLocation(locationId);
     }
 
-    @GetMapping("/location-references")
-    public List<ReferenceDto> getAllLocationReferences(@RequestParam String healthcareService){
-        return locationService.getAllLocationReferences(healthcareService);
-    }
 }

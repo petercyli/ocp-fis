@@ -63,5 +63,4 @@ public interface LocationService {
      */
     void inactivateLocation(String locationId);
 
-    List<ReferenceDto> getAllLocationReferences(String healthcareService);
 }

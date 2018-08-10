@@ -31,7 +31,9 @@ public interface AppointmentService {
 
     void tentativelyAcceptAppointment(String appointmentId, String actorReference);
 
-    List<AppointmentParticipantReferenceDto> getAllHealthcareServicesReferences(Optional<String> organization);
+    List<AppointmentParticipantReferenceDto> getAllHealthcareServicesReferences(String resourceType, String resourceValue);
 
-    List<AppointmentParticipantReferenceDto> getAllLocationReferences(String healthcareService);
+    List<AppointmentParticipantReferenceDto> getAllLocationReferences(String resourceType, String resourceValue);
+
+    List<AppointmentParticipantReferenceDto> getPractitionersReferences(String resourceType, String resourceValue);
 }
