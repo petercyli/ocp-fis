@@ -443,6 +443,20 @@ public class AppointmentServiceImpl implements AppointmentService {
         }).collect(toList());
     }
 
+    @Override
+    public List<AppointmentParticipantReferenceDto> getAllLocationReferences(String healthcareService) {
+        HealthcareService loc=fhirClient.read().resource(HealthcareService.class).withId(healthcareService).execute();
+        return loc.getLocation().stream().map(l->{
+            AppointmentParticipantReferenceDto referenceDto=new AppointmentParticipantReferenceDto();
+            referenceDto.setReference(l.getReference());
+            Location location=fhirClient.read().resource(Location.class).withId(l.getReference().split("/")[1]).execute();
+            referenceDto.setDisplay(location.getName());
+            setParticipantType(referenceDto);
+            setParticipantRequired(referenceDto);
+            return referenceDto;
+        }).collect(toList());
+    }
+
 
     private IQuery addStatusSearchConditions(IQuery searchQuery,
                                              Optional<List<String>> statusList) {

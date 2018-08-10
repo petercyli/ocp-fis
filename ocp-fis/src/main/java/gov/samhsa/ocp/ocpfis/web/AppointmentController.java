@@ -125,4 +125,8 @@ public class AppointmentController {
         return appointmentService.getAllHealthcareServicesReferences(organization);
     }
 
+    @GetMapping("/appointments/location-references")
+    public List<AppointmentParticipantReferenceDto> getAllLocationReferences(@RequestParam String healthcareService){
+        return appointmentService.getAllLocationReferences(healthcareService);
+    }
 }
