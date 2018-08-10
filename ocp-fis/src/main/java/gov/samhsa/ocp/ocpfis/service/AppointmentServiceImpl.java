@@ -8,14 +8,17 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.constants.AppointmentConstants;
+import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.PreconditionFailedException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
@@ -421,6 +424,25 @@ public class AppointmentServiceImpl implements AppointmentService {
         FhirOperationUtil.updateFhirResource(fhirClient, appointment, "TentativelyAccept Appointment");
     }
 
+    @Override
+    public List<AppointmentParticipantReferenceDto> getAllHealthcareServicesReferences(Optional<String> organization){
+        IQuery iQuery= fhirClient.search().forResource(HealthcareService.class);
+
+        organization.ifPresent(org->iQuery.where(new ReferenceClientParam("organization").hasId(org)));
+
+        Bundle bundle= (Bundle) FhirOperationUtil.setNoCacheControlDirective(iQuery).returnBundle(Bundle.class).execute();
+
+        return FhirOperationUtil.getAllBundleComponentsAsList(bundle,Optional.empty(),fhirClient,fisProperties).stream().map(entry->{
+            HealthcareService hs= (HealthcareService) entry.getResource();
+            AppointmentParticipantReferenceDto referenceDto=new AppointmentParticipantReferenceDto();
+            referenceDto.setDisplay(hs.getName());
+            referenceDto.setReference(ResourceType.HealthcareService.toString()+"/"+hs.getIdElement().getIdPart());
+            setParticipantType(referenceDto);
+            setParticipantRequired(referenceDto);
+            return referenceDto;
+        }).collect(toList());
+    }
+
 
     private IQuery addStatusSearchConditions(IQuery searchQuery,
                                              Optional<List<String>> statusList) {
@@ -628,6 +650,16 @@ public class AppointmentServiceImpl implements AppointmentService {
             return patientDtoList.stream().map(PatientDto::getId).collect(Collectors.toSet());
         }
         return null;
+    }
+
+    private void setParticipantType(AppointmentParticipantReferenceDto referenceDto){
+        referenceDto.setParticipationTypeCode(Optional.of(AppointmentConstants.ATTENDER_PARTICIPANT_TYPE_CODE));
+        referenceDto.setParticipationTypeDisplay(Optional.of(AppointmentConstants.ATTENDER_PARTICIPANT_TYPE_DISPLAY));
+    }
+    private void setParticipantRequired(AppointmentParticipantReferenceDto referenceDto){
+        referenceDto.setParticipantRequiredCode(Optional.of(Appointment.ParticipantRequired.INFORMATIONONLY.toCode()));
+        referenceDto.setParticipantRequiredDisplay(Optional.of(Appointment.ParticipantRequired.INFORMATIONONLY.getDisplay()));
+        referenceDto.setParticipantRequiredSystem(Optional.of(Appointment.ParticipantRequired.INFORMATIONONLY.getSystem()));
     }
 }
 

@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.web;
 
 import gov.samhsa.ocp.ocpfis.service.AppointmentService;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
+import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import org.springframework.http.HttpStatus;
@@ -116,6 +117,12 @@ public class AppointmentController {
     public void tentativelyAcceptAppointment(@PathVariable String appointmentId,
                                              @RequestParam(value = "actorReference") String actorReference) {
         appointmentService.tentativelyAcceptAppointment(appointmentId, actorReference);
+    }
+
+    //Controllers for getting participants for creating appointments
+    @GetMapping("/appointments/healthcare-service-references")
+    public List<AppointmentParticipantReferenceDto> getHealthcareServiceReferences(@RequestParam(value="organization") Optional<String> organization) {
+        return appointmentService.getAllHealthcareServicesReferences(organization);
     }
 
 }
