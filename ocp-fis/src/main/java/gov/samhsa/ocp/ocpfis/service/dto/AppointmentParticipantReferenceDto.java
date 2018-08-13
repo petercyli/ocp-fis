@@ -23,4 +23,8 @@ public class AppointmentParticipantReferenceDto {
     private Optional<String> participantRequiredCode;
     private Optional<String> participantRequiredDisplay;
     private Optional<String> participantRequiredSystem;
+
+    private Optional<String> participantStatusCode;
+    private Optional<String> participantStatusDisplay;
+    private Optional<String> participantStatusSystem;
 }
