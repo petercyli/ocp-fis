@@ -63,9 +63,10 @@ public class LookUpUtil {
         return valueSetDto;
     }
 
-    public static List<ValueSetDto> sortValueSets(List<ValueSetDto> valueSetList){
-        valueSetList.sort(Comparator.comparing(v -> v.getDisplay() != null? v.getDisplay() : v.getCode()));
-        return valueSetList;
+    public static void sortValueSets(List<ValueSetDto> valueSetList){
+        if(valueSetList != null && !valueSetList.isEmpty()){
+            valueSetList.sort(Comparator.comparing(v -> v.getDisplay() != null? v.getDisplay() : v.getCode()));
+        }
     }
 
 }
