@@ -116,14 +116,12 @@ public final class AppointmentDtoToAppointmentConverter {
                     creatorParticipantModel.setType(Collections.singletonList(codeableConcept));
 
                     //Participant Required
-                    if (isStringNotNullAndNotEmpty(appointmentDto.getCreatorRequired())) {
-                        Appointment.ParticipantRequired required = Appointment.ParticipantRequired.fromCode(appointmentDto.getCreatorRequired().trim());
-                        creatorParticipantModel.setRequired(required);
-                        if(appointmentDto.getCreatorRequired().equalsIgnoreCase(Appointment.ParticipantRequired.REQUIRED.toCode())){
-                            creatorParticipantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS));
-                        }else{
-                            creatorParticipantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.TENTATIVE_PARTICIPATION_STATUS));
-                        }
+                    Appointment.ParticipantRequired required = Appointment.ParticipantRequired.fromCode(appointmentDto.getCreatorRequired().trim());
+                    creatorParticipantModel.setRequired(required);
+                    if (appointmentDto.getCreatorRequired().equalsIgnoreCase(Appointment.ParticipantRequired.REQUIRED.toCode())) {
+                        creatorParticipantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS));
+                    } else {
+                        creatorParticipantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.TENTATIVE_PARTICIPATION_STATUS));
                     }
 
                     //Actor
