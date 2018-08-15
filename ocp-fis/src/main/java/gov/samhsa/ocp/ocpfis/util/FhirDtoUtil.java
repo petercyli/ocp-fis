@@ -180,9 +180,13 @@ public class FhirDtoUtil {
                 participantDto.setActorReference(member.getActor().getReference());
                 if (member.getRequired() != null) {
                     participantDto.setParticipantRequiredCode(member.getRequired().toCode());
+                    participantDto.setParticipantRequiredDisplay(member.getRequired().getDisplay());
+                    participantDto.setParticipantRequiredSystem(member.getRequired().getSystem());
                 }
                 if (member.getStatus() != null) {
                     participantDto.setParticipationStatusCode(member.getStatus().toCode());
+                    participantDto.setParticipationStatusDisplay(member.getStatus().getDisplay());
+                    participantDto.setParticipantRequiredSystem(member.getStatus().getSystem());
                 }
                 if (member.getType() != null && !member.getType().isEmpty() && !member.getType().get(0).getCoding().isEmpty()) {
                     participantDto.setParticipationTypeCode(member.getType().get(0).getCoding().get(0).getCode());

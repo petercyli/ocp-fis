@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Data
 @Builder
@@ -38,6 +39,7 @@ public class AppointmentDto {
     private String creatorReference;
     private String creatorName;
     private String creatorRequired;
+    private Optional<String> creatorRequiredDisplay;
 
     private List<AppointmentParticipantDto> participant;
     private List<String> participantName;

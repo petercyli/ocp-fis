@@ -7,6 +7,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import org.hl7.fhir.dstu3.model.Appointment;
+import org.hl7.fhir.exceptions.FHIRException;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -92,6 +93,12 @@ public class AppointmentToAppointmentDtoConverter {
             if(creators != null && !creators.isEmpty()){
                 appointmentDto.setCreatorName(creators.get(0).getActorName().trim());
                 appointmentDto.setCreatorReference(creators.get(0).getActorReference().trim());
+                appointmentDto.setCreatorRequired(creators.get(0).getParticipantRequiredCode());
+                try {
+                    appointmentDto.setCreatorRequiredDisplay(Optional.of(Appointment.ParticipantRequired.fromCode(creators.get(0).getParticipantRequiredCode()).getDisplay()));
+                } catch (FHIRException e) {
+                    e.printStackTrace();
+                }
             }
 
             List<String>  participantName = appointmentDto.getParticipant().stream().map(AppointmentParticipantDto::getActorName).collect(toList());
