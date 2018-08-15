@@ -9,12 +9,14 @@ import ca.uhn.fhir.rest.server.exceptions.BaseServerResponseException;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
+import gov.samhsa.ocp.ocpfis.service.dto.ContactDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.OrganizationNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.AddressDtoToAddressConverter;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
@@ -26,14 +28,17 @@ import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.ActivityDefinition;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.HumanName;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.PractitionerRole;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.StringType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,6 +68,9 @@ public class OrganizationServiceImpl implements OrganizationService {
         this.lookUpService = lookUpService;
         this.provenanceUtil = provenanceUtil;
     }
+
+    @Autowired
+    private AddressDtoToAddressConverter addressDtoToAddressConverter;
 
     @Override
     public OrganizationDto getOrganization(String organizationId) {
@@ -222,6 +230,12 @@ public class OrganizationServiceImpl implements OrganizationService {
             // Map
             Organization fhirOrganization = modelMapper.map(organizationDto, Organization.class);
             fhirOrganization.setActive(Boolean.TRUE);
+            organizationDto.getContacts().ifPresent(contacts->{
+                contacts.forEach(contact->{
+                    Organization.OrganizationContactComponent orgCon=convertContactDtoToorganizationContact(contact);
+                    fhirOrganization.addContact(orgCon);
+                });
+            });
 
             //Set Profile Meta Data
             FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, fhirOrganization);
@@ -270,6 +284,13 @@ public class OrganizationServiceImpl implements OrganizationService {
             existingOrganization.setTelecom(updatedOrganization.getTelecom());
             existingOrganization.setAddress(updatedOrganization.getAddress());
             existingOrganization.setActive(updatedOrganization.getActive());
+
+            organizationDto.getContacts().ifPresent(contacts->{
+                contacts.forEach(contact->{
+                    Organization.OrganizationContactComponent orgCon=convertContactDtoToorganizationContact(contact);
+                    existingOrganization.addContact(orgCon);
+                });
+            });
 
             //Set Profile Meta Data
             FhirProfileUtil.setOrganizationProfileMetaData(fhirClient, existingOrganization);
@@ -387,5 +408,17 @@ public class OrganizationServiceImpl implements OrganizationService {
                 });
             }
         }
+    }
+
+    private Organization.OrganizationContactComponent convertContactDtoToorganizationContact(ContactDto contact){
+        Organization.OrganizationContactComponent orgCon=new Organization.OrganizationContactComponent();
+        orgCon.setPurpose(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(contact.getPurpose(),lookUpService.getContactPurpose())));
+        HumanName humanName=new HumanName();
+        humanName.setFamily(contact.getName().getLastName());
+        humanName.addGiven(contact.getName().getLastName());
+        orgCon.setName(humanName);
+        orgCon.setTelecom(FhirResourceUtil.convertTelecomDtoListToTelecomList(contact.getTelecoms(),lookUpService));
+        orgCon.setAddress(FhirResourceUtil.convertAddressDtoToAddress(contact.getAddress(),lookUpService));
+        return orgCon;
     }
 }
