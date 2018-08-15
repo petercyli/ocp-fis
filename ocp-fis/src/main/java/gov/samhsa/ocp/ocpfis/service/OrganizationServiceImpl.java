@@ -10,6 +10,7 @@ import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.ContactDto;
+import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
@@ -69,9 +70,6 @@ public class OrganizationServiceImpl implements OrganizationService {
         this.provenanceUtil = provenanceUtil;
     }
 
-    @Autowired
-    private AddressDtoToAddressConverter addressDtoToAddressConverter;
-
     @Override
     public OrganizationDto getOrganization(String organizationId) {
         final Organization retrievedOrganization = fhirClient.read().resource(Organization.class).withId(organizationId).execute();
@@ -79,6 +77,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             throw new OrganizationNotFoundException("No organizations were found in the FHIR server.");
         }
         final OrganizationDto organizationDto = modelMapper.map(retrievedOrganization, OrganizationDto.class);
+        organizationDto.setContacts(Optional.of(convertContactListToContactListDto(retrievedOrganization)));
         organizationDto.setLogicalId(retrievedOrganization.getIdElement().getIdPart());
         return organizationDto;
     }
@@ -122,6 +121,8 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         List<OrganizationDto> organizationsList = retrievedOrganizations.stream().map(retrievedOrganization -> {
             OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
+            Organization organization = (Organization) retrievedOrganization.getResource();
+            organizationDto.setContacts(Optional.of(convertContactListToContactListDto(organization)));
             organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
             return organizationDto;
         }).collect(toList());
@@ -185,6 +186,8 @@ public class OrganizationServiceImpl implements OrganizationService {
 
         List<OrganizationDto> organizationsList = retrievedOrganizations.stream().map(retrievedOrganization -> {
             OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
+            Organization organization = (Organization) retrievedOrganization.getResource();
+            organizationDto.setContacts(Optional.of(convertContactListToContactListDto(organization)));
             organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
             return organizationDto;
         }).collect(toList());
@@ -375,6 +378,8 @@ public class OrganizationServiceImpl implements OrganizationService {
                 .stream()
                 .map(retrievedOrganization -> {
                     OrganizationDto organizationDto = modelMapper.map(retrievedOrganization.getResource(), OrganizationDto.class);
+                    Organization organization = (Organization) retrievedOrganization.getResource();
+                    organizationDto.setContacts(Optional.of(convertContactListToContactListDto(organization)));
                     organizationDto.setLogicalId(retrievedOrganization.getResource().getIdElement().getIdPart());
                     return organizationDto;
                 })
@@ -420,5 +425,27 @@ public class OrganizationServiceImpl implements OrganizationService {
         orgCon.setTelecom(FhirResourceUtil.convertTelecomDtoListToTelecomList(contact.getTelecoms(),lookUpService));
         orgCon.setAddress(FhirResourceUtil.convertAddressDtoToAddress(contact.getAddress(),lookUpService));
         return orgCon;
+    }
+
+    private ContactDto convertOrganizationContactToContactDto(Organization.OrganizationContactComponent contact){
+        ContactDto contactDto=new ContactDto();
+        contactDto.setPurpose(FhirDtoUtil.convertCodeableConceptToValueSetDto(contact.getPurpose()).getCode());
+        contactDto.setPurposeDisplay(Optional.of(FhirDtoUtil.convertCodeableConceptToValueSetDto(contact.getPurpose()).getDisplay()));
+        NameDto nameDto=new NameDto();
+        nameDto.setLastName(contact.getName().getFamily());
+        contact.getName().getGiven().stream().findAny().ifPresent(gn->nameDto.setFirstName(gn.toString()));
+        contactDto.setName(nameDto);
+        contactDto.setTelecoms(FhirDtoUtil.convertTelecomListToTelecomDtoList(contact.getTelecom()));
+        contactDto.setAddress(FhirDtoUtil.convertAddressToAddressDto(contact.getAddress()));
+        return contactDto;
+    }
+
+    private List<ContactDto> convertContactListToContactListDto(Organization organization){
+        List<ContactDto> contactDtos=new ArrayList<>();
+        organization.getContact().forEach(con->{
+            ContactDto contactDto= convertOrganizationContactToContactDto(con);
+            contactDtos.add(contactDto);
+        });
+        return contactDtos;
     }
 }
