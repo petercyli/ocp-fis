@@ -17,7 +17,7 @@ import java.util.Optional;
 public class LocationDto extends NameLogicalIdIdentifiersDto {
     private String managingLocationLogicalId;
     private String status;
-    private String physicalType;
+    private ValueSetDto physicalType;
     private AddressDto address;
     private List<TelecomDto> telecoms;
     private Optional<Boolean> assignToCurrentPractitioner;

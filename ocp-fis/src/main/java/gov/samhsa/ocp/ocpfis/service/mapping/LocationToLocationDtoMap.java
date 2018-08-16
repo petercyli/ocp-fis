@@ -9,14 +9,21 @@ import org.springframework.stereotype.Component;
 @Component
 public class LocationToLocationDtoMap extends PropertyMap<Location, LocationDto> {
 
-    @Autowired
-    private AddressToAddressDtoConverter addressToAddressDtoConverter;
+    private final AddressToAddressDtoConverter addressToAddressDtoConverter;
+
+    private final TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter;
+
+    private final IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter;
+
+    private final CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter;
 
     @Autowired
-    private TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter;
-
-    @Autowired
-    private IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter;
+    public LocationToLocationDtoMap(AddressToAddressDtoConverter addressToAddressDtoConverter, TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter, IdentifierListToIdentifierDtoListConverter identifierListToIdentifierDtoListConverter, CodeableConceptToValueSetDtoConverter codeableConceptToValueSetDtoConverter) {
+        this.addressToAddressDtoConverter = addressToAddressDtoConverter;
+        this.telecomListToTelecomDtoListConverter = telecomListToTelecomDtoListConverter;
+        this.identifierListToIdentifierDtoListConverter = identifierListToIdentifierDtoListConverter;
+        this.codeableConceptToValueSetDtoConverter = codeableConceptToValueSetDtoConverter;
+    }
 
     @Override
     protected void configure() {
@@ -26,5 +33,6 @@ public class LocationToLocationDtoMap extends PropertyMap<Location, LocationDto>
         using(addressToAddressDtoConverter).map(source.getAddress()).setAddress(null);
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecoms(null);
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
+        using(codeableConceptToValueSetDtoConverter).map(source.getPhysicalType()).setPhysicalType(null);
     }
 }
