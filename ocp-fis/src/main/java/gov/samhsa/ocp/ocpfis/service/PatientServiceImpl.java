@@ -399,6 +399,7 @@ public class PatientServiceImpl implements PatientService {
 
             patientDto.setIdentifier(identifierDtos);
             final Patient patient = modelMapper.map(patientDto, Patient.class);
+            patient.setManagingOrganization(FhirDtoUtil.mapReferenceDtoToReference(orgReference(patientDto.getOrganizationId())));
             patient.setId(new IdType(patientDto.getId()));
             patient.setGender(FhirResourceUtil.getPatientGender(patientDto.getGenderCode()));
             patient.setBirthDate(java.sql.Date.valueOf(patientDto.getBirthDate()));
