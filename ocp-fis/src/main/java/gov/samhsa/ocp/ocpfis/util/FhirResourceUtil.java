@@ -13,6 +13,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.AbstractCareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.IdentifierSystemNotFoundException;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.ContactPoint;
 import org.hl7.fhir.dstu3.model.Enumerations;
 import org.hl7.fhir.dstu3.model.Extension;
 import org.hl7.fhir.dstu3.model.Identifier;
@@ -447,6 +449,79 @@ public class FhirResourceUtil {
 
         return bundle.getEntry().stream().map(ct -> (CareTeam) ct.getResource()).flatMap(ct -> ct.getParticipant().stream().map(par -> par.getMember().getReference().split("/")[1])).distinct().collect(Collectors.toList());
 
+    }
+
+    public static Address convertAddressDtoToAddress(AddressDto source, LookUpService lookUpService){
+        Address fhirAddress = new Address();
+        List<ValueSetDto> validAddressUses =  lookUpService.getAddressUses();
+
+        if (source != null) {
+            if (source.getLine1() != null && !source.getLine1().isEmpty()) {
+                fhirAddress.addLine(source.getLine1().trim());
+            }
+            if (source.getLine2() != null && !source.getLine2().isEmpty()) {
+                fhirAddress.addLine(source.getLine2().trim());
+            }
+            if (source.getCity() != null && !source.getCity().isEmpty()) {
+                fhirAddress.setCity(source.getCity().trim());
+            }
+            if (source.getStateCode() != null && !source.getStateCode().isEmpty()) {
+                fhirAddress.setState(source.getStateCode().trim());
+            }
+            if (source.getPostalCode() != null && !source.getPostalCode().isEmpty()) {
+                fhirAddress.setPostalCode(source.getPostalCode().trim());
+            }
+            if (source.getCountryCode() != null && !source.getCountryCode().isEmpty()) {
+                fhirAddress.setCountry(source.getCountryCode().trim());
+            }
+            if(source.getUse() != null && !source.getUse().isEmpty()){
+                for(ValueSetDto validAddrUse : validAddressUses){
+                    if (source.getUse().equalsIgnoreCase(validAddrUse.getDisplay())){
+                        fhirAddress.setUse(Address.AddressUse.valueOf(source.getUse().toUpperCase()));
+                    }
+                }
+            }
+        }
+        return fhirAddress;
+    }
+
+    public static List<ContactPoint> convertTelecomDtoListToTelecomList(List<TelecomDto> source, LookUpService lookUpService) {
+        List<ContactPoint> telecomList = new ArrayList<>();
+        List<ValueSetDto> validTelecomUses =  lookUpService.getTelecomUses();
+        List<ValueSetDto> validTelecomSystems =  lookUpService.getTelecomSystems();
+
+        if (source != null && source.size() > 0) {
+            int rank = 0;
+            for (TelecomDto tempTelecomDto : source) {
+                ContactPoint tempContactPoint = new ContactPoint();
+
+                tempContactPoint.setRank(++rank);
+
+                tempTelecomDto.getSystem().ifPresent(obj -> {
+                    for (ValueSetDto validTelecomSystem : validTelecomSystems) {
+                        if (validTelecomSystem.getDisplay().equalsIgnoreCase(obj)) {
+                            tempContactPoint.setSystem(ContactPoint.ContactPointSystem.valueOf(validTelecomSystem.getDisplay().toUpperCase()));
+                        }
+                    }
+                });
+
+                tempTelecomDto.getValue().ifPresent(obj -> {
+                    tempContactPoint.setValue(obj);
+                });
+
+                tempTelecomDto.getUse().ifPresent(obj -> {
+                    for (ValueSetDto validTelecomUse : validTelecomUses) {
+                        if (validTelecomUse.getDisplay().equalsIgnoreCase(obj)) {
+                            tempContactPoint.setUse(ContactPoint.ContactPointUse.valueOf(validTelecomUse.getDisplay().toUpperCase()));
+                        }
+                    }
+                });
+
+                telecomList.add(tempContactPoint);
+            }
+        }
+
+        return telecomList;
     }
 }
 
