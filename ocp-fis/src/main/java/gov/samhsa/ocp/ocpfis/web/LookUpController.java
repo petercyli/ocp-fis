@@ -370,4 +370,9 @@ public class LookUpController {
     public List<ValueSetDto> getEocType() {
         return lookUpService.getEocType();
     }
+
+    @GetMapping("/contact-purpose")
+    public List<ValueSetDto> getContactPurpose(){
+        return lookUpService.getContactPurpose();
+    }
 }

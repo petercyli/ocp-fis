@@ -241,4 +241,28 @@ public class FhirDtoUtil {
         return addressDtos;
     }
 
+    public static AddressDto convertAddressToAddressDto(Address source) {
+        AddressDto tempAddressDto = new AddressDto();
+        if (source != null) {
+            int numberOfLines = source.getLine().size();
+            if (numberOfLines > 0) {
+                tempAddressDto.setLine1(source.getLine().get(0).toString());
+
+                if (numberOfLines > 1) {
+                    tempAddressDto.setLine2(source.getLine().get(1).toString());
+                }
+            }
+
+            tempAddressDto.setCity(source.getCity());
+            if (source.getCountry() != null)
+                tempAddressDto.setCountryCode(source.getCountry());
+            if (source.getState() != null)
+                tempAddressDto.setStateCode(source.getState());
+            if (source.getUse() != null)
+                tempAddressDto.setUse(source.getUse().toCode());
+            tempAddressDto.setPostalCode(source.getPostalCode());
+        }
+        return tempAddressDto;
+    }
+
 }
