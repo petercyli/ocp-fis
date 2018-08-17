@@ -5,6 +5,7 @@ import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
+import ca.uhn.fhir.rest.gclient.StringClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
@@ -14,6 +15,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.NoDataFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
@@ -173,6 +175,37 @@ public class PractitionerServiceImpl implements PractitionerService {
         List<Bundle.BundleEntryComponent> retrievedPractitioners = otherPagePractitionerSearchBundle.getEntry();
 
         return practitionersInPage(retrievedPractitioners, otherPagePractitionerSearchBundle, numberOfPractitionersPerPage, firstPage, page);
+    }
+
+    @Override
+    public PractitionerDto findPractitioner(Optional<String> organization, String firstName, Optional<String> middleName, String lastName, String identifierType, String identifier) {
+        IQuery iQuery= fhirClient.search().forResource(Practitioner.class).where(new StringClientParam("family").matches().value(lastName))
+                .where(new TokenClientParam("identifier").exactly().systemAndCode(identifierType, identifier));
+
+        //In Ocp both first name and middle name are saved in single column
+        String givenName;
+        if(middleName.isPresent()) {
+            givenName = firstName + " " + middleName.get();
+        }else {
+            givenName = firstName;
+        }
+        iQuery.where(new StringClientParam("given").matches().value(givenName));
+
+        organization.ifPresent(org->iQuery.where(new TokenClientParam("_id").exactly().codes(practitionersInOrganization(org))));
+
+        Bundle bundle=(Bundle) iQuery
+                .revInclude(PractitionerRole.INCLUDE_PRACTITIONER)
+                .returnBundle(Bundle.class)
+                .execute();
+
+        List<PractitionerDto> practitioners=bundle.getEntry().stream().filter(pr -> pr.getResource().getResourceType().equals(ResourceType.Practitioner))
+                .map(prac -> this.covertEntryComponentToPractitioner(prac, bundle.getEntry())).collect(toList());
+        if (!practitioners.isEmpty() && practitioners !=null){
+            return practitioners.stream().findFirst().get();
+        }else{
+          throw new NoDataFoundException("No Patient with such data");
+        }
+
     }
 
     @Override
@@ -614,5 +647,15 @@ public class PractitionerServiceImpl implements PractitionerService {
                 });
             }
         }
+    }
+
+    private List<String> practitionersInOrganization(String organization){
+        Bundle bundle=fhirClient.search().forResource(PractitionerRole.class)
+                .where(new ReferenceClientParam("organization").hasId(organization))
+                .returnBundle(Bundle.class)
+                .execute();
+        return bundle.getEntry().stream()
+                .map(e-> ((PractitionerRole)e.getResource()).getPractitioner().getReference().split("/")[1])
+                .distinct().collect(toList());
     }
 }
