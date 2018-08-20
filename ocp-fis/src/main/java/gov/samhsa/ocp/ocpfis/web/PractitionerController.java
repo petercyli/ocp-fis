@@ -36,6 +36,11 @@ public class PractitionerController {
         return practitionerService.searchPractitioners(searchType, searchValue, organization, showInactive, page, size,showAll);
     }
 
+    @GetMapping("/find")
+    public PractitionerDto findPractitioner(@RequestParam Optional<String> organization, @RequestParam String firstName, @RequestParam Optional<String> middleName, @RequestParam String lastName, String identifierType, String identifier){
+        return practitionerService.findPractitioner(organization,firstName,middleName,lastName,identifierType,identifier);
+    }
+
     @GetMapping("/practitioner-references")
     public List<ReferenceDto> getPractitionersInOrganizationByPractitionerId(@RequestParam Optional<String> practitioner,@RequestParam Optional<String> organization, @RequestParam Optional<String> role) {
         return practitionerService.getPractitionersInOrganizationByPractitionerId(practitioner,organization,role);

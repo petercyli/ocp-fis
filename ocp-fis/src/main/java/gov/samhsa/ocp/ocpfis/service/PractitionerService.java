@@ -8,11 +8,12 @@ import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import java.util.List;
 import java.util.Optional;
 
-public interface
-PractitionerService {
+public interface PractitionerService {
     PageDto<PractitionerDto> getAllPractitioners(Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size);
 
     PageDto<PractitionerDto> searchPractitioners(Optional<PractitionerController.SearchType> searchType, Optional<String> searchValue, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll);
+
+    PractitionerDto findPractitioner(Optional<String> organization, String firstName, Optional<String> middleName, String lastName, String identifierType, String identifier);
 
     void createPractitioner(PractitionerDto practitionerDto, Optional<String> loggedInUser);
 
