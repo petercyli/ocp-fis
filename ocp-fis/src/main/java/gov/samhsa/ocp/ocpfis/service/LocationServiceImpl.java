@@ -15,7 +15,6 @@ import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
@@ -27,9 +26,6 @@ import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import gov.samhsa.ocp.ocpfis.util.RichStringClientParam;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
-import org.hl7.fhir.dstu3.model.Coding;
-import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Identifier;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Organization;
@@ -45,8 +41,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -198,7 +192,6 @@ public class LocationServiceImpl implements LocationService {
         getOrganizationIdentifier(organizationId).ifPresent(identifierDto -> locationDto.getIdentifiers().add(identifierDto));
         Location fhirLocation = modelMapper.map(locationDto, Location.class);
         fhirLocation.setStatus(getLocationStatusFromDto(locationDto));
-        fhirLocation.setPhysicalType(getLocationPhysicalTypeFromDto(locationDto));
         fhirLocation.setManagingOrganization(new Reference("Organization/" + organizationId.trim()));
 
         if (locationDto.getManagingLocationLogicalId() != null && !locationDto.getManagingLocationLogicalId().trim().isEmpty()) {
@@ -238,7 +231,7 @@ public class LocationServiceImpl implements LocationService {
         existingFhirLocation.setAddress(updatedFhirLocation.getAddress());
         existingFhirLocation.setTelecom(updatedFhirLocation.getTelecom());
         existingFhirLocation.setStatus(getLocationStatusFromDto(locationDto));
-        existingFhirLocation.setPhysicalType(getLocationPhysicalTypeFromDto(locationDto));
+        existingFhirLocation.setPhysicalType(updatedFhirLocation.hasPhysicalType() ? updatedFhirLocation.getPhysicalType() : null);
         existingFhirLocation.setManagingOrganization(new Reference("Organization/" + organizationId.trim()));
 
         if (locationDto.getManagingLocationLogicalId() != null && !locationDto.getManagingLocationLogicalId().trim().isEmpty()) {
@@ -418,7 +411,7 @@ public class LocationServiceImpl implements LocationService {
                 return l.getIdentifier().stream().anyMatch(identifier -> identifier.getSystem().equalsIgnoreCase(identifierSystem) && identifier.getValue().replaceAll(" ", "")
                         .replaceAll("-", "").trim()
                         .equalsIgnoreCase(identifierValue.replaceAll(" ", "").replaceAll("-", "").trim()));
-            }).collect(toList());
+            }).collect(Collectors.toList());
         } else if (identifierValue != null && !identifierValue.trim().isEmpty()) {
             Bundle bundle = fhirClient.search().forResource(Location.class)
                     .where(new TokenClientParam("identifier").exactly().code(identifierValue.trim()))
@@ -434,10 +427,6 @@ public class LocationServiceImpl implements LocationService {
     private LocationDto convertLocationBundleEntryToLocationDto(Bundle.BundleEntryComponent fhirLocationModel) {
         LocationDto tempLocationDto = modelMapper.map(fhirLocationModel.getResource(), LocationDto.class);
         tempLocationDto.setLogicalId(fhirLocationModel.getResource().getIdElement().getIdPart());
-        Location loc = (Location) fhirLocationModel.getResource();
-        if (loc.hasPhysicalType()) {
-            tempLocationDto.setPhysicalType(loc.getPhysicalType().getCoding().get(0).getDisplay());
-        }
         return tempLocationDto;
     }
 
@@ -472,23 +461,6 @@ public class LocationServiceImpl implements LocationService {
             }
         }
         return Location.LocationStatus.ACTIVE;
-    }
-
-    private CodeableConcept getLocationPhysicalTypeFromDto(LocationDto locationDto) {
-        String physicalType = locationDto.getPhysicalType();
-        List<ValueSetDto> availablePhysicalTypes = lookUpService.getLocationPhysicalTypes();
-        Coding coding = new Coding();
-
-        if (physicalType != null && !physicalType.trim().isEmpty()) {
-            availablePhysicalTypes.stream().filter(physicalTypeDto -> physicalTypeDto.getDisplay().equalsIgnoreCase(physicalType.trim())).forEach(physicalTypeDto -> {
-                coding.setCode(physicalTypeDto.getCode());
-                coding.setSystem(physicalTypeDto.getSystem());
-                coding.setDisplay(physicalTypeDto.getDisplay());
-            });
-            return new CodeableConcept().addCoding(coding);
-        }
-        log.warn("Location physical type is empty or NULL.");
-        return null;
     }
 
     private Optional<IdentifierDto> getOrganizationIdentifier(String organizationId) {

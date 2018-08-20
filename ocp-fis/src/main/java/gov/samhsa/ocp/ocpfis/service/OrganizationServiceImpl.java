@@ -246,7 +246,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             MethodOutcome activityDefinitionMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, activityDefinition, ResourceType.ActivityDefinition.name());
             idList.add(ResourceType.ActivityDefinition.name() + "/" + FhirOperationUtil.getFhirId(activityDefinitionMethodOutcome));
 
-            if(fisProperties.isProvenanceEnabled()) {
+            if (fisProperties.isProvenanceEnabled()) {
                 provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
             }
 
@@ -269,6 +269,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             existingOrganization.setName(updatedOrganization.getName());
             existingOrganization.setTelecom(updatedOrganization.getTelecom());
             existingOrganization.setAddress(updatedOrganization.getAddress());
+            existingOrganization.setContact(updatedOrganization.getContact());
             existingOrganization.setActive(updatedOrganization.getActive());
 
             //Set Profile Meta Data
@@ -281,7 +282,7 @@ public class OrganizationServiceImpl implements OrganizationService {
             MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, existingOrganization, "Update Organization");
             idList.add(ResourceType.Organization.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
-            if(fisProperties.isProvenanceEnabled()) {
+            if (fisProperties.isProvenanceEnabled()) {
                 provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
             }
         } else {

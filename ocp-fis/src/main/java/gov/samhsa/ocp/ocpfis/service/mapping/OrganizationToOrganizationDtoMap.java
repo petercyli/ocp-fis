@@ -18,11 +18,15 @@ public class OrganizationToOrganizationDtoMap extends PropertyMap<Organization, 
     @Autowired
     private TelecomListToTelecomDtoListConverter telecomListToTelecomDtoListConverter;
 
+    @Autowired
+    private ContactListToContactDtoListConverter contactListToContactDtoListConverter;
+
     @Override
     protected void configure() {
         map().setName(source.getName());
         using(identifierListToIdentifierDtoListConverter).map(source.getIdentifier()).setIdentifiers(null);
         using(addressListToAddressDtoListConverter).map(source.getAddress()).setAddresses(null);
         using(telecomListToTelecomDtoListConverter).map(source.getTelecom()).setTelecoms(null);
+        using(contactListToContactDtoListConverter).map(source.getContact()).setContacts(java.util.Optional.empty());
     }
 }
