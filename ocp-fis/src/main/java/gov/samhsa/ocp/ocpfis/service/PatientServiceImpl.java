@@ -567,7 +567,7 @@ public class PatientServiceImpl implements PatientService {
                 .map(flagBundle -> (Flag) flagBundle.getResource())
                 .filter(flag -> flag.getSubject().getReference().equalsIgnoreCase("Patient/" + patientId))
                 // filter out inactive and entered in error status values
-                .filter(flag -> flag.getStatus().toCode().equals(Enumerations.PublicationStatus.ACTIVE.toCode()))
+                .filter(flag -> flag.getStatus().equals(Enumerations.PublicationStatus.ACTIVE))
                 .map(flag -> {
                     FlagDto flagDto = modelMapper.map(flag, FlagDto.class);
                     if (flag.getPeriod() != null && !flag.getPeriod().isEmpty()) {
