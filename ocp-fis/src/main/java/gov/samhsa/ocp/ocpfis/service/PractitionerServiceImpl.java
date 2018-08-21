@@ -282,14 +282,17 @@ public class PractitionerServiceImpl implements PractitionerService {
     @Override
     public PageDto<PractitionerDto> getPractitionersByOrganizationAndRole(String organization, Optional<String> role, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Practitioner.name());
-        List<PractitionerDto> practitioners = new ArrayList<>();
 
         IQuery query = fhirClient.search().forResource(PractitionerRole.class).sort().descending(PARAM_LASTUPDATED);
 
         role.ifPresent(s -> query.where(new TokenClientParam("role").exactly().code(s)));
 
         List<Bundle.BundleEntryComponent> practitionerEntry = getBundleForPractitioners(organization, query);
-        practitioners = getPractitionerDtos(practitioners, practitionerEntry);
+
+        List<PractitionerDto> practitioners = practitionerEntry.stream()
+                .filter(retrievedPractitionerAndPractitionerRoles -> retrievedPractitionerAndPractitionerRoles.getResource().getResourceType().equals(ResourceType.Practitioner))
+                .map(retrievedPractitioner -> covertEntryComponentToPractitioner(retrievedPractitioner, practitionerEntry))
+                .collect(toList());
 
         return (PageDto<PractitionerDto>) PaginationUtil.applyPaginationForCustomArrayList(practitioners, numberOfPractitionersPerPage, pageNumber, false);
     }
