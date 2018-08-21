@@ -270,8 +270,14 @@ public class PatientServiceImpl implements PatientService {
             patientDto.setActivityTypes(Optional.of(types));
         }
 
-        if (patient.getGender() != null)
+        // Set Gender Code
+        if (patient.getGender() != null) {
             patientDto.setGenderCode(patient.getGender().toCode());
+        }
+
+        // Set Lang
+        setLanguageInDto(patient, patientDto);
+
         mapExtensionFields(patient, patientDto);
 
         //Getting flags into the patient dto
@@ -648,6 +654,14 @@ public class PatientServiceImpl implements PatientService {
         }
     }
 
+    private void setLanguageInDto(Patient patient, PatientDto patientDto) {
+        if (patient.getCommunication() != null && !patient.getCommunication().isEmpty()) {
+            String langCode = patient.getCommunication().get(0).getLanguage().getCoding().get(0).getCode();
+            String lanDisplay = patient.getCommunication().get(0).getLanguage().getCoding().get(0).getDisplay();
+            patientDto.setLanguage(langCode);
+            patientDto.setLanguageDisplayString(lanDisplay);
+        }
+    }
 
     private void mapExtensionFields(Patient patient, PatientDto patientDto) {
         List<Extension> extensionList = patient.getExtension();
@@ -656,12 +670,12 @@ public class PatientServiceImpl implements PatientService {
                 .forEach(codeableConcept -> codeableConcept.getCoding().stream().findFirst().ifPresent(coding -> {
                     if (coding.getSystem().contains(CodeSystemEnum.RACE.getUrl())) {
                         patientDto.setRace(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreRace()).getCode());
-                    } else if (coding.getSystem().contains(CodeSystemEnum.LANGUAGES.getUrl())) {
-                        patientDto.setLanguage(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getLanguages()).getCode());
                     } else if (coding.getSystem().contains(CodeSystemEnum.ETHNICITY.getUrl())) {
-                        patientDto.setEthnicity(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreEthnicity()).getCode());
+                        ValueSetDto ethnicity = FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreEthnicity());
+                        patientDto.setEthnicity(ethnicity.getCode());
                     } else if (coding.getSystem().contains(CodeSystemEnum.ADMINISTRATIVE_GENDER.getUrl())) {
-                        patientDto.setBirthSex(FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreBirthSex()).getCode());
+                        ValueSetDto birthSex = FhirDtoUtil.convertCodeToValueSetDto(coding.getCode(), lookUpService.getUSCoreBirthSex());
+                        patientDto.setBirthSex(birthSex.getCode());
                     }
                 }));
     }
