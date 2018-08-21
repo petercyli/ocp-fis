@@ -265,6 +265,8 @@ public class PatientServiceImpl implements PatientService {
         if (types.isEmpty()) {
             patientDto.setActivityTypes(Optional.empty());
         } else {
+            //Remove TO-DO task
+            types.removeIf(t -> t.equalsIgnoreCase(ActivityDefinitionConstants.TO_DO));
             patientDto.setActivityTypes(Optional.of(types));
         }
 
