@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.constants.AppointmentConstants;
+import gov.samhsa.ocp.ocpfis.domain.CodeSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
@@ -719,6 +720,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     private void setParticipantTypeAsAttender(AppointmentParticipantReferenceDto referenceDto) {
         referenceDto.setParticipationTypeCode(Optional.of(AppointmentConstants.ATTENDER_PARTICIPANT_TYPE_CODE));
         referenceDto.setParticipationTypeDisplay(Optional.of(AppointmentConstants.ATTENDER_PARTICIPANT_TYPE_DISPLAY));
+        referenceDto.setParticipantStatusSystem(Optional.of(CodeSystemEnum.APPOINTMENT_PARTICIPATION_TYPE.getUrl()));
     }
 
     private void setParticipantRequiredAsInformationOnly(AppointmentParticipantReferenceDto referenceDto) {
