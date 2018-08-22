@@ -8,6 +8,7 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.constants.AppointmentConstants;
+import gov.samhsa.ocp.ocpfis.domain.CodeSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
@@ -446,9 +447,9 @@ public class AppointmentServiceImpl implements AppointmentService {
             AppointmentParticipantReferenceDto referenceDto = new AppointmentParticipantReferenceDto();
             referenceDto.setDisplay(hs.getName());
             referenceDto.setReference(ResourceType.HealthcareService.toString() + "/" + hs.getIdElement().getIdPart());
-            setParticipantType(referenceDto);
-            setParticipantRequired(referenceDto);
-            setParticipantStatusForLocationAndHCS(referenceDto);
+            setParticipantTypeAsAttender(referenceDto);
+            setParticipantRequiredAsInformationOnly(referenceDto);
+            setParticipantStatusAsAccepted(referenceDto);
             return referenceDto;
         }).collect(toList());
     }
@@ -716,24 +717,25 @@ public class AppointmentServiceImpl implements AppointmentService {
         return null;
     }
 
-    private void setParticipantType(AppointmentParticipantReferenceDto referenceDto) {
+    private void setParticipantTypeAsAttender(AppointmentParticipantReferenceDto referenceDto) {
         referenceDto.setParticipationTypeCode(Optional.of(AppointmentConstants.ATTENDER_PARTICIPANT_TYPE_CODE));
         referenceDto.setParticipationTypeDisplay(Optional.of(AppointmentConstants.ATTENDER_PARTICIPANT_TYPE_DISPLAY));
+        referenceDto.setParticipantStatusSystem(Optional.of(CodeSystemEnum.APPOINTMENT_PARTICIPATION_TYPE.getUrl()));
     }
 
-    private void setParticipantRequired(AppointmentParticipantReferenceDto referenceDto) {
+    private void setParticipantRequiredAsInformationOnly(AppointmentParticipantReferenceDto referenceDto) {
         referenceDto.setParticipantRequiredCode(Optional.of(Appointment.ParticipantRequired.INFORMATIONONLY.toCode()));
         referenceDto.setParticipantRequiredDisplay(Optional.of(Appointment.ParticipantRequired.INFORMATIONONLY.getDisplay()));
         referenceDto.setParticipantRequiredSystem(Optional.of(Appointment.ParticipantRequired.INFORMATIONONLY.getSystem()));
     }
 
-    private void setParticipantStatusForLocationAndHCS(AppointmentParticipantReferenceDto referenceDto){
+    private void setParticipantStatusAsAccepted(AppointmentParticipantReferenceDto referenceDto){
         referenceDto.setParticipantStatusCode(Optional.of(AppointmentResponse.ParticipantStatus.ACCEPTED.toCode()));
         referenceDto.setParticipantStatusDisplay(Optional.of(AppointmentResponse.ParticipantStatus.ACCEPTED.getDisplay()));
         referenceDto.setParticipantStatusSystem(Optional.of(AppointmentResponse.ParticipantStatus.ACCEPTED.getSystem()));
     }
 
-    private void setParticipantStatusForPractitioner(AppointmentParticipantReferenceDto referenceDto){
+    private void setParticipantStatusAsNeedsAction(AppointmentParticipantReferenceDto referenceDto){
         referenceDto.setParticipantStatusCode(Optional.of(AppointmentResponse.ParticipantStatus.NEEDSACTION.toCode()));
         referenceDto.setParticipantStatusDisplay(Optional.of(AppointmentResponse.ParticipantStatus.NEEDSACTION.getDisplay()));
         referenceDto.setParticipantStatusSystem(Optional.of(AppointmentResponse.ParticipantStatus.NEEDSACTION.getSystem()));
@@ -744,9 +746,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         referenceDto.setReference(location.getReference());
         Location l = fhirClient.read().resource(Location.class).withId(location.getReference().split("/")[1]).execute();
         referenceDto.setDisplay(l.getName());
-        setParticipantType(referenceDto);
-        setParticipantRequired(referenceDto);
-        setParticipantStatusForLocationAndHCS(referenceDto);
+        setParticipantTypeAsAttender(referenceDto);
+        setParticipantRequiredAsInformationOnly(referenceDto);
+        setParticipantStatusAsAccepted(referenceDto);
         return referenceDto;
     }
 
@@ -754,8 +756,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         AppointmentParticipantReferenceDto appointmentParticipantReferenceDto = new AppointmentParticipantReferenceDto();
         appointmentParticipantReferenceDto.setReference(ref.getReference());
         appointmentParticipantReferenceDto.setDisplay(ref.getDisplay());
-        setParticipantType(appointmentParticipantReferenceDto);
-        setParticipantStatusForPractitioner(appointmentParticipantReferenceDto);
+        setParticipantTypeAsAttender(appointmentParticipantReferenceDto);
+        setParticipantStatusAsNeedsAction(appointmentParticipantReferenceDto);
         return appointmentParticipantReferenceDto;
     }
 }
