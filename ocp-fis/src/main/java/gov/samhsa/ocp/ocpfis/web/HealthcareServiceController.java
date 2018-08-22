@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.HealthcareServiceService;
 import gov.samhsa.ocp.ocpfis.service.dto.HealthcareServiceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -62,7 +63,6 @@ public class HealthcareServiceController {
     public HealthcareServiceDto getHealthcareService(@PathVariable String healthcareServiceId) {
         return healthcareServiceService.getHealthcareService(healthcareServiceId);
     }
-
 
     @PostMapping("/organization/{organizationId}/healthcare-services")
     @ResponseStatus(HttpStatus.CREATED)

@@ -270,7 +270,6 @@ public class LocationServiceImpl implements LocationService {
         FhirOperationUtil.updateFhirResource(fhirClient, existingFhirLocation, "Inactivate Location");
     }
 
-
     private IQuery addAdditionalLocationSearchConditions(IQuery locationsSearchQuery, Optional<List<String>> statusList, Optional<String> searchKey, Optional<String> searchValue) {
         // Check for location status
         if (statusList.isPresent() && !statusList.get().isEmpty()) {

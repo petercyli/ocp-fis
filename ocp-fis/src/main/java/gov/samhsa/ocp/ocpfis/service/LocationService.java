@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.LocationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 
 import java.util.List;
 import java.util.Optional;
@@ -61,4 +62,5 @@ public interface LocationService {
      * @param locationId
      */
     void inactivateLocation(String locationId);
+
 }

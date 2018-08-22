@@ -47,8 +47,10 @@ import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
@@ -64,6 +66,9 @@ public class CareTeamServiceImpl implements CareTeamService {
     private final FisProperties fisProperties;
     private final CommunicationService communicationService;
     private final ProvenanceUtil provenanceUtil;
+
+    @Autowired
+    PractitionerServiceImpl practitionerService;
 
     @Autowired
     public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, CommunicationService communicationService, ProvenanceUtil provenanceUtil) {
@@ -92,7 +97,7 @@ public class CareTeamServiceImpl implements CareTeamService {
             MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
             idList.add(ResourceType.CareTeam.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
-            if(fisProperties.isProvenanceEnabled()) {
+            if (fisProperties.isProvenanceEnabled()) {
                 provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
             }
         } catch (FHIRException | ParseException e) {
@@ -117,7 +122,7 @@ public class CareTeamServiceImpl implements CareTeamService {
             MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
             idList.add(ResourceType.CareTeam.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
-            if(fisProperties.isProvenanceEnabled()) {
+            if (fisProperties.isProvenanceEnabled()) {
                 provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
             }
 
@@ -340,7 +345,7 @@ public class CareTeamServiceImpl implements CareTeamService {
 
 
                 participantsByRoles = careTeams.stream()
-                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles, name).stream()).collect(toList());
+                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles, name, fhirClient).stream()).collect(toList());
 
             }
         }
@@ -534,8 +539,47 @@ public class CareTeamServiceImpl implements CareTeamService {
         return (PageDto<ParticipantDto>) PaginationUtil.applyPaginationForCustomArrayList(participantDtoList, numberOfRelatedPersonPerPage, pageNumber, false);
     }
 
+    @Override
+    public List<ReferenceDto> getParticipantMemberFromCareTeam(String patient) {
+        Bundle careTeamBundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(CareTeam.class).where(new ReferenceClientParam("patient").hasId(patient)))
+                .returnBundle(Bundle.class).execute();
+
+        List<ReferenceDto> careTeamMembers = FhirOperationUtil.getAllBundleComponentsAsList(careTeamBundle, Optional.empty(), fhirClient, fisProperties)
+                .stream().map(bEntry -> {
+                    CareTeam careTeam = (CareTeam) bEntry.getResource();
+                    return convertCareTeamToCareTeamDto(careTeam);
+                }).flatMap(ct -> ct.getParticipants().stream().map(part -> {
+                    ReferenceDto participantReference = new ReferenceDto();
+                    participantReference.setReference(part.getMemberType().substring(0, 1).toUpperCase() + part.getMemberType().substring(1) + "/" + part.getMemberId());
+                    if(!part.getMemberType().equalsIgnoreCase(ResourceType.Organization.toString())) {
+                        participantReference.setDisplay(part.getMemberFirstName().get() + " " + part.getMemberLastName().get());
+                    }else{
+                        participantReference.setDisplay(part.getMemberName().get());
+                    }
+                    return participantReference;
+                })).collect(toList());
+
+        List<ReferenceDto> careTeammembersOtherThanOrganization = careTeamMembers.stream()
+                .filter(ct -> !ct.getReference().split("/")[0].equalsIgnoreCase(ResourceType.Organization.toString()))
+                .collect(toList());
+
+        List<ReferenceDto> careTeammebersInTheOrganization = careTeamMembers.stream()
+                .filter(ct -> ct.getReference().split("/")[0].equalsIgnoreCase(ResourceType.Organization.toString()))
+                .flatMap(ct -> practitionerService.searchPractitioners(Optional.empty(), Optional.empty(), Optional.of(ct.getReference().split("/")[1]), Optional.empty(), Optional.empty(),
+                        Optional.empty(), Optional.of(true)).getElements().stream().map(pr -> {
+                            ReferenceDto referenceDto = new ReferenceDto();
+                            referenceDto.setReference(ResourceType.Practitioner.toString() + "/" + pr.getLogicalId());
+                            pr.getName().stream().findAny().ifPresent(name -> referenceDto.setDisplay(name.getFirstName() + " " + name.getLastName()));
+                            return referenceDto;
+                        })
+                ).collect(toList());
+
+
+        return Stream.of(careTeammembersOtherThanOrganization, careTeammebersInTheOrganization).flatMap(Collection::stream).distinct().collect(toList());
+    }
+
     private CareTeamDto convertCareTeamToCareTeamDto(CareTeam careTeam) {
-        final CareTeamDto careTeamDto = CareTeamToCareTeamDtoConverter.map(careTeam);
+        final CareTeamDto careTeamDto = CareTeamToCareTeamDtoConverter.map(careTeam,fhirClient);
 
         if (careTeamDto.getStatusCode() != null) {
             careTeamDto.setStatusDisplay((FhirDtoUtil.getDisplayForCode(careTeamDto.getStatusCode(), lookUpService.getCareTeamStatuses())).orElse(null));

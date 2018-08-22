@@ -1,6 +1,7 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
+import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 
@@ -29,4 +30,10 @@ public interface AppointmentService {
     void declineAppointment(String appointmentId, String actorReference);
 
     void tentativelyAcceptAppointment(String appointmentId, String actorReference);
+
+    List<AppointmentParticipantReferenceDto> getAllHealthcareServicesReferences(String resourceType, String resourceValue);
+
+    List<AppointmentParticipantReferenceDto> getAllLocationReferences(String resourceType, String resourceValue);
+
+    List<AppointmentParticipantReferenceDto> getPractitionersReferences(String resourceType, String resourceValue);
 }

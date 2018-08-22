@@ -4,6 +4,7 @@ import gov.samhsa.ocp.ocpfis.service.CareTeamService;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -71,5 +72,10 @@ public class CareTeamController {
     @PutMapping("/{careTeamId}/remove-related-person")
     public void removeRelatedPerson(@PathVariable String careTeamId, @Valid @RequestBody ParticipantDto participantDto){
         careTeamService.removeRelatedPerson(careTeamId,participantDto);
+    }
+
+    @GetMapping("/practitioner-references")
+    public List<ReferenceDto> getParticipantMemberFromCareTeam(@RequestParam String patient){
+        return careTeamService.getParticipantMemberFromCareTeam(patient);
     }
 }

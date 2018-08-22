@@ -59,8 +59,32 @@ public class SearchKeyEnum {
     public enum PatientFilterKey {
         ORGANIZATION, ASSOCIATECARETEAMPATIENT, UNASSIGNPATIENT;
 
-        public static boolean contains(String s){
-            return Arrays.stream(values()).anyMatch(PatientFilterKey->PatientFilterKey.name().equalsIgnoreCase(s));
+        public static boolean contains(String s) {
+            return Arrays.stream(values()).anyMatch(PatientFilterKey -> PatientFilterKey.name().equalsIgnoreCase(s));
+        }
+    }
+
+    public enum LocationAppointmentParticipantSearchKey {
+        HEALTHCARESERVICE, PRACTITIONER;
+
+        public static boolean contains(String s) {
+            return Arrays.stream(values()).anyMatch(LocationSearchKey -> LocationSearchKey.name().equalsIgnoreCase(s));
+        }
+    }
+
+    public enum HealthcareServiceParticipantSearchKey {
+        ORGANIZATION, LOCATION;
+
+        public static boolean contains(String s) {
+            return Arrays.stream(values()).anyMatch(HealthcareServiceParticipantSearchKey -> HealthcareServiceParticipantSearchKey.name().equalsIgnoreCase(s));
+        }
+    }
+
+    public enum PractitionerParticipantSearchKey {
+        PATIENT, LOCATION;
+
+        public static boolean contains(String s) {
+            return Arrays.stream(values()).anyMatch(PractitionerSearchKey -> PractitionerSearchKey.name().equalsIgnoreCase(s));
         }
     }
 

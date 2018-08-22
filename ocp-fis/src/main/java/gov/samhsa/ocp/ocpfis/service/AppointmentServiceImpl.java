@@ -12,6 +12,7 @@ import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
+import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
@@ -30,14 +31,18 @@ import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Appointment;
+import org.hl7.fhir.dstu3.model.AppointmentResponse;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CareTeam;
 import org.hl7.fhir.dstu3.model.HealthcareService;
 import org.hl7.fhir.dstu3.model.Location;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.PractitionerRole;
+import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -50,6 +55,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
 import static java.util.stream.Collectors.toList;
 
 @Service
@@ -75,6 +81,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         this.provenanceUtil = provenanceUtil;
     }
 
+    @Autowired
+    CareTeamServiceImpl careTeamService;
+
     @Override
     public void createAppointment(AppointmentDto appointmentDto, Optional<String> loggedInUser) {
         List<String> idList = new ArrayList<>();
@@ -96,7 +105,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         MethodOutcome appointmentMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
         idList.add(ResourceType.Appointment.name() + "/" + FhirOperationUtil.getFhirId(appointmentMethodOutcome));
 
-        if(fisProperties.isProvenanceEnabled()) {
+        if (fisProperties.isProvenanceEnabled()) {
             provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
         }
 
@@ -123,7 +132,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
         idList.add(ResourceType.Appointment.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
-        if(fisProperties.isProvenanceEnabled()) {
+        if (fisProperties.isProvenanceEnabled()) {
             provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
         }
     }
@@ -147,7 +156,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         .map(careTeamMember -> (CareTeam) careTeamMember.getResource()).collect(toList());
 
                 participantsByRoles = careTeams.stream()
-                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles).stream()).collect(toList());
+                        .flatMap(it -> CareTeamToCareTeamDtoConverter.mapToParticipants(it, roles, fhirClient).stream()).collect(toList());
             }
         }
 
@@ -421,6 +430,83 @@ public class AppointmentServiceImpl implements AppointmentService {
         FhirOperationUtil.updateFhirResource(fhirClient, appointment, "TentativelyAccept Appointment");
     }
 
+    @Override
+    public List<AppointmentParticipantReferenceDto> getAllHealthcareServicesReferences(String resourceType, String resourceValue) {
+        IQuery iQuery = fhirClient.search().forResource(HealthcareService.class);
+
+        if (SearchKeyEnum.HealthcareServiceParticipantSearchKey.ORGANIZATION.name().equalsIgnoreCase(resourceType)) {
+            iQuery.where(new ReferenceClientParam("organization").hasId(resourceValue));
+        } else if (SearchKeyEnum.HealthcareServiceParticipantSearchKey.LOCATION.name().equalsIgnoreCase(resourceType)) {
+            iQuery.where(new ReferenceClientParam("location").hasId(resourceValue));
+        }
+        Bundle bundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(iQuery).returnBundle(Bundle.class).execute();
+
+        return FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(entry -> {
+            HealthcareService hs = (HealthcareService) entry.getResource();
+            AppointmentParticipantReferenceDto referenceDto = new AppointmentParticipantReferenceDto();
+            referenceDto.setDisplay(hs.getName());
+            referenceDto.setReference(ResourceType.HealthcareService.toString() + "/" + hs.getIdElement().getIdPart());
+            setParticipantType(referenceDto);
+            setParticipantRequired(referenceDto);
+            setParticipantStatusForLocationAndHCS(referenceDto);
+            return referenceDto;
+        }).collect(toList());
+    }
+
+    @Override
+    public List<AppointmentParticipantReferenceDto> getAllLocationReferences(String resourceType, String resourceValue) {
+        List<AppointmentParticipantReferenceDto> locationsRef = new ArrayList<>();
+        if (SearchKeyEnum.LocationAppointmentParticipantSearchKey.HEALTHCARESERVICE.name().equalsIgnoreCase(resourceType)) {
+            HealthcareService hcs = fhirClient.read().resource(HealthcareService.class).withId(resourceValue).execute();
+            locationsRef = hcs.getLocation().stream().map(l -> convertLocationRefToAppointmentParticipantReferenceDto(l))
+                    .collect(toList());
+        } else if (SearchKeyEnum.LocationAppointmentParticipantSearchKey.PRACTITIONER.name().equalsIgnoreCase(resourceType)) {
+            Bundle prRoleBundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(PractitionerRole.class).where(new ReferenceClientParam("practitioner").hasId(resourceValue)))
+                    .returnBundle(Bundle.class).execute();
+            locationsRef = FhirOperationUtil.getAllBundleComponentsAsList(prRoleBundle, Optional.empty(), fhirClient, fisProperties).stream()
+                    .flatMap(pr -> {
+                        PractitionerRole p = (PractitionerRole) pr.getResource();
+                        return p.getLocation().stream().map(l -> convertLocationRefToAppointmentParticipantReferenceDto(l));
+                    }).collect(toList());
+        }
+        return locationsRef;
+    }
+
+    @Override
+    public List<AppointmentParticipantReferenceDto> getPractitionersReferences(String resourceType, String resourceValue) {
+        List<AppointmentParticipantReferenceDto> practitionerReferences = new ArrayList<>();
+        if (SearchKeyEnum.PractitionerParticipantSearchKey.PATIENT.name().equalsIgnoreCase(resourceType)) {
+            practitionerReferences = careTeamService.getParticipantMemberFromCareTeam(resourceValue).stream()
+                    .filter(ct -> ct.getReference().split("/")[0].equalsIgnoreCase(ResourceType.Practitioner.toString()))
+                    .map(ct -> convertPractitionerReferenceToAppointmentParticipantReferenceDto(ct))
+                    .collect(toList());
+        } else if (SearchKeyEnum.PractitionerParticipantSearchKey.LOCATION.name().equalsIgnoreCase(resourceType)) {
+            Bundle bundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(fhirClient.search().forResource(PractitionerRole.class)
+                    .where(new ReferenceClientParam("location").hasId(resourceValue)))
+                    .include(PractitionerRole.INCLUDE_PRACTITIONER)
+                    .sort().descending(PARAM_LASTUPDATED).returnBundle(Bundle.class).execute();
+
+            if (bundle != null && !bundle.getEntry().isEmpty()) {
+                practitionerReferences = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties)
+                        .stream().filter(it -> it.getResource().getResourceType().equals(ResourceType.Practitioner))
+                        .map(it -> {
+                            Practitioner pr = (Practitioner) it.getResource();
+                            ReferenceDto referenceDto = new ReferenceDto();
+                            referenceDto.setReference("Practitioner/" + pr.getIdElement().getIdPart());
+                            pr.getName().stream().findAny().ifPresent(name -> {
+                                String fn = name.getFamily();
+                                StringType ln = name.getGiven().stream().findAny().orElse(null);
+                                referenceDto.setDisplay(fn + " " + ln.toString());
+                            });
+                            AppointmentParticipantReferenceDto aRefDto = convertPractitionerReferenceToAppointmentParticipantReferenceDto(referenceDto);
+                            return aRefDto;
+                        }).distinct().collect(toList());
+
+            }
+        }
+        return practitionerReferences;
+    }
+
 
     private IQuery addStatusSearchConditions(IQuery searchQuery,
                                              Optional<List<String>> statusList) {
@@ -628,6 +714,49 @@ public class AppointmentServiceImpl implements AppointmentService {
             return patientDtoList.stream().map(PatientDto::getId).collect(Collectors.toSet());
         }
         return null;
+    }
+
+    private void setParticipantType(AppointmentParticipantReferenceDto referenceDto) {
+        referenceDto.setParticipationTypeCode(Optional.of(AppointmentConstants.ATTENDER_PARTICIPANT_TYPE_CODE));
+        referenceDto.setParticipationTypeDisplay(Optional.of(AppointmentConstants.ATTENDER_PARTICIPANT_TYPE_DISPLAY));
+    }
+
+    private void setParticipantRequired(AppointmentParticipantReferenceDto referenceDto) {
+        referenceDto.setParticipantRequiredCode(Optional.of(Appointment.ParticipantRequired.INFORMATIONONLY.toCode()));
+        referenceDto.setParticipantRequiredDisplay(Optional.of(Appointment.ParticipantRequired.INFORMATIONONLY.getDisplay()));
+        referenceDto.setParticipantRequiredSystem(Optional.of(Appointment.ParticipantRequired.INFORMATIONONLY.getSystem()));
+    }
+
+    private void setParticipantStatusForLocationAndHCS(AppointmentParticipantReferenceDto referenceDto){
+        referenceDto.setParticipantStatusCode(Optional.of(AppointmentResponse.ParticipantStatus.ACCEPTED.toCode()));
+        referenceDto.setParticipantStatusDisplay(Optional.of(AppointmentResponse.ParticipantStatus.ACCEPTED.getDisplay()));
+        referenceDto.setParticipantStatusSystem(Optional.of(AppointmentResponse.ParticipantStatus.ACCEPTED.getSystem()));
+    }
+
+    private void setParticipantStatusForPractitioner(AppointmentParticipantReferenceDto referenceDto){
+        referenceDto.setParticipantStatusCode(Optional.of(AppointmentResponse.ParticipantStatus.NEEDSACTION.toCode()));
+        referenceDto.setParticipantStatusDisplay(Optional.of(AppointmentResponse.ParticipantStatus.NEEDSACTION.getDisplay()));
+        referenceDto.setParticipantStatusSystem(Optional.of(AppointmentResponse.ParticipantStatus.NEEDSACTION.getSystem()));
+    }
+
+    private AppointmentParticipantReferenceDto convertLocationRefToAppointmentParticipantReferenceDto(Reference location) {
+        AppointmentParticipantReferenceDto referenceDto = new AppointmentParticipantReferenceDto();
+        referenceDto.setReference(location.getReference());
+        Location l = fhirClient.read().resource(Location.class).withId(location.getReference().split("/")[1]).execute();
+        referenceDto.setDisplay(l.getName());
+        setParticipantType(referenceDto);
+        setParticipantRequired(referenceDto);
+        setParticipantStatusForLocationAndHCS(referenceDto);
+        return referenceDto;
+    }
+
+    private AppointmentParticipantReferenceDto convertPractitionerReferenceToAppointmentParticipantReferenceDto(ReferenceDto ref) {
+        AppointmentParticipantReferenceDto appointmentParticipantReferenceDto = new AppointmentParticipantReferenceDto();
+        appointmentParticipantReferenceDto.setReference(ref.getReference());
+        appointmentParticipantReferenceDto.setDisplay(ref.getDisplay());
+        setParticipantType(appointmentParticipantReferenceDto);
+        setParticipantStatusForPractitioner(appointmentParticipantReferenceDto);
+        return appointmentParticipantReferenceDto;
     }
 }
 
