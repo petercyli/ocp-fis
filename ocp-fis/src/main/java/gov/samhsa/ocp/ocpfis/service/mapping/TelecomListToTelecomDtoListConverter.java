@@ -21,17 +21,17 @@ public class TelecomListToTelecomDtoListConverter extends AbstractConverter<List
             for (ContactPoint tempTelecom : source) {
                 TelecomDto tempTelecomDto = new TelecomDto();
 
-                if (tempTelecom.getSystem() != null && tempTelecom.getSystem().toCode().equalsIgnoreCase("phone")) {
+                if (tempTelecom.getSystem() != null && tempTelecom.getSystem().toCode() != null && tempTelecom.getSystem().toCode().equalsIgnoreCase("phone")) {
                     String phoneNumber = tempTelecom.getValue();
-                    if(phoneNumber != null && !phoneNumber.trim().isEmpty()){
+                    if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
                         String formattedPhone = String.valueOf(phoneNumber).replaceFirst("(\\d{3})(\\d{3})(\\d+)", "$1-$2-$3");
                         tempTelecomDto.setValue(Optional.ofNullable(formattedPhone));
                     }
                     tempTelecomDto.setSystem(Optional.ofNullable(tempTelecom.getSystem().toCode()));
                 } else {
+                    tempTelecomDto.setSystem(Optional.ofNullable(tempTelecom.getSystem().toCode()));
                     tempTelecomDto.setValue(Optional.ofNullable(tempTelecom.getValue()));
                 }
-                tempTelecomDto.setSystem(Optional.ofNullable(tempTelecom.getSystem().toCode()));
                 if (tempTelecom.getUse() != null) {
                     tempTelecomDto.setUse(Optional.ofNullable(tempTelecom.getUse().toCode()));
                 }
