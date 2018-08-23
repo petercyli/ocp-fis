@@ -39,7 +39,6 @@ public class CareTeamDto {
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private String startDate;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private String endDate;
 
     private List<ParticipantDto> participants;

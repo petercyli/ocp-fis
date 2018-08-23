@@ -7,6 +7,7 @@ import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
+import gov.samhsa.ocp.ocpfis.constants.CareTeamConstants;
 import gov.samhsa.ocp.ocpfis.domain.CareTeamFieldEnum;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
@@ -58,26 +59,23 @@ import static java.util.stream.Collectors.toList;
 @Slf4j
 public class CareTeamServiceImpl implements CareTeamService {
 
-    public static final String STATUS_ACTIVE = "active";
-    public static final String CAREMANAGER_ROLE = "171M00000X";
     private final IGenericClient fhirClient;
     private final FhirValidator fhirValidator;
     private final LookUpService lookUpService;
     private final FisProperties fisProperties;
     private final CommunicationService communicationService;
     private final ProvenanceUtil provenanceUtil;
+    private final PractitionerServiceImpl practitionerService;
 
     @Autowired
-    PractitionerServiceImpl practitionerService;
-
-    @Autowired
-    public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, CommunicationService communicationService, ProvenanceUtil provenanceUtil) {
+    public CareTeamServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties, CommunicationService communicationService, ProvenanceUtil provenanceUtil, PractitionerServiceImpl practitionerService) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
         this.fisProperties = fisProperties;
         this.communicationService = communicationService;
         this.provenanceUtil = provenanceUtil;
+        this.practitionerService = practitionerService;
     }
 
     @Override
@@ -613,12 +611,12 @@ public class CareTeamServiceImpl implements CareTeamService {
                     }
                     return role;
                 })
-                .anyMatch(t -> t.contains(CAREMANAGER_ROLE));
+                .anyMatch(t -> t.contains(CareTeamConstants.CAREMANAGER_ROLE));
     }
 
     private void checkForDuplicates(CareTeamDto careTeamDto) {
         Bundle careTeamBundle = fhirClient.search().forResource(CareTeam.class)
-                .where(new TokenClientParam(CareTeamFieldEnum.STATUS.getCode()).exactly().code(STATUS_ACTIVE))
+                .where(new TokenClientParam(CareTeamFieldEnum.STATUS.getCode()).exactly().code(CareTeamConstants.STATUS_ACTIVE))
                 .and(new TokenClientParam(CareTeamFieldEnum.SUBJECT.getCode()).exactly().code(careTeamDto.getSubjectId()))
                 .and(new TokenClientParam(CareTeamFieldEnum.CATEGORY.getCode()).exactly().code(careTeamDto.getCategoryCode()))
                 .returnBundle(Bundle.class)

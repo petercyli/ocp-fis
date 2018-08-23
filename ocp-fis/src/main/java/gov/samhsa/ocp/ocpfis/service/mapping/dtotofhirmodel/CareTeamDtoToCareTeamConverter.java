@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel;
 
+import gov.samhsa.ocp.ocpfis.constants.CareTeamConstants;
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
@@ -29,8 +30,13 @@ public class CareTeamDtoToCareTeamConverter {
         careTeam.setName(careTeamDto.getName());
 
         //status
-        CareTeam.CareTeamStatus careTeamStatus = CareTeam.CareTeamStatus.fromCode(careTeamDto.getStatusCode());
-        careTeam.setStatus(careTeamStatus);
+        if(careTeamDto.getStatusCode() != null && !careTeamDto.getStatusCode().trim().isEmpty()){
+            CareTeam.CareTeamStatus careTeamStatus = CareTeam.CareTeamStatus.fromCode(careTeamDto.getStatusCode());
+            careTeam.setStatus(careTeamStatus);
+        } else{
+            CareTeam.CareTeamStatus careTeamStatus = CareTeam.CareTeamStatus.fromCode(CareTeamConstants.STATUS_ACTIVE);
+            careTeam.setStatus(careTeamStatus);
+        }
 
         //categories
         Coding coding = new Coding();

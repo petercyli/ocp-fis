@@ -18,7 +18,7 @@ public class DateUtil {
 
     public static Date convertStringToDate(String dateString) throws ParseException {
         DateFormat format = new SimpleDateFormat("MM/dd/yyyy", Locale.US);
-        if (dateString != null) {
+        if (dateString != null && !dateString.trim().isEmpty()) {
             return format.parse(dateString);
         }
         return null;
@@ -27,7 +27,7 @@ public class DateUtil {
 
     public static Date convertStringToDateTime(String dateString) throws ParseException {
         DateFormat format = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss z", Locale.US);
-        if (dateString != null) {
+        if (dateString != null && !dateString.trim().isEmpty()) {
             return format.parse(dateString);
         }
         return null;
