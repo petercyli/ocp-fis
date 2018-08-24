@@ -282,7 +282,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (practitionerId.isPresent()) {
             log.info("Searching Appointments for practitionerId = " + practitionerId.get().trim());
             iQuery.where(new ReferenceClientParam("practitioner").hasId(practitionerId.get().trim()));
-            actorReference = "Practitioner" + practitionerId.get().trim();
+            actorReference = "Practitioner/" + practitionerId.get().trim();
         }
         final String actorReferenceFinal = actorReference;
         // Check if there are any additional search criteria
