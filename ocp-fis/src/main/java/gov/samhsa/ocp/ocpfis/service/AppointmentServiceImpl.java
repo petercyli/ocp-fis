@@ -306,9 +306,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                         (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.of(actorReferenceFinal)))).collect(toList());
 
         if(actorReference!= null && !actorReference.trim().isEmpty()){
-            //Remove the appointments which has been declined by the actorReference
+            //Remove the appointments which has been declined by the actorReference or he is Information-only
             allCalendarAppointments.removeIf(app -> hasActorDeclined(app, actorReferenceFinal));
-
+            allCalendarAppointments.removeIf(app -> isActorRequiredForInformationOnly(app, actorReferenceFinal));
         }
         log.info("Found " + allCalendarAppointments.size() + " appointments during search(getNonDeclinedAppointmentsWithNoPagination).");
 
@@ -318,6 +318,11 @@ public class AppointmentServiceImpl implements AppointmentService {
     private boolean hasActorDeclined(AppointmentDto appointmentDto, String actorReference){
         return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && p.getParticipationStatusCode().equalsIgnoreCase(AppointmentConstants.DECLINED_PARTICIPATION_STATUS));
     }
+
+    private boolean isActorRequiredForInformationOnly(AppointmentDto appointmentDto, String actorReference){
+        return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && p.getParticipantRequiredCode().equalsIgnoreCase(AppointmentConstants.INFORMATION_ONLY));
+    }
+
 
 
     @Override
