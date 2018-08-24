@@ -269,7 +269,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public List<AppointmentDto> getAppointmentsWithNoPagination(Optional<List<String>> statusList, Optional<String> patientId, Optional<String> practitionerId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showPastAppointments, Optional<Boolean> sortByStartTimeAsc) {
+    public List<AppointmentDto> getNonDeclinedAppointmentsWithNoPagination(Optional<List<String>> statusList, Optional<String> patientId, Optional<String> practitionerId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showPastAppointments, Optional<Boolean> sortByStartTimeAsc) {
         IQuery iQuery = FhirOperationUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
 
         String actorReference = null;
@@ -310,7 +310,7 @@ public class AppointmentServiceImpl implements AppointmentService {
             allCalendarAppointments.removeIf(app -> hasActorDeclined(app, actorReferenceFinal));
 
         }
-        log.info("Found " + allCalendarAppointments.size() + " appointments during search(getAppointmentsWithNoPagination).");
+        log.info("Found " + allCalendarAppointments.size() + " appointments during search(getNonDeclinedAppointmentsWithNoPagination).");
 
         return allCalendarAppointments;
     }
