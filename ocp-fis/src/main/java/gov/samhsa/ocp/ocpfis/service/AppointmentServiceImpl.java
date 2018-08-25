@@ -306,7 +306,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                         (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.of(actorReferenceFinal)))).collect(toList());
 
         if(actorReference!= null && !actorReference.trim().isEmpty()){
-            //Remove the appointments which has been declined by the actorReference or he is Information-only
+            //Remove the appointments which has been declined by the actorReference or he is not required to participate
             allCalendarAppointments.removeIf(app -> hasActorDeclined(app, actorReferenceFinal));
             allCalendarAppointments.removeIf(app -> isActorNotRequired(app, actorReferenceFinal));
         }
