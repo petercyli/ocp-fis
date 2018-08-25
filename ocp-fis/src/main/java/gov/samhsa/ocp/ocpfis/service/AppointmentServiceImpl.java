@@ -308,7 +308,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         if(actorReference!= null && !actorReference.trim().isEmpty()){
             //Remove the appointments which has been declined by the actorReference or he is Information-only
             allCalendarAppointments.removeIf(app -> hasActorDeclined(app, actorReferenceFinal));
-            allCalendarAppointments.removeIf(app -> isActorRequiredForInformationOnly(app, actorReferenceFinal));
+            allCalendarAppointments.removeIf(app -> isActorNotRequired(app, actorReferenceFinal));
         }
         log.info("Found " + allCalendarAppointments.size() + " appointments during search(getNonDeclinedAppointmentsWithNoPagination).");
 
@@ -319,8 +319,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && p.getParticipationStatusCode().equalsIgnoreCase(AppointmentConstants.DECLINED_PARTICIPATION_STATUS));
     }
 
-    private boolean isActorRequiredForInformationOnly(AppointmentDto appointmentDto, String actorReference){
-        return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && p.getParticipantRequiredCode().equalsIgnoreCase(AppointmentConstants.INFORMATION_ONLY));
+    private boolean isActorNotRequired(AppointmentDto appointmentDto, String actorReference){
+        return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && !p.getParticipantRequiredCode().equalsIgnoreCase(AppointmentConstants.REQUIRED));
     }
 
 
