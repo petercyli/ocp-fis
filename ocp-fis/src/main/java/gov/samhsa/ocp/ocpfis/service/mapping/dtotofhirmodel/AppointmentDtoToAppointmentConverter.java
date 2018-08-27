@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 public final class AppointmentDtoToAppointmentConverter {
@@ -63,6 +64,7 @@ public final class AppointmentDtoToAppointmentConverter {
             if (appointmentDto.getParticipant() == null || appointmentDto.getParticipant().isEmpty()) {
                 throw new PreconditionFailedException("An appointment cannot be without its participant(s).");
             } else {
+                appointmentDto.getParticipant().removeIf(p -> duplicateParticipantsExist(appointmentDto, p, isCreate));
                 List<Appointment.AppointmentParticipantComponent> participantList = new ArrayList<>();
                 for (AppointmentParticipantDto participant : appointmentDto.getParticipant()) {
                     Appointment.AppointmentParticipantComponent participantModel = new Appointment.AppointmentParticipantComponent();
@@ -142,6 +144,18 @@ public final class AppointmentDtoToAppointmentConverter {
             throw new BadRequestException("Invalid values in the request Dto ", e);
         }
     }
+
+    private static boolean duplicateParticipantsExist(AppointmentDto appointmentDto, AppointmentParticipantDto p, boolean isCreate) {
+        boolean flag;
+        if (isCreate) {
+            flag = p.getActorReference().equalsIgnoreCase(appointmentDto.getCreatorReference().trim());
+        } else{
+            List<String> referencesList = appointmentDto.getParticipant().stream().map(AppointmentParticipantDto::getActorReference).collect(Collectors.toList());
+            flag = referencesList.contains(p.getActorReference().trim());
+        }
+        return flag;
+    }
+
 
     private static boolean isStringNotNullAndNotEmpty(String givenString) {
         return givenString != null && !givenString.trim().isEmpty();
