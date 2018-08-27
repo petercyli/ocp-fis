@@ -71,19 +71,19 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private final PatientService patientService;
 
+    private final CareTeamServiceImpl careTeamService;
+
     private final ProvenanceUtil provenanceUtil;
 
     @Autowired
-    public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService, ProvenanceUtil provenanceUtil) {
+    public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService, ProvenanceUtil provenanceUtil, CareTeamServiceImpl careTeamService) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
         this.patientService = patientService;
         this.provenanceUtil = provenanceUtil;
+        this.careTeamService = careTeamService;
     }
-
-    @Autowired
-    CareTeamServiceImpl careTeamService;
 
     @Override
     public void createAppointment(AppointmentDto appointmentDto, Optional<String> loggedInUser) {
@@ -109,7 +109,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (fisProperties.isProvenanceEnabled()) {
             provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
         }
-
     }
 
     @Override
@@ -165,9 +164,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<String> recipients = new ArrayList<>();
 
         if (appointmentId.isPresent()) {
-
             recipients = getParticipantsByPatientAndAppointmentId(patientId, appointmentId.get().trim());
-
         }
 
         for (ReferenceDto participant : participantsByRoles) {
