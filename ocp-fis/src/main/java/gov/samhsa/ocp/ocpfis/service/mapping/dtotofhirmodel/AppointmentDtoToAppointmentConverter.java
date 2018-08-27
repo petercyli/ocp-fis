@@ -18,9 +18,9 @@ import org.hl7.fhir.exceptions.FHIRException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Slf4j
 public final class AppointmentDtoToAppointmentConverter {
@@ -64,7 +64,11 @@ public final class AppointmentDtoToAppointmentConverter {
             if (appointmentDto.getParticipant() == null || appointmentDto.getParticipant().isEmpty()) {
                 throw new PreconditionFailedException("An appointment cannot be without its participant(s).");
             } else {
-                appointmentDto.getParticipant().removeIf(p -> duplicateParticipantsExist(appointmentDto, p, isCreate));
+                // Remove duplicates
+                appointmentDto.getParticipant().removeIf(p -> duplicateParticipantsExistDuringCreate(appointmentDto, p, isCreate));
+                HashMap<String, Integer> referencesMap = getParticipantCountMap(appointmentDto);
+                appointmentDto.getParticipant().removeIf(p -> referencesMap.get(p.getActorReference()) > 1);
+
                 List<Appointment.AppointmentParticipantComponent> participantList = new ArrayList<>();
                 for (AppointmentParticipantDto participant : appointmentDto.getParticipant()) {
                     Appointment.AppointmentParticipantComponent participantModel = new Appointment.AppointmentParticipantComponent();
@@ -145,17 +149,27 @@ public final class AppointmentDtoToAppointmentConverter {
         }
     }
 
-    private static boolean duplicateParticipantsExist(AppointmentDto appointmentDto, AppointmentParticipantDto p, boolean isCreate) {
-        boolean flag;
+    private static boolean duplicateParticipantsExistDuringCreate(AppointmentDto appointmentDto, AppointmentParticipantDto p, boolean isCreate) {
+        boolean flag = false;
         if (isCreate) {
             flag = p.getActorReference().equalsIgnoreCase(appointmentDto.getCreatorReference().trim());
-        } else{
-            List<String> referencesList = appointmentDto.getParticipant().stream().map(AppointmentParticipantDto::getActorReference).collect(Collectors.toList());
-            flag = referencesList.contains(p.getActorReference().trim());
         }
         return flag;
     }
 
+    private static HashMap<String, Integer> getParticipantCountMap(AppointmentDto appointmentDto){
+        HashMap<String, Integer> referencesCountMap = new HashMap<>();
+        for(AppointmentParticipantDto p : appointmentDto.getParticipant()){
+            String actor = p.getActorReference().trim();
+            if(!referencesCountMap.keySet().contains(actor)){
+                referencesCountMap.put(actor, 1);
+            } else{
+                int tempCount = referencesCountMap.get(actor);
+                referencesCountMap.put(actor, tempCount+1);
+            }
+        }
+        return referencesCountMap;
+    }
 
     private static boolean isStringNotNullAndNotEmpty(String givenString) {
         return givenString != null && !givenString.trim().isEmpty();
