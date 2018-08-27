@@ -11,35 +11,29 @@ import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.CommunicationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
+import gov.samhsa.ocp.ocpfis.service.mapping.CommunicationDtoToCommunicationMap;
+import gov.samhsa.ocp.ocpfis.service.mapping.CommunicationToCommunicationDtoMap;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
-import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import lombok.extern.slf4j.Slf4j;
-import org.hl7.fhir.dstu3.model.Annotation;
 import org.hl7.fhir.dstu3.model.Bundle;
-import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Communication;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
-import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
-import org.hl7.fhir.dstu3.model.StringType;
-import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -69,7 +63,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         this.provenanceUtil = provenanceUtil;
     }
 
-    public PageDto<CommunicationDto> getCommunications(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<String> organization, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+    public PageDto<CommunicationDto> getCommunications(Optional<List<String>> statusList, String searchKey, String searchValue, Optional<String> organization, Optional<String> topic, Optional<String> resourceType, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
         int numberOfCommunicationsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.Communication.name());
         IQuery iQuery = fhirClient.search().forResource(Communication.class);
 
@@ -86,6 +80,12 @@ public class CommunicationServiceImpl implements CommunicationService {
         //Check for Status
         if (statusList.isPresent() && !statusList.get().isEmpty()) {
             iQuery.where(new TokenClientParam("status").exactly().codes(statusList.get()));
+        }
+
+        //Topic
+        if(topic.isPresent() && resourceType.isPresent()) {
+            //iQuery.where(new RichStringClientParam("topic").contains().value(topic.get()));
+            iQuery.include(Communication.INCLUDE_ALL);
         }
 
         Bundle firstPageCommunicationBundle;
@@ -110,115 +110,25 @@ public class CommunicationServiceImpl implements CommunicationService {
 
         List<Bundle.BundleEntryComponent> retrievedCommunications = otherPageCommunicationBundle.getEntry();
 
-
         List<CommunicationDto> communicationDtos = retrievedCommunications.stream().filter(retrivedBundle -> retrivedBundle.getResource().getResourceType().equals(ResourceType.Communication)).map(retrievedCommunication -> {
-
             Communication communication = (Communication) retrievedCommunication.getResource();
-            CommunicationDto communicationDto = new CommunicationDto();
-
-            if (retrievedCommunication.getResource().hasMeta() && retrievedCommunication.getResource().getMeta().hasLastUpdated()) {
-                Date lastUpdated = retrievedCommunication.getResource().getMeta().getLastUpdated();
-                communicationDto.setLastUpdated(DateUtil.convertDateTimeToString(lastUpdated));
-            }
-
-            communicationDto.setLogicalId(communication.getIdElement().getIdPart());
-
-            communicationDto.setNotDone(communication.getNotDone());
-
-            if (communication.hasStatus()) {
-                communicationDto.setStatusValue(communication.getStatus().getDisplay());
-                communicationDto.setStatusCode(communication.getStatus().toCode());
-            }
-
-            if (communication.hasCategory()) {
-                ValueSetDto category = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getCategory());
-                communicationDto.setCategoryValue(category.getDisplay());
-                communicationDto.setCategoryCode(category.getCode());
-            }
-
-            if (communication.hasMedium()) {
-                ValueSetDto medium = FhirDtoUtil.convertCodeableConceptListToValuesetDto(communication.getMedium());
-                communicationDto.setMediumValue(medium.getDisplay());
-                communicationDto.setMediumCode(medium.getCode());
-            }
-
-            if (communication.hasNotDoneReason()) {
-                ValueSetDto notDoneReason = FhirDtoUtil.convertCodeableConceptToValueSetDto(communication.getNotDoneReason());
-                communicationDto.setNotDoneReasonValue(notDoneReason.getDisplay());
-                communicationDto.setNotDoneReasonCode(notDoneReason.getCode());
-            }
-
-            if (communication.hasRecipient()) {
-                communicationDto.setRecipient(communication.getRecipient().stream().map(FhirDtoUtil::convertReferenceToReferenceDto).collect(Collectors.toList()));
-            }
-
-            if (communication.hasSender()) {
-                communicationDto.setSender(ReferenceDto.builder()
-                        .reference((communication.getSender().getReference() != null && !communication.getSender().getReference().isEmpty()) ? communication.getSender().getReference() : null)
-                        .display((communication.getSender().getDisplay() != null && !communication.getSender().getDisplay().isEmpty()) ? communication.getSender().getDisplay() : null)
-                        .build());
-            }
-
-            if (communication.hasSubject()) {
-                communicationDto.setSubject(ReferenceDto.builder()
-                        .reference((communication.getSubject().getReference() != null && !communication.getSubject().getReference().isEmpty()) ? communication.getSubject().getReference() : null)
-                        .display((communication.getSubject().getDisplay() != null && !communication.getSubject().getDisplay().isEmpty()) ? communication.getSubject().getDisplay() : null)
-                        .build());
-            }
-
-
-            if (communication.hasTopic()) {
-                communicationDto.setTopic(ReferenceDto.builder()
-                        .reference(FhirDtoUtil.convertReferenceToReferenceDto(communication.getTopic().stream().findAny().get()).getReference())
-                        .display(FhirDtoUtil.convertReferenceToReferenceDto(communication.getTopic().stream().findAny().get()).getDisplay())
-                        .build());
-            }
-
-
-            if (communication.hasDefinition()) {
-                communicationDto.setDefinition(ReferenceDto.builder()
-                        .reference(FhirDtoUtil.convertReferenceToReferenceDto(communication.getDefinition().stream().findAny().get()).getReference())
-                        .display(FhirDtoUtil.convertReferenceToReferenceDto(communication.getDefinition().stream().findAny().get()).getDisplay())
-                        .build());
-            }
-
-            //TODO: Remove this after data purge.
-            if (communication.hasContext()) {
-                communicationDto.setContext(ReferenceDto.builder()
-                        .reference((communication.getContext().getReference() != null && !communication.getContext().getReference().isEmpty()) ? communication.getContext().getReference() : null)
-                        .display((communication.getContext().getDisplay() != null && !communication.getContext().getDisplay().isEmpty()) ? communication.getContext().getDisplay() : null)
-                        .build());
-            }
-
-
-            if (communication.hasNote()) {
-                communicationDto.setNote(communication.getNote().stream().findAny().get().getText());
-            }
-
-
-            if (communication.hasNote()) {
-                communicationDto.setNote(communication.getNote().stream().findAny().get().getText());
-            }
-
-            if (communication.hasPayload()) {
-                try {
-                    communicationDto.setPayloadContent(communication.getPayload().stream().findAny().get().getContentStringType().getValue());
-                } catch (FHIRException e) {
-                    throw new FHIRClientException("FHIR Client returned with an error while load a communication:" + e.getMessage());
-                }
-            }
-
-            if (communication.hasSent()) {
-                communicationDto.setSent(DateUtil.convertDateTimeToString(communication.getSent()));
-            }
-
-            if (communication.hasReceived()) {
-                communicationDto.setReceived(DateUtil.convertDateTimeToString(communication.getReceived()));
-            }
-
-            return communicationDto;
+            return CommunicationToCommunicationDtoMap.map(communication);
 
         }).collect(toList());
+
+        if (topic.isPresent() && resourceType.isPresent()) {
+            communicationDtos = communicationDtos.stream().filter(dto -> {
+                boolean result = false;
+                ReferenceDto refDto = dto.getTopic();
+
+                if (refDto != null && refDto.getReference() != null) {
+                    result = refDto.getReference().equals(resourceType.get() + "/" + topic.get());
+                }
+
+                return result;
+            }).collect(toList());
+            otherPageCommunicationBundle.setTotal(communicationDtos.size());
+        }
 
         double totalPages = Math.ceil((double) otherPageCommunicationBundle.getTotal() / numberOfCommunicationsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
@@ -248,7 +158,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         try {
             List<String> idList = new ArrayList<>();
 
-            final Communication communication = convertCommunicationDtoToCommunication(communicationDto);
+            final Communication communication = CommunicationDtoToCommunicationMap.map(communicationDto, lookUpService);
             communication.setSent(DateUtil.convertLocalDateTimeToUTCDate(LocalDateTime.now()));
             //Set Profile Meta Data
             FhirProfileUtil.setCommunicationProfileMetaData(fhirClient, communication);
@@ -273,7 +183,7 @@ public class CommunicationServiceImpl implements CommunicationService {
         try {
             List<String> idList = new ArrayList<>();
 
-            Communication communication = convertCommunicationDtoToCommunication(communicationDto);
+            Communication communication = CommunicationDtoToCommunicationMap.map(communicationDto, lookUpService);
             communication.setId(communicationId);
             //Set Profile Meta Data
             FhirProfileUtil.setCommunicationProfileMetaData(fhirClient, communication);
@@ -292,98 +202,5 @@ public class CommunicationServiceImpl implements CommunicationService {
         }
     }
 
-    private Communication convertCommunicationDtoToCommunication(CommunicationDto communicationDto) throws ParseException {
-        Communication communication = new Communication();
 
-        communication.setNotDone(communicationDto.isNotDone());
-
-        //Set Subject
-        if (communicationDto.getSubject() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getSubject().getReference())) {
-            communication.setSubject(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSubject()));
-        }
-
-        //Set Sender
-        if (communicationDto.getSender() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getSender().getReference())) {
-            communication.setSender(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSender()));
-        }
-
-        //Set Status
-        if (communicationDto.getStatusCode() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getStatusCode())) {
-            communication.setStatus(Communication.CommunicationStatus.valueOf(communicationDto.getStatusCode().toUpperCase().replaceAll("-", "")));
-        }
-
-        //Set Category
-        if (communicationDto.getCategoryCode() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getCategoryCode())) {
-            ValueSetDto category = FhirDtoUtil.convertCodeToValueSetDto(communicationDto.getCategoryCode(), lookUpService.getCommunicationCategory());
-            List<CodeableConcept> categories = new ArrayList<>();
-            categories.add(FhirDtoUtil.convertValuesetDtoToCodeableConcept(category));
-            communication.setCategory(categories);
-        }
-
-        //Set Medium
-        if (communicationDto.getMediumCode() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getMediumCode())) {
-            ValueSetDto medium = FhirDtoUtil.convertCodeToValueSetDto(communicationDto.getMediumCode(), lookUpService.getCommunicationMedium());
-            List<CodeableConcept> mediums = new ArrayList<>();
-            mediums.add(FhirDtoUtil.convertValuesetDtoToCodeableConcept(medium));
-            communication.setMedium(mediums);
-        }
-
-        //Set Not Done Reason
-        if (communicationDto.getNotDoneReasonCode() != null) {
-            ValueSetDto notDoneReason = FhirDtoUtil.convertCodeToValueSetDto(communicationDto.getNotDoneReasonCode(), lookUpService.getCommunicationNotDoneReason());
-            communication.setNotDoneReason(FhirDtoUtil.convertValuesetDtoToCodeableConcept(notDoneReason));
-        }
-
-        //Set subject
-        if (communicationDto.getSubject() != null) {
-            communication.setSubject(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getSubject()));
-        }
-
-        //Set recipients
-        if (communicationDto.getRecipient() != null) {
-            communication.setRecipient(communicationDto.getRecipient().stream().map(FhirDtoUtil::mapReferenceDtoToReference).collect(Collectors.toList()));
-        }
-
-        //Set topic
-        if (communicationDto.getTopic() != null) {
-            List<Reference> topics = new ArrayList<>();
-            topics.add(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getTopic()));
-            communication.setTopic(topics);
-        }
-
-        //Set definitions
-        if (communicationDto.getDefinition() != null) {
-            List<Reference> definitions = new ArrayList<>();
-            definitions.add(FhirDtoUtil.mapReferenceDtoToReference(communicationDto.getDefinition()));
-            communication.setDefinition(definitions);
-        }
-
-        //Set Sent and Received Dates
-        if (communicationDto.getSent() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getSent())) {
-            communication.setSent(DateUtil.convertStringToDateTime(communicationDto.getSent()));
-        }
-
-        if (communicationDto.getReceived() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getReceived()))
-            communication.setReceived(DateUtil.convertStringToDateTime(communicationDto.getReceived()));
-
-        //Set Note
-        if (communicationDto.getNote() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getNote())) {
-            Annotation note = new Annotation();
-            note.setText(communicationDto.getNote());
-            List<Annotation> notes = new ArrayList<>();
-            notes.add(note);
-            communication.setNote(notes);
-        }
-
-        //Set Message
-        if (communicationDto.getPayloadContent() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getPayloadContent())) {
-            StringType newType = new StringType(communicationDto.getPayloadContent());
-            Communication.CommunicationPayloadComponent messagePayload = new Communication.CommunicationPayloadComponent(newType);
-            List<Communication.CommunicationPayloadComponent> payloads = new ArrayList<>();
-            payloads.add(messagePayload);
-            communication.setPayload(payloads);
-        }
-
-        return communication;
-    }
 }

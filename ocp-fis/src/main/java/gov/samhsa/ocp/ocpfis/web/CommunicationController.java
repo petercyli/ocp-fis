@@ -30,7 +30,7 @@ public class CommunicationController {
                                                        @RequestParam(value = "organization") Optional<String> organization,
                                                        @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
                                                        @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
-        return communicationService.getCommunications(statusList, searchKey, searchValue, organization, pageNumber, pageSize);
+        return communicationService.getCommunications(statusList, searchKey, searchValue, organization, Optional.empty(), Optional.empty(), pageNumber, pageSize);
     }
 
 
@@ -44,6 +44,15 @@ public class CommunicationController {
     @ResponseStatus(HttpStatus.OK)
     public void updateCommunication(@PathVariable String communicationId, @Valid @RequestBody CommunicationDto communicationDto, @RequestParam(value = "loggedInUser") Optional<String> loggedInUser){
         communicationService.updateCommunication(communicationId,communicationDto, loggedInUser);
+    }
+
+    @GetMapping("/communications")
+    public PageDto<CommunicationDto> getCommunications(@RequestParam(value = "patient") String patient,
+                                                       @RequestParam(value = "topic") String topic,
+                                                       @RequestParam(value = "resourceType") String resourceType,
+                                                       @RequestParam(value = "pageNumber") Optional<Integer> pageNumber,
+                                                       @RequestParam(value = "pageSize") Optional<Integer> pageSize) {
+        return communicationService.getCommunications(Optional.empty(), "Patient", patient, Optional.empty(), Optional.of(topic), Optional.of(resourceType), pageNumber, pageSize);
     }
 
 }
