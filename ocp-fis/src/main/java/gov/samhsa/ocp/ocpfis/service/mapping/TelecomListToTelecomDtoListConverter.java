@@ -29,7 +29,8 @@ public class TelecomListToTelecomDtoListConverter extends AbstractConverter<List
                     }
                     tempTelecomDto.setSystem(Optional.ofNullable(tempTelecom.getSystem().toCode()));
                 } else {
-                    tempTelecomDto.setSystem(Optional.ofNullable(tempTelecom.getSystem().toCode()));
+                    if(tempTelecom.getSystem() != null && tempTelecom.getSystem().toCode() != null)
+                        tempTelecomDto.setSystem(Optional.ofNullable(tempTelecom.getSystem().toCode()));
                     tempTelecomDto.setValue(Optional.ofNullable(tempTelecom.getValue()));
                 }
                 if (tempTelecom.getUse() != null) {
