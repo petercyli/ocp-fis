@@ -3,8 +3,7 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.AppointmentService;
 import gov.samhsa.ocp.ocpfis.service.LookUpService;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
-import gov.samhsa.ocp.ocpfis.service.dto.PageDto;;
-import gov.samhsa.ocp.ocpfis.web.AppointmentController;
+import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Ignore;
@@ -25,15 +24,17 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Optional;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+;
 
 @RunWith(SpringRunner.class)
 @WebMvcTest(value = AppointmentController.class, secure = false)
@@ -98,7 +99,7 @@ public class AppointmentControllerTest {
         String searchValue = "10";
         Boolean pastAppt = true;
         Boolean sortStartTime = true;
-        Mockito.when(appointmentService.getAppointmentsWithNoPagination(Optional.of(statusList),Optional.of(patientId),Optional.of(practitionerId),Optional.of(searchKey),
+        Mockito.when(appointmentService.getNonDeclinedAppointmentsWithNoPagination(Optional.of(statusList),Optional.of(patientId),Optional.of(practitionerId),Optional.of(searchKey),
                 Optional.of(searchValue),Optional.of(pastAppt), Optional.of(sortStartTime))).thenReturn(dtos);
 
         //Act

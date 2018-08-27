@@ -67,15 +67,15 @@ public class AppointmentController {
         return appointmentService.getAppointments(statusList, requesterReference, patientId, practitionerId, searchKey, searchValue, showPastAppointments, filterDateOption, sortByStartTimeAsc, pageNumber, pageSize);
     }
 
-    @GetMapping("/appointments/search-with-no-pagination")
-    public List<AppointmentDto> getAppointmentsWithNoPagination(@RequestParam Optional<List<String>> statusList,
+    @GetMapping("/appointments/not-declined-and-not-paginated")
+    public List<AppointmentDto> getNonDeclinedAppointmentsWithNoPagination(@RequestParam Optional<List<String>> statusList,
                                                                 @RequestParam(value = "patientId") Optional<String> patientId,
                                                                 @RequestParam(value = "practitionerId") Optional<String> practitionerId,
                                                                 @RequestParam(value = "searchKey") Optional<String> searchKey,
                                                                 @RequestParam(value = "searchValue") Optional<String> searchValue,
                                                                 @RequestParam(value = "showPastAppointments") Optional<Boolean> showPastAppointments,
                                                                 @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc) {
-        return appointmentService.getAppointmentsWithNoPagination(statusList, patientId, practitionerId, searchKey, searchValue, showPastAppointments, sortByStartTimeAsc);
+        return appointmentService.getNonDeclinedAppointmentsWithNoPagination(statusList, patientId, practitionerId, searchKey, searchValue, showPastAppointments, sortByStartTimeAsc);
     }
 
     @GetMapping("/appointments/Practitioner/{practitionerId}/include-care-team-patient")

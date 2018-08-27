@@ -269,17 +269,22 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     @Override
-    public List<AppointmentDto> getAppointmentsWithNoPagination(Optional<List<String>> statusList, Optional<String> patientId, Optional<String> practitionerId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showPastAppointments, Optional<Boolean> sortByStartTimeAsc) {
+    public List<AppointmentDto> getNonDeclinedAppointmentsWithNoPagination(Optional<List<String>> statusList, Optional<String> patientId, Optional<String> practitionerId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showPastAppointments, Optional<Boolean> sortByStartTimeAsc) {
         IQuery iQuery = FhirOperationUtil.searchNoCache(fhirClient, Appointment.class, Optional.empty());
+
+        String actorReference = null;
 
         if (patientId.isPresent()) {
             log.info("Searching Appointments for patientId = " + patientId.get().trim());
             iQuery.where(new ReferenceClientParam("patient").hasId(patientId.get().trim()));
+            actorReference = "Patient/" + patientId.get().trim();
         }
         if (practitionerId.isPresent()) {
             log.info("Searching Appointments for practitionerId = " + practitionerId.get().trim());
             iQuery.where(new ReferenceClientParam("practitioner").hasId(practitionerId.get().trim()));
+            actorReference = "Practitioner/" + practitionerId.get().trim();
         }
+        final String actorReferenceFinal = actorReference;
         // Check if there are any additional search criteria
         iQuery = addStatusSearchConditions(iQuery, statusList);
 
@@ -295,11 +300,30 @@ public class AppointmentServiceImpl implements AppointmentService {
         Bundle bundle = (Bundle) iQuery.returnBundle(Bundle.class).execute();
 
         List<Bundle.BundleEntryComponent> retrievedAppointments = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
-        log.info("Found " + bundle.getTotal() + " appointments during search(getAppointmentsWithNoPagination).");
-        return retrievedAppointments.stream()
+
+        List<AppointmentDto>  allCalendarAppointments = retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
-                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.empty()))).collect(toList());
+                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.of(actorReferenceFinal)))).collect(toList());
+
+        if(actorReference!= null && !actorReference.trim().isEmpty()){
+            //Remove the appointments which has been declined by the actorReference and not required to participate
+            allCalendarAppointments.removeIf(app -> hasActorDeclined(app, actorReferenceFinal));
+            allCalendarAppointments.removeIf(app -> isActorNotRequired(app, actorReferenceFinal));
+        }
+        log.info("Found " + allCalendarAppointments.size() + " appointments during search(getNonDeclinedAppointmentsWithNoPagination).");
+
+        return allCalendarAppointments;
     }
+
+    private boolean hasActorDeclined(AppointmentDto appointmentDto, String actorReference){
+        return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && p.getParticipationStatusCode().equalsIgnoreCase(AppointmentConstants.DECLINED_PARTICIPATION_STATUS));
+    }
+
+    private boolean isActorNotRequired(AppointmentDto appointmentDto, String actorReference){
+        return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && !p.getParticipantRequiredCode().equalsIgnoreCase(AppointmentConstants.REQUIRED));
+    }
+
+
 
     @Override
     public PageDto<AppointmentDto> getAppointmentsByPractitionerAndAssignedCareTeamPatients(String practitionerId, Optional<List<String>> statusList, Optional<String> requesterReference, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showPastAppointments, Optional<String> filterDateOption, Optional<Boolean> sortByStartTimeAsc, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
