@@ -519,9 +519,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                             ReferenceDto referenceDto = new ReferenceDto();
                             referenceDto.setReference("Practitioner/" + pr.getIdElement().getIdPart());
                             pr.getName().stream().findAny().ifPresent(name -> {
-                                String fn = name.getFamily();
-                                StringType ln = name.getGiven().stream().findAny().orElse(null);
-                                referenceDto.setDisplay(fn + " " + ln.toString());
+                                String ln = name.getFamily();
+                                StringType fnStringType = name.getGiven().stream().findAny().orElse(null);
+                                String fn = fnStringType.getValueNotNull();
+                                referenceDto.setDisplay(fn + " " + ln);
                             });
                             AppointmentParticipantReferenceDto aRefDto = convertPractitionerReferenceToAppointmentParticipantReferenceDto(referenceDto);
                             return aRefDto;
