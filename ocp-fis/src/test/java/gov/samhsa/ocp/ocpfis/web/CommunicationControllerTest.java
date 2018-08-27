@@ -5,6 +5,7 @@ import gov.samhsa.ocp.ocpfis.service.dto.CommunicationDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.web.CommunicationController;
 import org.hamcrest.CoreMatchers;
+import org.hl7.fhir.dstu3.model.ResourceType;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -66,7 +67,9 @@ public class CommunicationControllerTest {
         String organization = "organization";
         Integer page = 1;
         Integer size = 10;
-        Mockito.when(communicationService.getCommunications(Optional.of(statusList),"10","10",Optional.of(organization),Optional.of(page),Optional.of(size))).thenReturn(pageDto);
+        String topic = "Appointment/123";
+        String resourceType = ResourceType.Appointment.name();
+        Mockito.when(communicationService.getCommunications(Optional.of(statusList),"10","10",Optional.of(organization), Optional.of(topic), Optional.of(resourceType), Optional.of(page) , Optional.of(size))).thenReturn(pageDto);
 
         //Act
         RequestBuilder requestBuilder = MockMvcRequestBuilders.get("/communications/search?statusList=active&searchKey=10&searchValue=10&organization=organization&pageNumber=1&pageSize=10");
