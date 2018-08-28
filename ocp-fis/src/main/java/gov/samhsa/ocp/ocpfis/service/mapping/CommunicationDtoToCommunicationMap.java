@@ -11,15 +11,20 @@ import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.Communication;
 import org.hl7.fhir.dstu3.model.Reference;
 import org.hl7.fhir.dstu3.model.StringType;
+import org.hl7.fhir.dstu3.model.Type;
+import org.hl7.fhir.exceptions.FHIRException;
 
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class CommunicationDtoToCommunicationMap {
 
-    public static Communication map(CommunicationDto communicationDto, LookUpService lookUpService) throws ParseException {
+    public static final String AUTHOR_STRING = "authorString";
+
+    public static Communication map(CommunicationDto communicationDto, LookUpService lookUpService) throws ParseException, FHIRException {
         Communication communication = new Communication();
 
         communication.setNotDone(communicationDto.isNotDone());
@@ -94,12 +99,25 @@ public class CommunicationDtoToCommunicationMap {
             communication.setReceived(DateUtil.convertStringToDateTime(communicationDto.getReceived()));
 
         //Set Note
-        if (communicationDto.getNote() != null && FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getNote())) {
-            Annotation note = new Annotation();
-            note.setText(communicationDto.getNote());
-            List<Annotation> notes = new ArrayList<>();
-            notes.add(note);
-            communication.setNote(notes);
+        if (FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getNote())) {
+            Annotation annotation = new Annotation();
+            StringType stringType = (StringType) annotation.addChild(AUTHOR_STRING);
+            stringType.setValue("note");
+
+            annotation.setText(communicationDto.getNote());
+
+            communication.setNote(Arrays.asList(annotation));
+        }
+
+        //set duration
+        if(FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getDuration())) {
+            Annotation annotation = new Annotation();
+            StringType stringType = (StringType) annotation.addChild(AUTHOR_STRING);
+            stringType.setValue("duration");
+
+            annotation.setText(communicationDto.getDuration());
+
+            communication.setNote(Arrays.asList(annotation));
         }
 
         //Set Message
