@@ -19,26 +19,24 @@ public class TelecomListToTelecomDtoListConverter extends AbstractConverter<List
         if (source != null && source.size() > 0) {
 
             for (ContactPoint tempTelecom : source) {
-                TelecomDto tempTelecomDto = new TelecomDto();
+                if (tempTelecom != null) {
+                    TelecomDto tempTelecomDto = new TelecomDto();
 
-                if (tempTelecom.getSystem() != null && tempTelecom.getSystem().toCode() != null && tempTelecom.getSystem().toCode().equalsIgnoreCase("phone")) {
-                    String phoneNumber = tempTelecom.getValue();
-                    if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
-                        String formattedPhone = String.valueOf(phoneNumber).replaceFirst("(\\d{3})(\\d{3})(\\d+)", "$1-$2-$3");
-                        tempTelecomDto.setValue(Optional.ofNullable(formattedPhone));
+                    if (tempTelecom.getSystem() != null && tempTelecom.getSystem().toCode().equalsIgnoreCase("phone")) {
+                        String phoneNumber = tempTelecom.getValue();
+                        if (phoneNumber != null && !phoneNumber.trim().isEmpty()) {
+                            String formattedPhone = String.valueOf(phoneNumber).replaceFirst("(\\d{3})(\\d{3})(\\d+)", "$1-$2-$3");
+                            tempTelecomDto.setValue(Optional.of(formattedPhone));
+                        }
+                        tempTelecomDto.setSystem(Optional.ofNullable(tempTelecom.getSystem() != null ? tempTelecom.getSystem().toCode() : null));
+                    } else {
+                        tempTelecomDto.setSystem(Optional.ofNullable(tempTelecom.getSystem() != null ? tempTelecom.getSystem().toCode() : null));
+                        tempTelecomDto.setValue(Optional.ofNullable(tempTelecom.getValue()));
                     }
-                    tempTelecomDto.setSystem(Optional.ofNullable(tempTelecom.getSystem().toCode()));
-                } else {
-                    if(tempTelecom.getSystem() != null && tempTelecom.getSystem().toCode() != null)
-                        tempTelecomDto.setSystem(Optional.ofNullable(tempTelecom.getSystem().toCode()));
-                    tempTelecomDto.setValue(Optional.ofNullable(tempTelecom.getValue()));
+                    tempTelecomDto.setUse(Optional.ofNullable(tempTelecom.getUse() != null ? tempTelecom.getUse().toCode() : null));
+                    telecomDtoList.add(tempTelecomDto);
                 }
-                if (tempTelecom.getUse() != null) {
-                    tempTelecomDto.setUse(Optional.ofNullable(tempTelecom.getUse().toCode()));
-                }
-                telecomDtoList.add(tempTelecomDto);
             }
-
         }
         return telecomDtoList;
     }

@@ -71,19 +71,19 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private final PatientService patientService;
 
+    private final CareTeamServiceImpl careTeamService;
+
     private final ProvenanceUtil provenanceUtil;
 
     @Autowired
-    public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService, ProvenanceUtil provenanceUtil) {
+    public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService, ProvenanceUtil provenanceUtil, CareTeamServiceImpl careTeamService) {
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
         this.patientService = patientService;
         this.provenanceUtil = provenanceUtil;
+        this.careTeamService = careTeamService;
     }
-
-    @Autowired
-    CareTeamServiceImpl careTeamService;
 
     @Override
     public void createAppointment(AppointmentDto appointmentDto, Optional<String> loggedInUser) {
@@ -109,7 +109,6 @@ public class AppointmentServiceImpl implements AppointmentService {
         if (fisProperties.isProvenanceEnabled()) {
             provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
         }
-
     }
 
     @Override
@@ -121,7 +120,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         validateAppointDtoFromRequest(appointmentDto);
 
         //Map
-        final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false, Optional.of(appointmentId));
+        Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false, Optional.of(appointmentId));
+        //Set Appointment Status
+        appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
 
         //Set Profile Meta Data
         FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
@@ -130,7 +131,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         FhirOperationUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Update Appointment");
 
         //Update
-        MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
+        MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, appointment, "Update Appointment");
         idList.add(ResourceType.Appointment.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
         if (fisProperties.isProvenanceEnabled()) {
@@ -165,9 +166,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<String> recipients = new ArrayList<>();
 
         if (appointmentId.isPresent()) {
-
             recipients = getParticipantsByPatientAndAppointmentId(patientId, appointmentId.get().trim());
-
         }
 
         for (ReferenceDto participant : participantsByRoles) {
@@ -519,9 +518,10 @@ public class AppointmentServiceImpl implements AppointmentService {
                             ReferenceDto referenceDto = new ReferenceDto();
                             referenceDto.setReference("Practitioner/" + pr.getIdElement().getIdPart());
                             pr.getName().stream().findAny().ifPresent(name -> {
-                                String fn = name.getFamily();
-                                StringType ln = name.getGiven().stream().findAny().orElse(null);
-                                referenceDto.setDisplay(fn + " " + ln.toString());
+                                String ln = name.getFamily();
+                                StringType fnStringType = name.getGiven().stream().findAny().orElse(null);
+                                String fn = fnStringType.getValueNotNull();
+                                referenceDto.setDisplay(fn + " " + ln);
                             });
                             AppointmentParticipantReferenceDto aRefDto = convertPractitionerReferenceToAppointmentParticipantReferenceDto(referenceDto);
                             return aRefDto;

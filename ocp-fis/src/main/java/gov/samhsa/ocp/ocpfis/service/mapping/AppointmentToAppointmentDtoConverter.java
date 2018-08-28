@@ -46,13 +46,15 @@ public class AppointmentToAppointmentDtoConverter {
                 String reference = requesterReference.get();
                 participantDtos.forEach(
                         participant -> {
-                            if(participant.getActorReference().trim().equalsIgnoreCase(reference.trim())){
+                            if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim())) {
                                 appointmentDto.setRequesterParticipationStatusCode(participant.getParticipationStatusCode());
                             }
                             if (participant.getActorReference().trim().equalsIgnoreCase(reference.trim()) &&
-                                    participant.getParticipationTypeCode().equalsIgnoreCase(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE) &&
-                                    !appointment.getStatus().toCode().equalsIgnoreCase(AppointmentConstants.CANCELLED_APPOINTMENT_STATUS)) {
-                                appointmentDto.setCanCancel(true);
+                                    participant.getParticipationTypeCode().equalsIgnoreCase(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE)) {
+                                appointmentDto.setCanEdit(true);
+                                if (!appointment.getStatus().toCode().equalsIgnoreCase(AppointmentConstants.CANCELLED_APPOINTMENT_STATUS)) {
+                                    appointmentDto.setCanCancel(true);
+                                }
                             } else if (appointment.getStatus().toCode().equalsIgnoreCase(AppointmentConstants.PROPOSED_APPOINTMENT_STATUS) ||
                                     appointment.getStatus().toCode().equalsIgnoreCase(AppointmentConstants.PENDING_APPOINTMENT_STATUS) ||
                                     appointment.getStatus().toCode().equalsIgnoreCase(AppointmentConstants.BOOKED_APPOINTMENT_STATUS)) {
@@ -80,17 +82,17 @@ public class AppointmentToAppointmentDtoConverter {
             List<AppointmentParticipantDto> patientActors = appointmentDto.getParticipant().stream()
                     .filter(participant -> participant.getActorReference() != null && participant.getActorReference().toUpperCase().contains(AppointmentConstants.PATIENT_ACTOR_REFERENCE.toUpperCase()))
                     .collect(toList());
-            if (!patientActors.isEmpty()){
+            if (!patientActors.isEmpty()) {
                 appointmentDto.setPatientName(patientActors.get(0).getActorName());
                 String resourceId = patientActors.get(0).getActorReference().trim().split("/")[1];
                 appointmentDto.setPatientId(resourceId);
             }
 
             List<AppointmentParticipantDto> creators = appointmentDto.getParticipant().stream()
-                    .filter(participant -> participant.getActorReference() != null &&  !participant.getActorReference().isEmpty() && participant.getActorName() != null && !participant.getActorName().isEmpty() && participant.getParticipationTypeCode().equalsIgnoreCase(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE))
+                    .filter(participant -> participant.getActorReference() != null && !participant.getActorReference().isEmpty() && participant.getActorName() != null && !participant.getActorName().isEmpty() && participant.getParticipationTypeCode().equalsIgnoreCase(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE))
                     .collect(toList());
 
-            if(creators != null && !creators.isEmpty()){
+            if (creators != null && !creators.isEmpty()) {
                 appointmentDto.setCreatorName(creators.get(0).getActorName().trim());
                 appointmentDto.setCreatorReference(creators.get(0).getActorReference().trim());
                 appointmentDto.setCreatorRequired(creators.get(0).getParticipantRequiredCode());
@@ -101,7 +103,7 @@ public class AppointmentToAppointmentDtoConverter {
                 }
             }
 
-            List<String>  participantName = appointmentDto.getParticipant().stream().map(AppointmentParticipantDto::getActorName).collect(toList());
+            List<String> participantName = appointmentDto.getParticipant().stream().map(AppointmentParticipantDto::getActorName).collect(toList());
             appointmentDto.setParticipantName(participantName);
         }
 

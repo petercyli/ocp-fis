@@ -45,6 +45,7 @@ public class AppointmentDto {
     private List<String> participantName;
 
     //These help to show the required menu options on the UI
+    private boolean canEdit;
     private boolean canCancel;
     private boolean canAccept;
     private boolean canDecline;
