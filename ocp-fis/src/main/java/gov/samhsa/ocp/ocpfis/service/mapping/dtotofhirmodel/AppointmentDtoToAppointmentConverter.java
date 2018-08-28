@@ -138,6 +138,23 @@ public final class AppointmentDtoToAppointmentConverter {
                     creatorParticipantModel.setActor(creatorRef);
 
                     participantList.add(creatorParticipantModel);
+                } else if (!isCreate && isStringNotNullAndNotEmpty(appointmentDto.getCreatorRequired())) {
+                    //Participant Required
+                    Appointment.ParticipantRequired required = Appointment.ParticipantRequired.fromCode(appointmentDto.getCreatorRequired().trim());
+
+                    for (Appointment.AppointmentParticipantComponent p : appointment.getParticipant()) {
+                        if (p != null
+                                && p.getType() != null
+                                && !p.getType().isEmpty()
+                                && p.getType().get(0).getCoding() != null
+                                && !p.getType().get(0).getCoding().isEmpty()
+                                && (p.getType().get(0).getCoding().get(0).getCode() != null || !p.getType().get(0).getCoding().get(0).getCode().trim().isEmpty())
+                                && p.getType().get(0).getCoding().get(0).getCode().equalsIgnoreCase(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE)) {
+                            // Found the Author
+                            p.setRequired(required);
+
+                        }
+                    }
                 }
 
                 appointment.setParticipant(participantList);
@@ -157,15 +174,15 @@ public final class AppointmentDtoToAppointmentConverter {
         return flag;
     }
 
-    private static HashMap<String, Integer> getParticipantCountMap(AppointmentDto appointmentDto){
+    private static HashMap<String, Integer> getParticipantCountMap(AppointmentDto appointmentDto) {
         HashMap<String, Integer> referencesCountMap = new HashMap<>();
-        for(AppointmentParticipantDto p : appointmentDto.getParticipant()){
+        for (AppointmentParticipantDto p : appointmentDto.getParticipant()) {
             String actor = p.getActorReference().trim();
-            if(!referencesCountMap.keySet().contains(actor)){
+            if (!referencesCountMap.keySet().contains(actor)) {
                 referencesCountMap.put(actor, 1);
-            } else{
+            } else {
                 int tempCount = referencesCountMap.get(actor);
-                referencesCountMap.put(actor, tempCount+1);
+                referencesCountMap.put(actor, tempCount + 1);
             }
         }
         return referencesCountMap;
