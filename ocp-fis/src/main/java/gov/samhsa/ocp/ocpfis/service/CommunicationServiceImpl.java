@@ -28,6 +28,7 @@ import org.hl7.fhir.dstu3.model.Patient;
 import org.hl7.fhir.dstu3.model.Practitioner;
 import org.hl7.fhir.dstu3.model.RelatedPerson;
 import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.exceptions.FHIRException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -172,7 +173,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                 provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.CREATE, loggedInUser);
             }
 
-        } catch (ParseException e) {
+        } catch (ParseException | FHIRException e) {
             throw new FHIRClientException("FHIR Client returned with an error while create a communication:" + e.getMessage());
         }
     }
@@ -197,7 +198,7 @@ public class CommunicationServiceImpl implements CommunicationService {
                 provenanceUtil.createProvenance(idList, ProvenanceActivityEnum.UPDATE, loggedInUser);
             }
 
-        } catch (ParseException e) {
+        } catch (ParseException | FHIRException e) {
             throw new FHIRClientException("FHIR Client returned with an error while update a communication:" + e.getMessage());
         }
     }

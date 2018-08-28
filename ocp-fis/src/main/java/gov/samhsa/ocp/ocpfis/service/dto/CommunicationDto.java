@@ -21,6 +21,8 @@ public class CommunicationDto {
     //Comments about Communication.
     private String note;
 
+    private String duration;
+
     //Message part content
     private String payloadContent;
 
