@@ -18,6 +18,7 @@ import org.hl7.fhir.exceptions.FHIRException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -63,6 +64,11 @@ public final class AppointmentDtoToAppointmentConverter {
             if (appointmentDto.getParticipant() == null || appointmentDto.getParticipant().isEmpty()) {
                 throw new PreconditionFailedException("An appointment cannot be without its participant(s).");
             } else {
+                // Remove duplicates
+                appointmentDto.getParticipant().removeIf(p -> duplicateParticipantsExistDuringCreate(appointmentDto, p, isCreate));
+                HashMap<String, Integer> referencesMap = getParticipantCountMap(appointmentDto);
+                appointmentDto.getParticipant().removeIf(p -> referencesMap.get(p.getActorReference()) > 1);
+
                 List<Appointment.AppointmentParticipantComponent> participantList = new ArrayList<>();
                 for (AppointmentParticipantDto participant : appointmentDto.getParticipant()) {
                     Appointment.AppointmentParticipantComponent participantModel = new Appointment.AppointmentParticipantComponent();
@@ -132,6 +138,27 @@ public final class AppointmentDtoToAppointmentConverter {
                     creatorParticipantModel.setActor(creatorRef);
 
                     participantList.add(creatorParticipantModel);
+                } else if (!isCreate && isStringNotNullAndNotEmpty(appointmentDto.getCreatorRequired())) {
+                    //Participant Required
+                    Appointment.ParticipantRequired required = Appointment.ParticipantRequired.fromCode(appointmentDto.getCreatorRequired().trim());
+
+                    for (Appointment.AppointmentParticipantComponent p : participantList) {
+                        if (p != null
+                                && p.getType() != null
+                                && !p.getType().isEmpty()
+                                && p.getType().get(0).getCoding() != null
+                                && !p.getType().get(0).getCoding().isEmpty()
+                                && p.getType().get(0).getCoding().get(0).getCode() != null
+                                && !p.getType().get(0).getCoding().get(0).getCode().trim().isEmpty()
+                                && p.getType().get(0).getCoding().get(0).getCode().trim().equalsIgnoreCase(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE)) {
+                            // Found the Author
+                            p.setRequired(required);
+
+                            if (appointmentDto.getCreatorRequired().trim().equalsIgnoreCase(Appointment.ParticipantRequired.REQUIRED.toCode())) {
+                                p.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS));
+                            }
+                        }
+                    }
                 }
 
                 appointment.setParticipant(participantList);
@@ -141,6 +168,28 @@ public final class AppointmentDtoToAppointmentConverter {
             log.error("Unable to convert from the given code to valueSet");
             throw new BadRequestException("Invalid values in the request Dto ", e);
         }
+    }
+
+    private static boolean duplicateParticipantsExistDuringCreate(AppointmentDto appointmentDto, AppointmentParticipantDto p, boolean isCreate) {
+        boolean flag = false;
+        if (isCreate) {
+            flag = p.getActorReference().equalsIgnoreCase(appointmentDto.getCreatorReference().trim());
+        }
+        return flag;
+    }
+
+    private static HashMap<String, Integer> getParticipantCountMap(AppointmentDto appointmentDto) {
+        HashMap<String, Integer> referencesCountMap = new HashMap<>();
+        for (AppointmentParticipantDto p : appointmentDto.getParticipant()) {
+            String actor = p.getActorReference().trim();
+            if (!referencesCountMap.keySet().contains(actor)) {
+                referencesCountMap.put(actor, 1);
+            } else {
+                int tempCount = referencesCountMap.get(actor);
+                referencesCountMap.put(actor, tempCount + 1);
+            }
+        }
+        return referencesCountMap;
     }
 
     private static boolean isStringNotNullAndNotEmpty(String givenString) {
