@@ -120,7 +120,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         validateAppointDtoFromRequest(appointmentDto);
 
         //Map
-        final Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false, Optional.of(appointmentId));
+        Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false, Optional.of(appointmentId));
+        //Set Appointment Status
+        appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
 
         //Set Profile Meta Data
         FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
@@ -129,7 +131,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         FhirOperationUtil.validateFhirResource(fhirValidator, appointment, Optional.of(appointmentId), ResourceType.Appointment.name(), "Update Appointment");
 
         //Update
-        MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, appointment, ResourceType.Appointment.name());
+        MethodOutcome methodOutcome = FhirOperationUtil.updateFhirResource(fhirClient, appointment, "Update Appointment");
         idList.add(ResourceType.Appointment.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
 
         if (fisProperties.isProvenanceEnabled()) {

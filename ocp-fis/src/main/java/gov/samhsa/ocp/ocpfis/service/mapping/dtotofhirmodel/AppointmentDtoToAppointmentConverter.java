@@ -142,17 +142,21 @@ public final class AppointmentDtoToAppointmentConverter {
                     //Participant Required
                     Appointment.ParticipantRequired required = Appointment.ParticipantRequired.fromCode(appointmentDto.getCreatorRequired().trim());
 
-                    for (Appointment.AppointmentParticipantComponent p : appointment.getParticipant()) {
+                    for (Appointment.AppointmentParticipantComponent p : participantList) {
                         if (p != null
                                 && p.getType() != null
                                 && !p.getType().isEmpty()
                                 && p.getType().get(0).getCoding() != null
                                 && !p.getType().get(0).getCoding().isEmpty()
-                                && (p.getType().get(0).getCoding().get(0).getCode() != null || !p.getType().get(0).getCoding().get(0).getCode().trim().isEmpty())
-                                && p.getType().get(0).getCoding().get(0).getCode().equalsIgnoreCase(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE)) {
+                                && p.getType().get(0).getCoding().get(0).getCode() != null
+                                && !p.getType().get(0).getCoding().get(0).getCode().trim().isEmpty()
+                                && p.getType().get(0).getCoding().get(0).getCode().trim().equalsIgnoreCase(AppointmentConstants.AUTHOR_PARTICIPANT_TYPE_CODE)) {
                             // Found the Author
                             p.setRequired(required);
 
+                            if (appointmentDto.getCreatorRequired().trim().equalsIgnoreCase(Appointment.ParticipantRequired.REQUIRED.toCode())) {
+                                p.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS));
+                            }
                         }
                     }
                 }
