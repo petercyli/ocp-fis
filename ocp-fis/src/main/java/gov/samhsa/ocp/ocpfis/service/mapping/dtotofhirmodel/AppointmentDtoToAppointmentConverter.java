@@ -85,7 +85,12 @@ public final class AppointmentDtoToAppointmentConverter {
 
                     //Participation Status
                     if (isCreate) {
-                        participantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.NEEDS_ACTION_PARTICIPATION_STATUS));
+                        if(participant.getActorReference().startsWith("Patient") || participant.getActorReference().startsWith("Practitioner")){
+                            participantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS));
+                        } else{
+                            participantModel.setStatus(Appointment.ParticipationStatus.fromCode(AppointmentConstants.NEEDS_ACTION_PARTICIPATION_STATUS));
+                        }
+
                     } else if (isStringNotNullAndNotEmpty(participant.getParticipationStatusCode())) {
                         Appointment.ParticipationStatus status = Appointment.ParticipationStatus.fromCode(participant.getParticipationStatusCode().trim());
                         participantModel.setStatus(status);
