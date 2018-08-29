@@ -6,10 +6,13 @@ import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
+import org.hl7.fhir.dstu3.model.Annotation;
 import org.hl7.fhir.dstu3.model.Communication;
+import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.exceptions.FHIRException;
 
 import java.util.Date;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class CommunicationToCommunicationDtoMap {
@@ -93,12 +96,24 @@ public class CommunicationToCommunicationDtoMap {
 
 
         if (communication.hasNote()) {
-            communicationDto.setNote(communication.getNote().stream().findAny().get().getText());
-        }
+            Optional<Annotation> oAnnotation = communication.getNote().stream().findAny();
 
+            if (oAnnotation.isPresent()) {
+                Annotation annotation = oAnnotation.get();
 
-        if (communication.hasNote()) {
-            communicationDto.setNote(communication.getNote().stream().findAny().get().getText());
+                StringType type = (StringType) annotation.getAuthor();
+                if (type != null) {
+                    String value = type.getValue();
+
+                    if (value != null) {
+                        if (value.equals("note")) {
+                            communicationDto.setNote(annotation.getText());
+                        } else {
+                            communicationDto.setDuration(annotation.getText());
+                        }
+                    }
+                }
+            }
         }
 
         if (communication.hasPayload()) {
