@@ -99,6 +99,8 @@ public class CommunicationDtoToCommunicationMap {
             communication.setReceived(DateUtil.convertStringToDateTime(communicationDto.getReceived()));
 
         //Set Note
+        List<Annotation> annotations = new ArrayList<>();
+
         if (FhirOperationUtil.isStringNotNullAndNotEmpty(communicationDto.getNote())) {
             Annotation annotation = new Annotation();
             StringType stringType = (StringType) annotation.addChild(AUTHOR_STRING);
@@ -106,7 +108,8 @@ public class CommunicationDtoToCommunicationMap {
 
             annotation.setText(communicationDto.getNote());
 
-            communication.setNote(Arrays.asList(annotation));
+            annotations.add(annotation);
+
         }
 
         //set duration
@@ -117,7 +120,12 @@ public class CommunicationDtoToCommunicationMap {
 
             annotation.setText(communicationDto.getDuration());
 
-            communication.setNote(Arrays.asList(annotation));
+            annotations.add(annotation);
+
+        }
+
+        if(annotations.size() > 0) {
+            communication.setNote(annotations);
         }
 
         //Set Message
