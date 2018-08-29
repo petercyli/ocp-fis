@@ -12,7 +12,7 @@ import org.hl7.fhir.dstu3.model.StringType;
 import org.hl7.fhir.exceptions.FHIRException;
 
 import java.util.Date;
-import java.util.Optional;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class CommunicationToCommunicationDtoMap {
@@ -96,11 +96,9 @@ public class CommunicationToCommunicationDtoMap {
 
 
         if (communication.hasNote()) {
-            Optional<Annotation> oAnnotation = communication.getNote().stream().findAny();
+             List<Annotation> annotations = communication.getNote();
 
-            if (oAnnotation.isPresent()) {
-                Annotation annotation = oAnnotation.get();
-
+            annotations.stream().forEach(annotation -> {
                 StringType type = (StringType) annotation.getAuthor();
                 if (type != null) {
                     String value = type.getValue();
@@ -113,7 +111,7 @@ public class CommunicationToCommunicationDtoMap {
                         }
                     }
                 }
-            }
+            });
         }
 
         if (communication.hasPayload()) {
