@@ -261,6 +261,9 @@ public class AppointmentServiceImpl implements AppointmentService {
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
                         (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), requesterReference))).collect(toList());
 
+        //Remove cancelled appointments
+        appointmentDtos.removeIf(a -> a.getStatusCode().equalsIgnoreCase(AppointmentConstants.CANCELLED_APPOINTMENT_STATUS));
+
         double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
         log.info("Found " + otherPageAppointmentBundle.getTotal() + " appointments during search(getAppointments).");
@@ -303,6 +306,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<AppointmentDto>  allCalendarAppointments = retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
                         (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.of(actorReferenceFinal)))).collect(toList());
+
+        //Remove cancelled appointments
+        allCalendarAppointments.removeIf(a -> a.getStatusCode().equalsIgnoreCase(AppointmentConstants.CANCELLED_APPOINTMENT_STATUS));
 
         if(actorReference!= null && !actorReference.trim().isEmpty()){
             //Remove the appointments which has been declined by the actorReference and not required to participate
@@ -378,6 +384,9 @@ public class AppointmentServiceImpl implements AppointmentService {
         List<AppointmentDto> appointmentDtos = retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
                         (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), requesterReference))).collect(toList());
+
+        //Remove cancelled appointments
+        appointmentDtos.removeIf(a -> a.getStatusCode().equalsIgnoreCase(AppointmentConstants.CANCELLED_APPOINTMENT_STATUS));
 
         double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
