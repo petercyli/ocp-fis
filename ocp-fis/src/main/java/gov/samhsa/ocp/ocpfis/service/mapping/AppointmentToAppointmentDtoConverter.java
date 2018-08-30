@@ -190,20 +190,34 @@ public class AppointmentToAppointmentDtoConverter {
 
                 if(needMoreDetails.isPresent() && needMoreDetails.get()){
                     if (member.getActor().getReference().startsWith("Patient")) {
+
+                        participantDto.setPatient(true);
                         PatientDto patient = patientService.getPatientDemographicsInfoOnly(member.getActor().getReference());
                         appointmentDto.setPatient(patient);
                         setParticipantTelecom(participantDto, patient.getTelecoms());
-                    } else if(member.getActor().getReference().startsWith("location")){
+
+                    } else if(member.getActor().getReference().startsWith("Location")){
+
+                        participantDto.setLocation(true);
                         LocationDto loc = locationService.getLocation(member.getActor().getReference());
                         appointmentDto.setLocation(loc);
                         setParticipantTelecom(participantDto, loc.getTelecoms());
+
                     } else if(member.getActor().getReference().startsWith("Practitioner")){
+
+                        participantDto.setPractitioner(true);
                         PractitionerDto prac = practitionerService.getPractitionerDemographicsOnly(member.getActor().getReference());
                         setParticipantTelecom(participantDto, prac.getTelecoms());
+
                     } else if(member.getActor().getReference().startsWith("RelatedPerson")){
+
+                        participantDto.setRelatedPerson(true);
                         RelatedPersonDto rel = relatedPersonService.getRelatedPersonById(member.getActor().getReference());
                         setParticipantTelecom(participantDto, rel.getTelecoms());
-                    } else if(member.getActor().getReference().startsWith("HealthCareService")){
+
+                    } else if(member.getActor().getReference().startsWith("HealthcareService")){
+
+                        participantDto.setHealthcareService(true);
                         HealthcareServiceDto hcs = healthcareServiceService.getHealthcareService(member.getActor().getReference());
                         setParticipantTelecom(participantDto, hcs.getTelecom());
                     }

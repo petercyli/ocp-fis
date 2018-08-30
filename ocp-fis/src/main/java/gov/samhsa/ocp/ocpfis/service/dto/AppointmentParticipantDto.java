@@ -28,4 +28,10 @@ public class AppointmentParticipantDto {
 
     private String phone;
     private String email;
+
+    private boolean isPatient;
+    private boolean isPractitioner;
+    private boolean isRelatedPerson;
+    private boolean isLocation;
+    private boolean isHealthcareService;
 }
