@@ -188,7 +188,7 @@ public class AppointmentToAppointmentDtoConverter {
                     }
                 }
 
-                if(needMoreDetails.isPresent() && needMoreDetails.get()){
+                if (needMoreDetails.isPresent() && needMoreDetails.get()) {
                     if (member.getActor().getReference().startsWith("Patient")) {
 
                         participantDto.setPatient(true);
@@ -196,26 +196,26 @@ public class AppointmentToAppointmentDtoConverter {
                         appointmentDto.setPatient(patient);
                         setParticipantTelecom(participantDto, patient.getTelecoms());
 
-                    } else if(member.getActor().getReference().startsWith("Location")){
+                    } else if (member.getActor().getReference().startsWith("Location")) {
 
                         participantDto.setLocation(true);
                         LocationDto loc = locationService.getLocation(member.getActor().getReference());
                         appointmentDto.setLocation(loc);
                         setParticipantTelecom(participantDto, loc.getTelecoms());
 
-                    } else if(member.getActor().getReference().startsWith("Practitioner")){
+                    } else if (member.getActor().getReference().startsWith("Practitioner")) {
 
                         participantDto.setPractitioner(true);
                         PractitionerDto prac = practitionerService.getPractitionerDemographicsOnly(member.getActor().getReference());
                         setParticipantTelecom(participantDto, prac.getTelecoms());
 
-                    } else if(member.getActor().getReference().startsWith("RelatedPerson")){
+                    } else if (member.getActor().getReference().startsWith("RelatedPerson")) {
 
                         participantDto.setRelatedPerson(true);
                         RelatedPersonDto rel = relatedPersonService.getRelatedPersonById(member.getActor().getReference());
                         setParticipantTelecom(participantDto, rel.getTelecoms());
 
-                    } else if(member.getActor().getReference().startsWith("HealthcareService")){
+                    } else if (member.getActor().getReference().startsWith("HealthcareService")) {
 
                         participantDto.setHealthcareService(true);
                         HealthcareServiceDto hcs = healthcareServiceService.getHealthcareService(member.getActor().getReference());
@@ -229,12 +229,12 @@ public class AppointmentToAppointmentDtoConverter {
         return participants;
     }
 
-    private void setParticipantTelecom(AppointmentParticipantDto participantDto, List<TelecomDto> telecoms){
+    private void setParticipantTelecom(AppointmentParticipantDto participantDto, List<TelecomDto> telecoms) {
         for (TelecomDto t : telecoms) {
-            if (t.getSystem() != null && t.getSystem().get().equalsIgnoreCase("email")) {
-                participantDto.setEmail(t.getValue().isPresent()? t.getValue().get() : "N/A");
-            } else if (t.getSystem() != null && t.getSystem().get().equalsIgnoreCase("phone")) {
-                participantDto.setPhone(t.getValue().isPresent()? t.getValue().get() : "N/A");
+            if (t.getSystem().isPresent() && t.getSystem().get().equalsIgnoreCase("email")) {
+                participantDto.setEmail(t.getValue().isPresent() ? t.getValue().get() : "N/A");
+            } else if (t.getSystem().isPresent() && t.getSystem().get().equalsIgnoreCase("phone")) {
+                participantDto.setPhone(t.getValue().isPresent() ? t.getValue().get() : "N/A");
             }
         }
     }
