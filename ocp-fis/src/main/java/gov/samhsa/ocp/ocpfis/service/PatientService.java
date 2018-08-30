@@ -22,4 +22,6 @@ public interface PatientService {
     void updatePatient(PatientDto patientDto, Optional<String> loggedInUser);
 
     PatientDto getPatientById(String patientId);
+
+    PatientDto getPatientDemographicsInfoOnly(String patientId);
 }

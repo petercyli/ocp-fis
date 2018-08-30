@@ -25,4 +25,7 @@ public class AppointmentParticipantDto {
 
     private String actorReference;
     private String actorName;
+
+    private String phone;
+    private String email;
 }
