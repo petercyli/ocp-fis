@@ -15,4 +15,6 @@ public class ParticipantSearchDto {
     private ParticipantMemberDto member;
 
     private ParticipantOnBehalfOfDto onBehalfOfDto;
+
+    private String uaaRole;
 }
