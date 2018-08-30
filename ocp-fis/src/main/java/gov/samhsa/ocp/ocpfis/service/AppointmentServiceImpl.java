@@ -63,6 +63,7 @@ import static java.util.stream.Collectors.toList;
 @Slf4j
 public class AppointmentServiceImpl implements AppointmentService {
 
+    private final AppointmentToAppointmentDtoConverter appointmentToAppointmentDtoConverter;
     private final IGenericClient fhirClient;
 
     private final FhirValidator fhirValidator;
@@ -76,7 +77,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     private final ProvenanceUtil provenanceUtil;
 
     @Autowired
-    public AppointmentServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService, ProvenanceUtil provenanceUtil, CareTeamServiceImpl careTeamService) {
+    public AppointmentServiceImpl(AppointmentToAppointmentDtoConverter appointmentToAppointmentDtoConverter, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService, ProvenanceUtil provenanceUtil, CareTeamServiceImpl careTeamService) {
+        this.appointmentToAppointmentDtoConverter = appointmentToAppointmentDtoConverter;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
         this.fisProperties = fisProperties;
@@ -121,8 +123,11 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         //Map
         Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false, Optional.of(appointmentId));
-        //Set Appointment Status
-        appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+
+        //Set Appointment Status only in specific case, else set the value from the dto
+        if(appointmentDto.getStatusCode().equalsIgnoreCase(AppointmentConstants.PROPOSED_APPOINTMENT_STATUS) || appointmentDto.getStatusCode().equalsIgnoreCase(AppointmentConstants.PENDING_APPOINTMENT_STATUS)){
+            appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
+        }
 
         //Set Profile Meta Data
         FhirProfileUtil.setAppointmentProfileMetaData(fhirClient, appointment);
@@ -200,7 +205,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         log.info("FHIR appointment bundle retrieved from FHIR server successfully for appointment Id:" + appointmentId);
 
         Bundle.BundleEntryComponent retrievedAppointment = appointmentBundle.getEntry().get(0);
-        return AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.empty());
+        return appointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.empty(), Optional.of(true));
     }
 
     @Override
@@ -259,7 +264,10 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         List<AppointmentDto> appointmentDtos = retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
-                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), requesterReference))).collect(toList());
+                        (appointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), requesterReference, Optional.of(true)))).collect(toList());
+
+        //Remove cancelled appointments
+        appointmentDtos.removeIf(a -> a.getStatusCode().equalsIgnoreCase(AppointmentConstants.CANCELLED_APPOINTMENT_STATUS));
 
         double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
@@ -302,7 +310,10 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         List<AppointmentDto>  allCalendarAppointments = retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
-                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.of(actorReferenceFinal)))).collect(toList());
+                        (appointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.of(actorReferenceFinal), Optional.empty()))).collect(toList());
+
+        //Remove cancelled appointments
+        allCalendarAppointments.removeIf(a -> a.getStatusCode().equalsIgnoreCase(AppointmentConstants.CANCELLED_APPOINTMENT_STATUS));
 
         if(actorReference!= null && !actorReference.trim().isEmpty()){
             //Remove the appointments which has been declined by the actorReference and not required to participate
@@ -377,7 +388,10 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         List<AppointmentDto> appointmentDtos = retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
-                        (AppointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), requesterReference))).collect(toList());
+                        (appointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), requesterReference, Optional.of(true)))).collect(toList());
+
+        //Remove cancelled appointments
+        appointmentDtos.removeIf(a -> a.getStatusCode().equalsIgnoreCase(AppointmentConstants.CANCELLED_APPOINTMENT_STATUS));
 
         double totalPages = Math.ceil((double) otherPageAppointmentBundle.getTotal() / numberOfAppointmentsPerPage);
         int currentPage = firstPage ? 1 : pageNumber.get();
@@ -683,8 +697,8 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private Appointment setAppointmentStatusBasedOnParticipantActions(Appointment apt) {
-        //Call this function only when Accepting/TentativelyAccepting/Declining an appointment
-        AppointmentDto aptDto = AppointmentToAppointmentDtoConverter.map(apt, Optional.empty());
+
+        AppointmentDto aptDto = appointmentToAppointmentDtoConverter.map(apt, Optional.empty(), Optional.of(false));
         List<AppointmentParticipantDto> participantList = aptDto.getParticipant();
 
         if (aptDto.getStatusCode().trim().equalsIgnoreCase(AppointmentConstants.PENDING_APPOINTMENT_STATUS)) {

@@ -530,6 +530,12 @@ public class PatientServiceImpl implements PatientService {
         patientDto.setIdentifier(patientDto.getIdentifier().stream().filter(iden -> !iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystem())).collect(toList()));
         if (patient.hasManagingOrganization()) {
             patientDto.setOrganizationId(Optional.ofNullable(patient.getManagingOrganization().getReference().split("/")[1]));
+
+            //set Organization
+            ReferenceDto organization = new ReferenceDto();
+            organization.setDisplay(patient.getManagingOrganization().getDisplay());
+            organization.setReference(patient.getManagingOrganization().getReference());
+            patientDto.setOrganization(Optional.of(organization));
         }
         //Get Flags for the patient
         List<FlagDto> flagDtos = getFlagsForEachPatient(patientBundle.getEntry(), patientBundleEntry.getResource().getIdElement().getIdPart());
@@ -543,11 +549,37 @@ public class PatientServiceImpl implements PatientService {
 
         mapExtensionFields(patient, patientDto);
 
-        //set Organization
-        ReferenceDto organization = new ReferenceDto();
-        organization.setDisplay(patient.getManagingOrganization().getDisplay());
-        organization.setReference(patient.getManagingOrganization().getReference());
-        patientDto.setOrganization(Optional.of(organization));
+        return patientDto;
+    }
+
+    @Override
+    public PatientDto getPatientDemographicsInfoOnly(String patientId) {
+        Bundle patientBundle = fhirClient.search().forResource(Patient.class)
+                .where(new TokenClientParam("_id").exactly().code(patientId))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (patientBundle == null || patientBundle.getEntry().size() < 1) {
+            throw new ResourceNotFoundException("No patient was found for the given patientID : " + patientId);
+        }
+
+        Bundle.BundleEntryComponent patientBundleEntry = patientBundle.getEntry().get(0);
+        Patient patient = (Patient) patientBundleEntry.getResource();
+        PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
+        patientDto.setId(patient.getIdElement().getIdPart());
+        patientDto.setBirthDate(patient.getBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+        patientDto.setGenderCode(patient.getGender().toCode());
+        patientDto.setMrn(patientDto.getIdentifier().stream().filter(iden -> iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystem())).findFirst().map(IdentifierDto::getValue));
+        patientDto.setIdentifier(patientDto.getIdentifier().stream().filter(iden -> !iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystem())).collect(toList()));
+        if (patient.hasManagingOrganization()) {
+            patientDto.setOrganizationId(Optional.ofNullable(patient.getManagingOrganization().getReference().split("/")[1]));
+
+            //set Organization
+            ReferenceDto organization = new ReferenceDto();
+            organization.setDisplay(patient.getManagingOrganization().getDisplay());
+            organization.setReference(patient.getManagingOrganization().getReference());
+            patientDto.setOrganization(Optional.of(organization));
+        }
 
         return patientDto;
     }
