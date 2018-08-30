@@ -218,9 +218,9 @@ public class AppointmentToAppointmentDtoConverter {
     private void setParticipantTelecom(AppointmentParticipantDto participantDto, List<TelecomDto> telecoms){
         for (TelecomDto t : telecoms) {
             if (t.getSystem() != null && t.getSystem().get().equalsIgnoreCase("email")) {
-                participantDto.setEmail(t.getSystem().get());
+                participantDto.setEmail(t.getValue().isPresent()? t.getValue().get() : "N/A");
             } else if (t.getSystem() != null && t.getSystem().get().equalsIgnoreCase("phone")) {
-                participantDto.setPhone(t.getSystem().get());
+                participantDto.setPhone(t.getValue().isPresent()? t.getValue().get() : "N/A");
             }
         }
     }
