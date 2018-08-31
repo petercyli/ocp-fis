@@ -60,7 +60,7 @@ public class RelatedPersonServiceImpl implements RelatedPersonService {
 
         //Set Sort order
         relatedPersonIQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(relatedPersonIQuery, true);
-        if (searchKey.isPresent()) {
+        if (searchKey.isPresent() && searchValue.isPresent()) {
             if (searchKey.get().equalsIgnoreCase(SearchKeyEnum.RelatedPersonSearchKey.NAME.name())) {
                 relatedPersonIQuery.where(new RichStringClientParam("name").contains().value(searchValue.get().trim()));
 
