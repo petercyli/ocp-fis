@@ -130,7 +130,7 @@ public class ParticipantControllerTest {
         participantMemberDto.setType("patient");
         participantMemberDto.setId("301");
 
-        dto.setRole(role);
+        //dto.setRole(role);
         dto.setMember(participantMemberDto);
 
         return dto;
@@ -144,7 +144,7 @@ public class ParticipantControllerTest {
         participantMemberDto.setType("organization");
         participantMemberDto.setId("101");
 
-        dto.setRole(role);
+        // dto.setRole(role);
         dto.setMember(participantMemberDto);
 
         return dto;
@@ -158,7 +158,7 @@ public class ParticipantControllerTest {
         participantMemberDto.setType("relatedPerson");
         participantMemberDto.setId("201");
 
-        dto.setRole(role);
+        //dto.setRole(role);
         dto.setMember(participantMemberDto);
 
         return dto;
