@@ -165,4 +165,10 @@ public class DateUtil {
         return hour + min + " PM";
     }
 
+    public static String getCurrentTimeStamp() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
+        Date now = new Date();
+        return sdf.format(now);
+    }
+
 }

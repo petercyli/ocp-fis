@@ -330,7 +330,7 @@ public class AppointmentServiceImpl implements AppointmentService {
     }
 
     private boolean isActorNotRequired(AppointmentDto appointmentDto, String actorReference){
-        return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && !p.getParticipantRequiredCode().equalsIgnoreCase(AppointmentConstants.REQUIRED));
+        return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && !p.getParticipantRequiredCode().equalsIgnoreCase(AppointmentConstants.REQUIRED) && !p.getParticipationStatusCode().equalsIgnoreCase(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS));
     }
 
 
