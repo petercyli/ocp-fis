@@ -121,12 +121,10 @@ public class ParticipantServiceImpl implements ParticipantService {
 
             participantSearchDto.setMember(memberDto);
 
-            ParticipantOnBehalfOfDto participantOnBehalfOfDto = new ParticipantOnBehalfOfDto();
-            participantSearchDto.setOnBehalfOfDto(participantOnBehalfOfDto);
-
             participantSearchDto.setTelecoms(sourceDto.getTelecoms());
             participantSearchDto.setAddresses(sourceDto.getAddresses());
             participantSearchDto.setPractitionerRoles(sourceDto.getPractitionerRoles());
+            participantSearchDto.setIdentifiers(sourceDto.getIdentifiers());
 
 
             participantSearchDtoList.add(participantSearchDto);
@@ -159,9 +157,6 @@ public class ParticipantServiceImpl implements ParticipantService {
             memberDto.setType(participantType.getCode());
 
             participantSearchDto.setMember(memberDto);
-
-            ParticipantOnBehalfOfDto participantOnBehalfOfDto = new ParticipantOnBehalfOfDto();
-            participantSearchDto.setOnBehalfOfDto(participantOnBehalfOfDto);
 
             participantSearchDtoList.add(participantSearchDto);
 
@@ -197,11 +192,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
             participantSearchDto.setMember(memberDto);
 
-            ParticipantOnBehalfOfDto participantOnBehalfOfDto = new ParticipantOnBehalfOfDto();
-            participantSearchDto.setOnBehalfOfDto(participantOnBehalfOfDto);
-
             participantSearchDtoList.add(participantSearchDto);
-
         }
 
         participantsDto.setElements(participantSearchDtoList);
@@ -246,9 +237,6 @@ public class ParticipantServiceImpl implements ParticipantService {
     }
 
     private void setOnBehalfOfDtoAndRole(List<ParticipantSearchDto> participantSearchDtoList, ParticipantSearchDto participantSearchDto) {
-        ParticipantOnBehalfOfDto participantOnBehalfOfDto = new ParticipantOnBehalfOfDto();
-        participantSearchDto.setOnBehalfOfDto(participantOnBehalfOfDto);
-
         participantSearchDtoList.add(participantSearchDto);
     }
 
