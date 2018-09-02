@@ -9,25 +9,30 @@ import ca.uhn.fhir.rest.gclient.TokenClientParam;
 import ca.uhn.fhir.validation.FhirValidator;
 import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.constants.ActivityDefinitionConstants;
+import gov.samhsa.ocp.ocpfis.constants.CareTeamConstants;
 import gov.samhsa.ocp.ocpfis.domain.CodeSystemEnum;
 import gov.samhsa.ocp.ocpfis.domain.ProvenanceActivityEnum;
 import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.domain.StructureDefinitionEnum;
+import gov.samhsa.ocp.ocpfis.service.dto.CareTeamDto;
 import gov.samhsa.ocp.ocpfis.service.dto.CoverageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.FlagDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PeriodDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.service.exception.BadRequestException;
 import gov.samhsa.ocp.ocpfis.service.exception.DuplicateResourceFoundException;
+import gov.samhsa.ocp.ocpfis.service.exception.FHIRClientException;
 import gov.samhsa.ocp.ocpfis.service.exception.PatientNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.exception.ResourceNotFoundException;
 import gov.samhsa.ocp.ocpfis.service.mapping.CoverageToCoverageDtoMap;
 import gov.samhsa.ocp.ocpfis.service.mapping.EpisodeOfCareToEpisodeOfCareDtoMapper;
+import gov.samhsa.ocp.ocpfis.service.mapping.dtotofhirmodel.CareTeamDtoToCareTeamConverter;
 import gov.samhsa.ocp.ocpfis.util.DateUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirDtoUtil;
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
@@ -64,14 +69,17 @@ import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static ca.uhn.fhir.rest.api.Constants.PARAM_LASTUPDATED;
@@ -332,7 +340,8 @@ public class PatientServiceImpl implements PatientService {
 
             //Assign fhir Patient resource id.
             Reference patientId = new Reference();
-            patientId.setReference("Patient/" + patientMethodOutcome.getId().getIdPart());
+            String patientLogicalId = patientMethodOutcome.getId().getIdPart();
+            patientId.setReference("Patient/" + patientLogicalId);
 
             //Create flag for the patient
             patientDto.getFlags().ifPresent(flags -> flags.forEach(flagDto -> {
@@ -357,7 +366,7 @@ public class PatientServiceImpl implements PatientService {
             MethodOutcome taskMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, task, ResourceType.Task.name());
             idList.add(ResourceType.Task.name() + "/" + FhirOperationUtil.getFhirId(taskMethodOutcome));
 
-            //Create EpisodeOfCare
+            //Create EpisodeOfCare and default careTeam
             if (patientDto.getEpisodeOfCares() != null && !patientDto.getEpisodeOfCares().isEmpty()) {
                 patientDto.getEpisodeOfCares().forEach(eoc -> {
                     ReferenceDto patientReference = new ReferenceDto();
@@ -375,9 +384,28 @@ public class PatientServiceImpl implements PatientService {
                     FhirOperationUtil.validateFhirResource(fhirValidator, episodeOfCare, Optional.empty(), ResourceType.EpisodeOfCare.name(), "Create EpisodeOfCare(When creating Patient)");
                     //Create
                     MethodOutcome episodeOfCareMethodOutcome = FhirOperationUtil.createFhirResource(fhirClient, episodeOfCare, ResourceType.EpisodeOfCare.name());
-                    idList.add(ResourceType.EpisodeOfCare.name() + "/" + FhirOperationUtil.getFhirId(episodeOfCareMethodOutcome));
 
-                });
+                    idList.add(ResourceType.EpisodeOfCare.name() + "/" + FhirOperationUtil.getFhirId(episodeOfCareMethodOutcome));
+                }
+                );
+
+                //Create default CareTeam from EOC
+                try {
+                    CareTeamDto defaultCareTeamDto = getDefaultCareTeamDto(patientLogicalId, patientDto);
+                    final CareTeam careTeam = CareTeamDtoToCareTeamConverter.map(defaultCareTeamDto);
+
+                    //Set Profile Meta Data
+                    FhirProfileUtil.setCareTeamProfileMetaData(fhirClient, careTeam);
+
+                    //Validate
+                    FhirOperationUtil.validateFhirResource(fhirValidator, careTeam, Optional.empty(), ResourceType.CareTeam.name(), "Create CareTeam(Default)");
+
+                    //Create
+                    MethodOutcome methodOutcome = FhirOperationUtil.createFhirResource(fhirClient, careTeam, ResourceType.CareTeam.name());
+                    idList.add(ResourceType.CareTeam.name() + "/" + FhirOperationUtil.getFhirId(methodOutcome));
+                } catch (FHIRException | ParseException e) {
+                    throw new FHIRClientException("FHIR Client returned with an error while creating default care team:" + e.getMessage());
+                }
             }
 
             if (fisProperties.isProvenanceEnabled()) {
@@ -530,6 +558,12 @@ public class PatientServiceImpl implements PatientService {
         patientDto.setIdentifier(patientDto.getIdentifier().stream().filter(iden -> !iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystem())).collect(toList()));
         if (patient.hasManagingOrganization()) {
             patientDto.setOrganizationId(Optional.ofNullable(patient.getManagingOrganization().getReference().split("/")[1]));
+
+            //set Organization
+            ReferenceDto organization = new ReferenceDto();
+            organization.setDisplay(patient.getManagingOrganization().getDisplay());
+            organization.setReference(patient.getManagingOrganization().getReference());
+            patientDto.setOrganization(Optional.of(organization));
         }
         //Get Flags for the patient
         List<FlagDto> flagDtos = getFlagsForEachPatient(patientBundle.getEntry(), patientBundleEntry.getResource().getIdElement().getIdPart());
@@ -543,11 +577,37 @@ public class PatientServiceImpl implements PatientService {
 
         mapExtensionFields(patient, patientDto);
 
-        //set Organization
-        ReferenceDto organization = new ReferenceDto();
-        organization.setDisplay(patient.getManagingOrganization().getDisplay());
-        organization.setReference(patient.getManagingOrganization().getReference());
-        patientDto.setOrganization(Optional.of(organization));
+        return patientDto;
+    }
+
+    @Override
+    public PatientDto getPatientDemographicsInfoOnly(String patientId) {
+        Bundle patientBundle = fhirClient.search().forResource(Patient.class)
+                .where(new TokenClientParam("_id").exactly().code(patientId))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (patientBundle == null || patientBundle.getEntry().size() < 1) {
+            throw new ResourceNotFoundException("No patient was found for the given patientID : " + patientId);
+        }
+
+        Bundle.BundleEntryComponent patientBundleEntry = patientBundle.getEntry().get(0);
+        Patient patient = (Patient) patientBundleEntry.getResource();
+        PatientDto patientDto = modelMapper.map(patient, PatientDto.class);
+        patientDto.setId(patient.getIdElement().getIdPart());
+        patientDto.setBirthDate(patient.getBirthDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+        patientDto.setGenderCode(patient.getGender().toCode());
+        patientDto.setMrn(patientDto.getIdentifier().stream().filter(iden -> iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystem())).findFirst().map(IdentifierDto::getValue));
+        patientDto.setIdentifier(patientDto.getIdentifier().stream().filter(iden -> !iden.getSystem().equalsIgnoreCase(fisProperties.getPatient().getMrn().getCodeSystem())).collect(toList()));
+        if (patient.hasManagingOrganization()) {
+            patientDto.setOrganizationId(Optional.ofNullable(patient.getManagingOrganization().getReference().split("/")[1]));
+
+            //set Organization
+            ReferenceDto organization = new ReferenceDto();
+            organization.setDisplay(patient.getManagingOrganization().getDisplay());
+            organization.setReference(patient.getManagingOrganization().getReference());
+            patientDto.setOrganization(Optional.of(organization));
+        }
 
         return patientDto;
     }
@@ -1070,6 +1130,74 @@ public class PatientServiceImpl implements PatientService {
                     return ct.getIdElement().getIdPart();
                 }).collect(toList());
     }
+
+    private CareTeamDto getDefaultCareTeamDto(String patientId, PatientDto patientDto) {
+
+        String careTeamName = patientDto.getName().get(0).getFirstName() + '_' + patientDto.getName().get(0).getLastName() + '_' + DateUtil.getCurrentTimeStamp();
+        String earliestDate = getEarliestDate(patientDto);
+
+        CareTeamDto careTeamDto = new CareTeamDto();
+        careTeamDto.setName(careTeamName);
+        careTeamDto.setStatusCode(CareTeamConstants.STATUS_ACTIVE);
+        careTeamDto.setSubjectId(patientId);
+        careTeamDto.setStartDate(earliestDate); //No end Date
+        careTeamDto.setManagingOrganization(patientDto.getOrganizationId().get());
+        careTeamDto.setCategoryCode(CareTeamConstants.DEFAULT_CATEGORY_CODE);
+        careTeamDto.setCategoryDisplay(CareTeamConstants.DEFAULT_CATEGORY_DISPLAY);
+        careTeamDto.setCategorySystem(CodeSystemEnum.CARETEAM_CATEGORY.getUrl());
+
+        //There must be atleast one participant in the default careteam. In this case, atleast one Practitioner (not Org/relatedPerson etc)
+        Set<String> practitionerIds = new HashSet<>();
+        List<ParticipantDto> participants = new ArrayList<>();
+        for (EpisodeOfCareDto eoc : patientDto.getEpisodeOfCares()) {
+            if (!practitionerIds.contains(eoc.getCareManager().getReference())) {
+                practitionerIds.add(eoc.getCareManager().getReference());
+                ParticipantDto p = new ParticipantDto();
+                p.setMemberType("practitioner");
+                p.setMemberId(eoc.getCareManager().getReference().trim().split("/")[1]);
+                p.setStartDate(patientDto.getEpisodeOfCares().get(0).getStartDate()); //No End date
+                participants.add(p);
+            }
+        }
+        //Fallback
+        if (practitionerIds.isEmpty()) {
+            if(patientDto.getPractitionerId().isPresent()){
+                ParticipantDto p = new ParticipantDto();
+                p.setMemberType("practitioner");
+                p.setMemberId(patientDto.getPractitionerId().get());
+                p.setStartDate(patientDto.getEpisodeOfCares().get(0).getStartDate());
+                participants.add(p);
+            }else{
+                log.error("WARNING! Patient does not have a managing Practitioner and hence cannot create a default care team!");
+            }
+        }
+        careTeamDto.setParticipants(participants);
+        return careTeamDto;
+    }
+
+    private String getEarliestDate(PatientDto patientDto){
+        Date earliestDate = null;
+
+        for(EpisodeOfCareDto eoc :patientDto.getEpisodeOfCares()){
+            try {
+                Date tempDate = DateUtil.convertStringToDate(eoc.getStartDate());
+                if(earliestDate == null){
+                    earliestDate = tempDate;
+                }
+                if(tempDate.before(earliestDate)){
+                    earliestDate = tempDate;
+                }
+            } catch (ParseException e) {
+                log.error("Error parsing date from Episode of Care when creating default Care Team");
+            }
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/YYYY");
+        if(earliestDate == null){
+            earliestDate = new Date();
+        }
+        return sdf.format(earliestDate);
+    }
+
 
 
 }

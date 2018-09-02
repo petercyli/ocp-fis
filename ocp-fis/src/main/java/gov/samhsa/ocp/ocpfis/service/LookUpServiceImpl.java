@@ -288,7 +288,7 @@ public class LookUpServiceImpl implements LookUpService {
             temp.setCode(gender.toCode());
             return temp;
         }).collect(toList());
-
+        administrativeGenders.removeIf(g -> (g.getCode().equalsIgnoreCase("?") || g.getCode().equalsIgnoreCase("null")));
         LookUpUtil.sortValueSets(administrativeGenders);
         log.info("Found " + administrativeGenders.size() + " administrative genders.");
         return administrativeGenders;

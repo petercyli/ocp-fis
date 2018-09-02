@@ -571,6 +571,25 @@ public class PractitionerServiceImpl implements PractitionerService {
         return practitionerDto;
     }
 
+    @Override
+    public PractitionerDto getPractitionerDemographicsOnly(String practitionerId) {
+        Bundle practitionerBundle = fhirClient.search().forResource(Practitioner.class)
+                .where(new TokenClientParam("_id").exactly().code(practitionerId))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        if (practitionerBundle == null || practitionerBundle.getEntry().size() < 1) {
+            throw new ResourceNotFoundException("No practitioner was found for the givecn practitionerID:" + practitionerId);
+        }
+
+        Bundle.BundleEntryComponent retrievedPractitioner = practitionerBundle.getEntry().get(0);
+
+        PractitionerDto practitionerDto = modelMapper.map(retrievedPractitioner.getResource(), PractitionerDto.class);
+        practitionerDto.setLogicalId(retrievedPractitioner.getResource().getIdElement().getIdPart());
+
+        return practitionerDto;
+    }
+
     private PageDto<PractitionerDto> practitionersInPage(List<Bundle.BundleEntryComponent> retrievedPractitioners, Bundle otherPagePractitionerBundle, int numberOfPractitionersPerPage, boolean firstPage, Optional<Integer> page) {
         List<PractitionerDto> practitionersList = retrievedPractitioners.stream()
                 .filter(retrievedPractitionerAndPractitionerRoles -> retrievedPractitionerAndPractitionerRoles.getResource().getResourceType().equals(ResourceType.Practitioner))

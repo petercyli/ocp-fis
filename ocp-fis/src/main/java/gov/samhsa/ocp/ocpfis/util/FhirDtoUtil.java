@@ -2,13 +2,23 @@ package gov.samhsa.ocp.ocpfis.util;
 
 import gov.samhsa.ocp.ocpfis.service.dto.ActivityReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
-import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
-import org.hl7.fhir.dstu3.model.*;
+import org.hl7.fhir.dstu3.model.ActivityDefinition;
+import org.hl7.fhir.dstu3.model.Address;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
+import org.hl7.fhir.dstu3.model.Coding;
+import org.hl7.fhir.dstu3.model.ContactPoint;
+import org.hl7.fhir.dstu3.model.HumanName;
+import org.hl7.fhir.dstu3.model.Organization;
+import org.hl7.fhir.dstu3.model.Patient;
+import org.hl7.fhir.dstu3.model.Practitioner;
+import org.hl7.fhir.dstu3.model.Reference;
+import org.hl7.fhir.dstu3.model.ResourceType;
+import org.hl7.fhir.dstu3.model.Task;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -168,39 +178,6 @@ public class FhirDtoUtil {
                 .map(ValueSetDto::getDisplay).findFirst();
 
         return lookupDisplay;
-    }
-
-    public static List<AppointmentParticipantDto> convertAppointmentParticipantListToAppointmentParticipantDtoList(List<Appointment.AppointmentParticipantComponent> source) {
-        List<AppointmentParticipantDto> participants = new ArrayList<>();
-
-        if (source != null && source.size() > 0) {
-            source.forEach(member -> {
-                AppointmentParticipantDto participantDto = new AppointmentParticipantDto();
-                participantDto.setActorName(member.getActor().getDisplay());
-                participantDto.setActorReference(member.getActor().getReference());
-                if (member.getRequired() != null) {
-                    participantDto.setParticipantRequiredCode(member.getRequired().toCode());
-                    participantDto.setParticipantRequiredDisplay(member.getRequired().getDisplay());
-                    participantDto.setParticipantRequiredSystem(member.getRequired().getSystem());
-                }
-                if (member.getStatus() != null) {
-                    participantDto.setParticipationStatusCode(member.getStatus().toCode());
-                    participantDto.setParticipationStatusDisplay(member.getStatus().getDisplay());
-                    participantDto.setParticipantRequiredSystem(member.getStatus().getSystem());
-                }
-                if (member.getType() != null && !member.getType().isEmpty() && !member.getType().get(0).getCoding().isEmpty()) {
-                    participantDto.setParticipationTypeCode(member.getType().get(0).getCoding().get(0).getCode());
-                    if(member.getType().get(0).getCoding().get(0).getDisplay() != null && !member.getType().get(0).getCoding().get(0).getDisplay().isEmpty()){
-                        participantDto.setParticipationTypeDisplay(member.getType().get(0).getCoding().get(0).getDisplay());
-                    }
-                    if(member.getType().get(0).getCoding().get(0).getSystem() != null && !member.getType().get(0).getCoding().get(0).getSystem().isEmpty()){
-                        participantDto.setParticipationTypeSystem(member.getType().get(0).getCoding().get(0).getSystem());
-                    }
-                }
-                participants.add(participantDto);
-            });
-        }
-        return participants;
     }
 
     public static List<TelecomDto> convertTelecomListToTelecomDtoList(List<ContactPoint> source) {
