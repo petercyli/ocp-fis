@@ -12,11 +12,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ParticipantSearchDto {
-    //private ValueSetDto role;
 
     private ParticipantMemberDto member;
 
-    private ParticipantOnBehalfOfDto onBehalfOfDto;
+    private List<IdentifierDto> identifiers;
 
     private List<TelecomDto> telecoms;
 
