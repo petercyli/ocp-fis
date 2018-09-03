@@ -26,8 +26,15 @@ public class CoverageToCoverageDtoMap {
             coverageDto.setRelationshipDisplay(Optional.ofNullable(coding.getDisplay()));
         });
 
+        Coverage.GroupComponent groupComponent = coverage.getGrouping();
+        if (groupComponent != null) {
+            coverageDto.setGroupingPlanDisplay(groupComponent.getPlanDisplay());
+        }
+
         coverageDto.setStartDate(DateUtil.convertDateToString(coverage.getPeriod().getStart()));
         coverageDto.setEndDate(DateUtil.convertDateToString(coverage.getPeriod().getEnd()));
+
+        coverageDto.setNetwork(coverage.getNetwork());
 
         return coverageDto;
     }

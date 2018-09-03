@@ -40,4 +40,8 @@ public class CoverageDto {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/YYYY")
     private String endDate;
+
+    private String groupingPlanDisplay;
+
+    private String network;
 }

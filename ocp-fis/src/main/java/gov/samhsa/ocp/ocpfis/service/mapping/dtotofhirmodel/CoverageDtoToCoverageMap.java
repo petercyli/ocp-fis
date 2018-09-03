@@ -27,6 +27,12 @@ public class CoverageDtoToCoverageMap {
         coverage.setBeneficiary(FhirDtoUtil.mapReferenceDtoToReference(coverageDto.getBeneficiary()));
         coverage.setRelationship(FhirDtoUtil.convertValuesetDtoToCodeableConcept(FhirDtoUtil.convertCodeToValueSetDto(coverageDto.getRelationship(), lookUpService.getPolicyholderRelationship())));
 
+        if (coverageDto.getGroupingPlanDisplay() != null) {
+            Coverage.GroupComponent groupComponent = new Coverage.GroupComponent();
+            groupComponent.setPlanDisplay(coverageDto.getGroupingPlanDisplay());
+            coverage.setGrouping(groupComponent);
+        }
+
         Period period = new Period();
         try {
             period.setStart((coverageDto.getStartDate() != null) ? DateUtil.convertStringToDate(coverageDto.getStartDate()) : null);
@@ -35,6 +41,9 @@ public class CoverageDtoToCoverageMap {
             e.printStackTrace();
         }
         coverage.setPeriod(period);
+
+        coverage.setNetwork(coverageDto.getNetwork());
+
         return coverage;
     }
 }
