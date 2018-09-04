@@ -114,6 +114,13 @@ public class CareTeamToCareTeamDtoConverter {
         //managingOrganization
         careTeam.getManagingOrganization().stream().findFirst().ifPresent(x -> careTeamDto.setManagingOrganization(x.getReference()));
 
+        //episodeOfCare
+        Reference eocReference = careTeam.getContext();
+        if (eocReference != null) {
+            careTeamDto.setEpisodeOfCareCode(eocReference.getReference());
+            careTeamDto.setEpisodeOfCareType(eocReference.getDisplay());
+        }
+
         return careTeamDto;
     }
 

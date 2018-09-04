@@ -125,6 +125,14 @@ public class CareTeamDtoToCareTeamConverter {
         reference.setReference(ResourceType.Organization + "/" + careTeamDto.getManagingOrganization());
         careTeam.setManagingOrganization(Collections.singletonList(reference));
 
+        //episodeOfCare
+        if (careTeamDto.getEpisodeOfCareCode() != null) {
+            Reference eocReference = new Reference();
+            eocReference.setReference(careTeamDto.getEpisodeOfCareCode());
+            eocReference.setDisplay(careTeamDto.getEpisodeOfCareType());
+            careTeam.setContext(eocReference);
+        }
+
         return careTeam;
     }
 }

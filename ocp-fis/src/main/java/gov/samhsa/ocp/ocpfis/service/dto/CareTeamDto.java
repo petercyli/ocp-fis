@@ -44,4 +44,8 @@ public class CareTeamDto {
     private List<ParticipantDto> participants;
 
     private String managingOrganization;
+
+    private String episodeOfCareCode;
+
+    private String episodeOfCareType;
 }
