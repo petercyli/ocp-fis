@@ -125,7 +125,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         Appointment appointment = AppointmentDtoToAppointmentConverter.map(appointmentDto, false, Optional.of(appointmentId));
 
         //Set Appointment Status only in specific case, else set the value from the dto
-        if(appointmentDto.getStatusCode().equalsIgnoreCase(AppointmentConstants.PROPOSED_APPOINTMENT_STATUS) || appointmentDto.getStatusCode().equalsIgnoreCase(AppointmentConstants.PENDING_APPOINTMENT_STATUS)){
+        if (appointmentDto.getStatusCode().equalsIgnoreCase(AppointmentConstants.PROPOSED_APPOINTMENT_STATUS) || appointmentDto.getStatusCode().equalsIgnoreCase(AppointmentConstants.PENDING_APPOINTMENT_STATUS)) {
             appointment = setAppointmentStatusBasedOnParticipantActions(appointment);
         }
 
@@ -308,14 +308,14 @@ public class AppointmentServiceImpl implements AppointmentService {
 
         List<Bundle.BundleEntryComponent> retrievedAppointments = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties);
 
-        List<AppointmentDto>  allCalendarAppointments = retrievedAppointments.stream()
+        List<AppointmentDto> allCalendarAppointments = retrievedAppointments.stream()
                 .filter(retrievedBundle -> retrievedBundle.getResource().getResourceType().equals(ResourceType.Appointment)).map(retrievedAppointment ->
                         (appointmentToAppointmentDtoConverter.map((Appointment) retrievedAppointment.getResource(), Optional.of(actorReferenceFinal), Optional.empty()))).collect(toList());
 
         //Remove cancelled appointments
         allCalendarAppointments.removeIf(a -> a.getStatusCode().equalsIgnoreCase(AppointmentConstants.CANCELLED_APPOINTMENT_STATUS));
 
-        if(actorReference!= null && !actorReference.trim().isEmpty()){
+        if (actorReference != null && !actorReference.trim().isEmpty()) {
             //Remove the appointments which has been declined by the actorReference and not required to participate
             allCalendarAppointments.removeIf(app -> hasActorDeclined(app, actorReferenceFinal));
             allCalendarAppointments.removeIf(app -> isActorNotRequired(app, actorReferenceFinal));
@@ -325,15 +325,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         return allCalendarAppointments;
     }
 
-    private boolean hasActorDeclined(AppointmentDto appointmentDto, String actorReference){
+    private boolean hasActorDeclined(AppointmentDto appointmentDto, String actorReference) {
         return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && p.getParticipationStatusCode().equalsIgnoreCase(AppointmentConstants.DECLINED_PARTICIPATION_STATUS));
     }
 
-    private boolean isActorNotRequired(AppointmentDto appointmentDto, String actorReference){
+    private boolean isActorNotRequired(AppointmentDto appointmentDto, String actorReference) {
         return appointmentDto.getParticipant().stream().anyMatch(p -> p.getActorReference().equalsIgnoreCase(actorReference) && !p.getParticipantRequiredCode().equalsIgnoreCase(AppointmentConstants.REQUIRED) && !p.getParticipationStatusCode().equalsIgnoreCase(AppointmentConstants.ACCEPTED_PARTICIPATION_STATUS));
     }
-
-
 
     @Override
     public PageDto<AppointmentDto> getAppointmentsByPractitionerAndAssignedCareTeamPatients(String practitionerId, Optional<List<String>> statusList, Optional<String> requesterReference, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showPastAppointments, Optional<String> filterDateOption, Optional<Boolean> sortByStartTimeAsc, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
@@ -506,6 +504,20 @@ public class AppointmentServiceImpl implements AppointmentService {
                         PractitionerRole p = (PractitionerRole) pr.getResource();
                         return p.getLocation().stream().map(l -> convertLocationRefToAppointmentParticipantReferenceDto(l));
                     }).collect(toList());
+        } else if (SearchKeyEnum.LocationAppointmentParticipantSearchKey.ORGANIZATION.name().equalsIgnoreCase(resourceType)) {
+            IQuery iQuery = fhirClient.search().forResource(Location.class)
+                    .where(new ReferenceClientParam("organization").hasId(resourceValue));
+            Bundle bundle = (Bundle) FhirOperationUtil.setNoCacheControlDirective(iQuery).returnBundle(Bundle.class).execute();
+            locationsRef = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(entry -> {
+                Location location = (Location) entry.getResource();
+                AppointmentParticipantReferenceDto referenceDto = new AppointmentParticipantReferenceDto();
+                referenceDto.setDisplay(location.getName());
+                referenceDto.setReference(ResourceType.Location.toString() + "/" + location.getIdElement().getIdPart());
+                setParticipantTypeAsAttender(referenceDto);
+                setParticipantRequiredAsInformationOnly(referenceDto);
+                setParticipantStatusAsAccepted(referenceDto);
+                return referenceDto;
+            }).collect(toList());
         }
         return locationsRef;
     }
@@ -767,13 +779,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         referenceDto.setParticipantRequiredSystem(Optional.of(Appointment.ParticipantRequired.INFORMATIONONLY.getSystem()));
     }
 
-    private void setParticipantStatusAsAccepted(AppointmentParticipantReferenceDto referenceDto){
+    private void setParticipantStatusAsAccepted(AppointmentParticipantReferenceDto referenceDto) {
         referenceDto.setParticipantStatusCode(Optional.of(AppointmentResponse.ParticipantStatus.ACCEPTED.toCode()));
         referenceDto.setParticipantStatusDisplay(Optional.of(AppointmentResponse.ParticipantStatus.ACCEPTED.getDisplay()));
         referenceDto.setParticipantStatusSystem(Optional.of(AppointmentResponse.ParticipantStatus.ACCEPTED.getSystem()));
     }
 
-    private void setParticipantStatusAsNeedsAction(AppointmentParticipantReferenceDto referenceDto){
+    private void setParticipantStatusAsNeedsAction(AppointmentParticipantReferenceDto referenceDto) {
         referenceDto.setParticipantStatusCode(Optional.of(AppointmentResponse.ParticipantStatus.NEEDSACTION.toCode()));
         referenceDto.setParticipantStatusDisplay(Optional.of(AppointmentResponse.ParticipantStatus.NEEDSACTION.getDisplay()));
         referenceDto.setParticipantStatusSystem(Optional.of(AppointmentResponse.ParticipantStatus.NEEDSACTION.getSystem()));
