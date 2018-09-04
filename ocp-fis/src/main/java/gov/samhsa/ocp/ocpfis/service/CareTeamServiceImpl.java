@@ -314,6 +314,14 @@ public class CareTeamServiceImpl implements CareTeamService {
                 careTeamDto.setStartDate((careTeam.getPeriod().getStart() != null) ? DateUtil.convertDateToString(careTeam.getPeriod().getStart()) : null);
                 careTeamDto.setEndDate((careTeam.getPeriod().getEnd() != null) ? DateUtil.convertDateToString(careTeam.getPeriod().getEnd()) : null);
             }
+
+            //episodeOfCare
+            Reference eocReference = careTeam.getContext();
+            if (eocReference != null) {
+                careTeamDto.setEpisodeOfCareCode(eocReference.getReference());
+                careTeamDto.setEpisodeOfCareType(eocReference.getDisplay());
+            }
+
             return careTeamDto;
         }).collect(toList());
 
@@ -417,6 +425,7 @@ public class CareTeamServiceImpl implements CareTeamService {
     }
 
     public PageDto<CareTeamDto> getCareTeamsByPatientAndOrganization(String patient, Optional<String> organization, Optional<List<String>> status, Optional<Integer> pageNumber, Optional<Integer> pageSize) {
+        //used api
         int numberOfCareTeamsPerPage = PaginationUtil.getValidPageSize(fisProperties, pageSize, ResourceType.CareTeam.name());
 
         IQuery iQuery = fhirClient.search().forResource(CareTeam.class)

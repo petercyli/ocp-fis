@@ -61,6 +61,7 @@ public class CareTeamController {
                                                       @RequestParam Optional<List<String>> status,
                                                       @RequestParam Optional<Integer> pageNumber,
                                                       @RequestParam Optional<Integer> pageSize) {
+        //used api
         return careTeamService.getCareTeamsByPatientAndOrganization(patient, organization, status, pageNumber, pageSize);
     }
 
