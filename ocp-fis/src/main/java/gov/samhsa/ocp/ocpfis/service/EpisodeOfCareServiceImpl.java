@@ -12,6 +12,7 @@ import gov.samhsa.ocp.ocpfis.service.mapping.EpisodeOfCareToEpisodeOfCareDtoMapp
 import gov.samhsa.ocp.ocpfis.util.FhirOperationUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
+import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
 import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
@@ -96,10 +97,14 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
                             ReferenceDto referenceDto = new ReferenceDto();
                             referenceDto.setReference("EpisodeOfCare/" + it.getIdElement().getIdPart());
                             Patient p = fhirClient.read().resource(Patient.class).withId(patient).execute();
-                            String name = p.getName().stream().findAny().get().getGiven().stream().findAny().get() + p.getName().stream().findAny().get().getFamily();
-                            Organization org = fhirClient.read().resource(Organization.class).withId(it.getManagingOrganization().getReference().split("/")[1]).execute();
-                            String orgName = org.getName();
-                            referenceDto.setDisplay(name + "-" + orgName);
+                            String name = p.getName().stream().findAny().get().getGiven().stream().findAny().get() + " " + p.getName().stream().findAny().get().getFamily();
+
+                            String type = "";
+                            Optional<CodeableConcept> tempType = it.getType().stream().findAny();
+                            if(tempType.isPresent()) {
+                                type = tempType.get().getCoding().stream().findFirst().get().getDisplay();
+                            }
+                            referenceDto.setDisplay(name + " - " + type);
                             return referenceDto;
                         })
                         .collect(toList());
