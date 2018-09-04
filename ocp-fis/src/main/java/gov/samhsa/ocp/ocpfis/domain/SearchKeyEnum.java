@@ -65,7 +65,7 @@ public class SearchKeyEnum {
     }
 
     public enum LocationAppointmentParticipantSearchKey {
-        HEALTHCARESERVICE, PRACTITIONER;
+        ORGANIZATION, HEALTHCARESERVICE, PRACTITIONER;
 
         public static boolean contains(String s) {
             return Arrays.stream(values()).anyMatch(LocationSearchKey -> LocationSearchKey.name().equalsIgnoreCase(s));
