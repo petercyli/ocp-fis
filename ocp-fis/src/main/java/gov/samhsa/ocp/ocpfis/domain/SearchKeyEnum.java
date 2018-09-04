@@ -81,7 +81,7 @@ public class SearchKeyEnum {
     }
 
     public enum PractitionerParticipantSearchKey {
-        PATIENT, LOCATION;
+        ORGANIZATION, PATIENT, LOCATION;
 
         public static boolean contains(String s) {
             return Arrays.stream(values()).anyMatch(PractitionerSearchKey -> PractitionerSearchKey.name().equalsIgnoreCase(s));
