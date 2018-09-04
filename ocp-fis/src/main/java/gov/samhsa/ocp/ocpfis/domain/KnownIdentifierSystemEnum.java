@@ -17,7 +17,6 @@ public enum KnownIdentifierSystemEnum {
     TAX_ID_ORGANIZATION("urn:oid:2.16.840.1.113883.4.4", "2.16.840.1.113883.4.4", "Organization Tax ID", IdentifierTypeEnum.TAX, Optional.empty()),
     NPI("http://hl7.org/fhir/sid/us-npi", "2.16.840.1.113883.4.6", "NPI", IdentifierTypeEnum.PRN, Optional.empty()),
     PASSPORT("urn:oid:2.16.840.1.113883.4.330", "2.16.840.1.113883.4.330", "Passport Number", IdentifierTypeEnum.PPN, Optional.empty()),
-    DL("urn:oid:2.16.840.1.113883.4.3", "2.16.840.1.113883.4.3", "United States Driver License Number", IdentifierTypeEnum.DL, Optional.empty()),
     DL_ALASKA("urn:oid:2.16.840.1.113883.4.3.2", "2.16.840.1.113883.4.3.2", "Alaska Driver's License", IdentifierTypeEnum.DL, Optional.of(USStateEnum.AK)),
     DL_ALABAMA("urn:oid:2.16.840.1.113883.4.3.1", "2.16.840.1.113883.4.3.1", "Alabama Driver's License", IdentifierTypeEnum.DL, Optional.of(USStateEnum.AL)),
     DL_ARKANSAS("urn:oid:2.16.840.1.113883.4.3.5", "2.16.840.1.113883.4.3.5", "Arkansas Driver's License", IdentifierTypeEnum.DL, Optional.of(USStateEnum.AR)),
