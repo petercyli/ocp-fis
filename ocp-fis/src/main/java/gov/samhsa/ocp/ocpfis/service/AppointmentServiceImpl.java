@@ -1,5 +1,6 @@
 package gov.samhsa.ocp.ocpfis.service;
 
+import ca.uhn.fhir.model.api.Include;
 import ca.uhn.fhir.rest.api.MethodOutcome;
 import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
@@ -554,10 +555,56 @@ public class AppointmentServiceImpl implements AppointmentService {
                         }).distinct().collect(toList());
 
             }
+        } else if (SearchKeyEnum.PractitionerParticipantSearchKey.ORGANIZATION.name().equalsIgnoreCase(resourceType)) {
+            practitionerReferences = getAllPractitionersInOrganization(resourceValue);
         }
         return practitionerReferences;
     }
 
+    private List<AppointmentParticipantReferenceDto> getAllPractitionersInOrganization(String organization) {
+        int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(fisProperties, Optional.empty(), ResourceType.Practitioner.name());
+
+        //Get the practitioners
+        Bundle practitionerBundle = (Bundle) fhirClient.search().forResource(PractitionerRole.class)
+                .sort().descending(PARAM_LASTUPDATED)
+                .where(new ReferenceClientParam("organization").hasId(organization))
+                .include(new Include("PractitionerRole:practitioner"))
+                .returnBundle(Bundle.class)
+                .execute();
+        List<Bundle.BundleEntryComponent> practitionerEntry = FhirOperationUtil.getAllBundleComponentsAsList(practitionerBundle, Optional.empty(), fhirClient, fisProperties);
+        //Get the practitioners belonging to the organization
+        List<String> practitionerIds = practitionerEntry.stream()
+                .filter(retrievedPractitionerAndPractitionerRoles -> retrievedPractitionerAndPractitionerRoles.getResource().getResourceType().equals(ResourceType.Practitioner))
+                .map(practitioner -> (practitioner.getResource()).getIdElement().getIdPart())
+                .collect(toList());
+
+        //Get the practitioners along with the practitioner Roles and organizations in dto
+        Bundle bundle = fhirClient.search().forResource(Practitioner.class)
+                .where(new TokenClientParam("_id").exactly().codes(practitionerIds))
+                .revInclude(PractitionerRole.INCLUDE_PRACTITIONER)
+                .sort().descending(PARAM_LASTUPDATED)
+                .returnBundle(Bundle.class)
+                .execute();
+
+        return FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.of(numberOfPractitionersPerPage), fhirClient, fisProperties).stream()
+                .filter(retrievedPractitionerAndPractitionerRoles -> retrievedPractitionerAndPractitionerRoles.getResource().getResourceType().equals(ResourceType.Practitioner))
+                .map(entry -> {
+                    Practitioner practitioner = (Practitioner) entry.getResource();
+                    AppointmentParticipantReferenceDto referenceDto = new AppointmentParticipantReferenceDto();
+                    practitioner.getName().stream().findAny().ifPresent(name -> {
+                        String ln = name.getFamily();
+                        StringType fnStringType = name.getGiven().stream().findAny().orElse(null);
+                        String fn = fnStringType != null ? fnStringType.getValueNotNull() : null;
+                        referenceDto.setDisplay(fn + " " + ln);
+                    });
+                    referenceDto.setReference(ResourceType.Practitioner.toString() + "/" + practitioner.getIdElement().getIdPart());
+                    setParticipantTypeAsAttender(referenceDto);
+                    setParticipantRequiredAsInformationOnly(referenceDto);
+                    setParticipantStatusAsAccepted(referenceDto);
+                    return referenceDto;
+                })
+                .collect(toList());
+    }
 
     private IQuery addStatusSearchConditions(IQuery searchQuery,
                                              Optional<List<String>> statusList) {
