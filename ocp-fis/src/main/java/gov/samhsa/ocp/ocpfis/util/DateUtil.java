@@ -12,6 +12,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 @Slf4j
 public class DateUtil {
@@ -87,6 +88,11 @@ public class DateUtil {
 
     public static Date convertLocalDateTimeToUTCDate(LocalDateTime dateTime) {
         return Date.from(dateTime.atZone(ZoneId.of("UTC")).toInstant());
+    }
+
+    public static String getCurrentTimeZone(){
+        //return ZoneId.systemDefault().getDisplayName();
+        return TimeZone.getDefault().getDisplayName(true, 0, Locale.US);
     }
 
     public static LocalDateTime convertDateToLocalDateTime(Date dateToConvert) {

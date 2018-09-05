@@ -231,8 +231,7 @@ public class PractitionerServiceImpl implements PractitionerService {
                             pr.getName().stream().findAny().ifPresent(name -> {
                                 String ln = name.getFamily();
                                 StringType fn = name.getGiven().stream().findAny().orElse(null);
-                                assert ln != null;
-                                referenceDto.setDisplay(fn+" "+ln.toString());
+                                referenceDto.setDisplay(fn.getValueNotNull() + " " + ln);
                             });
                             return referenceDto;
                         }).distinct().collect(toList());

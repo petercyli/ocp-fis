@@ -4,8 +4,6 @@ import ca.uhn.fhir.rest.client.api.IGenericClient;
 import ca.uhn.fhir.rest.gclient.IQuery;
 import ca.uhn.fhir.rest.gclient.ReferenceClientParam;
 import ca.uhn.fhir.rest.gclient.TokenClientParam;
-import ca.uhn.fhir.validation.FhirValidator;
-import gov.samhsa.ocp.ocpfis.config.FisProperties;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.mapping.EpisodeOfCareToEpisodeOfCareDtoMapper;
@@ -29,16 +27,12 @@ import static java.util.stream.Collectors.toList;
 public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
 
     private final IGenericClient fhirClient;
-    private final FhirValidator fhirValidator;
     private final LookUpService lookUpService;
-    private final FisProperties fisProperties;
 
     @Autowired
-    public EpisodeOfCareServiceImpl(IGenericClient fhirClient, FhirValidator fhirValidator, LookUpService lookUpService, FisProperties fisProperties) {
+    public EpisodeOfCareServiceImpl(IGenericClient fhirClient, LookUpService lookUpService) {
         this.fhirClient = fhirClient;
-        this.fhirValidator = fhirValidator;
         this.lookUpService = lookUpService;
-        this.fisProperties = fisProperties;
     }
 
     @Override
