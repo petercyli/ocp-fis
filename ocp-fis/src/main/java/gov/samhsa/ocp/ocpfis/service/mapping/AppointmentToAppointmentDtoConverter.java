@@ -149,7 +149,7 @@ public class AppointmentToAppointmentDtoConverter {
         if (appointment.hasEnd()) {
             appointmentDto.setEnd(DateUtil.convertUTCDateToLocalDateTime(appointment.getEnd()));
 
-            duration = duration + " - " + DateUtil.convertLocalDateTimeToHumanReadableFormat(appointmentDto.getEnd()) + " " + DateUtil.getCurrentTimeZone();
+            duration = duration + " - " + DateUtil.convertLocalDateTimeToHumanReadableFormat(appointmentDto.getEnd()) + " " + "ET"; // Cheating, because DateUtil.getCurrentTimeZone(); displays "UTC" on DEMO and QA servers
         }
 
         if (appointment.hasCreated()) {
