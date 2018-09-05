@@ -217,8 +217,6 @@ public class PractitionerServiceImpl implements PractitionerService {
 
             location.ifPresent(loc -> iQuery.where(new ReferenceClientParam("location").hasId(loc)));
 
-            //role.ifPresent(r -> iQuery.where(new TokenClientParam("role").exactly().code(r)));
-
             Bundle bundle = (Bundle) iQuery.include(PractitionerRole.INCLUDE_PRACTITIONER)
                     .sort().descending(PARAM_LASTUPDATED)
                     .returnBundle(Bundle.class).execute();
@@ -231,10 +229,10 @@ public class PractitionerServiceImpl implements PractitionerService {
                             ReferenceDto referenceDto = new ReferenceDto();
                             referenceDto.setReference("Practitioner/" + pr.getIdElement().getIdPart());
                             pr.getName().stream().findAny().ifPresent(name -> {
-                                String fn = name.getFamily();
-                                StringType ln = name.getGiven().stream().findAny().orElse(null);
+                                String ln = name.getFamily();
+                                StringType fn = name.getGiven().stream().findAny().orElse(null);
                                 assert ln != null;
-                                referenceDto.setDisplay(fn + " " + ln.toString());
+                                referenceDto.setDisplay(fn+" "+ln.toString());
                             });
                             return referenceDto;
                         }).distinct().collect(toList());
