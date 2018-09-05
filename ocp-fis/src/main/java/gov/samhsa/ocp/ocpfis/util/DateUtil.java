@@ -10,9 +10,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.TextStyle;
 import java.util.Date;
 import java.util.Locale;
-import java.util.TimeZone;
 
 @Slf4j
 public class DateUtil {
@@ -91,8 +91,7 @@ public class DateUtil {
     }
 
     public static String getCurrentTimeZone(){
-        //return ZoneId.systemDefault().getDisplayName();
-        return TimeZone.getDefault().getDisplayName(true, 0, Locale.US);
+        return ZoneId.systemDefault().getDisplayName(TextStyle.SHORT, Locale.US);
     }
 
     public static LocalDateTime convertDateToLocalDateTime(Date dateToConvert) {
