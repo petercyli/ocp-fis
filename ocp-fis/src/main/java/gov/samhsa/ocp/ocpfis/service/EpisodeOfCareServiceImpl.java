@@ -14,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.hl7.fhir.dstu3.model.Bundle;
 import org.hl7.fhir.dstu3.model.CodeableConcept;
 import org.hl7.fhir.dstu3.model.EpisodeOfCare;
-import org.hl7.fhir.dstu3.model.Organization;
 import org.hl7.fhir.dstu3.model.Patient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -76,11 +75,16 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
         List<ReferenceDto> referenceDtos = new ArrayList<>();
         IQuery iQuery = fhirClient.search().forResource(EpisodeOfCare.class);
 
-        if (organization.isPresent())
+        if (organization.isPresent()) {
             iQuery.where(new ReferenceClientParam("patient").hasId(patient))
                     .where(new ReferenceClientParam("organization").hasId(organization.get()));
-        else
+        } else {
             iQuery.where(new ReferenceClientParam("patient").hasId(patient));
+        }
+
+        if (status.isPresent()) {
+            iQuery.where(new TokenClientParam("status").exactly().code(status.get().trim()));
+        }
 
         //Set Sort order
         iQuery = FhirOperationUtil.setLastUpdatedTimeSortOrder(iQuery, true);
@@ -101,7 +105,7 @@ public class EpisodeOfCareServiceImpl implements EpisodeOfCareService {
 
                             String type = "";
                             Optional<CodeableConcept> tempType = it.getType().stream().findAny();
-                            if(tempType.isPresent()) {
+                            if (tempType.isPresent()) {
                                 type = tempType.get().getCoding().stream().findFirst().get().getDisplay();
                             }
                             referenceDto.setDisplay(name + " - " + type);
