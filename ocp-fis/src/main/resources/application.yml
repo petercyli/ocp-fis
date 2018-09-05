@@ -17,7 +17,7 @@ security:
      enabled: false
 ocp-fis:
   fhir:
-    serverUrl: http://ocpqafhir.consent2share.org/fhir/baseDstu3
+    serverUrl: http://localhost:8080/fhir/baseDstu3
     serverSecurityEnabled: false
     clientSocketTimeoutInMs: 768000
     encoding: json
@@ -81,6 +81,10 @@ ocp-fis:
 ---
 # updates configuration for docker environment
 spring.profiles: docker
+security:
+  oauth2:
+    client:
+      accessTokenUri: https://uaa.ocp.com:8080/uaa/oauth/token
 ocp-fis:
   fhir:
-    serverUrl: http://fhirtest.uhn.ca/baseDstu3
+    serverUrl: http://fhir.ocp.com:8080/fhir/baseDstu3
