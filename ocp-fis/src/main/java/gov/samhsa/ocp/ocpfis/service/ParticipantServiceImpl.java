@@ -51,12 +51,12 @@ public class ParticipantServiceImpl implements ParticipantService {
         PageDto<ParticipantSearchDto> participantsDto = new PageDto<>();
 
         if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.practitioner.getCode())) {
-            if(forCareTeam.isPresent()){
-                if(!forCareTeam.get()) {
-                    organization=organizationId(organization,patientId);
+            if (forCareTeam.isPresent()) {
+                if (!forCareTeam.get()) {
+                    organization = organizationId(organization, patientId);
                 }
-            }else{
-                organization=organizationId(organization,patientId);
+            } else {
+                organization = organizationId(organization, patientId);
             }
             PageDto<PractitionerDto> pageDto = practitionerService.searchPractitioners(Optional.ofNullable(PractitionerController.SearchType.name), value, organization, showInActive, page, size, showAll);
             participantsDto = convertPractitionersToParticipantsDto(pageDto, participantType);
@@ -67,7 +67,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.patient.getCode())) {
             //refactor getPatientsByValue to match other apis
-            PageDto<PatientDto> pageDto = patientService.getPatientsByValue(Optional.ofNullable("name"), value, Optional.empty(), organizationId(organization,patientId),Optional.empty(), showInActive, page, size, showAll);
+            PageDto<PatientDto> pageDto = patientService.getPatientsByValue(Optional.ofNullable("name"), value, Optional.empty(), organizationId(organization, patientId), Optional.empty(), showInActive, page, size, showAll);
             participantsDto = convertPatientsToParticipantsDto(pageDto, participantType);
 
         } else if (typeCode.equalsIgnoreCase(ParticipantTypeEnum.relatedPerson.getCode())) {
@@ -88,16 +88,14 @@ public class ParticipantServiceImpl implements ParticipantService {
 
             List<RelatedPersonDto> relatedPersonList = relatedPersonDtos.getElements();
 
-            List<OutsideParticipant> outsideParticipantList = relatedPersonList.stream().map(relatedPersonDto -> {
+            return relatedPersonList.stream().map(relatedPersonDto -> {
                 OutsideParticipant outsideParticipant = new OutsideParticipant();
                 outsideParticipant.setName(relatedPersonDto.getFirstName() + " " + relatedPersonDto.getLastName());
+                outsideParticipant.setParticipantId(relatedPersonDto.getRelatedPersonId());
                 outsideParticipant.setIdentifierType(relatedPersonDto.getIdentifierValue());
                 outsideParticipant.setIdentifierValue(relatedPersonDto.getIdentifierType());
                 return outsideParticipant;
             }).collect(toList());
-
-            return outsideParticipantList;
-
         } else {
             //bring all practitioners belonging to the given organization
             List<PractitionerDto> orgPractitionersList = practitionerService.getAllPractitionersInOrganization(organization);
@@ -119,7 +117,7 @@ public class ParticipantServiceImpl implements ParticipantService {
 
                         NameDto nameDto = practitionerDto.getName().stream().findFirst().get();
                         outsideParticipant.setName(nameDto.getFirstName() + " " + nameDto.getLastName());
-
+                        outsideParticipant.setParticipantId(practitionerDto.getLogicalId());
                         IdentifierDto identifierDto = practitionerDto.getIdentifiers().stream().findFirst().get();
 
                         outsideParticipant.setIdentifierType(identifierDto.getSystem());
@@ -136,11 +134,8 @@ public class ParticipantServiceImpl implements ParticipantService {
                         return outsideParticipant;
                     })
                     .collect(toList());
-
             return outsideParticipantList;
-
         }
-
     }
 
     private Optional<String> retrieveOrganization(String patientId) {
@@ -156,9 +151,9 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
     }
 
-    private Optional<String> organizationId(Optional<String> organization, String patientId){
+    private Optional<String> organizationId(Optional<String> organization, String patientId) {
         if (!organization.isPresent()) {
-           return retrieveOrganization(patientId);
+            return retrieveOrganization(patientId);
         }
         return organization;
     }
