@@ -116,6 +116,30 @@ public class PractitionerServiceImpl implements PractitionerService {
 
     }
 
+    public List<PractitionerDto> getAllPractitionersInSystem(Optional<Integer> size, String name) {
+        int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(fisProperties, size, ResourceType.Practitioner.name());
+
+        IQuery practitionerIQuery = fhirClient.search().forResource(Practitioner.class);
+        Bundle bundle = (Bundle) practitionerIQuery.count(numberOfPractitionersPerPage)
+                .revInclude(PractitionerRole.INCLUDE_PRACTITIONER)
+                .where(new RichStringClientParam("name").contains().value(name.trim()))
+                .returnBundle(Bundle.class)
+                .execute();
+
+        return convertAllBundleToSinglePractitionerDtoList(bundle, numberOfPractitionersPerPage);
+    }
+
+    public List<PractitionerDto> getAllPractitionersInOrganization(String organization) {
+        List<PractitionerDto> practitioners = new ArrayList<>();
+
+        Bundle bundle = fhirClient.search().forResource(PractitionerRole.class)
+                .where(new ReferenceClientParam("organization").hasId(organization))
+                .include(PractitionerRole.INCLUDE_PRACTITIONER)
+                .returnBundle(Bundle.class).execute();
+
+        return getPractitionerDtos(practitioners, bundle.getEntry());
+    }
+
 
     @Override
     public PageDto<PractitionerDto> searchPractitioners(Optional<PractitionerController.SearchType> type, Optional<String> value, Optional<String> organization, Optional<Boolean> showInactive, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {

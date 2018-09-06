@@ -1,21 +1,19 @@
 package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.domain.ParticipantTypeEnum;
-import gov.samhsa.ocp.ocpfis.service.dto.AddressDto;
 import gov.samhsa.ocp.ocpfis.service.dto.EpisodeOfCareDto;
 import gov.samhsa.ocp.ocpfis.service.dto.IdentifierDto;
 import gov.samhsa.ocp.ocpfis.service.dto.NameDto;
 import gov.samhsa.ocp.ocpfis.service.dto.OrganizationDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OutsideParticipant;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantMemberDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ParticipantOnBehalfOfDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantSearchDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PractitionerRoleDto;
+import gov.samhsa.ocp.ocpfis.service.dto.ReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.RelatedPersonDto;
-import gov.samhsa.ocp.ocpfis.service.dto.TelecomDto;
-import gov.samhsa.ocp.ocpfis.service.dto.ValueSetDto;
 import gov.samhsa.ocp.ocpfis.web.OrganizationController;
 import gov.samhsa.ocp.ocpfis.web.PractitionerController;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +22,10 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 
 @Service
 @Slf4j
@@ -74,6 +76,71 @@ public class ParticipantServiceImpl implements ParticipantService {
         }
 
         return participantsDto;
+    }
+
+    @Override
+    public List<OutsideParticipant> retrieveOutsideParticipants(String patient, String participantType, String name, String organization, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
+
+        if (participantType.equalsIgnoreCase("relatedPerson")) {
+            //get relatedPerson of the patient
+            //public PageDto<RelatedPersonDto> searchRelatedPersons(String patientId, Optional<String> searchKey, Optional<String> searchValue, Optional<Boolean> showInactive, Optional<Integer> pageNumber, Optional<Integer> pageSize, Optional<Boolean> showAll) {
+            PageDto<RelatedPersonDto> relatedPersonDtos = relatedPersonService.searchRelatedPersons(patient, Optional.of("name"), Optional.of(name), Optional.of(true), page, size, showAll);
+
+            List<RelatedPersonDto> relatedPersonList = relatedPersonDtos.getElements();
+
+            List<OutsideParticipant> outsideParticipantList = relatedPersonList.stream().map(relatedPersonDto -> {
+                OutsideParticipant outsideParticipant = new OutsideParticipant();
+                outsideParticipant.setName(relatedPersonDto.getFirstName() + " " + relatedPersonDto.getLastName());
+                outsideParticipant.setIdentifierType(relatedPersonDto.getIdentifierValue());
+                outsideParticipant.setIdentifierValue(relatedPersonDto.getIdentifierType());
+                return outsideParticipant;
+            }).collect(toList());
+
+            return outsideParticipantList;
+
+        } else {
+            //bring all practitioners belonging to the given organization
+            List<PractitionerDto> orgPractitionersList = practitionerService.getAllPractitionersInOrganization(organization);
+
+            //bring all practitioners in the system
+            List<PractitionerDto> allPractitionersList = practitionerService.getAllPractitionersInSystem(size, name);
+
+            Set<String> orgPractitionersSet = orgPractitionersList.stream().map(practitioner -> practitioner.getLogicalId()).collect(toSet());
+            Set<String> allPractitionersSet = allPractitionersList.stream().map(practitionerDto -> practitionerDto.getLogicalId()).collect(toSet());
+
+            //allPractitionerSet now only contains practitioners outside the organization
+            allPractitionersSet.removeAll(orgPractitionersSet);
+
+            //now take allPractitionersList (which has everything) and only keep those which are in allPractitionerSet (now only containing outsiders)
+            List<OutsideParticipant> outsideParticipantList = allPractitionersList.stream()
+                    .filter(x -> allPractitionersSet.contains(x.getLogicalId()))
+                    .map(practitionerDto -> {
+                        OutsideParticipant outsideParticipant = new OutsideParticipant();
+
+                        NameDto nameDto = practitionerDto.getName().stream().findFirst().get();
+                        outsideParticipant.setName(nameDto.getFirstName() + " " + nameDto.getLastName());
+
+                        IdentifierDto identifierDto = practitionerDto.getIdentifiers().stream().findFirst().get();
+
+                        outsideParticipant.setIdentifierType(identifierDto.getSystem());
+                        outsideParticipant.setIdentifierValue(identifierDto.getValue());
+
+                        List<PractitionerRoleDto> roleDtos = practitionerDto.getPractitionerRoles();
+
+                        List<ReferenceDto> orgRefDtos = roleDtos.stream().map(role -> {
+                            return role.getOrganization();
+                        }).collect(toList());
+
+                        outsideParticipant.setAssociatedOrganizations(orgRefDtos);
+
+                        return outsideParticipant;
+                    })
+                    .collect(toList());
+
+            return outsideParticipantList;
+
+        }
+
     }
 
     private Optional<String> retrieveOrganization(String patientId) {
