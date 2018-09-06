@@ -32,4 +32,8 @@ public interface PractitionerService {
     void assignLocationToPractitioner(String practitionerId, String organizationId, String locationId);
 
     void unassignLocationToPractitioner(String practitionerId, String organizationId, String locationId);
+
+    List<PractitionerDto> getAllPractitionersInSystem(Optional<Integer> size, String name);
+
+    List<PractitionerDto> getAllPractitionersInOrganization(String organization);
 }
