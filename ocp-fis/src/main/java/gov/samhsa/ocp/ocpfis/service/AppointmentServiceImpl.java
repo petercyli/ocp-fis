@@ -15,6 +15,7 @@ import gov.samhsa.ocp.ocpfis.domain.SearchKeyEnum;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OutsideParticipant;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import gov.samhsa.ocp.ocpfis.service.dto.PatientDto;
@@ -32,6 +33,7 @@ import gov.samhsa.ocp.ocpfis.util.FhirProfileUtil;
 import gov.samhsa.ocp.ocpfis.util.PaginationUtil;
 import gov.samhsa.ocp.ocpfis.util.ProvenanceUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.StringUtils;
 import org.hl7.fhir.dstu3.model.Appointment;
 import org.hl7.fhir.dstu3.model.AppointmentResponse;
 import org.hl7.fhir.dstu3.model.Bundle;
@@ -77,8 +79,10 @@ public class AppointmentServiceImpl implements AppointmentService {
 
     private final ProvenanceUtil provenanceUtil;
 
+    private final ParticipantService participantService;
+
     @Autowired
-    public AppointmentServiceImpl(AppointmentToAppointmentDtoConverter appointmentToAppointmentDtoConverter, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService, ProvenanceUtil provenanceUtil, CareTeamServiceImpl careTeamService) {
+    public AppointmentServiceImpl(AppointmentToAppointmentDtoConverter appointmentToAppointmentDtoConverter, IGenericClient fhirClient, FhirValidator fhirValidator, FisProperties fisProperties, PatientService patientService, ProvenanceUtil provenanceUtil, CareTeamServiceImpl careTeamService, ParticipantService participantService) {
         this.appointmentToAppointmentDtoConverter = appointmentToAppointmentDtoConverter;
         this.fhirClient = fhirClient;
         this.fhirValidator = fhirValidator;
@@ -86,6 +90,7 @@ public class AppointmentServiceImpl implements AppointmentService {
         this.patientService = patientService;
         this.provenanceUtil = provenanceUtil;
         this.careTeamService = careTeamService;
+        this.participantService = participantService;
     }
 
     @Override
@@ -561,6 +566,13 @@ public class AppointmentServiceImpl implements AppointmentService {
         return practitionerReferences;
     }
 
+    @Override
+    public List<OutsideParticipant> searchOutsideParticipants(String patient, String participantType, String name, String organization, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll) {
+        List<OutsideParticipant> outsideParticipants = participantService.retrieveOutsideParticipants(patient, participantType, name, organization, page, size, showAll);
+        outsideParticipants.forEach(outsideParticipant -> outsideParticipant.setAppointmentParticipantReferenceDto(mapToAppointmentParticipantReference(outsideParticipant, participantType)));
+        return outsideParticipants;
+    }
+
     private List<AppointmentParticipantReferenceDto> getAllPractitionersInOrganization(String organization) {
         int numberOfPractitionersPerPage = PaginationUtil.getValidPageSize(fisProperties, Optional.empty(), ResourceType.Practitioner.name());
 
@@ -604,6 +616,16 @@ public class AppointmentServiceImpl implements AppointmentService {
                     return referenceDto;
                 })
                 .collect(toList());
+    }
+
+    private AppointmentParticipantReferenceDto mapToAppointmentParticipantReference(OutsideParticipant outsideParticipant, String participantType) {
+        AppointmentParticipantReferenceDto referenceDto = new AppointmentParticipantReferenceDto();
+        referenceDto.setDisplay(outsideParticipant.getName());
+        referenceDto.setReference(StringUtils.capitalize(participantType) + "/" + outsideParticipant.getParticipantId());
+        setParticipantTypeAsAttender(referenceDto);
+        setParticipantRequiredAsInformationOnly(referenceDto);
+        setParticipantStatusAsAccepted(referenceDto);
+        return referenceDto;
     }
 
     private IQuery addStatusSearchConditions(IQuery searchQuery,

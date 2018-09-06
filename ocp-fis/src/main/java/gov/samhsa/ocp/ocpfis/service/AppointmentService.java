@@ -2,6 +2,7 @@ package gov.samhsa.ocp.ocpfis.service;
 
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OutsideParticipant;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 
@@ -36,4 +37,6 @@ public interface AppointmentService {
     List<AppointmentParticipantReferenceDto> getAllLocationReferences(String resourceType, String resourceValue);
 
     List<AppointmentParticipantReferenceDto> getPractitionersReferences(String resourceType, String resourceValue);
+
+    List<OutsideParticipant> searchOutsideParticipants(String patient, String participantType, String name, String organization, Optional<Integer> page, Optional<Integer> size, Optional<Boolean> showAll);
 }

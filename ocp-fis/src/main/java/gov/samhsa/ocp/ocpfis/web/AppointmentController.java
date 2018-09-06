@@ -3,6 +3,7 @@ package gov.samhsa.ocp.ocpfis.web;
 import gov.samhsa.ocp.ocpfis.service.AppointmentService;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentDto;
 import gov.samhsa.ocp.ocpfis.service.dto.AppointmentParticipantReferenceDto;
+import gov.samhsa.ocp.ocpfis.service.dto.OutsideParticipant;
 import gov.samhsa.ocp.ocpfis.service.dto.PageDto;
 import gov.samhsa.ocp.ocpfis.service.dto.ParticipantReferenceDto;
 import org.springframework.http.HttpStatus;
@@ -69,12 +70,12 @@ public class AppointmentController {
 
     @GetMapping("/appointments/not-declined-and-not-paginated")
     public List<AppointmentDto> getNonDeclinedAppointmentsWithNoPagination(@RequestParam Optional<List<String>> statusList,
-                                                                @RequestParam(value = "patientId") Optional<String> patientId,
-                                                                @RequestParam(value = "practitionerId") Optional<String> practitionerId,
-                                                                @RequestParam(value = "searchKey") Optional<String> searchKey,
-                                                                @RequestParam(value = "searchValue") Optional<String> searchValue,
-                                                                @RequestParam(value = "showPastAppointments") Optional<Boolean> showPastAppointments,
-                                                                @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc) {
+                                                                           @RequestParam(value = "patientId") Optional<String> patientId,
+                                                                           @RequestParam(value = "practitionerId") Optional<String> practitionerId,
+                                                                           @RequestParam(value = "searchKey") Optional<String> searchKey,
+                                                                           @RequestParam(value = "searchValue") Optional<String> searchValue,
+                                                                           @RequestParam(value = "showPastAppointments") Optional<Boolean> showPastAppointments,
+                                                                           @RequestParam(value = "sortByStartTimeAsc", defaultValue = "true") Optional<Boolean> sortByStartTimeAsc) {
         return appointmentService.getNonDeclinedAppointmentsWithNoPagination(statusList, patientId, practitionerId, searchKey, searchValue, showPastAppointments, sortByStartTimeAsc);
     }
 
@@ -133,5 +134,16 @@ public class AppointmentController {
     @GetMapping("/appointments/practitioner-references")
     public List<AppointmentParticipantReferenceDto> getPractitionersReferences(@RequestParam String resourceType, @RequestParam String resourceValue) {
         return appointmentService.getPractitionersReferences(resourceType, resourceValue);
+    }
+
+    @GetMapping("/appointments/outside-organization-participants")
+    public List<OutsideParticipant> searchOutsideParticipants(@RequestParam(value = "patient", required = false) String patient,
+                                                              @RequestParam(value = "participantType") String participantType,
+                                                              @RequestParam(value = "name") String name,
+                                                              @RequestParam(value = "organization", required = false) String organization,
+                                                              @RequestParam(value = "page", required = false) Optional<Integer> page,
+                                                              @RequestParam(value = "size", required = false) Optional<Integer> size,
+                                                              @RequestParam(value = "showAll", required = false) Optional<Boolean> showAll) {
+        return appointmentService.searchOutsideParticipants(patient, participantType, name, organization, page, size, showAll);
     }
 }
