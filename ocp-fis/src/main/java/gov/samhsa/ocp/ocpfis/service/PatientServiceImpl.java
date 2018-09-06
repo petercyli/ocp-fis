@@ -264,7 +264,8 @@ public class PatientServiceImpl implements PatientService {
         List<String> types = FhirOperationUtil.getAllBundleComponentsAsList(bundle, Optional.empty(), fhirClient, fisProperties).stream().map(at -> {
             Task task = (Task) at.getResource();
             try {
-                return task.getDefinitionReference().getDisplay();
+                String activityTypeDecAndEndDate = task.getDefinitionReference().getDisplay() + " - Due: " + DateUtil.convertDateToString(task.getExecutionPeriod().getEnd());
+                return activityTypeDecAndEndDate;
             } catch (FHIRException e) {
                 return "";
             }
@@ -274,7 +275,7 @@ public class PatientServiceImpl implements PatientService {
             patientDto.setActivityTypes(Optional.empty());
         } else {
             //Remove TO-DO task
-            types.removeIf(t -> t.equalsIgnoreCase(ActivityDefinitionConstants.TO_DO));
+            types.removeIf(t -> t.startsWith(ActivityDefinitionConstants.TO_DO));
             patientDto.setActivityTypes(Optional.of(types));
         }
 
