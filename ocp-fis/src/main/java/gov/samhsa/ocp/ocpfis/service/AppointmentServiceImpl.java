@@ -612,7 +612,7 @@ public class AppointmentServiceImpl implements AppointmentService {
                     referenceDto.setReference(ResourceType.Practitioner.toString() + "/" + practitioner.getIdElement().getIdPart());
                     setParticipantTypeAsAttender(referenceDto);
                     setParticipantRequiredAsInformationOnly(referenceDto);
-                    setParticipantStatusAsAccepted(referenceDto);
+                    setParticipantStatusAsNeedsAction(referenceDto);
                     return referenceDto;
                 })
                 .collect(toList());
@@ -624,7 +624,8 @@ public class AppointmentServiceImpl implements AppointmentService {
         referenceDto.setReference(StringUtils.capitalize(participantType) + "/" + outsideParticipant.getParticipantId());
         setParticipantTypeAsAttender(referenceDto);
         setParticipantRequiredAsInformationOnly(referenceDto);
-        setParticipantStatusAsAccepted(referenceDto);
+        //Practitioner or Related Person
+        setParticipantStatusAsNeedsAction(referenceDto);
         return referenceDto;
     }
 
